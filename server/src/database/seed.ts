@@ -301,6 +301,20 @@ export function seed() {
 
     insertMaint.run(
       crypto.randomUUID(),
+      'OT-2026-0038',
+      'PP-101',
+      'Reemplazo preventivo de sello mecánico',
+      'Desgaste regular tras 4,200 horas continuas de bombeo de pulpa abrasiva. Se programa cambio de camisas y sello.',
+      'HIGH',
+      'IN_PROGRESS',
+      'Juan Pérez',
+      'Taller Mecánico Concentradora',
+      'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=400&q=80',
+      4.0
+    );
+
+    insertMaint.run(
+      crypto.randomUUID(),
       'OT-2026-0039',
       'TL-201',
       'Fuga en empaquetadura de prensaestopas',
@@ -311,6 +325,46 @@ export function seed() {
       'Técnico Lubricador',
       'https://images.unsplash.com/photo-1504917599217-d4dc5ebe6122?auto=format&fit=crop&w=400&q=80',
       1.5
+    );
+  }
+
+  // 6.1 Pump Station Operational Sheet (Planta)
+  const sheetCount = (db.prepare('SELECT COUNT(*) as count FROM pump_station_sheets').get() as { count: number }).count;
+  if (sheetCount === 0) {
+    console.log('[Seed] Seeding pump station operational sheets...');
+    const insertSheet = db.prepare(`
+      INSERT INTO pump_station_sheets (
+        id, report_date, shift_code, operator_name, sentina_pumps_json, intermedia_pumps_json,
+        torre5_pumps_json, levels_json, main_indicators_json, pozas_sentina_json, additional_obs_json
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    const sentina = ['PU001', 'PU002', 'PU003', 'PU004', 'PU005', 'PU006', 'PU007', 'PU008'].map(tag => ({ tag, status: 'Operativo' }));
+    const intermedia = ['PU011', 'PU012', 'PU013', 'PU014', 'PU015', 'PU016'].map(tag => ({ tag, status: 'Operativo' }));
+    const torre5 = ['PU021', 'PU022', 'PU023', 'PU024', 'PU025', 'PU026', 'PU027', 'PU028', 'PU029', 'PU030'].map(tag => ({ tag, status: 'Operativo' }));
+
+    insertSheet.run(
+      crypto.randomUUID(),
+      '2026-08-27',
+      'GUARDIA_A',
+      'Operador Central',
+      JSON.stringify(sentina),
+      JSON.stringify(intermedia),
+      JSON.stringify(torre5),
+      JSON.stringify({ orca: '---', espejo: '---', captacion: '---' }),
+      JSON.stringify({
+        nivel_sentina: '---', bombeo_turno_intermedia: '---', nivel_tko02: '---', aforador: '---',
+        cortafugas: '---', ph_aforador: '---', ph_cortafugas: '---', h_embalas: '---',
+        dique_almacenamiento: '---', drenaje_dique: '---', agua_a_car: '---', anticrustante: '---',
+        torre5_cortafugas: '---', torre5_status1: 'Stand by', torre5_status2: 'Stand by'
+      }),
+      JSON.stringify([
+        { poza: 'S-QCOR.R_02', medida_ini: 'n/d', flujo_ini: 'n/d', medida_fin: 'n/d', flujo_fin: 'n/d', horas: 'n/d', acc: '---' },
+        { poza: 'S-QCOR.R_03', medida_ini: 'n/d', flujo_ini: 'n/d', medida_fin: 'n/d', flujo_fin: 'n/d', horas: 'n/d', acc: '---' }
+      ]),
+      JSON.stringify({
+        notas: '---', af_cantera: '---', escorrentia: '---', ph_c5_1: '---', ph_c5_2: '---'
+      })
     );
   }
 

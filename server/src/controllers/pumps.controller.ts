@@ -86,3 +86,142 @@ export function updatePumpStatus(req: AuthenticatedRequest, res: Response) {
     return res.status(500).json({ success: false, message: error.message });
   }
 }
+
+export function getPumpOperationalSheet(req: Request, res: Response) {
+  try {
+    const reportDate = (req.query.date as string) || '2026-08-27';
+    const shiftCode = (req.query.shift as string) || 'GUARDIA_A';
+
+    let sheet = db.prepare(`
+      SELECT * FROM pump_station_sheets 
+      WHERE report_date = ? AND shift_code = ?
+      ORDER BY created_at DESC LIMIT 1
+    `).get(reportDate, shiftCode) as any;
+
+    if (!sheet) {
+      // Fallback to latest available sheet
+      sheet = db.prepare(`
+        SELECT * FROM pump_station_sheets 
+        ORDER BY report_date DESC, created_at DESC LIMIT 1
+      `).get() as any;
+    }
+
+    if (sheet) {
+      return res.json({
+        success: true,
+        data: {
+          id: sheet.id,
+          report_date: sheet.report_date,
+          shift_code: sheet.shift_code,
+          operator_name: sheet.operator_name,
+          sentina_pumps: JSON.parse(sheet.sentina_pumps_json),
+          intermedia_pumps: JSON.parse(sheet.intermedia_pumps_json),
+          torre5_pumps: JSON.parse(sheet.torre5_pumps_json),
+          levels: JSON.parse(sheet.levels_json),
+          main_indicators: JSON.parse(sheet.main_indicators_json),
+          pozas_sentina: JSON.parse(sheet.pozas_sentina_json),
+          additional_obs: JSON.parse(sheet.additional_obs_json),
+          updated_at: sheet.updated_at
+        }
+      });
+    }
+
+    // Default template if no records yet
+    const defaultSentina = ['PU001', 'PU002', 'PU003', 'PU004', 'PU005', 'PU006', 'PU007', 'PU008'].map(tag => ({ tag, status: 'Operativo' }));
+    const defaultIntermedia = ['PU011', 'PU012', 'PU013', 'PU014', 'PU015', 'PU016'].map(tag => ({ tag, status: 'Operativo' }));
+    const defaultTorre5 = ['PU021', 'PU022', 'PU023', 'PU024', 'PU025', 'PU026', 'PU027', 'PU028', 'PU029', 'PU030'].map(tag => ({ tag, status: 'Operativo' }));
+
+    return res.json({
+      success: true,
+      data: {
+        id: 'default',
+        report_date: reportDate,
+        shift_code: shiftCode,
+        operator_name: 'Operador Central',
+        sentina_pumps: defaultSentina,
+        intermedia_pumps: defaultIntermedia,
+        torre5_pumps: defaultTorre5,
+        levels: { orca: '---', espejo: '---', captacion: '---' },
+        main_indicators: {
+          nivel_sentina: '---', bombeo_turno_intermedia: '---', nivel_tko02: '---', aforador: '---',
+          cortafugas: '---', ph_aforador: '---', ph_cortafugas: '---', h_embalas: '---',
+          dique_almacenamiento: '---', drenaje_dique: '---', agua_a_car: '---', anticrustante: '---',
+          torre5_cortafugas: '---', torre5_status1: 'Stand by', torre5_status2: 'Stand by'
+        },
+        pozas_sentina: [
+          { poza: 'S-QCOR.R_02', medida_ini: 'n/d', flujo_ini: 'n/d', medida_fin: 'n/d', flujo_fin: 'n/d', horas: 'n/d', acc: '---' },
+          { poza: 'S-QCOR.R_03', medida_ini: 'n/d', flujo_ini: 'n/d', medida_fin: 'n/d', flujo_fin: 'n/d', horas: 'n/d', acc: '---' }
+        ],
+        additional_obs: {
+          notas: '---', af_cantera: '---', escorrentia: '---', ph_c5_1: '---', ph_c5_2: '---'
+        }
+      }
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+export function savePumpOperationalSheet(req: AuthenticatedRequest, res: Response) {
+  try {
+    const {
+      report_date, shift_code, operator_name,
+      sentina_pumps, intermedia_pumps, torre5_pumps,
+      levels, main_indicators, pozas_sentina, additional_obs
+    } = req.body;
+
+    if (!report_date) {
+      return res.status(400).json({ success: false, message: 'La fecha del reporte es requerida' });
+    }
+
+    const shift = shift_code || 'GUARDIA_A';
+    const operator = req.user?.fullName || operator_name || 'Operador Central';
+
+    const existing = db.prepare(`
+      SELECT id FROM pump_station_sheets 
+      WHERE report_date = ? AND shift_code = ?
+    `).get(report_date, shift) as any;
+
+    const sentinaJson = JSON.stringify(sentina_pumps || []);
+    const intermediaJson = JSON.stringify(intermedia_pumps || []);
+    const torre5Json = JSON.stringify(torre5_pumps || []);
+    const levelsJson = JSON.stringify(levels || {});
+    const indicatorsJson = JSON.stringify(main_indicators || {});
+    const pozasJson = JSON.stringify(pozas_sentina || []);
+    const obsJson = JSON.stringify(additional_obs || {});
+
+    let sheetId = existing?.id;
+
+    if (existing) {
+      db.prepare(`
+        UPDATE pump_station_sheets
+        SET operator_name = ?, sentina_pumps_json = ?, intermedia_pumps_json = ?, torre5_pumps_json = ?,
+            levels_json = ?, main_indicators_json = ?, pozas_sentina_json = ?, additional_obs_json = ?,
+            updated_at = datetime('now')
+        WHERE id = ?
+      `).run(operator, sentinaJson, intermediaJson, torre5Json, levelsJson, indicatorsJson, pozasJson, obsJson, sheetId);
+    } else {
+      sheetId = crypto.randomUUID();
+      db.prepare(`
+        INSERT INTO pump_station_sheets (
+          id, report_date, shift_code, operator_name, sentina_pumps_json, intermedia_pumps_json,
+          torre5_pumps_json, levels_json, main_indicators_json, pozas_sentina_json, additional_obs_json
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(sheetId, report_date, shift, operator, sentinaJson, intermediaJson, torre5Json, levelsJson, indicatorsJson, pozasJson, obsJson);
+    }
+
+    logAudit(
+      req.user?.userId || null,
+      req.user?.username || 'system',
+      existing ? 'UPDATE' : 'CREATE',
+      'PUMP_STATION_SHEET',
+      sheetId,
+      `Guardado de reporte integral de bombas fecha ${report_date}`,
+      req.ip || '127.0.0.1'
+    );
+
+    return res.status(200).json({ success: true, message: 'Reporte integral de bombas guardado exitosamente', id: sheetId });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}

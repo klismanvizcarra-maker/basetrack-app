@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { login, register, getMe } from '../controllers/auth.controller.js';
 import { getDashboardMetrics } from '../controllers/dashboard.controller.js';
-import { getAllPumps, getPumpById, createPumpReport, updatePumpStatus } from '../controllers/pumps.controller.js';
+import { getAllPumps, getPumpById, createPumpReport, updatePumpStatus, getPumpOperationalSheet, savePumpOperationalSheet } from '../controllers/pumps.controller.js';
 import { getAllCyclones, createCycloneReport, getStationSamples, createStationSample, deleteStationSample } from '../controllers/cyclones.controller.js';
 import { getAllTailings, createTailingsReport } from '../controllers/tailings.controller.js';
 import { getAllShiftHandovers, createShiftHandover, acceptShiftHandover } from '../controllers/shift.controller.js';
@@ -29,7 +29,9 @@ apiRouter.get('/auth/me', authenticateToken, getMe);
 // 3. Dashboard Routes
 apiRouter.get('/dashboard/metrics', getDashboardMetrics);
 
-// 4. Pumps Telemetry Routes
+// 4. Pumps Telemetry & Operational Sheet Routes
+apiRouter.get('/pumps/operational-sheet', getPumpOperationalSheet);
+apiRouter.post('/pumps/operational-sheet', authenticateToken, savePumpOperationalSheet);
 apiRouter.get('/pumps', getAllPumps);
 apiRouter.get('/pumps/:id', getPumpById);
 apiRouter.post('/pumps', authenticateToken, createPumpReport);

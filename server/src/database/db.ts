@@ -70,6 +70,23 @@ export function initDatabase() {
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
+    -- Pump Station Operational Sheets (Secciones A, B, C, D, E)
+    CREATE TABLE IF NOT EXISTS pump_station_sheets (
+      id TEXT PRIMARY KEY,
+      report_date TEXT NOT NULL,
+      shift_code TEXT NOT NULL DEFAULT 'GUARDIA_A',
+      operator_name TEXT NOT NULL DEFAULT 'Operador Central',
+      sentina_pumps_json TEXT NOT NULL,
+      intermedia_pumps_json TEXT NOT NULL,
+      torre5_pumps_json TEXT NOT NULL,
+      levels_json TEXT NOT NULL,
+      main_indicators_json TEXT NOT NULL,
+      pozas_sentina_json TEXT NOT NULL,
+      additional_obs_json TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
     -- Cyclone Clusters Reports
     CREATE TABLE IF NOT EXISTS cyclone_reports (
       id TEXT PRIMARY KEY,

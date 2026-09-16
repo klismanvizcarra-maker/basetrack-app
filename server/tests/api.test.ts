@@ -168,3 +168,41 @@ test('8. POST & DELETE /api/cyclones/station-samples should register and delete 
   assert.strictEqual(delRes.status, 200);
 });
 
+test('9. GET & POST /api/pumps/operational-sheet should fetch and save operational report', async () => {
+  const getRes = await fetch(`${baseUrl}/pumps/operational-sheet?date=2026-08-27&shift=GUARDIA_A`);
+  assert.strictEqual(getRes.status, 200);
+  const getJson = await getRes.json() as any;
+  assert.strictEqual(getJson.success, true);
+  assert.strictEqual(getJson.data.sentina_pumps.length, 8);
+  assert.strictEqual(getJson.data.intermedia_pumps.length, 6);
+  assert.strictEqual(getJson.data.torre5_pumps.length, 10);
+
+  // Modificar y guardar
+  const updatedSentina = [...getJson.data.sentina_pumps];
+  updatedSentina[0].status = 'Stand by';
+
+  const postRes = await fetch(`${baseUrl}/pumps/operational-sheet`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${authToken}`
+    },
+    body: JSON.stringify({
+      report_date: '2026-08-27',
+      shift_code: 'GUARDIA_A',
+      operator_name: 'Supervisor Turno Test',
+      sentina_pumps: updatedSentina,
+      intermedia_pumps: getJson.data.intermedia_pumps,
+      torre5_pumps: getJson.data.torre5_pumps,
+      levels: getJson.data.levels,
+      main_indicators: getJson.data.main_indicators,
+      pozas_sentina: getJson.data.pozas_sentina,
+      additional_obs: getJson.data.additional_obs
+    })
+  });
+
+  assert.strictEqual(postRes.status, 200);
+  const postJson = await postRes.json() as any;
+  assert.strictEqual(postJson.success, true);
+});
+
