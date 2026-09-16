@@ -156,6 +156,49 @@ export function seed() {
     );
   }
 
+  // 4.1 Cyclone Station Samples (Granulometry & Metallurgical Balance)
+  const stationSamplesCount = (db.prepare('SELECT COUNT(*) as count FROM cyclone_station_samples').get() as { count: number }).count;
+  if (stationSamplesCount === 0) {
+    console.log('[Seed] Seeding cyclone station samples (2da Estación Ciclones)...');
+    const insertSample = db.prepare(`
+      INSERT INTO cyclone_station_samples (
+        id, station, sample_time, battery_tag,
+        solids_feed, solids_of, solids_uf,
+        mesh200_feed, mesh200_of, mesh200_uf,
+        shift_code, date
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    const samples = [
+      { time: '20:00', battery: 'CY3', s_feed: 45.30, s_of: 28.60, s_uf: 69.40, m_feed: 54.60, m_of: 22.40, m_uf: 23.40 },
+      { time: '20:00', battery: 'CY4', s_feed: 43.20, s_of: 30.10, s_uf: 68.60, m_feed: 54.10, m_of: 19.80, m_uf: 23.60 },
+      { time: '23:00', battery: 'CY3', s_feed: 48.60, s_of: 32.40, s_uf: 72.10, m_feed: 58.20, m_of: 24.10, m_uf: 25.80 },
+      { time: '23:00', battery: 'CY4', s_feed: 47.10, s_of: 31.80, s_uf: 71.50, m_feed: 57.40, m_of: 23.50, m_uf: 25.20 },
+      { time: '02:00', battery: 'CY3', s_feed: 42.10, s_of: 27.20, s_uf: 67.80, m_feed: 51.50, m_of: 20.80, m_uf: 22.10 },
+      { time: '02:00', battery: 'CY4', s_feed: 41.50, s_of: 26.80, s_uf: 67.20, m_feed: 50.90, m_of: 20.10, m_uf: 21.80 },
+      { time: '05:00', battery: 'CY3', s_feed: 46.80, s_of: 29.80, s_uf: 70.80, m_feed: 56.10, m_of: 22.90, m_uf: 24.30 },
+      { time: '05:00', battery: 'CY4', s_feed: 45.90, s_of: 29.20, s_uf: 70.10, m_feed: 55.40, m_of: 22.20, m_uf: 23.90 }
+    ];
+
+    const today = new Date().toISOString().split('T')[0];
+    for (const s of samples) {
+      insertSample.run(
+        crypto.randomUUID(),
+        '2DA ESTACIÓN CICLONES',
+        s.time,
+        s.battery,
+        s.s_feed,
+        s.s_of,
+        s.s_uf,
+        s.m_feed,
+        s.m_of,
+        s.m_uf,
+        'GUARDIA_A',
+        today
+      );
+    }
+  }
+
   // 5. Tailings Reports
   const tailingsCount = (db.prepare('SELECT COUNT(*) as count FROM tailings_reports').get() as { count: number }).count;
   if (tailingsCount === 0) {

@@ -41,6 +41,7 @@
 | `TASK-003` | Frontend Features & Módulos Operativos | Frontend Agent | `TASK-001`, `TASK-002` | `DONE` | 0/3 | Dashboard, Shift-Handover, Pumps, Cyclones, Tailings, Maintenance, Admin conectados |
 | `TASK-004` | QA, Pruebas Automatizadas & Auditoría OWASP | QA & Security Agent | `TASK-001`, `TASK-003` | `DONE` | 0/3 | Tests de endpoints, verificación de compilación, auditoría OWASP y cero secretos expuestos |
 | `TASK-005` | Despliegue en Vercel & Pipeline CI/CD | Orchestrator | `TASK-002`, `TASK-003` | `DONE` | 0/3 | Repositorio GitHub conectado, vercel.json configurado y sincronización continua habilitada |
+| `TASK-006` | Integración de Planilla Metalúrgica de 2da Estación de Ciclones | Frontend & Backend Agent | `TASK-001`, `TASK-003` | `DONE` | 0/3 | Tabla metalúrgica con % sólidos y % malla 200, réplica visual de plantilla, cálculo de promedios, persistencia y tests |
 
 ---
 
@@ -52,6 +53,8 @@
 | 2026-09-16 | Orchestrator | Backend Agent | `TASK-001` | Asignación de diseño de base de datos, migraciones y APIs REST |
 | 2026-09-16 | Backend Agent | Frontend Agent | `TASK-001` | Entrega de APIs REST, SQLite nativo, JWT RBAC y datos de prueba |
 | 2026-09-16 | Frontend Agent | QA & Security Agent | `TASK-002/003` | Entrega de UI Angular, diseño CRAVEAT y módulos funcionales |
+| 2026-09-16 | Orchestrator / Multi-Agent | QA & Security Agent | `TASK-006` | Entrega de tabla operativa 2da Estación Ciclones, endpoints, tests y UI de alta fidelidad |
+
 
 ---
 

@@ -88,6 +88,23 @@ export function initDatabase() {
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
+    -- Cyclone Station Samples (Granulometry & Metallurgical Balance)
+    CREATE TABLE IF NOT EXISTS cyclone_station_samples (
+      id TEXT PRIMARY KEY,
+      station TEXT NOT NULL DEFAULT '2DA ESTACIÓN CICLONES',
+      sample_time TEXT NOT NULL,
+      battery_tag TEXT NOT NULL,
+      solids_feed REAL NOT NULL DEFAULT 0,
+      solids_of REAL NOT NULL DEFAULT 0,
+      solids_uf REAL NOT NULL DEFAULT 0,
+      mesh200_feed REAL NOT NULL DEFAULT 0,
+      mesh200_of REAL NOT NULL DEFAULT 0,
+      mesh200_uf REAL NOT NULL DEFAULT 0,
+      shift_code TEXT NOT NULL DEFAULT 'GUARDIA_A',
+      date TEXT NOT NULL DEFAULT (date('now')),
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
     -- Tailings & Dam Reports (Relaves)
     CREATE TABLE IF NOT EXISTS tailings_reports (
       id TEXT PRIMARY KEY,

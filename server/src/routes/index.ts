@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { login, register, getMe } from '../controllers/auth.controller.js';
 import { getDashboardMetrics } from '../controllers/dashboard.controller.js';
 import { getAllPumps, getPumpById, createPumpReport, updatePumpStatus } from '../controllers/pumps.controller.js';
-import { getAllCyclones, createCycloneReport } from '../controllers/cyclones.controller.js';
+import { getAllCyclones, createCycloneReport, getStationSamples, createStationSample, deleteStationSample } from '../controllers/cyclones.controller.js';
 import { getAllTailings, createTailingsReport } from '../controllers/tailings.controller.js';
 import { getAllShiftHandovers, createShiftHandover, acceptShiftHandover } from '../controllers/shift.controller.js';
 import { getAllMaintenanceRequests, createMaintenanceRequest, updateMaintenanceStatus } from '../controllers/maintenance.controller.js';
@@ -38,6 +38,9 @@ apiRouter.patch('/pumps/:id/status', authenticateToken, updatePumpStatus);
 // 5. Cyclones Routes
 apiRouter.get('/cyclones', getAllCyclones);
 apiRouter.post('/cyclones', authenticateToken, createCycloneReport);
+apiRouter.get('/cyclones/station-samples', getStationSamples);
+apiRouter.post('/cyclones/station-samples', authenticateToken, createStationSample);
+apiRouter.delete('/cyclones/station-samples/:id', authenticateToken, deleteStationSample);
 
 // 6. Tailings & Dam Routes
 apiRouter.get('/tailings', getAllTailings);

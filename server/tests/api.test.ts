@@ -118,3 +118,53 @@ test('6. POST /api/maintenance should create ticket with photo', async () => {
   const data = await res.json() as any;
   assert.ok(data.ticketNumber.startsWith('OT-'));
 });
+
+test('7. GET /api/cyclones/station-samples should return 2da Estación Ciclones samples and accurate averages', async () => {
+  // Asegurar limpieza de datos temporales de prueba
+  await fetch(`${baseUrl}/cyclones/station-samples?station=2DA%20ESTACI%C3%93N%20CICLONES`);
+  const res = await fetch(`${baseUrl}/cyclones/station-samples?station=2DA%20ESTACI%C3%93N%20CICLONES`);
+  assert.strictEqual(res.status, 200);
+  const json = await res.json() as any;
+  assert.strictEqual(json.success, true);
+  assert.strictEqual(json.station, '2DA ESTACIÓN CICLONES');
+  assert.strictEqual(json.count >= 8, true);
+  // Verificar cálculos en muestras iniciales
+  assert.ok(json.generalAverages.solids_uf > 0);
+  assert.ok(json.generalAverages.mesh200_uf > 0);
+  assert.ok(json.keyAverages.uf_solids > 0);
+  assert.ok(json.keyAverages.uf_mesh200 > 0);
+});
+
+test('8. POST & DELETE /api/cyclones/station-samples should register and delete sample', async () => {
+  const res = await fetch(`${baseUrl}/cyclones/station-samples`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${authToken}`
+    },
+    body: JSON.stringify({
+      station: '2DA ESTACIÓN CICLONES',
+      sample_time: '06:00',
+      battery_tag: 'CY3',
+      solids_feed: 46.2,
+      solids_of: 29.5,
+      solids_uf: 70.2,
+      mesh200_feed: 55.0,
+      mesh200_of: 22.0,
+      mesh200_uf: 24.1
+    })
+  });
+
+  assert.strictEqual(res.status, 201);
+  const data = await res.json() as any;
+  assert.strictEqual(data.success, true);
+  assert.ok(data.id);
+
+  // Limpiar registro de prueba
+  const delRes = await fetch(`${baseUrl}/cyclones/station-samples/${data.id}`, {
+    method: 'DELETE',
+    headers: { 'Authorization': `Bearer ${authToken}` }
+  });
+  assert.strictEqual(delRes.status, 200);
+});
+
