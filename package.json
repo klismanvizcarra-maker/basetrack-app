@@ -12,7 +12,8 @@
     "backend:seed": "npm --prefix server run seed",
     "backend:test": "npm --prefix server run test",
     "backend:dev": "npm --prefix server run dev",
-    "deploy": "vercel --prod"
+    "deploy": "vercel --prod",
+    "sync": "git add . && git commit -m \"Actualizacion automatica BASETRACK\" && git push"
   },
   "private": true,
   "dependencies": {
