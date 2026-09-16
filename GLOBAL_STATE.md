@@ -40,6 +40,7 @@
 | `TASK-002` | Frontend Core, Layout & Shared UI System | Frontend Agent | `TASK-000` | `DONE` | 0/3 | Estructura `src/app/`, diseño dark-violet CRAVEAT, layout, sidebar, header y shared UI |
 | `TASK-003` | Frontend Features & Módulos Operativos | Frontend Agent | `TASK-001`, `TASK-002` | `DONE` | 0/3 | Dashboard, Shift-Handover, Pumps, Cyclones, Tailings, Maintenance, Admin conectados |
 | `TASK-004` | QA, Pruebas Automatizadas & Auditoría OWASP | QA & Security Agent | `TASK-001`, `TASK-003` | `DONE` | 0/3 | Tests de endpoints, verificación de compilación, auditoría OWASP y cero secretos expuestos |
+| `TASK-005` | Despliegue en Vercel & Pipeline CI/CD | Orchestrator | `TASK-002`, `TASK-003` | `DONE` | 0/3 | Repositorio GitHub conectado, vercel.json configurado y sincronización continua habilitada |
 
 ---
 
