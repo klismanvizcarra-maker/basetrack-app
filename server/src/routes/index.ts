@@ -1,0 +1,60 @@
+import { Router } from 'express';
+import { login, register, getMe } from '../controllers/auth.controller.js';
+import { getDashboardMetrics } from '../controllers/dashboard.controller.js';
+import { getAllPumps, getPumpById, createPumpReport, updatePumpStatus } from '../controllers/pumps.controller.js';
+import { getAllCyclones, createCycloneReport } from '../controllers/cyclones.controller.js';
+import { getAllTailings, createTailingsReport } from '../controllers/tailings.controller.js';
+import { getAllShiftHandovers, createShiftHandover, acceptShiftHandover } from '../controllers/shift.controller.js';
+import { getAllMaintenanceRequests, createMaintenanceRequest, updateMaintenanceStatus } from '../controllers/maintenance.controller.js';
+import { getAllUsers, createUserByAdmin, getAuditLogs, getDatabaseBackup } from '../controllers/admin.controller.js';
+import { authenticateToken, requireRoles } from '../middlewares/auth.middleware.js';
+
+export const apiRouter = Router();
+
+// 1. Health check
+apiRouter.get('/health', (req, res) => {
+  res.json({
+    status: 'online',
+    timestamp: new Date().toISOString(),
+    service: 'BASETRACK Industrial Operations API',
+    database: 'SQLite (native node:sqlite) WAL mode'
+  });
+});
+
+// 2. Auth Routes
+apiRouter.post('/auth/login', login);
+apiRouter.post('/auth/register', register);
+apiRouter.get('/auth/me', authenticateToken, getMe);
+
+// 3. Dashboard Routes
+apiRouter.get('/dashboard/metrics', getDashboardMetrics);
+
+// 4. Pumps Telemetry Routes
+apiRouter.get('/pumps', getAllPumps);
+apiRouter.get('/pumps/:id', getPumpById);
+apiRouter.post('/pumps', authenticateToken, createPumpReport);
+apiRouter.patch('/pumps/:id/status', authenticateToken, updatePumpStatus);
+
+// 5. Cyclones Routes
+apiRouter.get('/cyclones', getAllCyclones);
+apiRouter.post('/cyclones', authenticateToken, createCycloneReport);
+
+// 6. Tailings & Dam Routes
+apiRouter.get('/tailings', getAllTailings);
+apiRouter.post('/tailings', authenticateToken, createTailingsReport);
+
+// 7. Shift Handover Routes
+apiRouter.get('/shift-handover', getAllShiftHandovers);
+apiRouter.post('/shift-handover', authenticateToken, createShiftHandover);
+apiRouter.patch('/shift-handover/:id/accept', authenticateToken, acceptShiftHandover);
+
+// 8. Maintenance Routes
+apiRouter.get('/maintenance', getAllMaintenanceRequests);
+apiRouter.post('/maintenance', authenticateToken, createMaintenanceRequest);
+apiRouter.patch('/maintenance/:id/status', authenticateToken, updateMaintenanceStatus);
+
+// 9. Admin & Backups
+apiRouter.get('/admin/users', authenticateToken, requireRoles('ADMIN', 'SUPERVISOR'), getAllUsers);
+apiRouter.post('/admin/users', authenticateToken, requireRoles('ADMIN'), createUserByAdmin);
+apiRouter.get('/admin/audit-logs', authenticateToken, requireRoles('ADMIN'), getAuditLogs);
+apiRouter.get('/admin/backup', authenticateToken, requireRoles('ADMIN'), getDatabaseBackup);

@@ -1,0 +1,36 @@
+{
+  "name": "basetrack-app",
+  "version": "1.0.0",
+  "description": "BASETRACK APP - Industrial & Mining Operations Platform",
+  "scripts": {
+    "ng": "ng",
+    "start": "ng serve",
+    "build": "ng build",
+    "watch": "ng build --watch --configuration development",
+    "test": "ng test",
+    "backend:install": "npm --prefix server install",
+    "backend:seed": "npm --prefix server run seed",
+    "backend:test": "npm --prefix server run test",
+    "backend:dev": "npm --prefix server run dev",
+    "deploy": "vercel --prod"
+  },
+  "private": true,
+  "dependencies": {
+    "@angular/common": "^22.1.0",
+    "@angular/compiler": "^22.1.0",
+    "@angular/core": "^22.1.0",
+    "@angular/forms": "^22.1.0",
+    "@angular/platform-browser": "^22.1.0",
+    "@angular/router": "^22.1.0",
+    "rxjs": "~7.8.0",
+    "tslib": "^2.3.0",
+    "zone.js": "^0.16.3"
+  },
+  "devDependencies": {
+    "@angular/build": "^22.1.8",
+    "@angular/cli": "^22.1.8",
+    "@angular/compiler-cli": "^22.1.0",
+    "prettier": "^3.5.0",
+    "typescript": "~6.0.2"
+  }
+}

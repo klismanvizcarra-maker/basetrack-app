@@ -1,0 +1,64 @@
+{
+  "taskId": "TASK-002 / TASK-003",
+  "fromAgent": "frontend-agent",
+  "toAgent": "qa-security-agent",
+  "timestamp": "2026-09-16T15:35:00Z",
+  "iteration": 1,
+  "inputsReceived": [
+    "Estructura exacta de carpetas src/app/ (core, layout, features, shared, app.routes, app.config)",
+    "Referencia visual CRAVEAT con paleta dark-violet (#151221, #25203b, acentos violeta/magenta/cian)",
+    "Contratos de API REST y SQLite nativo entregados por Backend Agent"
+  ],
+  "outputsGenerated": [
+    "src/styles.scss",
+    "src/index.html",
+    "src/app/core/auth/auth.models.ts",
+    "src/app/core/auth/auth.service.ts",
+    "src/app/core/auth/auth.guard.ts",
+    "src/app/core/auth/auth.interceptor.ts",
+    "src/app/core/offline/offline-sync.service.ts",
+    "src/app/shared/utils/mining-units.util.ts",
+    "src/app/shared/ui/stat-card.component.ts",
+    "src/app/shared/ui/circular-gauge.component.ts",
+    "src/app/shared/ui/distribution-donut.component.ts",
+    "src/app/shared/ui/weekly-bar-chart.component.ts",
+    "src/app/shared/ui/wave-area-chart.component.ts",
+    "src/app/shared/ui/modal.component.ts",
+    "src/app/layout/sidebar/sidebar.component.ts",
+    "src/app/layout/header/header.component.ts",
+    "src/app/layout/main-layout/main-layout.component.ts",
+    "src/app/features/auth/login.component.ts",
+    "src/app/features/dashboard/dashboard.component.ts",
+    "src/app/features/shift-handover/shift-handover.component.ts",
+    "src/app/features/pumps/pumps.component.ts",
+    "src/app/features/cyclones/cyclones.component.ts",
+    "src/app/features/tailings/tailings.component.ts",
+    "src/app/features/maintenance/maintenance.component.ts",
+    "src/app/features/admin/admin.component.ts",
+    "src/app/app.routes.ts",
+    "src/app/app.config.ts"
+  ],
+  "acceptanceCriteriaCheck": [
+    {
+      "criterion": "Estructura idéntica a la solicitada por el usuario",
+      "satisfied": true,
+      "evidence": "Estructura en src/app/ con core, layout, features, shared, app.routes.ts y app.config.ts"
+    },
+    {
+      "criterion": "Diseño visual dark-violet idéntico a CRAVEAT",
+      "satisfied": true,
+      "evidence": "Fondo índigo/violeta profundo, tarjetas de 24px, medidores donut, barras comparativas, onda de tonelaje y badges circulares luminosos"
+    },
+    {
+      "criterion": "Integración con Backend y soporte Offline PWA",
+      "satisfied": true,
+      "evidence": "Consumo de HttpClient con fallback reactivo y encolado en offline-sync.service.ts"
+    },
+    {
+      "criterion": "Compilación limpia en Angular",
+      "satisfied": true,
+      "evidence": "npm run build completado en 6s con 0 errores y lazy chunks generados para cada módulo"
+    }
+  ],
+  "notesForNextAgent": "QA & Security Agent debe verificar la ejecución en vivo del dev server, probar la navegación visual con el navegador, correr la suite de tests y verificar ausencia de vulnerabilidades y secretos expuestos."
+}

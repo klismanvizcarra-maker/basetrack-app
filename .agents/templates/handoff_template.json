@@ -1,0 +1,21 @@
+{
+  "taskId": "TASK-000",
+  "fromAgent": "frontend-agent | backend-agent | qa-security-agent | orchestrator",
+  "toAgent": "frontend-agent | backend-agent | qa-security-agent | orchestrator",
+  "timestamp": "YYYY-MM-DDTHH:MM:SSZ",
+  "iteration": 1,
+  "inputsReceived": [
+    "Lista de insumos consumidos para esta tarea"
+  ],
+  "outputsGenerated": [
+    "Rutas o nombres de los artefactos generados"
+  ],
+  "acceptanceCriteriaCheck": [
+    {
+      "criterion": "Descripción del criterio",
+      "satisfied": true,
+      "evidence": "Ubicación del test o captura de verificación"
+    }
+  ],
+  "notesForNextAgent": "Indicaciones técnicas o consideraciones para la siguiente fase"
+}
