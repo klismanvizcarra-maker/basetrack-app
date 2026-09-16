@@ -158,8 +158,8 @@ export function seed() {
 
   // 4.1 Cyclone Station Samples (Granulometry & Metallurgical Balance)
   const stationSamplesCount = (db.prepare('SELECT COUNT(*) as count FROM cyclone_station_samples').get() as { count: number }).count;
-  if (stationSamplesCount === 0) {
-    console.log('[Seed] Seeding cyclone station samples (2da Estación Ciclones)...');
+  if (stationSamplesCount <= 8) {
+    console.log('[Seed] Seeding complete cyclone station samples (1ra & 2da Estación Ciclones)...');
     const insertSample = db.prepare(`
       INSERT INTO cyclone_station_samples (
         id, station, sample_time, battery_tag,
@@ -169,7 +169,8 @@ export function seed() {
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
-    const samples = [
+    // 2DA ESTACION - GUARDIA A (Valores de la imagen del usuario)
+    const samples2daA = [
       { time: '20:00', battery: 'CY3', s_feed: 45.30, s_of: 28.60, s_uf: 69.40, m_feed: 54.60, m_of: 22.40, m_uf: 23.40 },
       { time: '20:00', battery: 'CY4', s_feed: 43.20, s_of: 30.10, s_uf: 68.60, m_feed: 54.10, m_of: 19.80, m_uf: 23.60 },
       { time: '23:00', battery: 'CY3', s_feed: 48.60, s_of: 32.40, s_uf: 72.10, m_feed: 58.20, m_of: 24.10, m_uf: 25.80 },
@@ -180,22 +181,44 @@ export function seed() {
       { time: '05:00', battery: 'CY4', s_feed: 45.90, s_of: 29.20, s_uf: 70.10, m_feed: 55.40, m_of: 22.20, m_uf: 23.90 }
     ];
 
+    // 2DA ESTACION - GUARDIA B (Turno Día)
+    const samples2daB = [
+      { time: '08:00', battery: 'CY3', s_feed: 46.10, s_of: 29.10, s_uf: 70.20, m_feed: 55.20, m_of: 22.80, m_uf: 24.10 },
+      { time: '08:00', battery: 'CY4', s_feed: 44.50, s_of: 28.90, s_uf: 69.80, m_feed: 54.80, m_of: 21.50, m_uf: 23.90 },
+      { time: '11:00', battery: 'CY3', s_feed: 47.30, s_of: 30.50, s_uf: 71.40, m_feed: 56.70, m_of: 23.20, m_uf: 24.80 },
+      { time: '11:00', battery: 'CY4', s_feed: 46.80, s_of: 30.10, s_uf: 70.90, m_feed: 55.90, m_of: 22.70, m_uf: 24.40 },
+      { time: '14:00', battery: 'CY3', s_feed: 45.00, s_of: 28.40, s_uf: 69.10, m_feed: 53.90, m_of: 21.40, m_uf: 23.50 },
+      { time: '14:00', battery: 'CY4', s_feed: 43.80, s_of: 27.90, s_uf: 68.50, m_feed: 52.80, m_of: 20.90, m_uf: 23.00 },
+      { time: '17:00', battery: 'CY3', s_feed: 47.90, s_of: 31.20, s_uf: 71.80, m_feed: 57.10, m_of: 23.80, m_uf: 25.10 },
+      { time: '17:00', battery: 'CY4', s_feed: 46.50, s_of: 30.40, s_uf: 70.60, m_feed: 56.30, m_of: 23.10, m_uf: 24.50 }
+    ];
+
+    // 1RA ESTACION - CY1 / CY2
+    const samples1ra = [
+      { time: '20:00', battery: 'CY1', s_feed: 44.80, s_of: 27.90, s_uf: 68.90, m_feed: 53.80, m_of: 21.90, m_uf: 23.10 },
+      { time: '20:00', battery: 'CY2', s_feed: 43.90, s_of: 28.50, s_uf: 68.20, m_feed: 53.20, m_of: 20.40, m_uf: 23.00 },
+      { time: '23:00', battery: 'CY1', s_feed: 47.50, s_of: 31.00, s_uf: 71.20, m_feed: 57.00, m_of: 23.50, m_uf: 25.10 },
+      { time: '23:00', battery: 'CY2', s_feed: 46.20, s_of: 30.80, s_uf: 70.80, m_feed: 56.40, m_of: 22.90, m_uf: 24.70 },
+      { time: '02:00', battery: 'CY1', s_feed: 41.80, s_of: 26.50, s_uf: 67.20, m_feed: 50.80, m_of: 20.20, m_uf: 21.90 },
+      { time: '02:00', battery: 'CY2', s_feed: 41.00, s_of: 26.10, s_uf: 66.80, m_feed: 50.10, m_of: 19.80, m_uf: 21.50 },
+      { time: '05:00', battery: 'CY1', s_feed: 45.90, s_of: 29.00, s_uf: 70.10, m_feed: 55.40, m_of: 22.30, m_uf: 23.80 },
+      { time: '05:00', battery: 'CY2', s_feed: 45.10, s_of: 28.70, s_uf: 69.50, m_feed: 54.90, m_of: 21.80, m_uf: 23.40 }
+    ];
+
     const today = new Date().toISOString().split('T')[0];
-    for (const s of samples) {
-      insertSample.run(
-        crypto.randomUUID(),
-        '2DA ESTACIÓN CICLONES',
-        s.time,
-        s.battery,
-        s.s_feed,
-        s.s_of,
-        s.s_uf,
-        s.m_feed,
-        s.m_of,
-        s.m_uf,
-        'GUARDIA_A',
-        today
-      );
+    // Eliminar previos incompletos si hay menos de 24
+    if (stationSamplesCount > 0 && stationSamplesCount <= 8) {
+      db.prepare('DELETE FROM cyclone_station_samples').run();
+    }
+
+    for (const s of samples2daA) {
+      insertSample.run(crypto.randomUUID(), '2DA ESTACIÓN CICLONES', s.time, s.battery, s.s_feed, s.s_of, s.s_uf, s.m_feed, s.m_of, s.m_uf, 'GUARDIA_A', today);
+    }
+    for (const s of samples2daB) {
+      insertSample.run(crypto.randomUUID(), '2DA ESTACIÓN CICLONES', s.time, s.battery, s.s_feed, s.s_of, s.s_uf, s.m_feed, s.m_of, s.m_uf, 'GUARDIA_B', today);
+    }
+    for (const s of samples1ra) {
+      insertSample.run(crypto.randomUUID(), '1RA ESTACIÓN CICLONES', s.time, s.battery, s.s_feed, s.s_of, s.s_uf, s.m_feed, s.m_of, s.m_uf, 'GUARDIA_A', today);
     }
   }
 
