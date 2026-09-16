@@ -60,32 +60,32 @@ export interface GeneralAverages {
     <div class="cyclones-page animate-fade-in">
       <!-- Top Action Bar -->
       <div class="page-top-bar">
-        <div>
+        <div class="top-text">
           <h2>Baterías de Ciclones (Cyclopac & Estaciones)</h2>
           <p class="section-sub">Control granulométrico de malla -200, balance de sólidos y presión manifold</p>
         </div>
         <div class="top-actions">
-          <button class="btn btn-secondary" (click)="exportCsv()">
+          <button class="btn btn-secondary action-btn" (click)="exportCsv()" title="Exportar reporte en CSV">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
               <polyline points="7 10 12 15 17 10"></polyline>
               <line x1="12" y1="15" x2="12" y2="3"></line>
             </svg>
-            Exportar CSV
+            <span class="btn-text">Exportar CSV</span>
           </button>
-          <button class="btn btn-emerald" (click)="openSampleModal()">
+          <button class="btn btn-emerald action-btn" (click)="openSampleModal()">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
               <line x1="12" y1="5" x2="12" y2="19"></line>
               <line x1="5" y1="12" x2="19" y2="12"></line>
             </svg>
-            Registrar Muestreo de Estación
+            <span class="btn-text">Registrar Muestreo</span>
           </button>
-          <button class="btn btn-primary" (click)="isCreateModalOpen = true">
+          <button class="btn btn-primary action-btn" (click)="isCreateModalOpen = true">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
               <line x1="12" y1="5" x2="12" y2="19"></line>
               <line x1="5" y1="12" x2="19" y2="12"></line>
             </svg>
-            Inspección Nido Cyclopac
+            <span class="btn-text">Nido Cyclopac</span>
           </button>
         </div>
       </div>
@@ -99,7 +99,7 @@ export interface GeneralAverages {
             (click)="selectStation('2DA ESTACIÓN CICLONES')"
           >
             <span class="dot-indicator"></span>
-            2DA ESTACIÓN CICLONES (CY3 / CY4)
+            2DA ESTACIÓN (CY3/4)
           </button>
           <button
             class="station-tab-btn"
@@ -107,41 +107,109 @@ export interface GeneralAverages {
             (click)="selectStation('1RA ESTACIÓN CICLONES')"
           >
             <span class="dot-indicator"></span>
-            1RA ESTACIÓN CICLONES (CY1 / CY2)
+            1RA ESTACIÓN (CY1/2)
           </button>
         </div>
 
-        <div class="station-filters">
-          <div class="filter-item">
-            <label>Turno:</label>
-            <select [(ngModel)]="selectedShift" (change)="filterSamples()">
-              <option value="ALL">Todos los turnos</option>
-              <option value="GUARDIA_A">Guardia A (Noche)</option>
-              <option value="GUARDIA_B">Guardia B (Día)</option>
-              <option value="GUARDIA_C">Guardia C</option>
-            </select>
+        <div class="controls-right-group">
+          <!-- View Switcher (Planilla vs Tarjetas Móviles) -->
+          <div class="view-mode-toggle" title="Alternar formato de visualización">
+            <button
+              type="button"
+              class="view-toggle-btn"
+              [class.active]="viewMode === 'TABLE'"
+              (click)="viewMode = 'TABLE'"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+                <line x1="3" y1="9" x2="21" y2="9"></line>
+                <line x1="3" y1="15" x2="21" y2="15"></line>
+                <line x1="9" y1="3" x2="9" y2="21"></line>
+              </svg>
+              <span>Tabla</span>
+            </button>
+            <button
+              type="button"
+              class="view-toggle-btn"
+              [class.active]="viewMode === 'CARDS'"
+              (click)="viewMode = 'CARDS'"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <rect x="5" y="2" width="14" height="20" rx="2"></rect>
+                <line x1="12" y1="18" x2="12.01" y2="18"></line>
+              </svg>
+              <span>Móvil</span>
+            </button>
           </div>
-          <div class="filter-item">
-            <label>Fecha:</label>
-            <input type="date" [(ngModel)]="filterDate" (change)="filterSamples()" />
+
+          <div class="station-filters">
+            <div class="filter-item">
+              <label>Turno:</label>
+              <select [(ngModel)]="selectedShift" (change)="filterSamples()">
+                <option value="ALL">Todos</option>
+                <option value="GUARDIA_A">Guardia A (Noche)</option>
+                <option value="GUARDIA_B">Guardia B (Día)</option>
+                <option value="GUARDIA_C">Guardia C</option>
+              </select>
+            </div>
+            <div class="filter-item">
+              <label>Fecha:</label>
+              <input type="date" [(ngModel)]="filterDate" (change)="filterSamples()" />
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- METALLURGICAL STATION TABLE (Exact replica of user's specification) -->
-      <div class="metallurgical-sheet-wrapper">
+      <!-- Promedios Clave Cards (Mobile First & Visual Hero) -->
+      <div class="promedios-hero-grid">
+        <div class="promedio-kpi-card glass-panel">
+          <div class="kpi-icon-wrap emerald">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3">
+              <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+            </svg>
+          </div>
+          <div class="kpi-body">
+            <span class="kpi-label">PROMEDIO UF SÓLIDOS</span>
+            <div class="kpi-val-row">
+              <span class="kpi-val emerald-val">{{ generalAverages.solids_uf | number:'1.2-2' }}%</span>
+              <span class="kpi-target-badge">Objetivo: 68 - 72%</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="promedio-kpi-card glass-panel">
+          <div class="kpi-icon-wrap cyan">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="2" y1="12" x2="22" y2="12"></line>
+              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+            </svg>
+          </div>
+          <div class="kpi-body">
+            <span class="kpi-label">PROMEDIO UF MALLA -200</span>
+            <div class="kpi-val-row">
+              <span class="kpi-val cyan-val">{{ generalAverages.mesh200_uf | number:'1.2-2' }}%</span>
+              <span class="kpi-target-badge">Objetivo: 22 - 25%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- VIEW 1: METALLURGICAL STATION TABLE (Planilla Industrial de Planta) -->
+      <div *ngIf="viewMode === 'TABLE'" class="metallurgical-sheet-wrapper animate-fade-in">
         <!-- Main Emerald Header Banner -->
         <div class="station-banner-header">
           <h3>{{ selectedStation }}</h3>
+          <span class="mobile-scroll-hint">↔ Desliza para ver parámetros completos</span>
         </div>
 
-        <!-- Table Container -->
+        <!-- Table Container with smooth horizontal scrolling -->
         <div class="table-responsive">
           <table class="metallurgical-table">
             <thead>
               <tr class="th-main-row">
-                <th rowspan="2" class="col-hora">HORA</th>
-                <th rowspan="2" class="col-baterias">BATERÍAS</th>
+                <th rowspan="2" class="col-hora sticky-col-1">HORA</th>
+                <th rowspan="2" class="col-baterias sticky-col-2">BATERÍAS</th>
                 <th colspan="3" class="col-group group-solidos">% SÓLIDOS</th>
                 <th colspan="3" class="col-group group-malla">% MALLA 200</th>
               </tr>
@@ -158,11 +226,11 @@ export interface GeneralAverages {
               <ng-container *ngFor="let group of groupedSamples">
                 <tr *ngFor="let row of group.rows; let i = index" class="data-row">
                   <!-- Hourly Rowspan -->
-                  <td *ngIf="i === 0" [attr.rowspan]="group.rows.length" class="cell-hora font-bold">
+                  <td *ngIf="i === 0" [attr.rowspan]="group.rows.length" class="cell-hora font-bold sticky-col-1">
                     {{ group.time }}
                   </td>
                   <!-- Battery Tag -->
-                  <td class="cell-battery font-bold">
+                  <td class="cell-battery font-bold sticky-col-2">
                     {{ row.battery_tag }}
                   </td>
                   <!-- % Sólidos -->
@@ -183,7 +251,7 @@ export interface GeneralAverages {
             </tbody>
             <tfoot>
               <tr class="row-promedio-general">
-                <td colspan="2" class="cell-promedio-title font-bold">PROMEDIO GENERAL</td>
+                <td colspan="2" class="cell-promedio-title font-bold sticky-col-combo">PROMEDIO GENERAL</td>
                 <td class="cell-promedio-val font-bold">{{ generalAverages.solids_feed | number:'1.2-2' }}</td>
                 <td class="cell-promedio-val font-bold">{{ generalAverages.solids_of | number:'1.2-2' }}</td>
                 <td class="cell-promedio-val font-bold">{{ generalAverages.solids_uf | number:'1.2-2' }}</td>
@@ -195,7 +263,7 @@ export interface GeneralAverages {
           </table>
         </div>
 
-        <!-- Promedios Clave Card (Exact replica) -->
+        <!-- Promedios Clave Footer Bar -->
         <div class="promedios-clave-card">
           <span class="clave-title">Promedios Clave:</span>
           <span class="clave-metric">
@@ -205,6 +273,82 @@ export interface GeneralAverages {
           <span class="clave-metric">
             UF Malla 200: <strong class="green-highlight">{{ generalAverages.mesh200_uf | number:'1.2-2' }}%</strong>
           </span>
+        </div>
+      </div>
+
+      <!-- VIEW 2: MOBILE CARDS VIEW (Diseñado especialmente para smartphones y tablets de faena) -->
+      <div *ngIf="viewMode === 'CARDS'" class="mobile-cards-view animate-fade-in">
+        <div class="mobile-view-header">
+          <span class="header-badge">{{ selectedStation }}</span>
+          <span class="samples-count">{{ filteredStationSamples.length }} Muestras registradas</span>
+        </div>
+
+        <div *ngFor="let group of groupedSamples" class="hour-card glass-panel">
+          <div class="hour-card-header">
+            <div class="hour-time-badge">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+              <span>{{ group.time }} hrs</span>
+            </div>
+            <span class="batteries-count">{{ group.rows.length }} baterías</span>
+          </div>
+
+          <!-- Battery rows inside this hour -->
+          <div class="hour-batteries-list">
+            <div *ngFor="let row of group.rows" class="battery-sample-box">
+              <div class="box-top">
+                <span class="battery-tag-pill">{{ row.battery_tag }}</span>
+                <span class="shift-pill">{{ row.shift_code }}</span>
+              </div>
+
+              <!-- Parameter comparisons -->
+              <div class="params-comparison-grid">
+                <!-- % Sólidos Card -->
+                <div class="param-block">
+                  <div class="param-block-title">% SÓLIDOS</div>
+                  <div class="param-triplet">
+                    <div class="triplet-item">
+                      <span class="t-label">FEED</span>
+                      <span class="t-val">{{ row.solids_feed | number:'1.2-2' }}</span>
+                    </div>
+                    <div class="triplet-item">
+                      <span class="t-label">OF</span>
+                      <span class="t-val">{{ row.solids_of | number:'1.2-2' }}</span>
+                    </div>
+                    <div class="triplet-item highlight-uf">
+                      <span class="t-label">UF</span>
+                      <span class="t-val bold-green">{{ row.solids_uf | number:'1.2-2' }}%</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- % Malla 200 Card -->
+                <div class="param-block">
+                  <div class="param-block-title">% MALLA 200</div>
+                  <div class="param-triplet">
+                    <div class="triplet-item">
+                      <span class="t-label">FEED</span>
+                      <span class="t-val">{{ row.mesh200_feed | number:'1.2-2' }}</span>
+                    </div>
+                    <div class="triplet-item">
+                      <span class="t-label">OF</span>
+                      <span class="t-val">{{ row.mesh200_of | number:'1.2-2' }}</span>
+                    </div>
+                    <div class="triplet-item highlight-uf">
+                      <span class="t-label">UF</span>
+                      <span class="t-val bold-green">{{ row.mesh200_uf | number:'1.2-2' }}%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div *ngIf="groupedSamples.length === 0" class="empty-cards glass-panel">
+          <p>No se encontraron registros con los filtros seleccionados.</p>
         </div>
       </div>
 
@@ -276,32 +420,17 @@ export interface GeneralAverages {
       </div>
 
       <!-- MODAL: Registrar Muestreo de Estación (% Sólidos & % Malla 200) -->
-      <app-modal [isOpen]="isSampleModalOpen" [title]="'Registrar Muestreo de Estación de Ciclones'" (close)="isSampleModalOpen = false">
+      <app-modal [isOpen]="isSampleModalOpen" [title]="'Registrar Muestreo de Estación'" (close)="isSampleModalOpen = false">
         <form (ngSubmit)="saveStationSample()" class="modal-form">
+          <!-- Station & Quick Hour Selection -->
           <div class="form-row">
             <div class="form-group">
-              <label>Estación de Ciclones</label>
+              <label>Estación</label>
               <select [(ngModel)]="newSample.station" name="station" required>
                 <option value="2DA ESTACIÓN CICLONES">2DA ESTACIÓN CICLONES</option>
                 <option value="1RA ESTACIÓN CICLONES">1RA ESTACIÓN CICLONES</option>
               </select>
             </div>
-            <div class="form-group">
-              <label>Hora de Muestreo</label>
-              <select [(ngModel)]="newSample.sample_time" name="sample_time" required>
-                <option value="20:00">20:00 (Noche)</option>
-                <option value="23:00">23:00 (Noche)</option>
-                <option value="02:00">02:00 (Noche)</option>
-                <option value="05:00">05:00 (Noche)</option>
-                <option value="08:00">08:00 (Día)</option>
-                <option value="11:00">11:00 (Día)</option>
-                <option value="14:00">14:00 (Día)</option>
-                <option value="17:00">17:00 (Día)</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="form-row">
             <div class="form-group">
               <label>Batería</label>
               <select [(ngModel)]="newSample.battery_tag" name="battery_tag" required>
@@ -311,49 +440,76 @@ export interface GeneralAverages {
                 <option value="CY2">CY2</option>
               </select>
             </div>
-            <div class="form-group">
-              <label>Guardia / Turno</label>
-              <select [(ngModel)]="newSample.shift_code" name="shift_code">
-                <option value="GUARDIA_A">Guardia A</option>
-                <option value="GUARDIA_B">Guardia B</option>
-                <option value="GUARDIA_C">Guardia C</option>
-              </select>
+          </div>
+
+          <!-- Quick Hour Chips for Easy Mobile Touch -->
+          <div class="form-group">
+            <label>Hora de Muestreo</label>
+            <div class="quick-chips-row">
+              <button
+                type="button"
+                *ngFor="let h of quickHours"
+                class="chip-btn"
+                [class.active]="newSample.sample_time === h"
+                (click)="newSample.sample_time = h"
+              >
+                {{ h }}
+              </button>
             </div>
           </div>
 
-          <div class="form-section-title">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Guardia / Turno</label>
+              <select [(ngModel)]="newSample.shift_code" name="shift_code">
+                <option value="GUARDIA_A">Guardia A (Noche)</option>
+                <option value="GUARDIA_B">Guardia B (Día)</option>
+                <option value="GUARDIA_C">Guardia C</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Fecha</label>
+              <input type="date" [(ngModel)]="newSample.date" name="sample_date" required />
+            </div>
+          </div>
+
+          <!-- % Sólidos Section -->
+          <div class="form-section-header">
+            <div class="section-indicator green"></div>
             <span>Parámetros de % SÓLIDOS</span>
           </div>
           <div class="form-row-3">
             <div class="form-group">
               <label>FEED (%)</label>
-              <input type="number" step="0.01" [(ngModel)]="newSample.solids_feed" name="solids_feed" required />
+              <input type="number" step="0.01" inputmode="decimal" [(ngModel)]="newSample.solids_feed" name="solids_feed" required />
             </div>
             <div class="form-group">
-              <label>OF (Overflow %)</label>
-              <input type="number" step="0.01" [(ngModel)]="newSample.solids_of" name="solids_of" required />
+              <label>OF (%)</label>
+              <input type="number" step="0.01" inputmode="decimal" [(ngModel)]="newSample.solids_of" name="solids_of" required />
             </div>
             <div class="form-group">
-              <label>UF (Underflow %)</label>
-              <input type="number" step="0.01" [(ngModel)]="newSample.solids_uf" name="solids_uf" required />
+              <label class="label-uf">UF (%)</label>
+              <input type="number" step="0.01" inputmode="decimal" class="input-uf" [(ngModel)]="newSample.solids_uf" name="solids_uf" required />
             </div>
           </div>
 
-          <div class="form-section-title">
-            <span>Parámetros de % MALLA 200</span>
+          <!-- % Malla 200 Section -->
+          <div class="form-section-header">
+            <div class="section-indicator cyan"></div>
+            <span>Parámetros de % MALLA -200</span>
           </div>
           <div class="form-row-3">
             <div class="form-group">
               <label>FEED (%)</label>
-              <input type="number" step="0.01" [(ngModel)]="newSample.mesh200_feed" name="mesh200_feed" required />
+              <input type="number" step="0.01" inputmode="decimal" [(ngModel)]="newSample.mesh200_feed" name="mesh200_feed" required />
             </div>
             <div class="form-group">
-              <label>OF (Overflow %)</label>
-              <input type="number" step="0.01" [(ngModel)]="newSample.mesh200_of" name="mesh200_of" required />
+              <label>OF (%)</label>
+              <input type="number" step="0.01" inputmode="decimal" [(ngModel)]="newSample.mesh200_of" name="mesh200_of" required />
             </div>
             <div class="form-group">
-              <label>UF (Underflow %)</label>
-              <input type="number" step="0.01" [(ngModel)]="newSample.mesh200_uf" name="mesh200_uf" required />
+              <label class="label-uf">UF (%)</label>
+              <input type="number" step="0.01" inputmode="decimal" class="input-uf" [(ngModel)]="newSample.mesh200_uf" name="mesh200_uf" required />
             </div>
           </div>
 
@@ -396,22 +552,22 @@ export interface GeneralAverages {
           <div class="form-row">
             <div class="form-group">
               <label>Presión Manifold (PSI)</label>
-              <input type="number" step="0.1" [(ngModel)]="newCyclone.feed_pressure_psi" name="press" />
+              <input type="number" step="0.1" inputmode="decimal" [(ngModel)]="newCyclone.feed_pressure_psi" name="press" />
             </div>
             <div class="form-group">
               <label>Densidad de Pulpa (kg/m³)</label>
-              <input type="number" [(ngModel)]="newCyclone.feed_density_kgm3" name="dens" />
+              <input type="number" inputmode="decimal" [(ngModel)]="newCyclone.feed_density_kgm3" name="dens" />
             </div>
           </div>
 
           <div class="form-row">
             <div class="form-group">
               <label>Corte P80 (µm)</label>
-              <input type="number" [(ngModel)]="newCyclone.p80_microns" name="p80" />
+              <input type="number" inputmode="decimal" [(ngModel)]="newCyclone.p80_microns" name="p80" />
             </div>
             <div class="form-group">
               <label>Floculante (ppm)</label>
-              <input type="number" step="0.1" [(ngModel)]="newCyclone.flocculant_ppm" name="floc" />
+              <input type="number" step="0.1" inputmode="decimal" [(ngModel)]="newCyclone.flocculant_ppm" name="floc" />
             </div>
           </div>
 
@@ -432,34 +588,59 @@ export interface GeneralAverages {
     .cyclones-page {
       display: flex;
       flex-direction: column;
-      gap: 24px;
+      gap: 20px;
     }
 
+    /* Top Action Bar */
     .page-top-bar {
       display: flex;
       align-items: center;
       justify-content: space-between;
       flex-wrap: wrap;
-      gap: 16px;
+      gap: 14px;
 
-      h2 {
-        font-size: 1.45rem;
-        font-weight: 800;
-        color: var(--text-primary);
-      }
+      .top-text {
+        h2 {
+          font-size: 1.38rem;
+          font-weight: 800;
+          color: var(--text-primary);
+          line-height: 1.25;
 
-      .section-sub {
-        font-size: 0.82rem;
-        color: var(--text-muted);
-        margin-top: 3px;
+          @media (max-width: 600px) {
+            font-size: 1.18rem;
+          }
+        }
+
+        .section-sub {
+          font-size: 0.8rem;
+          color: var(--text-muted);
+          margin-top: 3px;
+        }
       }
     }
 
     .top-actions {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
       flex-wrap: wrap;
+
+      @media (max-width: 768px) {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+
+        .action-btn:last-child {
+          grid-column: span 2;
+        }
+      }
+    }
+
+    .action-btn {
+      min-height: 42px;
+      padding: 8px 16px;
+      font-size: 0.85rem;
     }
 
     .btn-emerald {
@@ -475,39 +656,52 @@ export interface GeneralAverages {
 
     /* Station Tabs & Controls */
     .station-controls-card {
-      padding: 14px 20px;
+      padding: 12px 18px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       flex-wrap: wrap;
-      gap: 16px;
+      gap: 14px;
+
+      @media (max-width: 768px) {
+        padding: 12px;
+      }
     }
 
     .station-tabs {
       display: flex;
-      gap: 10px;
+      gap: 8px;
       flex-wrap: wrap;
+
+      @media (max-width: 600px) {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+      }
     }
 
     .station-tab-btn {
       display: inline-flex;
       align-items: center;
+      justify-content: center;
       gap: 8px;
-      padding: 8px 16px;
+      padding: 9px 14px;
       border-radius: var(--radius-md);
-      font-size: 0.82rem;
+      font-size: 0.8rem;
       font-weight: 700;
       cursor: pointer;
       border: 1px solid var(--border-subtle);
       background: var(--bg-card-subtle);
       color: var(--text-secondary);
       transition: var(--transition-smooth);
+      min-height: 40px;
 
       .dot-indicator {
         width: 8px;
         height: 8px;
         border-radius: 50%;
         background: var(--text-muted);
+        flex-shrink: 0;
       }
 
       &.active {
@@ -527,31 +721,163 @@ export interface GeneralAverages {
       }
     }
 
+    .controls-right-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+
+      @media (max-width: 768px) {
+        width: 100%;
+        justify-content: space-between;
+      }
+    }
+
+    /* View Switcher */
+    .view-mode-toggle {
+      display: flex;
+      background: var(--bg-input);
+      padding: 3px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-subtle);
+      gap: 2px;
+    }
+
+    .view-toggle-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      border-radius: var(--radius-sm);
+      font-size: 0.76rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition-smooth);
+
+      &.active {
+        background: var(--bg-card-hover);
+        color: var(--primary-lavender);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+      }
+    }
+
     .station-filters {
       display: flex;
       align-items: center;
-      gap: 14px;
+      gap: 10px;
       flex-wrap: wrap;
+
+      @media (max-width: 600px) {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+      }
     }
 
     .filter-item {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
 
       label {
-        font-size: 0.78rem;
+        font-size: 0.74rem;
         font-weight: 600;
         color: var(--text-muted);
       }
 
       select, input {
-        padding: 6px 12px;
-        font-size: 0.8rem;
+        padding: 6px 10px;
+        font-size: 0.78rem;
+        min-height: 36px;
       }
     }
 
-    /* METALLURGICAL SHEET STYLING (Faithful to Image) */
+    /* Promedios Hero Grid */
+    .promedios-hero-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+
+      @media (max-width: 600px) {
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }
+    }
+
+    .promedio-kpi-card {
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      border-radius: var(--radius-lg);
+
+      .kpi-icon-wrap {
+        width: 46px;
+        height: 46px;
+        border-radius: var(--radius-md);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+
+        &.emerald {
+          background: rgba(5, 150, 105, 0.15);
+          color: #34d399;
+          border: 1px solid rgba(5, 150, 105, 0.3);
+        }
+
+        &.cyan {
+          background: rgba(56, 189, 248, 0.15);
+          color: #38bdf8;
+          border: 1px solid rgba(56, 189, 248, 0.3);
+        }
+      }
+
+      .kpi-body {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        flex: 1;
+      }
+
+      .kpi-label {
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        color: var(--text-muted);
+      }
+
+      .kpi-val-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .kpi-val {
+        font-size: 1.55rem;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+
+        &.emerald-val { color: #34d399; text-shadow: 0 0 12px rgba(52, 211, 153, 0.3); }
+        &.cyan-val { color: #38bdf8; text-shadow: 0 0 12px rgba(56, 189, 248, 0.3); }
+      }
+
+      .kpi-target-badge {
+        font-size: 0.7rem;
+        color: var(--text-secondary);
+        background: rgba(255, 255, 255, 0.04);
+        padding: 3px 8px;
+        border-radius: var(--radius-full);
+        border: 1px solid var(--border-subtle);
+      }
+    }
+
+    /* METALLURGICAL SHEET STYLING (Table) */
     .metallurgical-sheet-wrapper {
       border-radius: 12px;
       overflow: hidden;
@@ -561,11 +887,14 @@ export interface GeneralAverages {
     }
 
     .station-banner-header {
-      background: #084c2a;
       background: linear-gradient(180deg, #0a5c36 0%, #074626 100%);
-      padding: 13px 20px;
+      padding: 12px 20px;
       text-align: center;
       border-bottom: 2px solid #063c20;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
 
       h3 {
         margin: 0;
@@ -576,24 +905,62 @@ export interface GeneralAverages {
         text-transform: uppercase;
         text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
       }
+
+      .mobile-scroll-hint {
+        display: none;
+        font-size: 0.68rem;
+        color: #a7f3d0;
+        letter-spacing: 0.02em;
+
+        @media (max-width: 900px) {
+          display: inline-block;
+        }
+      }
     }
 
     .table-responsive {
       width: 100%;
       overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
     }
 
     .metallurgical-table {
       width: 100%;
+      min-width: 680px;
       border-collapse: collapse;
-      font-size: 0.88rem;
+      font-size: 0.86rem;
       color: #1e293b;
       text-align: center;
 
       th, td {
         border: 1px solid #d1dced;
-        padding: 10px 14px;
+        padding: 9px 12px;
         vertical-align: middle;
+      }
+
+      /* Sticky columns for high readability during mobile horizontal scroll */
+      .sticky-col-1 {
+        position: sticky;
+        left: 0;
+        z-index: 10;
+        background-color: #ffffff;
+        box-shadow: 2px 0 6px -2px rgba(0, 0, 0, 0.1);
+      }
+
+      .sticky-col-2 {
+        position: sticky;
+        left: 68px;
+        z-index: 10;
+        background-color: #ffffff;
+        box-shadow: 2px 0 6px -2px rgba(0, 0, 0, 0.1);
+      }
+
+      .sticky-col-combo {
+        position: sticky;
+        left: 0;
+        z-index: 10;
+        background-color: #059669;
+        box-shadow: 2px 0 6px -2px rgba(0, 0, 0, 0.2);
       }
 
       /* Headers */
@@ -604,16 +971,20 @@ export interface GeneralAverages {
           font-weight: 800;
           color: #0f172a;
           letter-spacing: 0.03em;
+
+          &.sticky-col-1, &.sticky-col-2 {
+            background-color: #e5eff8;
+          }
         }
 
         .th-main-row {
           .col-hora, .col-baterias {
-            font-size: 0.85rem;
-            width: 11%;
+            font-size: 0.82rem;
+            width: 10%;
           }
 
           .col-group {
-            font-size: 0.88rem;
+            font-size: 0.85rem;
             background-color: #e5eff8;
             border-bottom: 1px solid #cbd5e1;
           }
@@ -621,8 +992,8 @@ export interface GeneralAverages {
 
         .th-sub-row {
           .sub-col {
-            font-size: 0.82rem;
-            padding: 8px 10px;
+            font-size: 0.8rem;
+            padding: 7px 8px;
             color: #334155;
           }
         }
@@ -637,20 +1008,21 @@ export interface GeneralAverages {
 
           &:hover {
             background-color: #f8fafc;
+            .sticky-col-1, .sticky-col-2 {
+              background-color: #f8fafc;
+            }
           }
         }
 
         .cell-hora {
-          background-color: #ffffff;
-          font-size: 0.95rem;
+          font-size: 0.92rem;
           color: #0f172a;
-          border-right: 1px solid #d1dced;
+          font-variant-numeric: tabular-nums;
         }
 
         .cell-battery {
           color: #0d9488;
-          font-size: 0.92rem;
-          background-color: #ffffff;
+          font-size: 0.9rem;
         }
 
         .cell-val {
@@ -678,8 +1050,8 @@ export interface GeneralAverages {
 
           td {
             border: 1px solid #047857;
-            padding: 11px 14px;
-            font-size: 0.92rem;
+            padding: 10px 12px;
+            font-size: 0.9rem;
             font-variant-numeric: tabular-nums;
           }
 
@@ -694,12 +1066,12 @@ export interface GeneralAverages {
     /* Key Averages Banner */
     .promedios-clave-card {
       background-color: #ffffff;
-      padding: 12px 24px;
+      padding: 12px 20px;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 14px;
-      font-size: 0.92rem;
+      font-size: 0.9rem;
       color: #1e293b;
       border-top: 1px solid #d1dced;
       flex-wrap: wrap;
@@ -715,7 +1087,7 @@ export interface GeneralAverages {
 
       .green-highlight {
         color: #059669;
-        font-size: 1rem;
+        font-size: 0.98rem;
         font-weight: 800;
       }
 
@@ -725,9 +1097,174 @@ export interface GeneralAverages {
       }
     }
 
+    /* MOBILE CARDS VIEW */
+    .mobile-cards-view {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .mobile-view-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 2px 4px;
+
+      .header-badge {
+        font-size: 0.85rem;
+        font-weight: 800;
+        color: #34d399;
+        letter-spacing: 0.04em;
+      }
+
+      .samples-count {
+        font-size: 0.72rem;
+        color: var(--text-muted);
+      }
+    }
+
+    .hour-card {
+      padding: 16px;
+      border-radius: var(--radius-lg);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      border: 1px solid var(--border-subtle);
+    }
+
+    .hour-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      padding-bottom: 10px;
+
+      .hour-time-badge {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.95rem;
+        font-weight: 800;
+        color: var(--text-primary);
+        color: #38bdf8;
+      }
+
+      .batteries-count {
+        font-size: 0.72rem;
+        color: var(--text-muted);
+        background: var(--bg-card-subtle);
+        padding: 2px 8px;
+        border-radius: var(--radius-full);
+      }
+    }
+
+    .hour-batteries-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .battery-sample-box {
+      background: var(--bg-card-subtle);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+
+      .box-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .battery-tag-pill {
+        font-size: 0.84rem;
+        font-weight: 800;
+        color: #34d399;
+        background: rgba(5, 150, 105, 0.15);
+        padding: 3px 10px;
+        border-radius: var(--radius-sm);
+        border: 1px solid rgba(5, 150, 105, 0.3);
+      }
+
+      .shift-pill {
+        font-size: 0.7rem;
+        color: var(--text-muted);
+      }
+    }
+
+    .params-comparison-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+
+      @media (max-width: 480px) {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .param-block {
+      background: rgba(0, 0, 0, 0.25);
+      border-radius: var(--radius-sm);
+      padding: 8px 10px;
+      border: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    .param-block-title {
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: var(--text-secondary);
+      letter-spacing: 0.04em;
+      margin-bottom: 6px;
+    }
+
+    .param-triplet {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 4px;
+      text-align: center;
+    }
+
+    .triplet-item {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding: 4px 2px;
+      border-radius: 4px;
+
+      .t-label {
+        font-size: 0.62rem;
+        font-weight: 600;
+        color: var(--text-muted);
+      }
+
+      .t-val {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+
+      &.highlight-uf {
+        background: rgba(5, 150, 105, 0.18);
+        border: 1px solid rgba(5, 150, 105, 0.3);
+
+        .t-label { color: #34d399; }
+        .bold-green { color: #34d399; font-weight: 800; }
+      }
+    }
+
+    .empty-cards {
+      padding: 24px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
     /* Section divider */
     .section-divider {
-      margin-top: 12px;
+      margin-top: 10px;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -748,7 +1285,7 @@ export interface GeneralAverages {
     .batteries-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 24px;
+      gap: 18px;
 
       @media (max-width: 900px) {
         grid-template-columns: 1fr;
@@ -756,14 +1293,14 @@ export interface GeneralAverages {
     }
 
     .battery-card {
-      padding: 24px;
+      padding: 20px;
       border-radius: var(--radius-lg);
       background: var(--bg-card);
       border: 1px solid var(--border-subtle);
       box-shadow: var(--shadow-card);
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 14px;
 
       &.optimal {
         border-top: 3px solid var(--primary-purple);
@@ -781,14 +1318,14 @@ export interface GeneralAverages {
     }
 
     .battery-tag {
-      font-size: 1.25rem;
+      font-size: 1.2rem;
       font-weight: 800;
       color: var(--primary-lavender);
       display: block;
     }
 
     .active-badge {
-      font-size: 0.75rem;
+      font-size: 0.74rem;
       color: var(--text-muted);
     }
 
@@ -803,7 +1340,7 @@ export interface GeneralAverages {
     }
 
     .pod-label {
-      font-size: 0.75rem;
+      font-size: 0.74rem;
       color: var(--text-muted);
     }
 
@@ -839,7 +1376,7 @@ export interface GeneralAverages {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      font-size: 0.85rem;
+      font-size: 0.84rem;
       padding-bottom: 8px;
       border-bottom: 1px solid rgba(255, 255, 255, 0.04);
     }
@@ -870,50 +1407,119 @@ export interface GeneralAverages {
     .modal-form {
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      gap: 12px;
     }
 
-    .form-section-title {
-      font-size: 0.82rem;
+    .quick-chips-row {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 4px;
+    }
+
+    .chip-btn {
+      padding: 6px 11px;
+      border-radius: var(--radius-sm);
+      background: var(--bg-input);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-secondary);
+      font-size: 0.76rem;
+      font-weight: 600;
+      cursor: pointer;
+      min-height: 34px;
+      transition: var(--transition-smooth);
+
+      &.active {
+        background: rgba(5, 150, 105, 0.2);
+        border-color: #059669;
+        color: #34d399;
+      }
+    }
+
+    .form-section-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.8rem;
       font-weight: 700;
-      color: #34d399;
+      color: var(--text-primary);
       text-transform: uppercase;
       letter-spacing: 0.04em;
-      border-bottom: 1px solid rgba(52, 211, 153, 0.2);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
       padding-bottom: 4px;
       margin-top: 6px;
+
+      .section-indicator {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        &.green { background: #34d399; box-shadow: 0 0 8px rgba(52, 211, 153, 0.6); }
+        &.cyan { background: #38bdf8; box-shadow: 0 0 8px rgba(56, 189, 248, 0.6); }
+      }
     }
 
     .form-row {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 12px;
+      gap: 10px;
+
+      @media (max-width: 480px) {
+        grid-template-columns: 1fr;
+      }
     }
 
     .form-row-3 {
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
-      gap: 12px;
+      gap: 8px;
+
+      @media (max-width: 480px) {
+        grid-template-columns: 1fr;
+      }
     }
 
     .form-group {
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 5px;
 
       label {
-        font-size: 0.78rem;
+        font-size: 0.76rem;
         font-weight: 600;
         color: var(--text-secondary);
+      }
+
+      .label-uf {
+        color: #34d399;
+        font-weight: 700;
+      }
+
+      .input-uf {
+        border-color: rgba(5, 150, 105, 0.4);
+        background: rgba(5, 150, 105, 0.06);
+      }
+
+      input, select, textarea {
+        min-height: 42px;
       }
     }
 
     .modal-buttons {
       display: flex;
-      gap: 12px;
+      gap: 10px;
       justify-content: flex-end;
       width: 100%;
-      margin-top: 10px;
+      margin-top: 8px;
+
+      @media (max-width: 480px) {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+
+        button {
+          width: 100%;
+          min-height: 44px;
+        }
+      }
     }
   `]
 })
@@ -929,6 +1535,9 @@ export class CyclonesComponent implements OnInit {
   selectedStation: string = '2DA ESTACIÓN CICLONES';
   selectedShift: string = 'ALL';
   filterDate: string = '';
+  viewMode: 'TABLE' | 'CARDS' = 'TABLE';
+
+  quickHours: string[] = ['20:00', '23:00', '02:00', '05:00', '08:00', '11:00', '14:00', '17:00'];
 
   generalAverages: GeneralAverages = {
     solids_feed: 45.06,
@@ -971,6 +1580,11 @@ export class CyclonesComponent implements OnInit {
   };
 
   ngOnInit(): void {
+    // Si la pantalla es menor a 768px por defecto activar modo CARDS
+    if (typeof window !== 'undefined' && window.innerWidth <= 768) {
+      this.viewMode = 'CARDS';
+    }
+
     this.loadCyclones();
     this.loadStationSamples();
   }
@@ -1043,7 +1657,6 @@ export class CyclonesComponent implements OnInit {
         rows: rows.sort((a, b) => a.battery_tag.localeCompare(b.battery_tag))
       }))
       .sort((a, b) => {
-        // Orden temporal de turnos mineros (ej: 20:00, 23:00, 02:00, 05:00 o turno día 08, 11, 14, 17)
         const order = ['20:00', '23:00', '02:00', '05:00', '08:00', '11:00', '14:00', '17:00'];
         const idxA = order.indexOf(a.time);
         const idxB = order.indexOf(b.time);
@@ -1129,7 +1742,6 @@ export class CyclonesComponent implements OnInit {
       s.date
     ]);
 
-    // Add general average line
     rows.push([
       'PROMEDIO GENERAL',
       '-',

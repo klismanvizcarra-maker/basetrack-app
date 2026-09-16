@@ -2,6 +2,7 @@ import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
+import { LayoutService } from '../../core/layout/layout.service';
 
 @Component({
   selector: 'app-header',
@@ -11,6 +12,20 @@ import { AuthService } from '../../core/auth/auth.service';
     <header class="app-header">
       <!-- Title area -->
       <div class="header-left">
+        <!-- Mobile hamburger toggle button -->
+        <button
+          type="button"
+          class="mobile-menu-btn"
+          (click)="layoutService.toggleSidebar()"
+          title="Abrir Menú"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+
         <div class="title-with-icon">
           <span class="icon-grid">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -24,7 +39,7 @@ import { AuthService } from '../../core/auth/auth.service';
         </div>
 
         <div class="shift-indicator">
-          <span class="shift-tag">Turno Actual:</span>
+          <span class="shift-tag">Turno:</span>
           <span class="shift-name">{{ authService.currentUser()?.shift || 'GUARDIA_A' }}</span>
         </div>
       </div>
@@ -318,10 +333,72 @@ import { AuthService } from '../../core/auth/auth.service';
       color: var(--text-muted);
       margin-top: 2px;
     }
+
+    .mobile-menu-btn {
+      display: none;
+      width: 38px;
+      height: 38px;
+      border-radius: var(--radius-md);
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-primary);
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: var(--transition-smooth);
+      flex-shrink: 0;
+
+      @media (max-width: 900px) {
+        display: flex;
+      }
+
+      &:hover {
+        background: var(--bg-card-hover);
+        border-color: var(--primary-border);
+        color: var(--primary-lavender);
+      }
+    }
+
+    @media (max-width: 768px) {
+      .app-header {
+        padding: 0 16px;
+        height: 64px;
+      }
+
+      .header-left {
+        gap: 12px;
+      }
+
+      .page-title {
+        font-size: 1.1rem;
+      }
+
+      .icon-grid {
+        display: none;
+      }
+
+      .shift-indicator {
+        display: none;
+      }
+
+      .header-right {
+        gap: 8px;
+      }
+
+      .header-action-btn:nth-child(2),
+      .header-action-btn:nth-child(3) {
+        display: none;
+      }
+
+      .user-details {
+        display: none;
+      }
+    }
   `]
 })
 export class HeaderComponent {
   authService = inject(AuthService);
+  layoutService = inject(LayoutService);
   private router = inject(Router);
   showNotifications = false;
 

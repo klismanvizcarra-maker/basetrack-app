@@ -41,6 +41,10 @@ import { HeaderComponent } from '../header/header.component';
       max-width: 1600px;
       width: 100%;
       margin: 0 auto;
+
+      @media (max-width: 768px) {
+        padding: 14px 12px 32px;
+      }
     }
   `]
 })

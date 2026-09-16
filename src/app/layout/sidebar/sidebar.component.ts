@@ -3,14 +3,22 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 import { OfflineSyncService } from '../../core/offline/offline-sync.service';
+import { LayoutService } from '../../core/layout/layout.service';
 
 @Component({
   selector: 'app-sidebar',
   standalone: true,
   imports: [CommonModule, RouterModule],
   template: `
-    <aside class="app-sidebar">
-      <!-- Logo brand (CRAVEAT style) -->
+    <!-- Mobile Backdrop -->
+    <div
+      *ngIf="layoutService.isSidebarOpen()"
+      class="sidebar-backdrop"
+      (click)="layoutService.closeSidebar()"
+    ></div>
+
+    <aside class="app-sidebar" [class.mobile-open]="layoutService.isSidebarOpen()">
+      <!-- Logo brand & Mobile close button -->
       <div class="sidebar-brand">
         <div class="brand-icon">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -20,6 +28,17 @@ import { OfflineSyncService } from '../../core/offline/offline-sync.service';
           </svg>
         </div>
         <span class="brand-title">BASETRACK</span>
+        <button
+          type="button"
+          class="sidebar-close-btn"
+          (click)="layoutService.closeSidebar()"
+          title="Cerrar Menú"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
       </div>
 
       <!-- Navigation list -->
@@ -27,7 +46,7 @@ import { OfflineSyncService } from '../../core/offline/offline-sync.service';
         <div class="nav-section-title">OPERACIONES</div>
         <ul class="nav-list">
           <li class="nav-item">
-            <a routerLink="/dashboard" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" class="nav-link">
+            <a routerLink="/dashboard" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" class="nav-link" (click)="onNavClick()">
               <span class="nav-icon">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <rect x="3" y="3" width="7" height="7"></rect>
@@ -41,7 +60,7 @@ import { OfflineSyncService } from '../../core/offline/offline-sync.service';
           </li>
 
           <li class="nav-item">
-            <a routerLink="/shift-handover" routerLinkActive="active" class="nav-link">
+            <a routerLink="/shift-handover" routerLinkActive="active" class="nav-link" (click)="onNavClick()">
               <span class="nav-icon">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
@@ -55,7 +74,7 @@ import { OfflineSyncService } from '../../core/offline/offline-sync.service';
           </li>
 
           <li class="nav-item">
-            <a routerLink="/pumps" routerLinkActive="active" class="nav-link">
+            <a routerLink="/pumps" routerLinkActive="active" class="nav-link" (click)="onNavClick()">
               <span class="nav-icon">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <circle cx="12" cy="12" r="10"></circle>
@@ -72,12 +91,10 @@ import { OfflineSyncService } from '../../core/offline/offline-sync.service';
           </li>
 
           <li class="nav-item">
-            <a routerLink="/cyclones" routerLinkActive="active" class="nav-link">
+            <a routerLink="/cyclones" routerLinkActive="active" class="nav-link" (click)="onNavClick()">
               <span class="nav-icon">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
-                  <polyline points="2 17 12 22 22 17"></polyline>
-                  <polyline points="2 12 12 17 22 12"></polyline>
+                  <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"></path>
                 </svg>
               </span>
               <span class="nav-label">Batería Ciclones</span>
@@ -85,33 +102,32 @@ import { OfflineSyncService } from '../../core/offline/offline-sync.service';
           </li>
 
           <li class="nav-item">
-            <a routerLink="/tailings" routerLinkActive="active" class="nav-link">
+            <a routerLink="/tailings" routerLinkActive="active" class="nav-link" (click)="onNavClick()">
               <span class="nav-icon">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+                  <path d="M2 20h20"></path>
+                  <path d="m5 20 5-13 4 8 5-11 3 16"></path>
                 </svg>
               </span>
-              <span class="nav-label">Descarga & Relaves</span>
+              <span class="nav-label">Relaves & Presa</span>
             </a>
           </li>
 
           <li class="nav-item">
-            <a routerLink="/maintenance" routerLinkActive="active" class="nav-link">
+            <a routerLink="/maintenance" routerLinkActive="active" class="nav-link" (click)="onNavClick()">
               <span class="nav-icon">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
                 </svg>
               </span>
               <span class="nav-label">Mantenimiento</span>
-              <span class="nav-badge">3</span>
             </a>
           </li>
-        </ul>
 
-        <div class="nav-section-title" style="margin-top: 24px;">SISTEMA</div>
-        <ul class="nav-list">
-          <li class="nav-item" *ngIf="authService.isSupervisor()">
-            <a routerLink="/admin" routerLinkActive="active" class="nav-link">
+          <div class="nav-section-title" *ngIf="authService.isAdmin() || authService.isSupervisor()">GESTIÓN</div>
+
+          <li class="nav-item" *ngIf="authService.isAdmin() || authService.isSupervisor()">
+            <a routerLink="/admin" routerLinkActive="active" class="nav-link" (click)="onNavClick()">
               <span class="nav-icon">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
@@ -154,6 +170,20 @@ import { OfflineSyncService } from '../../core/offline/offline-sync.service';
     </aside>
   `,
   styles: [`
+    .sidebar-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(8, 6, 16, 0.75);
+      backdrop-filter: blur(4px);
+      z-index: 1050;
+      animation: fadeIn 0.2s ease-out;
+
+      @media (max-width: 900px) {
+        display: block;
+      }
+    }
+
     .app-sidebar {
       width: 250px;
       background: var(--bg-sidebar);
@@ -166,6 +196,23 @@ import { OfflineSyncService } from '../../core/offline/offline-sync.service';
       padding: 24px 16px;
       z-index: 100;
       flex-shrink: 0;
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+      @media (max-width: 900px) {
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        width: 270px;
+        transform: translateX(-100%);
+        z-index: 1100;
+        box-shadow: none;
+
+        &.mobile-open {
+          transform: translateX(0);
+          box-shadow: 0 0 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(168, 85, 247, 0.25);
+        }
+      }
     }
 
     .sidebar-brand {
@@ -175,6 +222,30 @@ import { OfflineSyncService } from '../../core/offline/offline-sync.service';
       padding: 0 10px 24px;
       border-bottom: 1px solid var(--border-subtle);
       margin-bottom: 20px;
+      position: relative;
+    }
+
+    .sidebar-close-btn {
+      display: none;
+      margin-left: auto;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 6px;
+      border-radius: var(--radius-sm);
+      transition: var(--transition-smooth);
+
+      @media (max-width: 900px) {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      &:hover {
+        color: var(--text-primary);
+        background: var(--bg-card-hover);
+      }
     }
 
     .brand-icon {
@@ -314,4 +385,11 @@ import { OfflineSyncService } from '../../core/offline/offline-sync.service';
 export class SidebarComponent {
   authService = inject(AuthService);
   offlineSync = inject(OfflineSyncService);
+  layoutService = inject(LayoutService);
+
+  onNavClick(): void {
+    if (window.innerWidth <= 900) {
+      this.layoutService.closeSidebar();
+    }
+  }
 }
