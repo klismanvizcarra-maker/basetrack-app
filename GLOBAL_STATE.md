@@ -54,6 +54,7 @@
 | `TASK-016` | Auditoría de Seguridad, Login Obligatorio y Cero Backdoors | QA & Security Agent | `TASK-015` | `DONE` | 0/3 | Eliminación de bypass de auto-login, campos vacíos obligatorios en login, remoción de accesos rápidos expuestos, eliminación de backdoor demo en backend, JWT estricto y pruebas automatizadas |
 | `TASK-017` | Sincronización en la Nube Multi-Dispositivo (Cloud Realtime Sync) | Frontend & Backend Agent | `TASK-016` | `DONE` | 0/3 | Motor reactivo CloudSyncService, BroadcastChannel para multi-pestaña P2P, endpoints /api/sync/push y /api/sync/pull en SQLite, pill en header y gestor de flota en admin |
 | `TASK-018` | Corrección de Posicionamiento y Centrado de Modales | Frontend Agent | `TASK-017` | `DONE` | 0/3 | Centrado vertical en viewport (desktop y móvil), desacople de containing-block de animaciones transform, z-index 99999 y cierre de admin-page previo a modales |
+| `TASK-019` | Posiciones Dinámicas y Creación de Nuevos Puestos en Cuadrilla | Frontend & Backend Agent | `TASK-018` | `DONE` | 0/3 | Modal de creación de posiciones con selector de emojis, canal radial y consignas; asignación multi-guardia optgroup; migración de schema SQLite sin restricción CHECK; persistencia local y backend |
 
 ---
 
