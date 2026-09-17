@@ -62,14 +62,14 @@
       "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
     },
     {
-      "name": "Bombas Slurry",
+      "name": "Reporte de bombas",
       "short_name": "Bombas",
       "description": "Reporte y telemetría de bombas y sentinas",
       "url": "/pumps",
       "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
     },
     {
-      "name": "Batería de Ciclones",
+      "name": "Reporte de ciclones",
       "short_name": "Ciclones",
       "description": "Planilla metalúrgica y balance de mallas",
       "url": "/cyclones",

@@ -29,7 +29,7 @@ export interface TailingsReport {
     <div class="tailings-page animate-fade-in">
       <div class="page-top-bar">
         <div>
-          <h2>Reporte de Descarga y Relaves</h2>
+          <h2>Reporte de Descarga</h2>
           <p class="section-sub">Espesamiento de pulpas, porcentaje de sólidos y estabilidad de presa</p>
         </div>
         <button class="btn btn-primary" (click)="isCreateModalOpen = true">

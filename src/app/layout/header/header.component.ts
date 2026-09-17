@@ -453,9 +453,9 @@ export class HeaderComponent {
   getPageTitle(): string {
     const url = this.router.url;
     if (url.includes('shift-handover')) return 'Cambio de Guardia';
-    if (url.includes('pumps')) return 'Reporte de Bombas Slurry';
-    if (url.includes('cyclones')) return 'Batería de Ciclones';
-    if (url.includes('tailings')) return 'Descarga y Relaves';
+    if (url.includes('pumps')) return 'Reporte de bombas';
+    if (url.includes('cyclones')) return 'Reporte de ciclones';
+    if (url.includes('tailings')) return 'Reporte de descarga';
     if (url.includes('maintenance')) return 'Mantenimiento & Evidencias';
     if (url.includes('admin')) return 'Administración de Planta';
     if (url.includes('profile')) return 'Mi Cuenta & Perfil';
