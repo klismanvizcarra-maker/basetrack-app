@@ -9,6 +9,8 @@ export interface User {
   role: UserRole;
   shift: ShiftCode;
   avatarUrl?: string;
+  document_id?: string;
+  password?: string;
   createdAt?: string;
 }
 

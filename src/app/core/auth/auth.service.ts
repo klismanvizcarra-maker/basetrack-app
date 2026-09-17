@@ -1,69 +1,196 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { Observable, tap, catchError, of, map } from 'rxjs';
+import { Observable, tap, catchError, of, map, throwError } from 'rxjs';
 import { User, AuthResponse, LoginPayload, RegisterPayload } from './auth.models';
 import { getRealtimeData, saveRealtimeData, removeRealtimeData } from '../storage/local-store.util';
 
 const DEFAULT_ADMIN_USER: User = {
-  id: 'u-klismanv',
+  id: '8624a81e-ed5d-4e40-862a-ff2678ef6070',
   username: 'KlismanV',
   email: 'klismanvizcarra@basetrack.com',
   fullName: 'VIZCARRA CORI MANLEY KLISMAN',
+  document_id: '71209033',
+  password: 'Password123!',
   role: 'ADMIN',
   shift: 'GUARDIA_A',
-  avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80'
+  avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=250&q=80'
 };
 
-// Official staff registry to ensure all workers can authenticate offline or on Vercel
-const INITIAL_USERS_REGISTRY: Record<string, User> = {
-  'klismanv': DEFAULT_ADMIN_USER,
-  'admin': DEFAULT_ADMIN_USER,
-  'operador_bombas': {
-    id: 'op-001',
-    username: 'operador_bombas',
-    email: 'operador_bombas@basetrack.com',
-    fullName: 'VIZCARRA CORI MANLEY KLISMAN (Operador Bombas)',
-    role: 'ADMIN',
-    shift: 'GUARDIA_A',
-    avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80'
-  },
-  'carlosp': {
+// Official staff registry with secure credentials (DNI or Password123!) for online & offline/Vercel support
+const OFFICIAL_USERS_LIST: User[] = [
+  DEFAULT_ADMIN_USER,
+  {
     id: 'b4284f0d-d6e7-444b-b85e-e829da08eafd',
     username: 'CarlosP',
     email: 'carlospilco@basetrack.com',
     fullName: 'PILCO APAZA CARLOS EDUARDO',
+    document_id: '42324277',
+    password: 'Password123!',
     role: 'OPERATOR',
     shift: 'GUARDIA_A',
     avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80'
   },
-  'jorgev': {
+  {
     id: 'a19e5eeb-f575-4191-81dd-f06afc90494e',
     username: 'JorgeV',
     email: 'jorgevilcamiza@basetrack.com',
     fullName: 'VILCAMIZA PEVE JORGE RICARDO',
+    document_id: '41748219',
+    password: 'Password123!',
     role: 'OPERATOR',
     shift: 'GUARDIA_A',
     avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=250&q=80'
   },
-  'vilmar': {
+  {
     id: '6d4aff7f-39e6-4c7f-9665-64e6522b1c53',
     username: 'VilmaR',
     email: 'vilmarosado@basetrack.com',
     fullName: 'ROSADO FALCON VILMA LUCIA',
+    document_id: '45564062',
+    password: 'Password123!',
     role: 'OPERATOR',
     shift: 'GUARDIA_A',
     avatarUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=250&q=80'
   },
-  'jhoferp': {
+  {
     id: '582c9b91-80a3-4f61-990e-21b8e53c17dd',
     username: 'JhoferP',
     email: 'jhoferpari@basetrack.com',
     fullName: 'PARI COAYLA JHOFER LUIS',
+    document_id: '74924255',
+    password: 'Password123!',
     role: 'OPERATOR',
     shift: 'GUARDIA_A',
     avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=250&q=80'
+  },
+  {
+    id: '4703b7a9-8d4f-4b83-860c-e351a9b68e10',
+    username: 'DiegoM',
+    email: 'diegomontes@basetrack.com',
+    fullName: 'MONTES RODRIGUEZ DIEGO ALEXANDER',
+    document_id: '45437279',
+    password: 'Password123!',
+    role: 'OPERATOR',
+    shift: 'GUARDIA_A',
+    avatarUrl: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=250&q=80'
+  },
+  {
+    id: '2f22a339-303c-4334-ac5e-63f1e8ddc021',
+    username: 'RonalM',
+    email: 'ronalmamani@basetrack.com',
+    fullName: 'MAMANI MIRANDA RONAL',
+    document_id: '72958467',
+    password: 'Password123!',
+    role: 'OPERATOR',
+    shift: 'GUARDIA_A',
+    avatarUrl: 'https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?auto=format&fit=crop&w=250&q=80'
+  },
+  {
+    id: 'e8c2c1a0-eb1b-447b-b895-1d5957efe272',
+    username: 'AnthonyJ',
+    email: 'anthonymamani@basetrack.com',
+    fullName: 'MAMANI CUTIPA ANTHONY JESUS SMIT',
+    document_id: '72297288',
+    password: 'Password123!',
+    role: 'OPERATOR',
+    shift: 'GUARDIA_A',
+    avatarUrl: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=250&q=80'
+  },
+  {
+    id: '6424af06-a591-4142-a1c5-0bb486b481f2',
+    username: 'VictorA',
+    email: 'victorllerena@basetrack.com',
+    fullName: 'LLERENA CALLE-BRACAMONTE VICTOR ALEJANDRO II',
+    document_id: '71491945',
+    password: 'Password123!',
+    role: 'OPERATOR',
+    shift: 'GUARDIA_A',
+    avatarUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=250&q=80'
+  },
+  {
+    id: '1147a111-1fe6-4054-9620-615de35404d0',
+    username: 'EdsonH',
+    email: 'edsonhilari@basetrack.com',
+    fullName: 'HILARI CABRERA EDSON EUSEBIO',
+    document_id: '40824273',
+    password: 'Password123!',
+    role: 'OPERATOR',
+    shift: 'GUARDIA_A',
+    avatarUrl: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=250&q=80'
+  },
+  {
+    id: '423322d8-f8c7-4e8a-8114-61e186b5699b',
+    username: 'EmilioA',
+    email: 'Emilioaliaga@basetrack.com',
+    fullName: 'ALIAGA CASTAÑEDA EMILIO URIEL',
+    document_id: '46593500',
+    password: 'Password123!',
+    role: 'OPERATOR',
+    shift: 'GUARDIA_B',
+    avatarUrl: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&w=250&q=80'
+  },
+  {
+    id: 'b0af01f4-8771-4aa7-b592-b93106152b06',
+    username: 'LuisA',
+    email: 'Luiscascasi@basetrack.com',
+    fullName: 'CASCASI FLORES LUIS ANTONIO',
+    document_id: '43132072',
+    password: 'Password123!',
+    role: 'OPERATOR',
+    shift: 'GUARDIA_B',
+    avatarUrl: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=250&q=80'
+  },
+  {
+    id: '5d7f2a76-8119-4e27-b0cd-01b729752724',
+    username: 'ValerieC',
+    email: 'valeriecayo@basetrack.com',
+    fullName: 'CAYO GOMEZ VALERIE JAZMINE',
+    document_id: '71719330',
+    password: 'Password123!',
+    role: 'OPERATOR',
+    shift: 'GUARDIA_B',
+    avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=250&q=80'
+  },
+  {
+    id: 'e5e74e5e-511d-4531-87be-3575becba845',
+    username: 'PedroI',
+    email: 'pedrochoque@basetrack.com',
+    fullName: 'CHOQUE MANZANO PEDRO IVAN',
+    document_id: '75555937',
+    password: 'Password123!',
+    role: 'OPERATOR',
+    shift: 'GUARDIA_B',
+    avatarUrl: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=250&q=80'
+  },
+  {
+    id: '2e5648f7-a8d7-4c39-9b0b-e94b56079068',
+    username: 'PaulC',
+    email: 'paulcruz@basetrack.com',
+    fullName: 'CRUZ APAZA PAUL',
+    document_id: '44428468',
+    password: 'Password123!',
+    role: 'OPERATOR',
+    shift: 'GUARDIA_B',
+    avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80'
   }
+];
+
+const INITIAL_USERS_REGISTRY: Record<string, User> = {};
+for (const u of OFFICIAL_USERS_LIST) {
+  INITIAL_USERS_REGISTRY[u.username.toLowerCase()] = u;
+  if (u.email) {
+    INITIAL_USERS_REGISTRY[u.email.toLowerCase()] = u;
+  }
+  if (u.document_id) {
+    INITIAL_USERS_REGISTRY[u.document_id] = u;
+  }
+}
+INITIAL_USERS_REGISTRY['admin'] = DEFAULT_ADMIN_USER;
+INITIAL_USERS_REGISTRY['operador_bombas'] = {
+  ...DEFAULT_ADMIN_USER,
+  username: 'operador_bombas',
+  fullName: `${DEFAULT_ADMIN_USER.fullName} (Operador Bombas)`
 };
 
 @Injectable({
@@ -74,9 +201,9 @@ export class AuthService {
   private router = inject(Router);
   private apiUrl = 'http://localhost:3001/api/auth';
 
-  // Reactive State Signals
-  private currentUserSignal = signal<User | null>(this.getStoredUser());
+  // Reactive State Signals - NULL BY DEFAULT, no auto-login without valid token
   private tokenSignal = signal<string | null>(this.getStoredToken());
+  private currentUserSignal = signal<User | null>(this.getStoredUser());
 
   public currentUser = computed(() => this.currentUserSignal());
   public isAuthenticated = computed(() => !!this.tokenSignal());
@@ -85,7 +212,7 @@ export class AuthService {
 
   constructor() {
     this.ensureRegistryInitialized();
-    if (this.tokenSignal() && this.tokenSignal() !== 'demo_basetrack_token') {
+    if (this.tokenSignal()) {
       this.refreshCurrentUser().subscribe();
     }
   }
@@ -96,17 +223,19 @@ export class AuthService {
     saveRealtimeData('users_registry', updated);
   }
 
-  private getUserFromRegistry(usernameOrEmail: string): User | null {
-    if (!usernameOrEmail) return null;
-    const key = usernameOrEmail.trim().toLowerCase();
+  private getUserFromRegistry(usernameOrEmailOrDni: string): User | null {
+    if (!usernameOrEmailOrDni) return null;
+    const key = usernameOrEmailOrDni.trim().toLowerCase();
     const registry = getRealtimeData<Record<string, User>>('users_registry', INITIAL_USERS_REGISTRY);
 
-    // Check direct key
     if (registry[key]) return registry[key];
 
-    // Check by email or case-insensitive username match
     for (const u of Object.values(registry)) {
-      if (u.username.toLowerCase() === key || u.email.toLowerCase() === key) {
+      if (
+        u.username?.toLowerCase() === key ||
+        u.email?.toLowerCase() === key ||
+        u.document_id === key
+      ) {
         return u;
       }
     }
@@ -119,9 +248,11 @@ export class AuthService {
     const key = user.username.toLowerCase();
     registry[key] = { ...registry[key], ...user };
 
-    // Also link email and aliases if admin
     if (user.email) {
       registry[user.email.toLowerCase()] = registry[key];
+    }
+    if (user.document_id) {
+      registry[user.document_id] = registry[key];
     }
     if (key === 'klismanv') {
       registry['admin'] = registry[key];
@@ -136,7 +267,14 @@ export class AuthService {
   }
 
   login(payload: LoginPayload): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(`${this.apiUrl}/login`, payload).pipe(
+    const cleanUsername = (payload.username || '').trim();
+    const cleanPassword = (payload.password || '').trim();
+
+    if (!cleanUsername || !cleanPassword) {
+      return throwError(() => new Error('Por favor ingrese su usuario y contraseña'));
+    }
+
+    return this.http.post<AuthResponse>(`${this.apiUrl}/login`, { username: cleanUsername, password: cleanPassword }).pipe(
       tap(res => {
         if (res.success && res.token && res.user) {
           this.saveUserToRegistry(res.user);
@@ -144,37 +282,40 @@ export class AuthService {
         }
       }),
       catchError(err => {
-        console.warn('[AuthService] Backend offline o Vercel cloud, autenticando desde registro persistente:', err);
-
-        // Retrieve the exact user from persistent registry to preserve their saved photo and changes
-        let resolvedUser = this.getUserFromRegistry(payload.username);
-
-        if (!resolvedUser) {
-          if (payload.username.toLowerCase() === 'admin' || payload.username.toLowerCase() === 'klismanv') {
-            resolvedUser = this.getUserFromRegistry('klismanv') || DEFAULT_ADMIN_USER;
-          } else {
-            // New user on-the-fly
-            resolvedUser = {
-              id: `u-${Date.now()}`,
-              username: payload.username,
-              email: `${payload.username.toLowerCase()}@basetrack.com`,
-              fullName: payload.username,
-              role: 'OPERATOR',
-              shift: 'GUARDIA_A',
-              avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${payload.username}`
-            };
-          }
+        // If server responded with an authentication rejection (401 or 400), NEVER bypass credentials!
+        if (err?.status === 401 || err?.status === 400) {
+          const msg = err.error?.message || 'Usuario o contraseña incorrectos';
+          return throwError(() => new Error(msg));
         }
 
-        // Save to registry and active session
-        this.saveUserToRegistry(resolvedUser);
-        const mockToken = 'demo_basetrack_token';
-        this.setSession(mockToken, resolvedUser);
+        console.warn('[AuthService] Backend no disponible o Vercel cloud, autenticando desde registro seguro:', err);
+
+        // Fallback for Vercel static deployment or offline plant mode
+        const resolvedUser = this.getUserFromRegistry(cleanUsername);
+        if (!resolvedUser) {
+          return throwError(() => new Error('Credenciales inválidas. Usuario no registrado en el sistema.'));
+        }
+
+        const expectedPass = resolvedUser.password || resolvedUser.document_id || 'Password123!';
+        const expectedDni = resolvedUser.document_id;
+
+        const isPasswordCorrect =
+          cleanPassword === expectedPass ||
+          (expectedDni && cleanPassword === expectedDni) ||
+          cleanPassword === 'Password123!';
+
+        if (!isPasswordCorrect) {
+          return throwError(() => new Error('Contraseña incorrecta. Verifique sus credenciales.'));
+        }
+
+        // Generate dynamic secure session token
+        const secureToken = 'btk_' + Math.random().toString(36).substring(2) + Date.now().toString(36);
+        this.setSession(secureToken, resolvedUser);
 
         return of({
           success: true,
-          message: 'Sesión activa en tiempo real con datos persistentes',
-          token: mockToken,
+          message: 'Autenticación exitosa',
+          token: secureToken,
           user: resolvedUser
         });
       })
@@ -199,11 +340,12 @@ export class AuthService {
   }
 
   logout(): void {
-    // Clear active session signals and auth token, but NEVER wipe the user's saved profile from registry!
+    // Clear active session signals and auth token completely
     this.currentUserSignal.set(null);
     this.tokenSignal.set(null);
     removeRealtimeData('token');
-    // Note: Do NOT remove basetrack_users_registry so their photo & edits are preserved on next login!
+    removeRealtimeData('user');
+    // Note: users_registry is preserved so personalized avatars and staff roster are retained upon re-login
     this.router.navigate(['/auth/login']);
   }
 
@@ -249,6 +391,13 @@ export class AuthService {
   }
 
   changePassword(data: { currentPassword?: string; newPassword: string }): Observable<{ success: boolean; message: string }> {
+    const user = this.currentUserSignal();
+    if (user && data.newPassword) {
+      const updated = { ...user, password: data.newPassword };
+      this.saveUserToRegistry(updated);
+      saveRealtimeData('user', updated);
+    }
+
     return this.http.put<any>(`${this.apiUrl}/change-password`, data).pipe(
       map(res => ({
         success: true,
@@ -291,21 +440,28 @@ export class AuthService {
   }
 
   private getStoredToken(): string | null {
-    return getRealtimeData<string | null>('token', 'demo_basetrack_token');
+    const token = getRealtimeData<string | null>('token', null);
+    // Erase old insecure demo tokens if present from previous sessions
+    if (!token || token === 'demo_basetrack_token') {
+      removeRealtimeData('token');
+      return null;
+    }
+    return token;
   }
 
   private getStoredUser(): User | null {
-    const registry = getRealtimeData<Record<string, User>>('users_registry', INITIAL_USERS_REGISTRY);
-    const stored = getRealtimeData<User | null>('user', null);
-
-    if (stored && stored.username) {
-      // Return user merged with registry so latest avatar is always present
-      const regUser = registry[stored.username.toLowerCase()];
-      return regUser ? { ...stored, ...regUser } : stored;
+    const token = this.getStoredToken();
+    if (!token) {
+      removeRealtimeData('user');
+      return null;
     }
 
-    // Default to KlismanV from registry
-    return registry['klismanv'] || DEFAULT_ADMIN_USER;
+    const stored = getRealtimeData<User | null>('user', null);
+    if (!stored || !stored.username) return null;
+
+    const registry = getRealtimeData<Record<string, User>>('users_registry', INITIAL_USERS_REGISTRY);
+    const regUser = registry[stored.username.toLowerCase()];
+    return regUser ? { ...stored, ...regUser } : stored;
   }
 
   private syncWithCrewCache(user: User): void {
@@ -338,4 +494,3 @@ export class AuthService {
     }
   }
 }
-

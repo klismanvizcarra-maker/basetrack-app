@@ -16,18 +16,6 @@ export function authenticateToken(req: AuthenticatedRequest, res: Response, next
     });
   }
 
-  // Token de desarrollo y contingencia para visualización local
-  if (token === 'demo_basetrack_token') {
-    req.user = {
-      userId: 'u-klismanv',
-      username: 'KlismanV',
-      role: 'ADMIN',
-      shift: 'GUARDIA_A',
-      fullName: 'VIZCARRA CORI MANLEY KLISMAN'
-    };
-    return next();
-  }
-
   try {
     const decoded = verifyToken(token);
     req.user = decoded;
