@@ -3,7 +3,7 @@ import { Injectable } from '@angular/core';
 export interface SyncQueueItem {
   id: string;
   endpoint: string;
-  method: 'POST' | 'PATCH' | 'PUT';
+  method: 'POST' | 'PATCH' | 'PUT' | 'DELETE';
   body: any;
   timestamp: string;
   entityName: string;

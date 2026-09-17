@@ -46,7 +46,7 @@ export class OfflineSyncService {
 
   async queueAction(
     endpoint: string,
-    method: 'POST' | 'PATCH' | 'PUT',
+    method: 'POST' | 'PATCH' | 'PUT' | 'DELETE',
     body: any,
     entityName: string
   ): Promise<void> {
@@ -85,6 +85,8 @@ export class OfflineSyncService {
           await firstValueFrom(this.http.patch(item.endpoint, item.body));
         } else if (item.method === 'PUT') {
           await firstValueFrom(this.http.put(item.endpoint, item.body));
+        } else if (item.method === 'DELETE') {
+          await firstValueFrom(this.http.delete(item.endpoint));
         }
 
         await this.idb.removeFromQueue(item.id);
