@@ -112,36 +112,6 @@ export interface GeneralAverages {
         </div>
 
         <div class="controls-right-group">
-          <!-- View Switcher (Planilla vs Tarjetas Móviles) -->
-          <div class="view-mode-toggle" title="Alternar formato de visualización">
-            <button
-              type="button"
-              class="view-toggle-btn"
-              [class.active]="viewMode === 'TABLE'"
-              (click)="viewMode = 'TABLE'"
-            >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-                <rect x="3" y="3" width="18" height="18" rx="2"></rect>
-                <line x1="3" y1="9" x2="21" y2="9"></line>
-                <line x1="3" y1="15" x2="21" y2="15"></line>
-                <line x1="9" y1="3" x2="9" y2="21"></line>
-              </svg>
-              <span>Tabla</span>
-            </button>
-            <button
-              type="button"
-              class="view-toggle-btn"
-              [class.active]="viewMode === 'CARDS'"
-              (click)="viewMode = 'CARDS'"
-            >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-                <rect x="5" y="2" width="14" height="20" rx="2"></rect>
-                <line x1="12" y1="18" x2="12.01" y2="18"></line>
-              </svg>
-              <span>Móvil</span>
-            </button>
-          </div>
-
           <div class="station-filters">
             <div class="filter-item">
               <label>Turno:</label>
@@ -163,7 +133,7 @@ export interface GeneralAverages {
         </div>
       </div>
 
-      <!-- Promedios Clave Cards (Dark Purple CRAVEAT Hero) -->
+      <!-- Promedios Clave Cards -->
       <div class="promedios-hero-grid">
         <div class="promedio-kpi-card glass-panel">
           <div class="kpi-icon-wrap emerald">
@@ -198,12 +168,11 @@ export interface GeneralAverages {
         </div>
       </div>
 
-      <!-- VIEW 1: METALLURGICAL STATION TABLE (Integrated with Dark-Violet Theme) -->
-      <div *ngIf="viewMode === 'TABLE'" class="metallurgical-sheet-wrapper glass-panel animate-fade-in">
-        <!-- Station Header Banner (Theme Cohesive) -->
+      <!-- ÚNICA TABLA METALÚRGICA (Modo Escritorio y Modo Móvil unificados) -->
+      <div class="metallurgical-sheet-wrapper glass-panel animate-fade-in">
+        <!-- Station Header Banner -->
         <div class="station-banner-header">
           <div class="banner-title-group">
-            <span class="banner-badge">CIRCUITO DE CLASIFICACIÓN</span>
             <h3>{{ selectedStation }}</h3>
           </div>
           <span class="mobile-scroll-hint">↔ Desliza para ver más columnas</span>
@@ -218,6 +187,7 @@ export interface GeneralAverages {
                 <th rowspan="2" class="col-baterias sticky-col-2">BATERÍAS</th>
                 <th colspan="3" class="col-group group-solidos">% SÓLIDOS</th>
                 <th colspan="3" class="col-group group-malla">% MALLA 200</th>
+                <th rowspan="2" class="col-accion">ACCIÓN</th>
               </tr>
               <tr class="th-sub-row">
                 <th class="sub-col">FEED</th>
@@ -247,12 +217,30 @@ export interface GeneralAverages {
                   <td class="cell-val">{{ row.mesh200_feed | number:'1.2-2' }}</td>
                   <td class="cell-val">{{ row.mesh200_of | number:'1.2-2' }}</td>
                   <td class="cell-val cell-uf font-bold">{{ row.mesh200_uf | number:'1.2-2' }}</td>
+
+                  <!-- ACCIÓN: Botón para borrar filas o datos por hora -->
+                  <td *ngIf="i === 0" [attr.rowspan]="group.rows.length" class="cell-accion text-center">
+                    <button
+                      type="button"
+                      class="btn-trash-action"
+                      (click)="openDeleteModal(group)"
+                      title="Borrar filas o datos de las {{ group.time }}"
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 6h18"></path>
+                        <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                        <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                        <line x1="10" y1="11" x2="10" y2="17"></line>
+                        <line x1="14" y1="11" x2="14" y2="17"></line>
+                      </svg>
+                    </button>
+                  </td>
                 </tr>
               </ng-container>
 
               <!-- Empty state fallback with Reset Action -->
               <tr *ngIf="groupedSamples.length === 0">
-                <td colspan="8" class="empty-message-cell">
+                <td colspan="9" class="empty-message-cell">
                   <div class="empty-box">
                     <p>No se encontraron registros de muestreo para los filtros seleccionados.</p>
                     <button class="btn btn-secondary btn-sm" (click)="resetFilters()">
@@ -271,6 +259,7 @@ export interface GeneralAverages {
                 <td class="cell-promedio-val font-bold">{{ generalAverages.mesh200_feed | number:'1.2-2' }}</td>
                 <td class="cell-promedio-val font-bold">{{ generalAverages.mesh200_of | number:'1.2-2' }}</td>
                 <td class="cell-promedio-val font-bold">{{ generalAverages.mesh200_uf | number:'1.2-2' }}</td>
+                <td class="cell-promedio-val font-bold">-</td>
               </tr>
             </tfoot>
           </table>
@@ -286,85 +275,6 @@ export interface GeneralAverages {
           <span class="clave-metric">
             UF Malla 200: <strong class="cyan-highlight">{{ generalAverages.mesh200_uf | number:'1.2-2' }}%</strong>
           </span>
-        </div>
-      </div>
-
-      <!-- VIEW 2: MOBILE CARDS VIEW (Diseñado para smartphones) -->
-      <div *ngIf="viewMode === 'CARDS'" class="mobile-cards-view animate-fade-in">
-        <div class="mobile-view-header">
-          <span class="header-badge">{{ selectedStation }}</span>
-          <span class="samples-count">{{ filteredStationSamples.length }} Muestras</span>
-        </div>
-
-        <div *ngFor="let group of groupedSamples" class="hour-card glass-panel">
-          <div class="hour-card-header">
-            <div class="hour-time-badge">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <circle cx="12" cy="12" r="10"></circle>
-                <polyline points="12 6 12 12 16 14"></polyline>
-              </svg>
-              <span>{{ group.time }} hrs</span>
-            </div>
-            <span class="batteries-count">{{ group.rows.length }} baterías</span>
-          </div>
-
-          <!-- Battery rows inside this hour -->
-          <div class="hour-batteries-list">
-            <div *ngFor="let row of group.rows" class="battery-sample-box">
-              <div class="box-top">
-                <span class="battery-tag-pill">{{ row.battery_tag }}</span>
-                <span class="shift-pill">{{ row.shift_code }}</span>
-              </div>
-
-              <!-- Parameter comparisons -->
-              <div class="params-comparison-grid">
-                <!-- % Sólidos Card -->
-                <div class="param-block">
-                  <div class="param-block-title">% SÓLIDOS</div>
-                  <div class="param-triplet">
-                    <div class="triplet-item">
-                      <span class="t-label">FEED</span>
-                      <span class="t-val">{{ row.solids_feed | number:'1.2-2' }}</span>
-                    </div>
-                    <div class="triplet-item">
-                      <span class="t-label">OF</span>
-                      <span class="t-val">{{ row.solids_of | number:'1.2-2' }}</span>
-                    </div>
-                    <div class="triplet-item highlight-uf">
-                      <span class="t-label">UF</span>
-                      <span class="t-val bold-green">{{ row.solids_uf | number:'1.2-2' }}%</span>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- % Malla 200 Card -->
-                <div class="param-block">
-                  <div class="param-block-title">% MALLA 200</div>
-                  <div class="param-triplet">
-                    <div class="triplet-item">
-                      <span class="t-label">FEED</span>
-                      <span class="t-val">{{ row.mesh200_feed | number:'1.2-2' }}</span>
-                    </div>
-                    <div class="triplet-item">
-                      <span class="t-label">OF</span>
-                      <span class="t-val">{{ row.mesh200_of | number:'1.2-2' }}</span>
-                    </div>
-                    <div class="triplet-item highlight-uf">
-                      <span class="t-label">UF</span>
-                      <span class="t-val bold-green">{{ row.mesh200_uf | number:'1.2-2' }}%</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div *ngIf="groupedSamples.length === 0" class="empty-cards glass-panel">
-          <p>No se encontraron registros con los filtros seleccionados.</p>
-          <button class="btn btn-secondary btn-sm" (click)="resetFilters()" style="margin-top: 10px;">
-            Ver todas las muestras
-          </button>
         </div>
       </div>
 
@@ -597,6 +507,48 @@ export interface GeneralAverages {
             <button type="submit" class="btn btn-primary">Guardar Reporte</button>
           </div>
         </form>
+      </app-modal>
+
+      <!-- MODAL: Confirmar Eliminación de Fila o Datos por Hora -->
+      <app-modal [isOpen]="isDeleteModalOpen" [title]="'Eliminar Muestreo Metalúrgico'" (close)="isDeleteModalOpen = false">
+        <div class="delete-modal-content" *ngIf="groupToDelete">
+          <div class="delete-warning-banner">
+            <span class="warning-icon">⚠️</span>
+            <div>
+              <h4>¿Desea eliminar los datos de las {{ groupToDelete.time }} hrs?</h4>
+              <p>Estación: <strong>{{ selectedStation }}</strong></p>
+            </div>
+          </div>
+
+          <div class="delete-rows-list">
+            <span class="list-title">Filas registradas para este horario:</span>
+            <div class="row-to-delete-card" *ngFor="let row of groupToDelete.rows">
+              <div class="row-info">
+                <span class="battery-pill">{{ row.battery_tag }}</span>
+                <span class="detail-text">
+                  % Sólidos UF: <strong>{{ row.solids_uf | number:'1.2-2' }}%</strong> | Malla -200 UF: <strong>{{ row.mesh200_uf | number:'1.2-2' }}%</strong>
+                </span>
+              </div>
+              <button type="button" class="btn btn-danger-subtle btn-sm" (click)="deleteSingleRow(row)" title="Eliminar solo la fila de {{ row.battery_tag }}">
+                Eliminar solo {{ row.battery_tag }}
+              </button>
+            </div>
+          </div>
+
+          <div footer class="modal-buttons">
+            <button type="button" class="btn btn-secondary" (click)="isDeleteModalOpen = false">Cancelar</button>
+            <button type="button" class="btn btn-danger" (click)="deleteEntireGroup(groupToDelete)">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 6h18"></path>
+                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                <line x1="10" y1="11" x2="10" y2="17"></line>
+                <line x1="14" y1="11" x2="14" y2="17"></line>
+              </svg>
+              Eliminar Horario Completo ({{ groupToDelete.time }})
+            </button>
+          </div>
+        </div>
       </app-modal>
     </div>
   `,
@@ -1036,6 +988,13 @@ export interface GeneralAverages {
             color: var(--text-primary);
           }
 
+          .col-accion {
+            font-size: 0.8rem;
+            width: 75px;
+            color: var(--text-primary);
+            text-align: center;
+          }
+
           .col-group {
             font-size: 0.84rem;
             font-weight: 800;
@@ -1116,6 +1075,33 @@ export interface GeneralAverages {
           color: #047857;
           font-weight: 700;
           font-size: 0.92rem;
+        }
+
+        .cell-accion {
+          text-align: center;
+          vertical-align: middle;
+          padding: 8px !important;
+        }
+
+        .btn-trash-action {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 36px;
+          height: 36px;
+          border-radius: 8px;
+          border: 1px solid #e2e8f0;
+          background: #ffffff;
+          color: #94a3b8;
+          cursor: pointer;
+          transition: all 0.2s ease;
+
+          &:hover {
+            color: #ef4444;
+            background: #fef2f2;
+            border-color: #fca5a5;
+            transform: scale(1.08);
+          }
         }
 
         .empty-message-cell {
@@ -1624,6 +1610,114 @@ export interface GeneralAverages {
         }
       }
     }
+    /* Delete Confirmation Modal */
+    .delete-modal-content {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .delete-warning-banner {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 10px;
+
+      .warning-icon {
+        font-size: 1.8rem;
+      }
+
+      h4 {
+        margin: 0;
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: #991b1b;
+      }
+
+      p {
+        margin: 4px 0 0;
+        font-size: 0.8rem;
+        color: #b91c1c;
+      }
+    }
+
+    .delete-rows-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+
+      .list-title {
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: #475569;
+      }
+    }
+
+    .row-to-delete-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 14px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+
+      .row-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .battery-pill {
+        font-weight: 800;
+        color: #059669;
+        font-size: 0.82rem;
+        background: #ecfdf5;
+        padding: 3px 8px;
+        border-radius: 4px;
+        border: 1px solid #a7f3d0;
+      }
+
+      .detail-text {
+        font-size: 0.78rem;
+        color: #334155;
+      }
+    }
+
+    .btn-danger {
+      background: #ef4444;
+      color: #ffffff;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      &:hover {
+        background: #dc2626;
+      }
+    }
+
+    .btn-danger-subtle {
+      background: #ffffff;
+      border: 1px solid #fca5a5;
+      color: #dc2626;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 5px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+      &:hover {
+        background: #fef2f2;
+      }
+    }
   `]
 })
 export class CyclonesComponent implements OnInit {
@@ -1638,7 +1732,9 @@ export class CyclonesComponent implements OnInit {
   selectedStation: string = '2DA ESTACIÓN CICLONES';
   selectedShift: string = 'ALL';
   filterDate: string = '';
-  viewMode: 'TABLE' | 'CARDS' = 'TABLE';
+
+  isDeleteModalOpen = false;
+  groupToDelete: GroupedSample | null = null;
 
   quickHours: string[] = ['20:00', '23:00', '02:00', '05:00', '08:00', '11:00', '14:00', '17:00'];
 
@@ -1683,10 +1779,6 @@ export class CyclonesComponent implements OnInit {
   };
 
   ngOnInit(): void {
-    if (typeof window !== 'undefined' && window.innerWidth <= 768) {
-      this.viewMode = 'CARDS';
-    }
-
     // Inicializar con fallback de datos reales de inmediato
     this.useFallbackData();
     this.loadCyclones();
@@ -1865,6 +1957,67 @@ export class CyclonesComponent implements OnInit {
       this.filterSamples();
       this.isSampleModalOpen = false;
     }
+  }
+
+  openDeleteModal(group: GroupedSample): void {
+    this.groupToDelete = group;
+    this.isDeleteModalOpen = true;
+  }
+
+  deleteSingleRow(row: StationSample): void {
+    const id = row.id;
+    if (id && !id.startsWith('s-') && !id.startsWith('temp-')) {
+      if (this.offlineSync.isOnline()) {
+        this.http.delete<any>(`http://localhost:3001/api/cyclones/station-samples/${id}`).subscribe({
+          next: () => console.log(`Deleted sample ${id}`),
+          error: (err) => console.warn('Delete error or offline', err)
+        });
+      } else {
+        this.offlineSync.queueAction(`http://localhost:3001/api/cyclones/station-samples/${id}`, 'DELETE' as any, {}, `Eliminar muestra ${row.station} ${row.sample_time} ${row.battery_tag}`);
+      }
+    }
+
+    this.rawStationSamples = this.rawStationSamples.filter(s => s !== row && s.id !== id);
+    this.filterSamples();
+
+    if (this.groupToDelete) {
+      this.groupToDelete.rows = this.groupToDelete.rows.filter(r => r !== row && r.id !== id);
+      if (this.groupToDelete.rows.length === 0) {
+        this.isDeleteModalOpen = false;
+        this.groupToDelete = null;
+      }
+    }
+  }
+
+  deleteEntireGroup(group: GroupedSample): void {
+    for (const row of group.rows) {
+      const id = row.id;
+      if (id && !id.startsWith('s-') && !id.startsWith('temp-')) {
+        if (this.offlineSync.isOnline()) {
+          this.http.delete<any>(`http://localhost:3001/api/cyclones/station-samples/${id}`).subscribe({
+            next: () => console.log(`Deleted sample ${id}`),
+            error: (err) => console.warn('Delete error or offline', err)
+          });
+        } else {
+          this.offlineSync.queueAction(`http://localhost:3001/api/cyclones/station-samples/${id}`, 'DELETE' as any, {}, `Eliminar muestra ${row.station} ${row.sample_time} ${row.battery_tag}`);
+        }
+      }
+    }
+
+    const rowIds = new Set(group.rows.map(r => r.id).filter(Boolean));
+    const targetStation = this.selectedStation.toLowerCase().trim();
+
+    this.rawStationSamples = this.rawStationSamples.filter(s => {
+      if (s.id && rowIds.has(s.id)) return false;
+      if (s.sample_time === group.time && s.station.toLowerCase().trim().includes(targetStation.includes('1ra') ? '1ra' : '2da')) {
+        return false;
+      }
+      return true;
+    });
+
+    this.filterSamples();
+    this.isDeleteModalOpen = false;
+    this.groupToDelete = null;
   }
 
   exportCsv(): void {
