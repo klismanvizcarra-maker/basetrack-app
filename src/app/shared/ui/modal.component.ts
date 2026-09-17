@@ -30,79 +30,68 @@ import { CommonModule } from '@angular/common';
     </div>
   `,
   styles: [`
+    :host {
+      display: contents;
+    }
+
     .modal-backdrop {
       position: fixed;
+      inset: 0;
       top: 0;
       left: 0;
       right: 0;
       bottom: 0;
-      background: rgba(15, 23, 42, 0.52);
+      width: 100vw;
+      height: 100vh;
+      height: 100dvh;
+      background: rgba(15, 23, 42, 0.65);
       backdrop-filter: blur(6px);
       display: flex;
       align-items: center;
       justify-content: center;
-      z-index: 1000;
+      z-index: 99999;
       padding: 20px;
-      transition: opacity 0.25s ease;
+      overflow-y: auto;
+      box-sizing: border-box;
 
       @media (max-width: 640px) {
-        align-items: flex-end;
-        padding: 0;
+        align-items: center;
+        padding: 16px;
       }
     }
 
     .modal-card {
       background: #ffffff;
       border: 1px solid var(--border-subtle);
-      box-shadow: 0 20px 45px -10px rgba(15, 23, 42, 0.16), 0 0 1px rgba(0, 0, 0, 0.1);
-      border-radius: var(--radius-xl);
+      box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25), 0 0 1px rgba(0, 0, 0, 0.1);
+      border-radius: 16px;
       width: 100%;
       max-width: 580px;
-      max-height: 90vh;
+      max-height: calc(100vh - 40px);
       display: flex;
       flex-direction: column;
       overflow: hidden;
       position: relative;
+      margin: auto;
 
       @media (max-width: 640px) {
         max-width: 100%;
-        border-radius: 22px 22px 0 0;
-        max-height: 92vh;
-        border-bottom: none;
-        padding-bottom: env(safe-area-inset-bottom, 8px);
+        border-radius: 16px;
+        max-height: calc(100vh - 32px);
       }
     }
 
     .mobile-drag-pill {
       display: none;
-      width: 40px;
-      height: 4px;
-      background: #cbd5e1;
-      border-radius: 9999px;
-      margin: 8px auto 0;
-      flex-shrink: 0;
-
-      @media (max-width: 640px) {
-        display: block;
-      }
     }
 
-    @keyframes modalInDesktop {
-      from { opacity: 0; transform: scale(0.96) translateY(8px); }
+    @keyframes modalIn {
+      from { opacity: 0; transform: scale(0.96) translateY(-8px); }
       to { opacity: 1; transform: scale(1) translateY(0); }
     }
 
-    @keyframes modalInMobile {
-      from { opacity: 0; transform: translateY(100%); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
     .animate-modal-in {
-      animation: modalInDesktop 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-
-      @media (max-width: 640px) {
-        animation: modalInMobile 0.28s cubic-bezier(0.2, 0.9, 0.3, 1) forwards;
-      }
+      animation: modalIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
 
     .modal-header {

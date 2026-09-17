@@ -236,7 +236,7 @@ const DEFAULT_LOGS: AuditLog[] = [
   standalone: true,
   imports: [CommonModule, FormsModule, ModalComponent],
   template: `
-    <div class="admin-page animate-fade-in">
+    <div class="admin-page">
       <div class="page-top-bar">
         <div>
           <h2>Administración de Planta y Copias de Seguridad</h2>
@@ -393,8 +393,9 @@ const DEFAULT_LOGS: AuditLog[] = [
           </table>
         </div>
       </div>
+    </div>
 
-      <!-- Modal Create User -->
+    <!-- Modal Create User -->
       <app-modal [isOpen]="isCreateUserModalOpen" [title]="'Crear Nuevo Usuario Operacional'" (close)="isCreateUserModalOpen = false">
         <form (ngSubmit)="saveUser()" class="modal-form">
           <div class="form-row">
@@ -574,7 +575,6 @@ const DEFAULT_LOGS: AuditLog[] = [
           </button>
         </div>
       </app-modal>
-    </div>
   `,
   styles: [`
     .admin-page {
