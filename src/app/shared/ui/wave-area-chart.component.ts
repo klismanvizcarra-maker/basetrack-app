@@ -28,39 +28,38 @@ export interface WavePoint {
         <div class="svg-stage">
           <svg viewBox="0 0 500 180" preserveAspectRatio="none" class="wave-svg">
             <defs>
-              <linearGradient id="purpleWaveGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stop-color="#a855f7" stop-opacity="0.65" />
-                <stop offset="60%" stop-color="#8b5cf6" stop-opacity="0.25" />
-                <stop offset="100%" stop-color="#7e22ce" stop-opacity="0.0" />
+              <linearGradient id="emeraldWaveGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#059669" stop-opacity="0.25" />
+                <stop offset="60%" stop-color="#34d399" stop-opacity="0.1" />
+                <stop offset="100%" stop-color="#059669" stop-opacity="0.0" />
               </linearGradient>
               <filter id="waveGlow" x="-20%" y="-20%" width="140%" height="140%">
-                <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#a855f7" flood-opacity="0.5" />
+                <feDropShadow dx="0" dy="0" stdDeviation="3" flood-color="#059669" flood-opacity="0.3" />
               </filter>
             </defs>
 
             <!-- Subtle horizontal grid lines -->
-            <line x1="0" y1="36" x2="500" y2="36" stroke="rgba(255,255,255,0.04)" stroke-width="1" />
-            <line x1="0" y1="72" x2="500" y2="72" stroke="rgba(255,255,255,0.04)" stroke-width="1" />
-            <line x1="0" y1="108" x2="500" y2="108" stroke="rgba(255,255,255,0.04)" stroke-width="1" />
-            <line x1="0" y1="144" x2="500" y2="144" stroke="rgba(255,255,255,0.04)" stroke-width="1" />
+            <line x1="0" y1="36" x2="500" y2="36" stroke="#e2e8f0" stroke-width="1" />
+            <line x1="0" y1="72" x2="500" y2="72" stroke="#e2e8f0" stroke-width="1" />
+            <line x1="0" y1="108" x2="500" y2="108" stroke="#e2e8f0" stroke-width="1" />
+            <line x1="0" y1="144" x2="500" y2="144" stroke="#e2e8f0" stroke-width="1" />
 
             <!-- Vertical peak marker line -->
-            <line x1="250" y1="42" x2="250" y2="180" stroke="rgba(255,255,255,0.25)" stroke-dasharray="3,3" stroke-width="1" />
-            <circle cx="250" cy="42" r="3.5" fill="#ffffff" filter="url(#waveGlow)" />
+            <line x1="250" y1="42" x2="250" y2="180" stroke="#94a3b8" stroke-dasharray="3,3" stroke-width="1" />
+            <circle cx="250" cy="42" r="3.5" fill="#059669" filter="url(#waveGlow)" />
 
             <!-- Wave area fill -->
             <path
               d="M 0 170 C 50 165, 80 155, 120 120 C 160 85, 200 45, 250 42 C 300 40, 340 140, 390 120 C 440 100, 470 30, 500 20 L 500 180 L 0 180 Z"
-              fill="url(#purpleWaveGradient)"
+              fill="url(#emeraldWaveGradient)"
             />
 
             <!-- Top glowing curve stroke -->
             <path
               d="M 0 170 C 50 165, 80 155, 120 120 C 160 85, 200 45, 250 42 C 300 40, 340 140, 390 120 C 440 100, 470 30, 500 20"
               fill="none"
-              stroke="#c084fc"
-              stroke-width="3"
-              filter="url(#waveGlow)"
+              stroke="#059669"
+              stroke-width="2.5"
             />
 
             <!-- Data dots on x-axis baseline -->

@@ -46,6 +46,11 @@ export const routes: Routes = [
         canActivate: [authGuard],
         data: { roles: ['ADMIN', 'SUPERVISOR'] },
         loadComponent: () => import('./features/admin/admin.component').then(m => m.AdminComponent)
+      },
+      {
+        path: 'profile',
+        canActivate: [authGuard],
+        loadComponent: () => import('./features/profile/profile.component').then(m => m.ProfileComponent)
       }
     ]
   },

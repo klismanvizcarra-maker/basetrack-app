@@ -26,6 +26,97 @@ export interface AuditLog {
   timestamp: string;
 }
 
+const DEFAULT_USERS: UserItem[] = [
+  {
+    id: 'u-1',
+    username: 'admin',
+    email: 'admin@basetrack.mining.com',
+    full_name: 'Ing. Carlos Mendoza (Jefe de Planta)',
+    role: 'ADMIN',
+    shift: 'GUARDIA_A',
+    avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80',
+    created_at: '2026-08-15T08:00:00.000Z'
+  },
+  {
+    id: 'u-2',
+    username: 'supervisor_a',
+    email: 'supervisor.a@basetrack.mining.com',
+    full_name: 'Ing. Roberto Quispe (Supervisor Turno A)',
+    role: 'SUPERVISOR',
+    shift: 'GUARDIA_A',
+    avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80',
+    created_at: '2026-08-16T14:30:00.000Z'
+  },
+  {
+    id: 'u-3',
+    username: 'operador_bombas',
+    email: 'juan.perez@basetrack.mining.com',
+    full_name: 'Juan Pérez (Operador Sala de Bombas)',
+    role: 'OPERATOR',
+    shift: 'GUARDIA_A',
+    avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=120&q=80',
+    created_at: '2026-08-18T07:15:00.000Z'
+  },
+  {
+    id: 'u-4',
+    username: 'supervisor_b',
+    email: 'supervisor.b@basetrack.mining.com',
+    full_name: 'Ing. Marco Velásquez (Supervisor Turno B)',
+    role: 'SUPERVISOR',
+    shift: 'GUARDIA_B',
+    avatar_url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=120&q=80',
+    created_at: '2026-08-20T19:00:00.000Z'
+  }
+];
+
+const DEFAULT_LOGS: AuditLog[] = [
+  {
+    id: 'l-1',
+    username: 'admin',
+    action: 'LOGIN',
+    entity: 'AUTH',
+    details: 'Inicio de sesión administrativo verificado con éxito',
+    ip_address: '192.168.1.104',
+    timestamp: '2026-09-16 19:45:10'
+  },
+  {
+    id: 'l-2',
+    username: 'supervisor_a',
+    action: 'SHIFT_HANDOVER',
+    entity: 'OPERATIONS',
+    details: 'Aprobación formal relevo de guardia Turno A a Turno B',
+    ip_address: '192.168.1.112',
+    timestamp: '2026-09-16 19:10:24'
+  },
+  {
+    id: 'l-3',
+    username: 'operador_bombas',
+    action: 'PUMP_STATUS',
+    entity: 'SLURRY_PUMPS',
+    details: 'Transición bomba PP-102 a modo STANDBY preventivo',
+    ip_address: '192.168.1.120',
+    timestamp: '2026-09-16 18:35:02'
+  },
+  {
+    id: 'l-4',
+    username: 'admin',
+    action: 'BACKUP_EXPORT',
+    entity: 'DATABASE',
+    details: 'Exportación manual de snapshot seguro SQLite',
+    ip_address: '192.168.1.104',
+    timestamp: '2026-09-16 17:15:00'
+  },
+  {
+    id: 'l-5',
+    username: 'supervisor_b',
+    action: 'CYCLONES_SAMPLE',
+    entity: 'STATION_02',
+    details: 'Registro de muestra metalúrgica: OF 18.2% / UF 72.4%',
+    ip_address: '192.168.1.115',
+    timestamp: '2026-09-16 16:20:18'
+  }
+];
+
 @Component({
   selector: 'app-admin',
   standalone: true,
@@ -95,12 +186,20 @@ export interface AuditLog {
                 <td>{{ u.full_name }}</td>
                 <td>{{ u.email }}</td>
                 <td>
-                  <span class="badge" [class.badge-purple]="u.role === 'ADMIN'" [class.badge-success]="u.role === 'SUPERVISOR'" [class.badge-warning]="u.role === 'OPERATOR'">
+                  <span class="badge" [class.badge-primary]="u.role === 'ADMIN'" [class.badge-success]="u.role === 'SUPERVISOR'" [class.badge-warning]="u.role === 'OPERATOR'">
                     {{ u.role }}
                   </span>
                 </td>
-                <td><span class="badge badge-purple">{{ u.shift }}</span></td>
+                <td><span class="badge badge-slate">{{ u.shift }}</span></td>
                 <td>{{ u.created_at | date:'shortDate' }}</td>
+              </tr>
+              <tr *ngIf="users.length === 0">
+                <td colspan="6" style="text-align: center; padding: 24px; color: var(--text-muted);">
+                  No hay cuentas registradas en este momento.
+                  <button type="button" class="btn btn-secondary" style="margin-left: 12px; padding: 4px 12px; font-size: 0.78rem;" (click)="restoreDefaults()">
+                    Restaurar Cuentas de Demostración
+                  </button>
+                </td>
               </tr>
             </tbody>
           </table>
@@ -130,10 +229,15 @@ export interface AuditLog {
               <tr *ngFor="let log of logs">
                 <td class="font-mono">{{ log.timestamp }}</td>
                 <td><strong>{{ log.username }}</strong></td>
-                <td><span class="badge badge-purple">{{ log.action }}</span></td>
+                <td><span class="badge badge-primary">{{ log.action }}</span></td>
                 <td>{{ log.entity }}</td>
                 <td>{{ log.details }}</td>
                 <td class="font-mono">{{ log.ip_address }}</td>
+              </tr>
+              <tr *ngIf="logs.length === 0">
+                <td colspan="6" style="text-align: center; padding: 24px; color: var(--text-muted);">
+                  No hay eventos de auditoría registrados.
+                </td>
               </tr>
             </tbody>
           </table>
@@ -269,11 +373,13 @@ export interface AuditLog {
 
       th {
         padding: 12px 14px;
-        color: var(--text-muted);
-        font-weight: 600;
-        border-bottom: 1px solid var(--border-subtle);
+        background: #e6f7ef;
+        color: #047857;
+        font-weight: 700;
+        border-bottom: 1px solid #a7f3d0;
         font-size: 0.75rem;
         text-transform: uppercase;
+        letter-spacing: 0.04em;
       }
 
       td {
@@ -298,7 +404,7 @@ export interface AuditLog {
       width: 32px;
       height: 32px;
       border-radius: var(--radius-full);
-      background: #2e274c;
+      background: #e2e8f0;
       border: 1px solid var(--border-subtle);
     }
 
@@ -345,8 +451,10 @@ export class AdminComponent implements OnInit {
   private http = inject(HttpClient);
   authService = inject(AuthService);
 
-  users: UserItem[] = [];
-  logs: AuditLog[] = [];
+  // Inicialización con datos por defecto
+  users: UserItem[] = [...DEFAULT_USERS];
+  logs: AuditLog[] = [...DEFAULT_LOGS];
+
   isCreateUserModalOpen = false;
   backupSuccessMessage = '';
 
@@ -360,41 +468,60 @@ export class AdminComponent implements OnInit {
   };
 
   ngOnInit(): void {
+    this.loadFromStorage();
     this.loadUsers();
     this.loadLogs();
+  }
+
+  loadFromStorage(): void {
+    if (typeof localStorage !== 'undefined') {
+      try {
+        const storedUsers = localStorage.getItem('basetrack_admin_users');
+        if (storedUsers) {
+          const parsed = JSON.parse(storedUsers);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            this.users = parsed;
+          }
+        } else {
+          localStorage.setItem('basetrack_admin_users', JSON.stringify(DEFAULT_USERS));
+        }
+
+        const storedLogs = localStorage.getItem('basetrack_admin_logs');
+        if (storedLogs) {
+          const parsed = JSON.parse(storedLogs);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            this.logs = parsed;
+          }
+        } else {
+          localStorage.setItem('basetrack_admin_logs', JSON.stringify(DEFAULT_LOGS));
+        }
+      } catch (e) {
+        console.warn('Error reading from storage', e);
+      }
+    }
+  }
+
+  restoreDefaults(): void {
+    this.users = [...DEFAULT_USERS];
+    this.logs = [...DEFAULT_LOGS];
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('basetrack_admin_users', JSON.stringify(this.users));
+      localStorage.setItem('basetrack_admin_logs', JSON.stringify(this.logs));
+    }
   }
 
   loadUsers(): void {
     this.http.get<any>('http://localhost:3001/api/admin/users').subscribe({
       next: (res) => {
-        if (res.success && res.data) {
+        if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
           this.users = res.data;
+          if (typeof localStorage !== 'undefined') {
+            localStorage.setItem('basetrack_admin_users', JSON.stringify(this.users));
+          }
         }
       },
       error: () => {
-        this.users = [
-          {
-            id: 'u-1', username: 'admin', email: 'admin@basetrack.mining.com',
-            full_name: 'Ing. Carlos Mendoza (Jefe de Planta)', role: 'ADMIN',
-            shift: 'GUARDIA_A',
-            avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80',
-            created_at: new Date().toISOString()
-          },
-          {
-            id: 'u-2', username: 'supervisor_a', email: 'supervisor.a@basetrack.mining.com',
-            full_name: 'Ing. Roberto Quispe', role: 'SUPERVISOR',
-            shift: 'GUARDIA_A',
-            avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80',
-            created_at: new Date().toISOString()
-          },
-          {
-            id: 'u-3', username: 'operador_bombas', email: 'juan.perez@basetrack.mining.com',
-            full_name: 'Juan Pérez', role: 'OPERATOR',
-            shift: 'GUARDIA_A',
-            avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=120&q=80',
-            created_at: new Date().toISOString()
-          }
-        ];
+        // Fallback enriquecido ya activo en el estado y almacenamiento
       }
     });
   }
@@ -402,40 +529,67 @@ export class AdminComponent implements OnInit {
   loadLogs(): void {
     this.http.get<any>('http://localhost:3001/api/admin/audit-logs').subscribe({
       next: (res) => {
-        if (res.success && res.data) {
+        if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
           this.logs = res.data;
+          if (typeof localStorage !== 'undefined') {
+            localStorage.setItem('basetrack_admin_logs', JSON.stringify(this.logs));
+          }
         }
       },
       error: () => {
-        this.logs = [
-          {
-            id: 'l-1', username: 'admin', action: 'LOGIN', entity: 'USERS',
-            details: 'Inicio de sesión administrativo con credenciales válidas',
-            ip_address: '127.0.0.1', timestamp: new Date().toISOString()
-          },
-          {
-            id: 'l-2', username: 'operador_bombas', action: 'UPDATE', entity: 'PUMP_REPORT',
-            details: 'Cambio de estado bomba PP-102 a STANDBY',
-            ip_address: '127.0.0.1', timestamp: new Date(Date.now() - 3600000).toISOString()
-          }
-        ];
+        // Fallback enriquecido ya activo en el estado y almacenamiento
       }
     });
   }
 
   saveUser(): void {
+    if (!this.newUser.username || !this.newUser.full_name) return;
+
+    const createdUser: UserItem = {
+      id: 'u-' + Date.now(),
+      username: this.newUser.username,
+      full_name: this.newUser.full_name,
+      email: this.newUser.email || `${this.newUser.username}@basetrack.mining.com`,
+      role: this.newUser.role,
+      shift: this.newUser.shift,
+      avatar_url: `https://api.dicebear.com/7.x/bottts/svg?seed=${this.newUser.username}`,
+      created_at: new Date().toISOString()
+    };
+
+    this.users.unshift(createdUser);
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('basetrack_admin_users', JSON.stringify(this.users));
+    }
+    this.isCreateUserModalOpen = false;
+
     this.http.post<any>('http://localhost:3001/api/admin/users', this.newUser).subscribe({
-      next: () => {
-        this.isCreateUserModalOpen = false;
-        this.loadUsers();
+      next: (res) => {
+        if (res && res.id) {
+          createdUser.id = res.id;
+          if (typeof localStorage !== 'undefined') {
+            localStorage.setItem('basetrack_admin_users', JSON.stringify(this.users));
+          }
+        }
+      },
+      error: () => {
+        console.log('[Admin] Usuario creado localmente en modo contingencia.');
       }
     });
+
+    this.newUser = {
+      username: '',
+      full_name: '',
+      email: '',
+      password: '',
+      role: 'OPERATOR',
+      shift: 'GUARDIA_A'
+    };
   }
 
   exportBackup(): void {
     this.http.get<any>('http://localhost:3001/api/admin/backup').subscribe({
       next: (res) => {
-        if (res.success && res.backup) {
+        if (res && res.success && res.backup) {
           const blob = new Blob([JSON.stringify(res.backup, null, 2)], { type: 'application/json' });
           const url = window.URL.createObjectURL(blob);
           const a = document.createElement('a');
@@ -448,8 +602,21 @@ export class AdminComponent implements OnInit {
         }
       },
       error: () => {
-        this.backupSuccessMessage = 'Generando backup local de emergencia...';
-        setTimeout(() => this.backupSuccessMessage = '', 4000);
+        const localBackup = {
+          export_date: new Date().toISOString(),
+          system: 'BASETRACK Industrial Platform',
+          users: this.users,
+          audit_logs: this.logs
+        };
+        const blob = new Blob([JSON.stringify(localBackup, null, 2)], { type: 'application/json' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `basetrack_local_backup_${new Date().toISOString().slice(0, 10)}.json`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+        this.backupSuccessMessage = 'Backup local seguro generado y descargado exitosamente.';
+        setTimeout(() => this.backupSuccessMessage = '', 5000);
       }
     });
   }

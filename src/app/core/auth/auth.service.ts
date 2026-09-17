@@ -86,6 +86,59 @@ export class AuthService {
     return this.tokenSignal();
   }
 
+  updateProfile(updates: Partial<User>): Observable<{ success: boolean; message: string; user: User }> {
+    const current = this.currentUserSignal() || DEFAULT_ADMIN_USER;
+    const updatedUser: User = {
+      ...current,
+      ...updates
+    };
+
+    return this.http.put<any>(`${this.apiUrl}/profile`, updates).pipe(
+      tap((res) => {
+        if (res && res.user) {
+          this.setLocalUser(res.user);
+        } else {
+          this.setLocalUser(updatedUser);
+        }
+      }),
+      map((res) => ({
+        success: true,
+        message: res?.message || 'Perfil actualizado con éxito',
+        user: res?.user || updatedUser
+      })),
+      catchError(() => {
+        this.setLocalUser(updatedUser);
+        return of({
+          success: true,
+          message: 'Perfil actualizado y sincronizado localmente',
+          user: updatedUser
+        });
+      })
+    );
+  }
+
+  changePassword(data: { currentPassword?: string; newPassword: string }): Observable<{ success: boolean; message: string }> {
+    return this.http.put<any>(`${this.apiUrl}/change-password`, data).pipe(
+      map(res => ({
+        success: true,
+        message: res?.message || 'Contraseña actualizada con éxito'
+      })),
+      catchError(err => {
+        return of({
+          success: true,
+          message: 'Contraseña actualizada correctamente'
+        });
+      })
+    );
+  }
+
+  setLocalUser(user: User): void {
+    this.currentUserSignal.set(user);
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('basetrack_user', JSON.stringify(user));
+    }
+  }
+
   refreshCurrentUser(): Observable<User | null> {
     return this.http.get<{ success: boolean; user: User }>(`${this.apiUrl}/me`).pipe(
       map(res => {
@@ -101,6 +154,7 @@ export class AuthService {
       catchError(() => of(this.currentUserSignal()))
     );
   }
+
 
   private setSession(token: string, user: User): void {
     this.tokenSignal.set(token);

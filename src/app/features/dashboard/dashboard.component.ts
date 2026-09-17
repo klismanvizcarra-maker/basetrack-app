@@ -303,17 +303,17 @@ export class DashboardComponent implements OnInit {
   ];
 
   operationGauges = [
-    { label: 'En Standby', percentage: 25, color: '#a855f7' },
-    { label: 'Bombeo Activo', percentage: 85, color: '#8b5cf6' },
-    { label: 'Alertas', percentage: 7, color: '#c084fc' }
+    { label: 'En Standby', percentage: 25, color: '#047857' },
+    { label: 'Bombeo Activo', percentage: 85, color: '#059669' },
+    { label: 'Alertas', percentage: 7, color: '#d97706' }
   ];
 
   shiftDistribution = {
     heroPercentage: 52,
     slices: [
-      { name: 'Guardia A (Día)', percentage: 52, color: '#a855f7' },
-      { name: 'Guardia B (Noche)', percentage: 33, color: '#38bdf8' },
-      { name: 'Guardia C (Relevo)', percentage: 15, color: '#f43f5e' }
+      { name: 'Guardia A (Día)', percentage: 52, color: '#059669' },
+      { name: 'Guardia B (Noche)', percentage: 33, color: '#10b981' },
+      { name: 'Guardia C (Relevo)', percentage: 15, color: '#047857' }
     ]
   };
 

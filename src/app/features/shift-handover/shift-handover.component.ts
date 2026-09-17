@@ -217,9 +217,9 @@ export interface ShiftHandover {
     .current-handover-banner {
       padding: 24px;
       border-radius: var(--radius-xl);
-      background: linear-gradient(135deg, rgba(37, 32, 59, 0.95) 0%, rgba(45, 37, 72, 0.9) 100%);
-      border: 1px solid var(--primary-border);
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), 0 0 20px rgba(168, 85, 247, 0.15);
+      background: #ffffff;
+      border: 1px solid var(--border-subtle);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 8px 24px -4px rgba(15, 23, 42, 0.06);
       display: flex;
       flex-direction: column;
       gap: 16px;

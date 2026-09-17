@@ -35,8 +35,8 @@ import { CommonModule } from '@angular/common';
       left: 0;
       right: 0;
       bottom: 0;
-      background: rgba(10, 8, 18, 0.78);
-      backdrop-filter: blur(8px);
+      background: rgba(15, 23, 42, 0.48);
+      backdrop-filter: blur(6px);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -45,9 +45,9 @@ import { CommonModule } from '@angular/common';
     }
 
     .modal-card {
-      background: var(--bg-card);
+      background: #ffffff;
       border: 1px solid var(--border-subtle);
-      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.6), 0 0 30px rgba(168, 85, 247, 0.15);
+      box-shadow: 0 20px 45px -10px rgba(15, 23, 42, 0.16), 0 0 1px rgba(0, 0, 0, 0.1);
       border-radius: var(--radius-xl);
       width: 100%;
       max-width: 580px;

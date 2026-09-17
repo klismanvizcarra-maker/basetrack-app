@@ -79,20 +79,27 @@ import { CommonModule } from '@angular/common';
     }
 
     .stat-icon-wrapper {
-      width: 48px;
-      height: 48px;
-      border-radius: var(--radius-full);
-      background: radial-gradient(circle at 30% 30%, #a855f7 0%, #7e22ce 100%);
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-md);
+      background: #ecfdf5;
+      border: 1px solid #a7f3d0;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #ffffff;
-      box-shadow: 0 4px 14px rgba(168, 85, 247, 0.4);
+      color: #059669;
+      box-shadow: 0 2px 6px rgba(5, 150, 105, 0.08);
       flex-shrink: 0;
-      border: 2px solid rgba(255, 255, 255, 0.18);
+      transition: var(--transition-smooth);
+
+      &:hover {
+        background: #d1fae5;
+        border-color: #6ee7b7;
+        transform: scale(1.05);
+      }
 
       &.glow {
-        box-shadow: 0 0 20px rgba(168, 85, 247, 0.6);
+        box-shadow: 0 2px 8px rgba(5, 150, 105, 0.12);
       }
     }
 

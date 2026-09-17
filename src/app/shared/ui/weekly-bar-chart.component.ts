@@ -149,7 +149,7 @@ export interface DayComparison {
       left: 0;
       right: 0;
       height: 1px;
-      background: rgba(255, 255, 255, 0.04);
+      background: #e2e8f0;
     }
 
     .day-columns {
@@ -191,13 +191,13 @@ export interface DayComparison {
     }
 
     .bar-current {
-      background: linear-gradient(180deg, #a855f7 0%, #7e22ce 100%);
-      box-shadow: 0 0 10px rgba(168, 85, 247, 0.3);
+      background: linear-gradient(180deg, #059669 0%, #10b981 100%);
+      box-shadow: 0 2px 6px rgba(5, 150, 105, 0.25);
     }
 
     .bar-previous {
-      background: linear-gradient(180deg, #f472b6 0%, #db2777 100%);
-      box-shadow: 0 0 10px rgba(244, 114, 182, 0.3);
+      background: linear-gradient(180deg, #047857 0%, #065f46 100%);
+      box-shadow: 0 2px 6px rgba(4, 120, 87, 0.25);
     }
 
     .day-label {
@@ -227,8 +227,8 @@ export interface DayComparison {
       height: 8px;
       border-radius: var(--radius-full);
 
-      &.purple { background: #a855f7; }
-      &.pink { background: #f472b6; }
+      &.purple { background: #059669; }
+      &.pink { background: #047857; }
     }
   `]
 })

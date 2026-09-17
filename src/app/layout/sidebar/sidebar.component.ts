@@ -4,6 +4,7 @@ import { RouterModule } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 import { OfflineSyncService } from '../../core/offline/offline-sync.service';
 import { LayoutService } from '../../core/layout/layout.service';
+import { PwaService } from '../../core/pwa/pwa.service';
 
 @Component({
   selector: 'app-sidebar',
@@ -138,6 +139,16 @@ import { LayoutService } from '../../core/layout/layout.service';
               </span>
               <span class="nav-label">Administración</span>
             </a>
+          <li class="nav-item">
+            <a routerLink="/profile" routerLinkActive="active" class="nav-link" (click)="onNavClick()">
+              <span class="nav-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+              </span>
+              <span class="nav-label">Mi Perfil / Cuenta</span>
+            </a>
           </li>
 
           <li class="nav-item">
@@ -155,8 +166,34 @@ import { LayoutService } from '../../core/layout/layout.service';
         </ul>
       </nav>
 
-      <!-- Offline / Online Connection Indicator -->
+      <!-- Offline / Online Connection Indicator & PWA Install Box -->
       <div class="sidebar-footer">
+        <!-- PWA Action Box -->
+        <div class="pwa-action-box">
+          <button
+            *ngIf="!pwa.isInstalled()"
+            type="button"
+            class="pwa-install-btn"
+            (click)="pwa.promptInstall()"
+            title="Instalar BASETRACK en este dispositivo móvil o PC"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+              <line x1="12" y1="18" x2="12.01" y2="18"></line>
+              <path d="M12 6v6m-3-3 3 3 3-3"></path>
+            </svg>
+            <span>Instalar App en Dispositivo</span>
+          </button>
+
+          <div *ngIf="pwa.isInstalled()" class="pwa-active-badge">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+              <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+            <span>Modo App Nativa PWA</span>
+          </div>
+        </div>
+
         <div class="connection-status" [class.online]="offlineSync.isOnline()" [class.offline]="!offlineSync.isOnline()">
           <span class="status-pulse"></span>
           <span class="status-text">
@@ -210,7 +247,7 @@ import { LayoutService } from '../../core/layout/layout.service';
 
         &.mobile-open {
           transform: translateX(0);
-          box-shadow: 0 0 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(168, 85, 247, 0.25);
+          box-shadow: 0 10px 30px rgba(15, 23, 42, 0.15);
         }
       }
     }
@@ -252,12 +289,12 @@ import { LayoutService } from '../../core/layout/layout.service';
       width: 36px;
       height: 36px;
       border-radius: var(--radius-md);
-      background: linear-gradient(135deg, #a855f7 0%, #6b21a8 100%);
+      background: linear-gradient(135deg, #059669 0%, #047857 100%);
       display: flex;
       align-items: center;
       justify-content: center;
       color: #ffffff;
-      box-shadow: 0 0 16px rgba(168, 85, 247, 0.4);
+      box-shadow: 0 3px 12px rgba(5, 150, 105, 0.35);
     }
 
     .brand-title {
@@ -307,15 +344,15 @@ import { LayoutService } from '../../core/layout/layout.service';
       cursor: pointer;
 
       &:hover {
-        background: rgba(168, 85, 247, 0.1);
+        background: #f1f5f9;
         color: var(--text-primary);
       }
 
       &.active {
-        background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+        background: linear-gradient(135deg, #059669 0%, #047857 100%);
         color: #ffffff;
         font-weight: 600;
-        box-shadow: 0 4px 16px rgba(139, 92, 246, 0.4);
+        box-shadow: 0 3px 12px rgba(5, 150, 105, 0.3);
       }
     }
 
@@ -327,8 +364,8 @@ import { LayoutService } from '../../core/layout/layout.service';
 
     .nav-badge {
       margin-left: auto;
-      background: rgba(244, 114, 182, 0.25);
-      color: var(--accent-pink);
+      background: #fce7f3;
+      color: #be185d;
       font-size: 0.7rem;
       font-weight: 700;
       padding: 2px 7px;
@@ -336,7 +373,7 @@ import { LayoutService } from '../../core/layout/layout.service';
     }
 
     .logout-btn:hover {
-      background: rgba(248, 113, 113, 0.12);
+      background: #fee2e2;
       color: var(--danger);
     }
 
@@ -348,6 +385,48 @@ import { LayoutService } from '../../core/layout/layout.service';
       gap: 6px;
     }
 
+    .pwa-action-box {
+      margin-bottom: 6px;
+    }
+
+    .pwa-install-btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 9px 12px;
+      border-radius: var(--radius-md);
+      background: linear-gradient(135deg, #059669 0%, #047857 100%);
+      color: #ffffff;
+      border: none;
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 3px 10px rgba(5, 150, 105, 0.28);
+      transition: var(--transition-smooth);
+
+      &:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 5px 14px rgba(5, 150, 105, 0.42);
+        background: linear-gradient(135deg, #047857 0%, #065f46 100%);
+      }
+    }
+
+    .pwa-active-badge {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: var(--radius-sm);
+      background: #ecfdf5;
+      border: 1px solid #a7f3d0;
+      color: #047857;
+      font-size: 0.72rem;
+      font-weight: 700;
+    }
+
     .connection-status {
       display: flex;
       align-items: center;
@@ -356,16 +435,17 @@ import { LayoutService } from '../../core/layout/layout.service';
       font-weight: 500;
       padding: 6px 10px;
       border-radius: var(--radius-sm);
-      background: rgba(255, 255, 255, 0.03);
+      background: #f8fafc;
+      border: 1px solid var(--border-subtle);
 
       &.online {
         color: var(--success);
-        .status-pulse { background: var(--success); box-shadow: 0 0 8px var(--success); }
+        .status-pulse { background: var(--success); box-shadow: 0 0 6px var(--success); }
       }
 
       &.offline {
         color: var(--warning);
-        .status-pulse { background: var(--warning); box-shadow: 0 0 8px var(--warning); }
+        .status-pulse { background: var(--warning); box-shadow: 0 0 6px var(--warning); }
       }
     }
 
@@ -386,6 +466,7 @@ export class SidebarComponent {
   authService = inject(AuthService);
   offlineSync = inject(OfflineSyncService);
   layoutService = inject(LayoutService);
+  pwa = inject(PwaService);
 
   onNavClick(): void {
     if (window.innerWidth <= 900) {

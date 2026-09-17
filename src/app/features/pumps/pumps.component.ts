@@ -778,9 +778,10 @@ export interface PumpReport {
           }
 
           &.active {
-            background: var(--primary-purple);
-            color: #ffffff;
-            box-shadow: 0 2px 8px var(--primary-glow);
+            background: #ffffff;
+            border: 1.5px solid #059669;
+            color: #047857;
+            box-shadow: 0 2px 8px rgba(5, 150, 105, 0.15);
           }
         }
       }
@@ -807,8 +808,8 @@ export interface PumpReport {
     }
 
     .section-header-banner {
-      background: linear-gradient(135deg, rgba(6, 78, 59, 0.85) 0%, rgba(37, 32, 59, 0.95) 100%);
-      border-bottom: 1px solid rgba(52, 211, 153, 0.3);
+      background: linear-gradient(135deg, #059669 0%, #047857 100%);
+      border-bottom: 1px solid rgba(5, 150, 105, 0.3);
       padding: 12px 20px;
       display: flex;
       align-items: center;
@@ -829,7 +830,7 @@ export interface PumpReport {
           margin: 0;
           font-size: 1.05rem;
           font-weight: 800;
-          color: var(--text-primary);
+          color: #ffffff;
           letter-spacing: 0.04em;
         }
       }
@@ -842,14 +843,14 @@ export interface PumpReport {
         .date-label {
           font-size: 0.82rem;
           font-weight: 700;
-          color: #34d399;
+          color: #d1fae5;
           letter-spacing: 0.05em;
         }
 
         .date-input {
-          background: rgba(20, 17, 34, 0.7);
-          border: 1px solid rgba(52, 211, 153, 0.4);
-          color: var(--text-primary);
+          background: #ffffff;
+          border: 1px solid #cbd5e1;
+          color: #0f172a;
           padding: 4px 10px;
           border-radius: var(--radius-sm);
           font-size: 0.84rem;
@@ -876,7 +877,7 @@ export interface PumpReport {
         margin: 0;
         font-size: 0.9rem;
         font-weight: 700;
-        color: #34d399;
+        color: #059669;
         letter-spacing: 0.04em;
       }
     }
@@ -896,12 +897,12 @@ export interface PumpReport {
       font-size: 0.86rem;
 
       th {
-        background: #064e3b;
+        background: #047857;
         color: #ffffff;
         font-weight: 800;
         letter-spacing: 0.05em;
         padding: 10px 12px;
-        border: 1px solid rgba(255, 255, 255, 0.08);
+        border: 1px solid #e2e8f0;
         font-size: 0.82rem;
 
         &.th-station { width: 14%; }
@@ -910,7 +911,7 @@ export interface PumpReport {
 
       td {
         padding: 7px 12px;
-        border: 1px solid rgba(255, 255, 255, 0.05);
+        border: 1px solid #e2e8f0;
         vertical-align: middle;
       }
 
@@ -918,7 +919,7 @@ export interface PumpReport {
         transition: background-color 0.15s ease;
 
         &:nth-child(even) {
-          background: rgba(32, 26, 51, 0.5);
+          background: #f8fafc;
         }
 
         &:hover {
@@ -927,10 +928,11 @@ export interface PumpReport {
       }
 
       .cell-tag {
-        color: #38bdf8;
+        color: #0284c7;
+        font-weight: 700;
         font-size: 0.88rem;
         letter-spacing: 0.03em;
-        background: rgba(56, 189, 248, 0.04);
+        background: #f0f9ff;
       }
 
       .cell-status {
@@ -951,43 +953,42 @@ export interface PumpReport {
       transition: var(--transition-smooth);
 
       &.status-operativo {
-        background: rgba(52, 211, 153, 0.15);
-        border-color: rgba(52, 211, 153, 0.4);
-        color: #34d399;
-        text-shadow: 0 0 6px rgba(52, 211, 153, 0.3);
+        background: #ecfdf5;
+        border-color: #a7f3d0;
+        color: #059669;
 
         &:hover {
-          background: rgba(52, 211, 153, 0.25);
+          background: #d1fae5;
         }
       }
 
       &.status-standby {
-        background: rgba(56, 189, 248, 0.15);
-        border-color: rgba(56, 189, 248, 0.4);
-        color: #38bdf8;
+        background: #e0f2fe;
+        border-color: #bae6fd;
+        color: #0284c7;
 
         &:hover {
-          background: rgba(56, 189, 248, 0.25);
+          background: #bae6fd;
         }
       }
 
       &.status-mantenimiento {
-        background: rgba(251, 191, 36, 0.15);
-        border-color: rgba(251, 191, 36, 0.4);
-        color: #fbbf24;
+        background: #fffbeb;
+        border-color: #fde68a;
+        color: #d97706;
 
         &:hover {
-          background: rgba(251, 191, 36, 0.25);
+          background: #fef3c7;
         }
       }
 
       &.status-falla {
-        background: rgba(248, 113, 113, 0.15);
-        border-color: rgba(248, 113, 113, 0.4);
-        color: #f87171;
+        background: #fef2f2;
+        border-color: #fecaca;
+        color: #dc2626;
 
         &:hover {
-          background: rgba(248, 113, 113, 0.25);
+          background: #fee2e2;
         }
       }
     }
@@ -1007,11 +1008,11 @@ export interface PumpReport {
         display: flex;
         align-items: center;
         gap: 8px;
-        background: rgba(26, 22, 43, 0.85);
+        background: #ffffff;
         padding: 8px 16px;
         border-radius: var(--radius-full);
-        border: 1px solid rgba(52, 211, 153, 0.25);
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        border: 1px solid #cbd5e1;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 
         .chip-label {
           font-size: 0.82rem;
@@ -1022,9 +1023,9 @@ export interface PumpReport {
           font-size: 0.88rem;
           font-weight: 800;
 
-          &.emerald { color: #34d399; }
-          &.cyan { color: #38bdf8; }
-          &.purple { color: #c084fc; }
+          &.emerald { color: #059669; }
+          &.cyan { color: #0284c7; }
+          &.purple { color: #047857; }
         }
       }
     }
@@ -1057,9 +1058,9 @@ export interface PumpReport {
           font-weight: 800;
           font-variant-numeric: tabular-nums;
 
-          &.cyan-glow { color: #38bdf8; }
-          &.emerald-glow { color: #34d399; }
-          &.purple-glow { color: #c084fc; }
+          &.cyan-glow { color: #0284c7; }
+          &.emerald-glow { color: #059669; }
+          &.purple-glow { color: #047857; }
         }
       }
     }

@@ -13,7 +13,7 @@ import { CommonModule } from '@angular/common';
           <circle
             cx="50" cy="50" r="38"
             fill="none"
-            stroke="#2e274c"
+            stroke="var(--gauge-track, #e2e8f0)"
             stroke-width="9"
           />
           <!-- Foreground animated stroke -->
@@ -88,7 +88,7 @@ import { CommonModule } from '@angular/common';
 export class CircularGaugeComponent {
   @Input() percentage: number = 0;
   @Input() label: string = '';
-  @Input() color: string = '#a855f7';
+  @Input() color: string = '#0284c7';
 
   get dashArray(): string {
     const circumference = 2 * Math.PI * 38; // ~238.76

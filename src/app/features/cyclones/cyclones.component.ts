@@ -721,13 +721,13 @@ export interface GeneralAverages {
       }
 
       &.active {
-        background: rgba(5, 150, 105, 0.18);
+        background: #ecfdf5;
         border-color: #059669;
-        color: #34d399;
+        color: #047857;
 
         .dot-indicator {
-          background: #34d399;
-          box-shadow: 0 0 8px rgba(52, 211, 153, 0.7);
+          background: #059669;
+          box-shadow: 0 0 6px rgba(5, 150, 105, 0.4);
         }
       }
 
@@ -922,8 +922,8 @@ export interface GeneralAverages {
     }
 
     .station-banner-header {
-      background: linear-gradient(135deg, rgba(6, 78, 59, 0.75) 0%, rgba(37, 32, 59, 0.95) 100%);
-      border-bottom: 1px solid rgba(52, 211, 153, 0.3);
+      background: linear-gradient(135deg, #059669 0%, #047857 100%);
+      border-bottom: 1px solid rgba(5, 150, 105, 0.3);
       padding: 14px 22px;
       display: flex;
       align-items: center;
@@ -939,14 +939,14 @@ export interface GeneralAverages {
         .banner-badge {
           font-size: 0.68rem;
           font-weight: 700;
-          color: #34d399;
+          color: #d1fae5;
           letter-spacing: 0.08em;
           text-transform: uppercase;
         }
 
         h3 {
           margin: 0;
-          color: var(--text-primary);
+          color: #ffffff;
           font-size: 1.2rem;
           font-weight: 800;
           letter-spacing: 0.05em;
@@ -957,11 +957,11 @@ export interface GeneralAverages {
       .mobile-scroll-hint {
         display: none;
         font-size: 0.72rem;
-        color: var(--primary-lavender);
-        background: rgba(168, 85, 247, 0.15);
+        color: #ffffff;
+        background: rgba(255, 255, 255, 0.2);
         padding: 4px 10px;
         border-radius: var(--radius-full);
-        border: 1px solid rgba(168, 85, 247, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.3);
 
         @media (max-width: 900px) {
           display: inline-block;
@@ -984,7 +984,7 @@ export interface GeneralAverages {
       text-align: center;
 
       th, td {
-        border: 1px solid rgba(255, 255, 255, 0.06);
+        border: 1px solid #e2e8f0;
         padding: 10px 14px;
         vertical-align: middle;
       }
@@ -994,24 +994,25 @@ export interface GeneralAverages {
         position: sticky;
         left: 0;
         z-index: 10;
-        background-color: var(--bg-card);
-        box-shadow: 2px 0 6px -2px rgba(0, 0, 0, 0.4);
+        background-color: #ffffff;
+        box-shadow: 2px 0 6px -2px rgba(0, 0, 0, 0.08);
       }
 
       .sticky-col-2 {
         position: sticky;
         left: 68px;
         z-index: 10;
-        background-color: var(--bg-card);
-        box-shadow: 2px 0 6px -2px rgba(0, 0, 0, 0.4);
+        background-color: #ffffff;
+        box-shadow: 2px 0 6px -2px rgba(0, 0, 0, 0.08);
       }
 
       .sticky-col-combo {
         position: sticky;
         left: 0;
         z-index: 10;
-        background-color: #0d5f38;
-        box-shadow: 2px 0 6px -2px rgba(0, 0, 0, 0.5);
+        background-color: #047857;
+        color: #ffffff;
+        box-shadow: 2px 0 6px -2px rgba(0, 0, 0, 0.1);
       }
 
       /* Headers */
@@ -1040,21 +1041,21 @@ export interface GeneralAverages {
             font-weight: 800;
 
             &.group-solidos {
-              background: rgba(52, 211, 153, 0.1);
-              color: #34d399;
-              border-bottom: 1px solid rgba(52, 211, 153, 0.25);
+              background: #ecfdf5;
+              color: #047857;
+              border-bottom: 1px solid #a7f3d0;
             }
 
             &.group-malla {
-              background: rgba(56, 189, 248, 0.1);
-              color: #38bdf8;
-              border-bottom: 1px solid rgba(56, 189, 248, 0.25);
+              background: #e0f2fe;
+              color: #0284c7;
+              border-bottom: 1px solid #bae6fd;
             }
           }
         }
 
         .th-sub-row {
-          background-color: var(--bg-input);
+          background-color: #f8fafc;
 
           .sub-col {
             font-size: 0.76rem;
@@ -1062,7 +1063,7 @@ export interface GeneralAverages {
             color: var(--text-muted);
 
             &.uf-col {
-              color: #34d399;
+              color: #047857;
               font-weight: 700;
             }
           }
@@ -1071,10 +1072,17 @@ export interface GeneralAverages {
 
       /* Body */
       tbody {
-        background-color: var(--bg-card);
+        background-color: #ffffff;
 
         .data-row {
           transition: background-color 0.15s ease;
+
+          &:nth-child(even) {
+            background-color: #f8fafc;
+            .sticky-col-1, .sticky-col-2 {
+              background-color: #f8fafc;
+            }
+          }
 
           &:hover {
             background-color: var(--bg-card-hover);
@@ -1086,15 +1094,17 @@ export interface GeneralAverages {
 
         .cell-hora {
           font-size: 0.92rem;
-          color: var(--primary-lavender);
+          color: var(--primary-purple);
+          font-weight: 700;
           font-variant-numeric: tabular-nums;
           background-color: var(--bg-card-subtle);
         }
 
         .cell-battery {
-          color: #38bdf8;
+          color: #0284c7;
+          font-weight: 600;
           font-size: 0.9rem;
-          background-color: var(--bg-card);
+          background-color: inherit;
         }
 
         .cell-val {
@@ -1103,9 +1113,9 @@ export interface GeneralAverages {
         }
 
         .cell-uf {
-          color: #34d399;
+          color: #047857;
+          font-weight: 700;
           font-size: 0.92rem;
-          text-shadow: 0 0 8px rgba(52, 211, 153, 0.35);
         }
 
         .empty-message-cell {
@@ -1125,12 +1135,12 @@ export interface GeneralAverages {
       /* Footer */
       tfoot {
         .row-promedio-general {
-          background: linear-gradient(135deg, rgba(5, 150, 105, 0.3) 0%, rgba(37, 32, 59, 0.95) 100%);
+          background: #047857;
           border-top: 2px solid #059669;
           color: #ffffff;
 
           td {
-            border: 1px solid rgba(5, 150, 105, 0.3);
+            border: 1px solid #065f46;
             padding: 11px 14px;
             font-size: 0.92rem;
             font-variant-numeric: tabular-nums;
@@ -1139,11 +1149,12 @@ export interface GeneralAverages {
           .cell-promedio-title {
             text-align: center;
             letter-spacing: 0.05em;
-            color: #34d399;
+            color: #d1fae5;
           }
 
           .cell-promedio-val {
             color: #ffffff;
+            font-weight: 700;
           }
         }
       }
@@ -1448,13 +1459,13 @@ export interface GeneralAverages {
       border-radius: var(--radius-full);
 
       &.active {
-        background: linear-gradient(135deg, #a855f7 0%, #7e22ce 100%);
-        box-shadow: 0 0 8px rgba(168, 85, 247, 0.4);
+        background: linear-gradient(135deg, #059669 0%, #047857 100%);
+        box-shadow: 0 0 6px rgba(5, 150, 105, 0.4);
       }
 
       &.standby {
-        background: #362e52;
-        border: 1px dashed rgba(255, 255, 255, 0.15);
+        background: #e2e8f0;
+        border: 1px dashed #cbd5e1;
       }
     }
 

@@ -82,7 +82,7 @@ import { AuthService } from '../../core/auth/auth.service';
       display: flex;
       align-items: center;
       justify-content: center;
-      background: radial-gradient(circle at 50% 20%, #291e4a 0%, #141122 70%);
+      background: radial-gradient(circle at 50% 20%, #ecfdf5 0%, #f8fafc 70%);
       padding: 24px;
     }
 
@@ -90,10 +90,10 @@ import { AuthService } from '../../core/auth/auth.service';
       width: 100%;
       max-width: 440px;
       padding: 40px;
-      background: var(--bg-card);
+      background: #ffffff;
       border: 1px solid var(--border-subtle);
       border-radius: var(--radius-xl);
-      box-shadow: 0 20px 48px rgba(0, 0, 0, 0.6), 0 0 35px rgba(168, 85, 247, 0.18);
+      box-shadow: 0 20px 45px -10px rgba(15, 23, 42, 0.08), 0 0 1px rgba(0, 0, 0, 0.08);
     }
 
     .login-brand {
@@ -108,12 +108,12 @@ import { AuthService } from '../../core/auth/auth.service';
       width: 56px;
       height: 56px;
       border-radius: var(--radius-lg);
-      background: linear-gradient(135deg, #a855f7 0%, #7e22ce 100%);
+      background: linear-gradient(135deg, #059669 0%, #047857 100%);
       display: flex;
       align-items: center;
       justify-content: center;
       color: #ffffff;
-      box-shadow: 0 0 24px rgba(168, 85, 247, 0.5);
+      box-shadow: 0 4px 16px rgba(5, 150, 105, 0.35);
       margin-bottom: 16px;
     }
 
@@ -188,8 +188,8 @@ import { AuthService } from '../../core/auth/auth.service';
     }
 
     .quick-btn {
-      background: var(--bg-card-subtle);
-      border: 1px solid var(--border-subtle);
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
       color: var(--text-secondary);
       font-size: 0.75rem;
       padding: 6px 12px;
@@ -198,9 +198,9 @@ import { AuthService } from '../../core/auth/auth.service';
       transition: var(--transition-smooth);
 
       &:hover {
-        background: var(--bg-card-hover);
-        color: var(--primary-lavender);
-        border-color: var(--primary-border);
+        background: #eef2ff;
+        color: #4f46e5;
+        border-color: #c7d2fe;
       }
     }
   `]

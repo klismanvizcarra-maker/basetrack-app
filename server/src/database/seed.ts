@@ -377,16 +377,18 @@ export function seed() {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
-    insertAudit.run(
-      crypto.randomUUID(),
-      'system',
-      'admin',
-      'SYSTEM_INIT',
-      'DATABASE',
-      'GLOBAL',
-      'Inicialización exitosa del sistema BASETRACK APP con seeds operacionales.',
-      '127.0.0.1'
-    );
+    const initialLogs = [
+      { user: 'admin', action: 'LOGIN', entity: 'AUTH', id: 'AUTH-01', details: 'Inicio de sesión administrativo verificado con éxito', ip: '192.168.1.104' },
+      { user: 'supervisor_a', action: 'SHIFT_HANDOVER', entity: 'OPERATIONS', id: 'SH-01', details: 'Aprobación formal relevo de guardia Turno A a Turno B', ip: '192.168.1.112' },
+      { user: 'operador_bombas', action: 'PUMP_STATUS', entity: 'SLURRY_PUMPS', id: 'PP-102', details: 'Transición bomba PP-102 a modo STANDBY preventivo', ip: '192.168.1.120' },
+      { user: 'admin', action: 'BACKUP_EXPORT', entity: 'DATABASE', id: 'DB-SNAP', details: 'Exportación manual de snapshot seguro SQLite', ip: '192.168.1.104' },
+      { user: 'supervisor_b', action: 'CYCLONES_SAMPLE', entity: 'STATION_02', id: 'CY-02', details: 'Registro de muestra metalúrgica: OF 18.2% / UF 72.4%', ip: '192.168.1.115' },
+      { user: 'system', action: 'SYSTEM_INIT', entity: 'DATABASE', id: 'GLOBAL', details: 'Inicialización exitosa del sistema BASETRACK con seeds operacionales', ip: '127.0.0.1' }
+    ];
+
+    for (const log of initialLogs) {
+      insertAudit.run(crypto.randomUUID(), 'system', log.user, log.action, log.entity, log.id, log.details, log.ip);
+    }
   }
 
   console.log('[Seed] Database seeded successfully.');

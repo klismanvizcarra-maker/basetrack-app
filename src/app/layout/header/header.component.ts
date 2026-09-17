@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 import { LayoutService } from '../../core/layout/layout.service';
+import { PwaService } from '../../core/pwa/pwa.service';
 
 @Component({
   selector: 'app-header',
@@ -46,6 +47,22 @@ import { LayoutService } from '../../core/layout/layout.service';
 
       <!-- Action items on right side (CRAVEAT style) -->
       <div class="header-right">
+        <!-- PWA Install Action Button (Desktop & Mobile) -->
+        <button
+          *ngIf="!pwa.isInstalled()"
+          type="button"
+          class="btn-install-header"
+          (click)="pwa.promptInstall()"
+          title="Instalar BASETRACK en este dispositivo"
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+            <line x1="12" y1="18" x2="12.01" y2="18"></line>
+            <path d="M12 6v6m-3-3 3 3 3-3"></path>
+          </svg>
+          <span>Instalar App</span>
+        </button>
+
         <!-- Notification Bell -->
         <button type="button" class="header-action-btn" title="Notificaciones de Planta" (click)="toggleNotifications()">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -62,8 +79,8 @@ import { LayoutService } from '../../core/layout/layout.service';
           </svg>
         </button>
 
-        <!-- Settings -->
-        <button type="button" class="header-action-btn" title="Configuraciones">
+        <!-- Settings / Profile -->
+        <button type="button" class="header-action-btn" title="Configuración de Cuenta & Perfil" (click)="goToProfile()">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="3"></circle>
             <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
@@ -71,7 +88,7 @@ import { LayoutService } from '../../core/layout/layout.service';
         </button>
 
         <!-- User Profile Avatar with Online Status Dot -->
-        <div class="user-profile-badge">
+        <div class="user-profile-badge" (click)="goToProfile()" style="cursor: pointer" title="Configurar mi cuenta y perfil">
           <div class="avatar-wrapper">
             <img
               [src]="authService.currentUser()?.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80'"
@@ -92,7 +109,7 @@ import { LayoutService } from '../../core/layout/layout.service';
     <div *ngIf="showNotifications" class="notification-dropdown glass-panel animate-fade-in">
       <div class="notif-header">
         <h4>Alertas Recientes del SCADA</h4>
-        <span class="badge badge-purple">3 Nuevas</span>
+        <span class="badge badge-emerald">3 Nuevas</span>
       </div>
       <div class="notif-list">
         <div class="notif-item">
@@ -126,7 +143,7 @@ import { LayoutService } from '../../core/layout/layout.service';
       align-items: center;
       justify-content: space-between;
       padding: 0 32px;
-      background: transparent;
+      background: rgba(255, 255, 255, 0.88);
       border-bottom: 1px solid var(--border-subtle);
       position: sticky;
       top: 0;
@@ -147,7 +164,7 @@ import { LayoutService } from '../../core/layout/layout.service';
     }
 
     .icon-grid {
-      color: var(--primary-lavender);
+      color: var(--text-secondary);
       display: flex;
       align-items: center;
     }
@@ -163,20 +180,21 @@ import { LayoutService } from '../../core/layout/layout.service';
       display: flex;
       align-items: center;
       gap: 6px;
-      background: var(--bg-card-subtle);
+      background: #ecfdf5;
       padding: 4px 12px;
       border-radius: var(--radius-full);
-      border: 1px solid var(--border-subtle);
+      border: 1px solid #a7f3d0;
       font-size: 0.75rem;
     }
 
     .shift-tag {
-      color: var(--text-muted);
+      color: #065f46;
+      font-weight: 500;
     }
 
     .shift-name {
-      color: var(--primary-lavender);
-      font-weight: 600;
+      color: #047857;
+      font-weight: 800;
     }
 
     .header-right {
@@ -189,8 +207,8 @@ import { LayoutService } from '../../core/layout/layout.service';
       width: 40px;
       height: 40px;
       border-radius: var(--radius-md);
-      background: var(--bg-card);
-      border: 1px solid var(--border-subtle);
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
       color: var(--text-secondary);
       display: flex;
       align-items: center;
@@ -200,9 +218,38 @@ import { LayoutService } from '../../core/layout/layout.service';
       transition: var(--transition-smooth);
 
       &:hover {
-        background: var(--bg-card-hover);
+        background: #f1f5f9;
         color: var(--text-primary);
-        border-color: var(--primary-border);
+        border-color: #cbd5e1;
+      }
+    }
+
+    .btn-install-header {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 12px;
+      border-radius: var(--radius-full);
+      background: #ecfdf5;
+      border: 1px solid #a7f3d0;
+      color: #047857;
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: var(--transition-smooth);
+
+      &:hover {
+        background: #d1fae5;
+        border-color: #059669;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(5, 150, 105, 0.2);
+      }
+
+      @media (max-width: 640px) {
+        span {
+          display: none;
+        }
+        padding: 8px;
       }
     }
 
@@ -212,9 +259,9 @@ import { LayoutService } from '../../core/layout/layout.service';
       right: 9px;
       width: 8px;
       height: 8px;
-      background: var(--accent-pink);
+      background: #059669;
       border-radius: var(--radius-full);
-      box-shadow: 0 0 8px var(--accent-pink);
+      box-shadow: 0 0 6px rgba(5, 150, 105, 0.45);
     }
 
     .user-profile-badge {
@@ -238,8 +285,8 @@ import { LayoutService } from '../../core/layout/layout.service';
       height: 100%;
       border-radius: var(--radius-full);
       object-fit: cover;
-      border: 2px solid var(--primary-purple);
-      box-shadow: 0 0 12px rgba(168, 85, 247, 0.4);
+      border: 2px solid #e2e8f0;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
     }
 
     .user-status-dot {
@@ -249,7 +296,7 @@ import { LayoutService } from '../../core/layout/layout.service';
       width: 11px;
       height: 11px;
       background: var(--success);
-      border: 2px solid var(--bg-canvas);
+      border: 2px solid #ffffff;
       border-radius: var(--radius-full);
     }
 
@@ -276,11 +323,11 @@ import { LayoutService } from '../../core/layout/layout.service';
       top: 80px;
       right: 32px;
       width: 360px;
-      background: var(--bg-card);
+      background: #ffffff;
       border: 1px solid var(--border-subtle);
       border-radius: var(--radius-lg);
       padding: 16px;
-      box-shadow: 0 16px 36px rgba(0,0,0,0.6), 0 0 20px rgba(168, 85, 247, 0.2);
+      box-shadow: 0 16px 36px -4px rgba(15, 23, 42, 0.12), 0 0 1px rgba(0, 0, 0, 0.08);
       z-index: 1000;
     }
 
@@ -399,6 +446,7 @@ import { LayoutService } from '../../core/layout/layout.service';
 export class HeaderComponent {
   authService = inject(AuthService);
   layoutService = inject(LayoutService);
+  pwa = inject(PwaService);
   private router = inject(Router);
   showNotifications = false;
 
@@ -410,10 +458,16 @@ export class HeaderComponent {
     if (url.includes('tailings')) return 'Descarga y Relaves';
     if (url.includes('maintenance')) return 'Mantenimiento & Evidencias';
     if (url.includes('admin')) return 'Administración de Planta';
+    if (url.includes('profile')) return 'Mi Cuenta & Perfil';
     return 'Dashboard';
   }
 
   toggleNotifications(): void {
     this.showNotifications = !this.showNotifications;
   }
+
+  goToProfile(): void {
+    this.router.navigate(['/profile']);
+  }
 }
+

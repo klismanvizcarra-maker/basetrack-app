@@ -16,7 +16,7 @@ export interface DonutSlice {
       <div class="donut-visual">
         <svg viewBox="0 0 120 120" class="donut-svg">
           <!-- Background circle track -->
-          <circle cx="60" cy="60" r="44" fill="none" stroke="#2e274c" stroke-width="14" />
+          <circle cx="60" cy="60" r="44" fill="none" stroke="var(--gauge-track, #e2e8f0)" stroke-width="14" />
 
           <!-- Slices -->
           <circle
@@ -122,9 +122,9 @@ export interface DonutSlice {
 export class DistributionDonutComponent {
   @Input() heroPercentage: number = 52;
   @Input() slices: DonutSlice[] = [
-    { name: 'Guardia A', percentage: 52, color: '#8b5cf6' },
-    { name: 'Guardia B', percentage: 33, color: '#38bdf8' },
-    { name: 'Guardia C', percentage: 15, color: '#f43f5e' }
+    { name: 'Guardia A', percentage: 52, color: '#059669' },
+    { name: 'Guardia B', percentage: 33, color: '#10b981' },
+    { name: 'Guardia C', percentage: 15, color: '#047857' }
   ];
 
   get calculatedSlices() {

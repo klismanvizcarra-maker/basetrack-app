@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { login, register, getMe } from '../controllers/auth.controller.js';
+import { login, register, getMe, updateProfile, changePassword } from '../controllers/auth.controller.js';
 import { getDashboardMetrics } from '../controllers/dashboard.controller.js';
 import { getAllPumps, getPumpById, createPumpReport, updatePumpStatus, getPumpOperationalSheet, savePumpOperationalSheet } from '../controllers/pumps.controller.js';
 import { getAllCyclones, createCycloneReport, getStationSamples, createStationSample, deleteStationSample } from '../controllers/cyclones.controller.js';
@@ -25,6 +25,8 @@ apiRouter.get('/health', (req, res) => {
 apiRouter.post('/auth/login', login);
 apiRouter.post('/auth/register', register);
 apiRouter.get('/auth/me', authenticateToken, getMe);
+apiRouter.put('/auth/profile', authenticateToken, updateProfile);
+apiRouter.put('/auth/change-password', authenticateToken, changePassword);
 
 // 3. Dashboard Routes
 apiRouter.get('/dashboard/metrics', getDashboardMetrics);

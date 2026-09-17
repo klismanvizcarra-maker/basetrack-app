@@ -17,7 +17,7 @@
 ## 2. Visión del Proyecto y Alcance
 
 **BASETRACK APP**: Sistema de control, bitácora y monitoreo operacional de plantas industriales y mineras (bombas, ciclones, relaves, cambio de guardia, mantenimiento y administración).
-- **Referencia Visual**: Diseño UI Premium Dark-Violet (basado en CRAVEAT: `#13111c`, `#1e1b2e`, `#26223b`, acentos violeta/magenta/cian, widgets donut, curvas de gradiente y tarjetas KPI con badge circular).
+- **Referencia Visual**: Diseño UI Enterprise Blanco Puro (Clean Slate Light: `#ffffff`, `#f8fafc`, acentos índigo/esmeralda, alto contraste WCAG, widgets donut, tarjetas KPI modernas y elevación sutil).
 - **Modo de Ejecución**: Orchestrator autónomo coordinando Frontend, Backend y QA/Seguridad con autorización integral concedida por el usuario.
 
 ---
@@ -42,6 +42,11 @@
 | `TASK-004` | QA, Pruebas Automatizadas & Auditoría OWASP | QA & Security Agent | `TASK-001`, `TASK-003` | `DONE` | 0/3 | Tests de endpoints, verificación de compilación, auditoría OWASP y cero secretos expuestos |
 | `TASK-005` | Despliegue en Vercel & Pipeline CI/CD | Orchestrator | `TASK-002`, `TASK-003` | `DONE` | 0/3 | Repositorio GitHub conectado, vercel.json configurado y sincronización continua habilitada |
 | `TASK-006` | Integración de Planilla Metalúrgica de 2da Estación de Ciclones | Frontend & Backend Agent | `TASK-001`, `TASK-003` | `DONE` | 0/3 | Tabla metalúrgica con % sólidos y % malla 200, réplica visual de plantilla, cálculo de promedios, persistencia y tests |
+| `TASK-007` | Transformación Visual a Tema Blanco Puro Enterprise | Frontend Agent | `TASK-002`, `TASK-003`, `TASK-006` | `DONE` | 0/3 | Paleta blanca pura (#ffffff, #f8fafc), alto contraste slate (#0f172a), header/sidebar/modals/tablas/inputs claros |
+| `TASK-008` | Persistencia y Precarga de Módulo Administración | Frontend & Backend Agent | `TASK-003`, `TASK-007` | `DONE` | 0/3 | Precarga de usuarios y logs SCADA, fallback localStorage, seeds SQLite y soporte offline |
+| `TASK-009` | Módulo de Configuración de Cuenta & Perfil de Usuario | Frontend & Backend Agent | `TASK-007`, `TASK-008` | `DONE` | 0/3 | Edición de nombres, cambio seguro de contraseña, subida de foto/avatar, presets de planta y persistencia |
+| `TASK-010` | Unificación Global de Paleta Verde Esmeralda & Menta Industrial | Frontend Agent | `TASK-007`, `TASK-009` | `DONE` | 0/3 | Paleta esmeralda (#059669/#047857), fondos menta (#ecfdf5/#e6f7ef), botones, tabs y gráficas unificados |
+| `TASK-011` | PWA Completa & Modo Instalable en Celulares y Tablets | Frontend & QA Agent | `TASK-010` | `DONE` | 0/3 | Manifest web, Service Worker caching, iconos 192/512px, detección iOS/Android/Desktop, modal guía y botones de instalación nativa |
 
 ---
 
@@ -54,6 +59,8 @@
 | 2026-09-16 | Backend Agent | Frontend Agent | `TASK-001` | Entrega de APIs REST, SQLite nativo, JWT RBAC y datos de prueba |
 | 2026-09-16 | Frontend Agent | QA & Security Agent | `TASK-002/003` | Entrega de UI Angular, diseño CRAVEAT y módulos funcionales |
 | 2026-09-16 | Orchestrator / Multi-Agent | QA & Security Agent | `TASK-006` | Entrega de tabla operativa 2da Estación Ciclones, endpoints, tests y UI de alta fidelidad |
+| 2026-09-16 | Frontend Agent | Orchestrator | `TASK-007` | Transformación global a tema blanco puro (#ffffff, #f8fafc), contraste WCAG y componentes unificados |
+| 2026-09-16 | Frontend & QA Agent | Orchestrator | `TASK-011` | Implementación y verificación de PWA standalone, Service Worker con fallback offline, e instalación en dispositivos móviles y PC |
 
 
 ---
