@@ -126,8 +126,8 @@ export async function updateProfile(req: AuthenticatedRequest, res: Response) {
     let user = db.prepare('SELECT * FROM users WHERE id = ? OR username = ?').get(userId, username) as any;
 
     if (!user) {
-      // Fallback: If user is admin-001 from demo token and not in DB by ID, find by username
-      user = db.prepare('SELECT * FROM users WHERE username = ?').get('admin') as any;
+      // Fallback: If user is demo token, find KlismanV
+      user = db.prepare('SELECT * FROM users WHERE username = ? OR username = ?').get('KlismanV', 'admin') as any;
     }
 
     if (!user) {
@@ -144,6 +144,17 @@ export async function updateProfile(req: AuthenticatedRequest, res: Response) {
       SET full_name = ?, email = ?, avatar_url = ?, shift = ?
       WHERE id = ?
     `).run(updatedFullName, updatedEmail, updatedAvatar, updatedShift, user.id);
+
+    // Also synchronize avatar and name with crew_members table if exists
+    try {
+      db.prepare(`
+        UPDATE crew_members
+        SET avatar_url = ?, name = ?
+        WHERE document_id = '71209033' OR name LIKE '%KLISMAN%' OR name = ?
+      `).run(updatedAvatar, updatedFullName, updatedFullName);
+    } catch {
+      // Ignore if table or record doesn't match
+    }
 
     logAudit(user.id, user.username, 'UPDATE_PROFILE', 'USERS', user.id, `Actualización de perfil (Nombre: ${updatedFullName})`, req.ip || '127.0.0.1');
 

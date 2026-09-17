@@ -63,12 +63,12 @@ import { AuthService } from '../../core/auth/auth.service';
 
         <!-- Fast access demo shortcuts -->
         <div class="quick-access">
-          <span class="quick-title">Accesos Rápidos Demo:</span>
+          <span class="quick-title">Accesos Rápidos Directos:</span>
           <div class="quick-buttons">
-            <button type="button" class="quick-btn" (click)="fillCredentials('admin', 'admin123')">
-              Jefe de Planta (Admin)
+            <button type="button" class="quick-btn" (click)="fillCredentials('KlismanV', '71209033')">
+              Jefe de Planta (KlismanV)
             </button>
-            <button type="button" class="quick-btn" (click)="fillCredentials('operador_bombas', 'operador123')">
+            <button type="button" class="quick-btn" (click)="fillCredentials('operador_bombas', '71209033')">
               Operador de Bombas
             </button>
           </div>
@@ -230,8 +230,8 @@ export class LoginComponent {
   authService = inject(AuthService);
   router = inject(Router);
 
-  username = 'admin';
-  password = 'admin123';
+  username = 'KlismanV';
+  password = '71209033';
   loading = false;
   errorMessage = '';
 

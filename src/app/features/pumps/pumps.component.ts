@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { ModalComponent } from '../../shared/ui/modal.component';
 import { OfflineSyncService } from '../../core/offline/offline-sync.service';
+import { getRealtimeData, saveRealtimeData } from '../../core/storage/local-store.util';
 
 export interface PumpStatusItem {
   tag: string;
@@ -1635,53 +1636,69 @@ export class PumpsComponent implements OnInit {
   }
 
   loadOperationalSheet(): void {
-    this.http.get<any>('http://localhost:3001/api/pumps/operational-sheet?date=2026-08-27').subscribe({
+    const cached = getRealtimeData<any>('pump_sheet_' + this.sheet.report_date, null) || getRealtimeData<any>('pump_sheet_latest', null);
+    if (cached) {
+      this.sheet = { ...this.sheet, ...cached };
+    }
+
+    this.http.get<any>(`http://localhost:3001/api/pumps/operational-sheet?date=${this.sheet.report_date}`).subscribe({
       next: (res) => {
         if (res.success && res.data) {
           this.sheet = {
             ...this.sheet,
             ...res.data,
-            report_date: res.data.report_date || '27/08/2026'
+            report_date: res.data.report_date || this.sheet.report_date
           };
+          saveRealtimeData('pump_sheet_' + this.sheet.report_date, this.sheet);
+          saveRealtimeData('pump_sheet_latest', this.sheet);
         }
       },
       error: () => {
-        // Fallback is already initialized in state
+        // Cached sheet remains active seamlessly with zero data loss
       }
     });
   }
 
   loadTelemetryPumps(): void {
+    const cached = getRealtimeData<PumpReport[]>('pumps_telemetry', []);
+    if (cached && cached.length > 0) {
+      this.pumps = cached;
+    }
+
     this.http.get<any>('http://localhost:3001/api/pumps').subscribe({
       next: (res) => {
-        if (res.success && res.data) {
+        if (res.success && res.data && res.data.length > 0) {
           this.pumps = res.data;
+          saveRealtimeData('pumps_telemetry', this.pumps);
         }
       },
       error: () => {
-        this.pumps = [
-          {
-            id: 'p-1', tag: 'PP-101', name: 'Bomba Slurry Alimentación Ciclones 01',
-            system: 'ALIMENTACION_CICLONES', status: 'OPERATING', flow_rate_m3h: 1850,
-            pressure_bar: 4.8, rpm: 580, bearing_temp_c: 62.4, vibration_mms: 2.3,
-            current_amps: 310, shift_code: 'GUARDIA_A', operator_name: 'Juan Pérez',
-            created_at: new Date().toISOString()
-          },
-          {
-            id: 'p-2', tag: 'PP-102', name: 'Bomba Slurry Alimentación Ciclones 02',
-            system: 'ALIMENTACION_CICLONES', status: 'STANDBY', flow_rate_m3h: 0,
-            pressure_bar: 0.1, rpm: 0, bearing_temp_c: 34.0, vibration_mms: 0.2,
-            current_amps: 0, shift_code: 'GUARDIA_A', operator_name: 'Juan Pérez',
-            created_at: new Date().toISOString()
-          },
-          {
-            id: 'p-3', tag: 'TL-201', name: 'Bomba de Pulpa Relaves Espesados',
-            system: 'TRANSPORTE_RELAVES', status: 'OPERATING', flow_rate_m3h: 2150,
-            pressure_bar: 6.2, rpm: 720, bearing_temp_c: 68.1, vibration_mms: 3.1,
-            current_amps: 420, shift_code: 'GUARDIA_A', operator_name: 'Marcos Alanya',
-            created_at: new Date().toISOString()
-          }
-        ];
+        if (!this.pumps || this.pumps.length === 0) {
+          this.pumps = [
+            {
+              id: 'p-1', tag: 'PP-101', name: 'Bomba Slurry Alimentación Ciclones 01',
+              system: 'ALIMENTACION_CICLONES', status: 'OPERATING', flow_rate_m3h: 1850,
+              pressure_bar: 4.8, rpm: 580, bearing_temp_c: 62.4, vibration_mms: 2.3,
+              current_amps: 310, shift_code: 'GUARDIA_A', operator_name: 'Juan Pérez',
+              created_at: new Date().toISOString()
+            },
+            {
+              id: 'p-2', tag: 'PP-102', name: 'Bomba Slurry Alimentación Ciclones 02',
+              system: 'ALIMENTACION_CICLONES', status: 'STANDBY', flow_rate_m3h: 0,
+              pressure_bar: 0.1, rpm: 0, bearing_temp_c: 34.0, vibration_mms: 0.2,
+              current_amps: 0, shift_code: 'GUARDIA_A', operator_name: 'Juan Pérez',
+              created_at: new Date().toISOString()
+            },
+            {
+              id: 'p-3', tag: 'TL-201', name: 'Bomba de Pulpa Relaves Espesados',
+              system: 'TRANSPORTE_RELAVES', status: 'OPERATING', flow_rate_m3h: 2150,
+              pressure_bar: 6.2, rpm: 720, bearing_temp_c: 68.1, vibration_mms: 3.1,
+              current_amps: 420, shift_code: 'GUARDIA_A', operator_name: 'Marcos Alanya',
+              created_at: new Date().toISOString()
+            }
+          ];
+          saveRealtimeData('pumps_telemetry', this.pumps);
+        }
       }
     });
   }
@@ -1690,6 +1707,9 @@ export class PumpsComponent implements OnInit {
     const states: Array<'Operativo' | 'Stand by' | 'Mantenimiento' | 'Falla'> = ['Operativo', 'Stand by', 'Mantenimiento', 'Falla'];
     const idx = states.indexOf(pump.status);
     pump.status = states[(idx + 1) % states.length];
+    // Persist inline status toggle immediately
+    saveRealtimeData('pump_sheet_' + this.sheet.report_date, this.sheet);
+    saveRealtimeData('pump_sheet_latest', this.sheet);
   }
 
   getStatusClass(status: string): string {
@@ -1727,6 +1747,10 @@ export class PumpsComponent implements OnInit {
       report_date: this.sheet.report_date
     };
 
+    // Save immediately to real-time persistent store
+    saveRealtimeData('pump_sheet_' + this.sheet.report_date, payload);
+    saveRealtimeData('pump_sheet_latest', payload);
+
     if (this.offlineSync.isOnline()) {
       this.http.post<any>('http://localhost:3001/api/pumps/operational-sheet', payload).subscribe({
         next: () => {
@@ -1748,20 +1772,40 @@ export class PumpsComponent implements OnInit {
   }
 
   savePumpTelemetry(): void {
+    const created: PumpReport = {
+      id: 'pump-' + Date.now(),
+      tag: this.newPump.tag,
+      name: this.newPump.name,
+      system: this.newPump.system,
+      status: this.newPump.status,
+      flow_rate_m3h: this.newPump.flow_rate_m3h,
+      pressure_bar: this.newPump.pressure_bar,
+      rpm: this.newPump.rpm,
+      bearing_temp_c: this.newPump.bearing_temp_c,
+      vibration_mms: this.newPump.vibration_mms,
+      current_amps: this.newPump.current_amps,
+      shift_code: 'GUARDIA_A',
+      operator_name: 'VIZCARRA CORI MANLEY KLISMAN',
+      notes: this.newPump.notes,
+      created_at: new Date().toISOString()
+    };
+
+    // Optimistic real-time storage
+    this.pumps.unshift(created);
+    saveRealtimeData('pumps_telemetry', this.pumps);
+    this.isCreateModalOpen = false;
+
     if (this.offlineSync.isOnline()) {
       this.http.post<any>('http://localhost:3001/api/pumps', this.newPump).subscribe({
         next: () => {
-          this.isCreateModalOpen = false;
           this.loadTelemetryPumps();
         },
         error: () => {
           this.offlineSync.queueAction('http://localhost:3001/api/pumps', 'POST', this.newPump, 'Bomba ' + this.newPump.tag);
-          this.isCreateModalOpen = false;
         }
       });
     } else {
       this.offlineSync.queueAction('http://localhost:3001/api/pumps', 'POST', this.newPump, 'Bomba ' + this.newPump.tag);
-      this.isCreateModalOpen = false;
     }
   }
 
@@ -1775,6 +1819,11 @@ export class PumpsComponent implements OnInit {
   applyTelemetryStatusUpdate(): void {
     if (!this.selectedPump) return;
 
+    this.selectedPump.status = this.updatedStatus;
+    this.selectedPump.notes = this.updatedNotes;
+    saveRealtimeData('pumps_telemetry', this.pumps);
+    this.isStatusModalOpen = false;
+
     const payload = {
       status: this.updatedStatus,
       notes: this.updatedNotes
@@ -1782,8 +1831,10 @@ export class PumpsComponent implements OnInit {
 
     this.http.patch<any>(`http://localhost:3001/api/pumps/${this.selectedPump.id}/status`, payload).subscribe({
       next: () => {
-        this.isStatusModalOpen = false;
         this.loadTelemetryPumps();
+      },
+      error: () => {
+        this.offlineSync.queueAction(`http://localhost:3001/api/pumps/${this.selectedPump!.id}/status`, 'PATCH' as any, payload, `Estado Bomba ${this.selectedPump!.tag}`);
       }
     });
   }

@@ -6,6 +6,7 @@ import { timeout } from 'rxjs';
 import { ModalComponent } from '../../shared/ui/modal.component';
 import { AuthService } from '../../core/auth/auth.service';
 import { OfflineSyncService } from '../../core/offline/offline-sync.service';
+import { getRealtimeData, saveRealtimeData } from '../../core/storage/local-store.util';
 
 export interface UserItem {
   id: string;
@@ -1083,18 +1084,28 @@ export class AdminComponent implements OnInit {
     };
 
     this.users.unshift(createdUser);
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem('basetrack_admin_users', JSON.stringify(this.users));
-    }
+    saveRealtimeData('admin_users', this.users);
+
+    // Save to users registry so the new user can authenticate
+    const registry = getRealtimeData<Record<string, any>>('users_registry', {});
+    registry[createdUser.username.toLowerCase()] = {
+      id: createdUser.id,
+      username: createdUser.username,
+      email: createdUser.email,
+      fullName: createdUser.full_name,
+      role: createdUser.role,
+      shift: createdUser.shift,
+      avatarUrl: createdUser.avatar_url
+    };
+    saveRealtimeData('users_registry', registry);
+
     this.isCreateUserModalOpen = false;
 
     this.http.post<any>('http://localhost:3001/api/admin/users', this.newUser).subscribe({
       next: (res) => {
         if (res && res.id) {
           createdUser.id = res.id;
-          if (typeof localStorage !== 'undefined') {
-            localStorage.setItem('basetrack_admin_users', JSON.stringify(this.users));
-          }
+          saveRealtimeData('admin_users', this.users);
         }
       },
       error: () => {
@@ -1322,10 +1333,25 @@ export class AdminComponent implements OnInit {
               });
             }
           }
-          localStorage.setItem('basetrack_crew_members', JSON.stringify(crewList));
+          saveRealtimeData('crew_members', crewList);
         } catch (e) {
           console.warn('Error sincronizando cuadrilla:', e);
         }
+
+        // Also sync to persistent users_registry so they can authenticate
+        const registry = getRealtimeData<Record<string, any>>('users_registry', {});
+        for (const r of validRows) {
+          registry[r.username.toLowerCase()] = {
+            id: 'u-' + Math.random().toString(36).substring(2, 9),
+            username: r.username,
+            email: r.email,
+            fullName: r.full_name,
+            role: r.role,
+            shift: r.shift,
+            avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${r.username}`
+          };
+        }
+        saveRealtimeData('users_registry', registry);
       }
     };
 

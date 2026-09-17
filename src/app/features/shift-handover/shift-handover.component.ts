@@ -6,6 +6,7 @@ import { ModalComponent } from '../../shared/ui/modal.component';
 import { AuthService } from '../../core/auth/auth.service';
 import { OfflineSyncService } from '../../core/offline/offline-sync.service';
 import { ShiftReportPdfComponent } from '../reports/shift-report-pdf.component';
+import { getRealtimeData, saveRealtimeData } from '../../core/storage/local-store.util';
 
 export interface ShiftHandover {
   id: string;
@@ -489,35 +490,50 @@ export class ShiftHandoverComponent implements OnInit {
   }
 
   loadHandovers(): void {
+    const cached = getRealtimeData<ShiftHandover[]>('shift_handovers', []);
+    if (cached && cached.length > 0) {
+      this.handovers = cached;
+      this.latestHandover = this.handovers[0];
+    }
+
     this.http.get<any>('http://localhost:3001/api/shift-handover').subscribe({
       next: (res) => {
-        if (res.success && res.data) {
+        if (res.success && res.data && res.data.length > 0) {
           this.handovers = res.data;
           this.latestHandover = this.handovers.length > 0 ? this.handovers[0] : null;
+          saveRealtimeData('shift_handovers', this.handovers);
+        } else if (!cached || cached.length === 0) {
+          this.loadDefaultHandovers();
         }
       },
       error: () => {
-        // Fallback sample
-        this.handovers = [
-          {
-            id: 'sh-1',
-            shift_code: 'GUARDIA_A_DIA_01',
-            date: new Date().toISOString().split('T')[0],
-            shift_type: 'DIA',
-            outgoing_supervisor: 'Ing. Roberto Quispe',
-            incoming_supervisor: 'Ing. Marco Velásquez',
-            plant_status: 'Planta al 94.5% de régimen. SAG y molienda convencional operando sin desvíos.',
-            tonnage_processed: 48250,
-            safety_incidents: 'LTI: 0. Charlas LOTO completadas.',
-            operational_highlights: 'Caudal promedio pulpa: 3,420 m³/h.',
-            pending_tasks: 'Inspeccionar desgaste en impelente de bomba PP-102.',
-            status: 'ACCEPTED',
-            created_at: new Date().toISOString()
-          }
-        ];
-        this.latestHandover = this.handovers[0];
+        if (!cached || cached.length === 0) {
+          this.loadDefaultHandovers();
+        }
       }
     });
+  }
+
+  private loadDefaultHandovers(): void {
+    this.handovers = [
+      {
+        id: 'sh-1',
+        shift_code: 'GUARDIA_A_DIA_01',
+        date: new Date().toISOString().split('T')[0],
+        shift_type: 'DIA',
+        outgoing_supervisor: 'VIZCARRA CORI MANLEY KLISMAN',
+        incoming_supervisor: 'Ing. Marco Velásquez',
+        plant_status: 'Planta al 94.5% de régimen. SAG y molienda convencional operando sin desvíos.',
+        tonnage_processed: 48250,
+        safety_incidents: 'LTI: 0. Charlas LOTO completadas.',
+        operational_highlights: 'Caudal promedio pulpa: 3,420 m³/h.',
+        pending_tasks: 'Inspeccionar desgaste en impelente de bomba PP-102.',
+        status: 'ACCEPTED',
+        created_at: new Date().toISOString()
+      }
+    ];
+    this.latestHandover = this.handovers[0];
+    saveRealtimeData('shift_handovers', this.handovers);
   }
 
   openCreateModal(): void {
@@ -525,33 +541,48 @@ export class ShiftHandoverComponent implements OnInit {
   }
 
   saveHandover(): void {
-    const payload = {
+    const payload: ShiftHandover = {
       ...this.newHandover,
+      operational_highlights: 'Control operacional en parámetros normales de proceso.',
+      id: 'sh-' + Date.now(),
       date: new Date().toISOString().split('T')[0],
-      status: 'SUBMITTED'
+      status: 'SUBMITTED',
+      created_at: new Date().toISOString()
     };
+
+    // Optimistic real-time storage
+    this.handovers.unshift(payload);
+    this.latestHandover = payload;
+    saveRealtimeData('shift_handovers', this.handovers);
+    this.isCreateModalOpen = false;
 
     if (this.offlineSync.isOnline()) {
       this.http.post<any>('http://localhost:3001/api/shift-handover', payload).subscribe({
         next: () => {
-          this.isCreateModalOpen = false;
           this.loadHandovers();
         },
         error: () => {
           this.offlineSync.queueAction('http://localhost:3001/api/shift-handover', 'POST', payload, 'Relevo ' + payload.shift_code);
-          this.isCreateModalOpen = false;
         }
       });
     } else {
       this.offlineSync.queueAction('http://localhost:3001/api/shift-handover', 'POST', payload, 'Relevo ' + payload.shift_code);
-      this.isCreateModalOpen = false;
     }
   }
 
   acceptHandover(id: string): void {
+    const found = this.handovers.find(h => h.id === id);
+    if (found) {
+      found.status = 'ACCEPTED';
+      saveRealtimeData('shift_handovers', this.handovers);
+    }
+
     this.http.patch<any>(`http://localhost:3001/api/shift-handover/${id}/accept`, {}).subscribe({
       next: () => {
         this.loadHandovers();
+      },
+      error: () => {
+        this.offlineSync.queueAction(`http://localhost:3001/api/shift-handover/${id}/accept`, 'PATCH' as any, {}, `Aceptar relevo ${id}`);
       }
     });
   }

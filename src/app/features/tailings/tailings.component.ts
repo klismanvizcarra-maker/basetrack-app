@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { ModalComponent } from '../../shared/ui/modal.component';
 import { OfflineSyncService } from '../../core/offline/offline-sync.service';
+import { getRealtimeData, saveRealtimeData } from '../../core/storage/local-store.util';
 
 export interface TailingsReport {
   id: string;
@@ -365,50 +366,83 @@ export class TailingsComponent implements OnInit {
   }
 
   loadTailings(): void {
+    const cached = getRealtimeData<TailingsReport[]>('tailings_reports', []);
+    if (cached && cached.length > 0) {
+      this.tailings = cached;
+    }
+
     this.http.get<any>('http://localhost:3001/api/tailings').subscribe({
       next: (res) => {
-        if (res.success && res.data) {
+        if (res.success && res.data && res.data.length > 0) {
           this.tailings = res.data;
+          saveRealtimeData('tailings_reports', this.tailings);
+        } else if (!cached || cached.length === 0) {
+          this.loadDefaultTailings();
         }
       },
       error: () => {
-        this.tailings = [
-          {
-            id: 't-1', station_tag: 'PRESA-SECTOR-NORTE', flow_rate_m3h: 2150,
-            solids_percentage: 64.8, dam_level_meters: 4120.4, freeboard_meters: 3.8,
-            piezometer_kpa: 142.6, turbidity_ntu: 12.4, pumping_line_status: 'NORMAL',
-            operator_name: 'Marcos Alanya', shift_code: 'GUARDIA_A',
-            notes: 'Espesador de relaves con torque al 48%. Nivel freático en muro dentro de rango seguro.',
-            created_at: new Date().toISOString()
-          },
-          {
-            id: 't-2', station_tag: 'ESP-RELAVES-01', flow_rate_m3h: 1980,
-            solids_percentage: 63.5, dam_level_meters: 4119.8, freeboard_meters: 4.2,
-            piezometer_kpa: 138.0, turbidity_ntu: 10.1, pumping_line_status: 'NORMAL',
-            operator_name: 'Marcos Alanya', shift_code: 'GUARDIA_A',
-            notes: 'Dosificación de floculante aniónico optimizada. Sobrenadante clarificado.',
-            created_at: new Date().toISOString()
-          }
-        ];
+        if (!cached || cached.length === 0) {
+          this.loadDefaultTailings();
+        }
       }
     });
   }
 
+  private loadDefaultTailings(): void {
+    this.tailings = [
+      {
+        id: 't-1', station_tag: 'PRESA-SECTOR-NORTE', flow_rate_m3h: 2150,
+        solids_percentage: 64.8, dam_level_meters: 4120.4, freeboard_meters: 3.8,
+        piezometer_kpa: 142.6, turbidity_ntu: 12.4, pumping_line_status: 'NORMAL',
+        operator_name: 'VIZCARRA CORI MANLEY KLISMAN', shift_code: 'GUARDIA_A',
+        notes: 'Espesador de relaves con torque al 48%. Nivel freático en muro dentro de rango seguro.',
+        created_at: new Date().toISOString()
+      },
+      {
+        id: 't-2', station_tag: 'ESP-RELAVES-01', flow_rate_m3h: 1980,
+        solids_percentage: 63.5, dam_level_meters: 4119.8, freeboard_meters: 4.2,
+        piezometer_kpa: 138.0, turbidity_ntu: 10.1, pumping_line_status: 'NORMAL',
+        operator_name: 'PILCO APAZA CARLOS EDUARDO', shift_code: 'GUARDIA_A',
+        notes: 'Dosificación de floculante aniónico optimizada. Sobrenadante clarificado.',
+        created_at: new Date().toISOString()
+      }
+    ];
+    saveRealtimeData('tailings_reports', this.tailings);
+  }
+
   saveTailings(): void {
+    const report: TailingsReport = {
+      id: 't-' + Date.now(),
+      station_tag: this.newTailings.station_tag,
+      flow_rate_m3h: this.newTailings.flow_rate_m3h,
+      solids_percentage: this.newTailings.solids_percentage,
+      dam_level_meters: this.newTailings.dam_level_meters,
+      freeboard_meters: this.newTailings.freeboard_meters,
+      piezometer_kpa: this.newTailings.piezometer_kpa,
+      turbidity_ntu: this.newTailings.turbidity_ntu,
+      pumping_line_status: this.newTailings.pumping_line_status as any,
+      operator_name: 'VIZCARRA CORI MANLEY KLISMAN',
+      shift_code: 'GUARDIA_A',
+      notes: this.newTailings.notes,
+      created_at: new Date().toISOString()
+    };
+
+    // Optimistic real-time storage
+    this.tailings.unshift(report);
+    saveRealtimeData('tailings_reports', this.tailings);
+    this.isCreateModalOpen = false;
+
     if (this.offlineSync.isOnline()) {
       this.http.post<any>('http://localhost:3001/api/tailings', this.newTailings).subscribe({
         next: () => {
-          this.isCreateModalOpen = false;
           this.loadTailings();
         },
         error: () => {
           this.offlineSync.queueAction('http://localhost:3001/api/tailings', 'POST', this.newTailings, 'Relaves ' + this.newTailings.station_tag);
-          this.isCreateModalOpen = false;
         }
       });
     } else {
       this.offlineSync.queueAction('http://localhost:3001/api/tailings', 'POST', this.newTailings, 'Relaves ' + this.newTailings.station_tag);
-      this.isCreateModalOpen = false;
     }
   }
 }

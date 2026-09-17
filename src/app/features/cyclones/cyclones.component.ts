@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { ModalComponent } from '../../shared/ui/modal.component';
 import { OfflineSyncService } from '../../core/offline/offline-sync.service';
+import { getRealtimeData, saveRealtimeData } from '../../core/storage/local-store.util';
 
 export interface CycloneReport {
   id: string;
@@ -1841,18 +1842,27 @@ export class CyclonesComponent implements OnInit {
   }
 
   loadStationSamples(): void {
+    const cached = getRealtimeData<StationSample[]>('cyclone_samples', []);
+    if (cached && cached.length > 0) {
+      this.rawStationSamples = cached;
+      this.filterSamples();
+    }
+
     const url = `http://localhost:3001/api/cyclones/station-samples?station=${encodeURIComponent(this.selectedStation)}`;
     this.http.get<any>(url).subscribe({
       next: (res) => {
         if (res.success && res.data && res.data.length > 0) {
           this.rawStationSamples = res.data;
+          saveRealtimeData('cyclone_samples', this.rawStationSamples);
           this.filterSamples();
-        } else {
+        } else if (!cached || cached.length === 0) {
           this.useFallbackData();
         }
       },
       error: () => {
-        this.useFallbackData();
+        if (!cached || cached.length === 0) {
+          this.useFallbackData();
+        }
       }
     });
   }
@@ -1943,24 +1953,25 @@ export class CyclonesComponent implements OnInit {
 
   saveStationSample(): void {
     const payload = { ...this.newSample };
+    const newRow = { id: 'sample-' + Date.now(), ...payload } as StationSample;
+
+    // Save in real time locally
+    this.rawStationSamples.unshift(newRow);
+    saveRealtimeData('cyclone_samples', this.rawStationSamples);
+    this.filterSamples();
+    this.isSampleModalOpen = false;
+
     if (this.offlineSync.isOnline()) {
       this.http.post<any>('http://localhost:3001/api/cyclones/station-samples', payload).subscribe({
         next: () => {
-          this.isSampleModalOpen = false;
           this.loadStationSamples();
         },
         error: () => {
           this.offlineSync.queueAction('http://localhost:3001/api/cyclones/station-samples', 'POST', payload, `Muestra ${payload.station} ${payload.sample_time} ${payload.battery_tag}`);
-          this.rawStationSamples.push({ id: 'temp-' + Date.now(), ...payload } as StationSample);
-          this.filterSamples();
-          this.isSampleModalOpen = false;
         }
       });
     } else {
       this.offlineSync.queueAction('http://localhost:3001/api/cyclones/station-samples', 'POST', payload, `Muestra ${payload.station} ${payload.sample_time} ${payload.battery_tag}`);
-      this.rawStationSamples.push({ id: 'temp-' + Date.now(), ...payload } as StationSample);
-      this.filterSamples();
-      this.isSampleModalOpen = false;
     }
   }
 
@@ -1971,7 +1982,7 @@ export class CyclonesComponent implements OnInit {
 
   deleteSingleRow(row: StationSample): void {
     const id = row.id;
-    if (id && !id.startsWith('s-') && !id.startsWith('temp-')) {
+    if (id && !id.startsWith('s-') && !id.startsWith('temp-') && !id.startsWith('sample-')) {
       if (this.offlineSync.isOnline()) {
         this.http.delete<any>(`http://localhost:3001/api/cyclones/station-samples/${id}`).subscribe({
           next: () => console.log(`Deleted sample ${id}`),
@@ -1983,6 +1994,7 @@ export class CyclonesComponent implements OnInit {
     }
 
     this.rawStationSamples = this.rawStationSamples.filter(s => s !== row && s.id !== id);
+    saveRealtimeData('cyclone_samples', this.rawStationSamples);
     this.filterSamples();
 
     if (this.groupToDelete) {
@@ -1997,7 +2009,7 @@ export class CyclonesComponent implements OnInit {
   deleteEntireGroup(group: GroupedSample): void {
     for (const row of group.rows) {
       const id = row.id;
-      if (id && !id.startsWith('s-') && !id.startsWith('temp-')) {
+      if (id && !id.startsWith('s-') && !id.startsWith('temp-') && !id.startsWith('sample-')) {
         if (this.offlineSync.isOnline()) {
           this.http.delete<any>(`http://localhost:3001/api/cyclones/station-samples/${id}`).subscribe({
             next: () => console.log(`Deleted sample ${id}`),
@@ -2020,6 +2032,7 @@ export class CyclonesComponent implements OnInit {
       return true;
     });
 
+    saveRealtimeData('cyclone_samples', this.rawStationSamples);
     this.filterSamples();
     this.isDeleteModalOpen = false;
     this.groupToDelete = null;

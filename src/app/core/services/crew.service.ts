@@ -287,17 +287,16 @@ export class CrewService {
     }
     this.activeAssignments.set(current);
 
+    if (payload.shift_date && payload.shift_code && payload.shift_type) {
+      this.saveCache(`basetrack_assignments_${payload.shift_date}_${payload.shift_code}_${payload.shift_type}`, current);
+    }
+
     if (!this.offlineSync.isOnline()) {
       this.offlineSync.queueAction(url, 'POST', payload, `Asignación ${payload.position_title || payload.position_key}`);
-      return of({ success: true, message: 'Asignación guardada en cola offline' });
+      return of({ success: true, message: 'Asignación guardada en almacenamiento local' });
     }
 
     return this.http.post<any>(url, payload).pipe(
-      tap(() => {
-        if (payload.shift_date && payload.shift_code && payload.shift_type) {
-          this.saveCache(`basetrack_assignments_${payload.shift_date}_${payload.shift_code}_${payload.shift_type}`, current);
-        }
-      }),
       catchError((err) => {
         console.warn('[CrewService] Fallo al guardar en backend, agregando a cola offline:', err);
         this.offlineSync.queueAction(url, 'POST', payload, `Asignación ${payload.position_title || payload.position_key}`);
@@ -326,6 +325,11 @@ export class CrewService {
     });
     this.activeAssignments.set(current);
 
+    const first = current[0];
+    if (first && first.shift_date && first.shift_code && first.shift_type) {
+      this.saveCache(`basetrack_assignments_${first.shift_date}_${first.shift_code}_${first.shift_type}`, current);
+    }
+
     if (!this.offlineSync.isOnline()) {
       this.offlineSync.queueAction(url, 'PATCH', payload, `Check-in Asignación ${assignmentId}`);
       return of({ success: true });
@@ -341,33 +345,32 @@ export class CrewService {
 
   createCrewMember(member: Partial<CrewMember>): Observable<any> {
     const url = `${this.apiUrl}/members`;
+    const offlineId = 'local-' + Date.now();
+    const localNew: CrewMember = {
+      id: offlineId,
+      name: member.name || '',
+      document_id: member.document_id || '',
+      primary_role: member.primary_role || 'OPERADOR_BOMBAS',
+      shift_code: member.shift_code || 'GUARDIA_A',
+      radio_channel: member.radio_channel || 'Canal 1 Operaciones',
+      phone_extension: member.phone_extension,
+      status: member.status || 'EN_TURNO',
+      avatar_url: member.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=250&q=80'
+    };
 
-    if (!this.offlineSync.isOnline()) {
-      const offlineId = 'local-' + Date.now();
-      const localNew: CrewMember = {
-        id: offlineId,
-        name: member.name || '',
-        document_id: member.document_id || '',
-        primary_role: member.primary_role || 'OPERADOR_BOMBAS',
-        shift_code: member.shift_code || 'GUARDIA_A',
-        radio_channel: member.radio_channel || 'Canal 1 Operaciones',
-        phone_extension: member.phone_extension,
-        status: member.status || 'EN_TURNO',
-        avatar_url: member.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=250&q=80'
-      };
-      this.crewMembers.set([...this.crewMembers(), localNew]);
-      this.saveCache('basetrack_crew_members', this.crewMembers());
-      this.offlineSync.queueAction(url, 'POST', member, `Nuevo Operador ${member.name}`);
-      return of({ success: true, id: offlineId });
-    }
+    // Optimistic real-time local persistence
+    const updated = [...this.crewMembers(), localNew];
+    this.crewMembers.set(updated);
+    this.saveCache('basetrack_crew_members', updated);
 
     return this.http.post<any>(url, member).pipe(
-      tap((res) => {
+      tap(() => {
         this.loadCrew(member.shift_code).subscribe();
       }),
       catchError((err) => {
+        console.warn('[CrewService] HTTP fail on createCrewMember, queued offline:', err);
         this.offlineSync.queueAction(url, 'POST', member, `Nuevo Operador ${member.name}`);
-        return of({ success: true });
+        return of({ success: true, id: offlineId });
       })
     );
   }

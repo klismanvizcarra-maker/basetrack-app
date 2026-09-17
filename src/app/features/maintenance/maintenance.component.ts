@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { ModalComponent } from '../../shared/ui/modal.component';
 import { OfflineSyncService } from '../../core/offline/offline-sync.service';
+import { getRealtimeData, saveRealtimeData } from '../../core/storage/local-store.util';
 
 export interface MaintenanceRequest {
   id: string;
@@ -446,44 +447,59 @@ export class MaintenanceComponent implements OnInit {
   }
 
   loadTickets(): void {
+    const cached = getRealtimeData<MaintenanceRequest[]>('maintenance_tickets', []);
+    if (cached && cached.length > 0) {
+      this.tickets = cached;
+    }
+
     this.http.get<any>('http://localhost:3001/api/maintenance').subscribe({
       next: (res) => {
-        if (res.success && res.data) {
+        if (res.success && res.data && res.data.length > 0) {
           this.tickets = res.data;
+          saveRealtimeData('maintenance_tickets', this.tickets);
+        } else if (!cached || cached.length === 0) {
+          this.loadDefaultTickets();
         }
       },
       error: () => {
-        this.tickets = [
-          {
-            id: 'm-1', ticket_number: 'OT-2026-0041', equipment_tag: 'PP-102',
-            title: 'Vibración anormal en rodamiento lado acople',
-            description: 'Durante la inspección de rutina se detectó vibración de 4.8 mm/s en rodamiento DE. Requiere análisis espectral y re-engrase.',
-            priority: 'HIGH', status: 'IN_PROGRESS', requester_name: 'Juan Pérez',
-            assigned_to: 'Ing. Mantenimiento Mecánico',
-            photo_url: 'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=600&q=80',
-            estimated_hours: 4.5, created_at: new Date().toISOString()
-          },
-          {
-            id: 'm-2', ticket_number: 'OT-2026-0042', equipment_tag: 'CYCLOPAC-02',
-            title: 'Reemplazo de Liner de Vortex Finder ciclón 04',
-            description: 'Desgaste severo por abrasión de pulpa en vortex. Pérdida de eficiencia en corte de finos.',
-            priority: 'MEDIUM', status: 'PENDING', requester_name: 'Roberto Quispe',
-            assigned_to: 'Equipo Mantenimiento Planta',
-            photo_url: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=600&q=80',
-            estimated_hours: 3.0, created_at: new Date().toISOString()
-          },
-          {
-            id: 'm-3', ticket_number: 'OT-2026-0039', equipment_tag: 'TL-201',
-            title: 'Fuga en empaquetadura de prensaestopas',
-            description: 'Goteo de pulpa de relaves sobre canaleta de drenaje. Ajuste de empaquetadura completado satisfactoriamente.',
-            priority: 'LOW', status: 'RESOLVED', requester_name: 'Marcos Alanya',
-            assigned_to: 'Técnico Lubricador',
-            photo_url: 'https://images.unsplash.com/photo-1504917599217-d4dc5ebe6122?auto=format&fit=crop&w=600&q=80',
-            estimated_hours: 1.5, created_at: new Date().toISOString()
-          }
-        ];
+        if (!cached || cached.length === 0) {
+          this.loadDefaultTickets();
+        }
       }
     });
+  }
+
+  private loadDefaultTickets(): void {
+    this.tickets = [
+      {
+        id: 'm-1', ticket_number: 'OT-2026-0041', equipment_tag: 'PP-102',
+        title: 'Vibración anormal en rodamiento lado acople',
+        description: 'Durante la inspección de rutina se detectó vibración de 4.8 mm/s en rodamiento DE. Requiere análisis espectral y re-engrase.',
+        priority: 'HIGH', status: 'IN_PROGRESS', requester_name: 'VIZCARRA CORI MANLEY KLISMAN',
+        assigned_to: 'Ing. Mantenimiento Mecánico',
+        photo_url: 'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=600&q=80',
+        estimated_hours: 4.5, created_at: new Date().toISOString()
+      },
+      {
+        id: 'm-2', ticket_number: 'OT-2026-0042', equipment_tag: 'CYCLOPAC-02',
+        title: 'Reemplazo de Liner de Vortex Finder ciclón 04',
+        description: 'Desgaste severo por abrasión de pulpa en vortex. Pérdida de eficiencia en corte de finos.',
+        priority: 'MEDIUM', status: 'PENDING', requester_name: 'PILCO APAZA CARLOS EDUARDO',
+        assigned_to: 'Equipo Mantenimiento Planta',
+        photo_url: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=600&q=80',
+        estimated_hours: 3.0, created_at: new Date().toISOString()
+      },
+      {
+        id: 'm-3', ticket_number: 'OT-2026-0039', equipment_tag: 'TL-201',
+        title: 'Fuga en empaquetadura de prensaestopas',
+        description: 'Goteo de pulpa de relaves sobre canaleta de drenaje. Ajuste de empaquetadura completado satisfactoriamente.',
+        priority: 'LOW', status: 'RESOLVED', requester_name: 'VILCAMIZA PEVE JORGE RICARDO',
+        assigned_to: 'Técnico Lubricador',
+        photo_url: 'https://images.unsplash.com/photo-1504917599217-d4dc5ebe6122?auto=format&fit=crop&w=600&q=80',
+        estimated_hours: 1.5, created_at: new Date().toISOString()
+      }
+    ];
+    saveRealtimeData('maintenance_tickets', this.tickets);
   }
 
   getPriorityBadge(priority: string): string {
@@ -527,27 +543,50 @@ export class MaintenanceComponent implements OnInit {
       this.newTicket.photo_url = 'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=600&q=80';
     }
 
+    const created: MaintenanceRequest = {
+      id: 'm-' + Date.now(),
+      ticket_number: `OT-2026-00${Math.floor(40 + Math.random() * 50)}`,
+      equipment_tag: this.newTicket.equipment_tag,
+      title: this.newTicket.title,
+      description: this.newTicket.description,
+      priority: this.newTicket.priority as any,
+      status: 'PENDING',
+      requester_name: 'VIZCARRA CORI MANLEY KLISMAN',
+      assigned_to: 'Equipo Mantenimiento Planta',
+      photo_url: this.newTicket.photo_url,
+      estimated_hours: this.newTicket.estimated_hours,
+      created_at: new Date().toISOString()
+    };
+
+    // Optimistic real-time storage
+    this.tickets.unshift(created);
+    saveRealtimeData('maintenance_tickets', this.tickets);
+    this.isCreateModalOpen = false;
+
     if (this.offlineSync.isOnline()) {
       this.http.post<any>('http://localhost:3001/api/maintenance', this.newTicket).subscribe({
         next: () => {
-          this.isCreateModalOpen = false;
           this.loadTickets();
         },
         error: () => {
           this.offlineSync.queueAction('http://localhost:3001/api/maintenance', 'POST', this.newTicket, 'OT ' + this.newTicket.equipment_tag);
-          this.isCreateModalOpen = false;
         }
       });
     } else {
       this.offlineSync.queueAction('http://localhost:3001/api/maintenance', 'POST', this.newTicket, 'OT ' + this.newTicket.equipment_tag);
-      this.isCreateModalOpen = false;
     }
   }
 
   updateStatus(t: MaintenanceRequest, newStatus: any): void {
+    t.status = newStatus;
+    saveRealtimeData('maintenance_tickets', this.tickets);
+
     this.http.patch<any>(`http://localhost:3001/api/maintenance/${t.id}/status`, { status: newStatus }).subscribe({
       next: () => {
         this.loadTickets();
+      },
+      error: () => {
+        this.offlineSync.queueAction(`http://localhost:3001/api/maintenance/${t.id}/status`, 'PATCH' as any, { status: newStatus }, `Estado OT ${t.ticket_number}`);
       }
     });
   }
