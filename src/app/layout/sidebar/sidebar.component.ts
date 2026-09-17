@@ -140,9 +140,9 @@ import { PwaService } from '../../core/pwa/pwa.service';
             </a>
           </li>
 
-          <div class="nav-section-title" *ngIf="authService.isAdmin() || authService.isSupervisor()">GESTIÓN</div>
+          <div class="nav-section-title" *ngIf="authService.isAdmin()">GESTIÓN</div>
 
-          <li class="nav-item" *ngIf="authService.isAdmin() || authService.isSupervisor()">
+          <li class="nav-item" *ngIf="authService.isAdmin()">
             <a routerLink="/admin" routerLinkActive="active" class="nav-link" (click)="onNavClick()">
               <span class="nav-icon">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -154,6 +154,7 @@ import { PwaService } from '../../core/pwa/pwa.service';
               </span>
               <span class="nav-label">Administración</span>
             </a>
+          </li>
           <li class="nav-item">
             <a routerLink="/profile" routerLinkActive="active" class="nav-link" (click)="onNavClick()">
               <span class="nav-icon">

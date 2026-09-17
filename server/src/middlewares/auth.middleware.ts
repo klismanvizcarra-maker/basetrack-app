@@ -34,6 +34,17 @@ export function requireRoles(...allowedRoles: Array<'ADMIN' | 'SUPERVISOR' | 'OP
       return res.status(401).json({ success: false, message: 'No autenticado' });
     }
 
+    // Super Admin KlismanV / admin has unconditional access
+    const isSuperAdmin =
+      req.user.role === 'ADMIN' ||
+      req.user.username?.toLowerCase() === 'klismanv' ||
+      req.user.username?.toLowerCase() === 'admin' ||
+      req.user.fullName?.toUpperCase().includes('KLISMAN');
+
+    if (isSuperAdmin) {
+      return next();
+    }
+
     if (!allowedRoles.includes(req.user.role)) {
       return res.status(403).json({
         success: false,

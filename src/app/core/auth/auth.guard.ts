@@ -9,6 +9,11 @@ export const authGuard: CanActivateFn = (route, state) => {
   if (authService.isAuthenticated()) {
     const requiredRoles = route.data?.['roles'] as string[] | undefined;
     if (requiredRoles && requiredRoles.length > 0) {
+      // Super Admin (KlismanV / admin) has unconditional access to all administration routes
+      if (authService.isAdmin()) {
+        return true;
+      }
+
       const userRole = authService.currentUser()?.role;
       if (!userRole || !requiredRoles.includes(userRole)) {
         return router.createUrlTree(['/dashboard']);

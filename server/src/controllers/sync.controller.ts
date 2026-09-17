@@ -32,14 +32,24 @@ export async function pushEvents(req: Request, res: Response) {
     let lastServerId = 0;
     try {
       for (const item of events) {
-        const payloadStr = typeof item.payload === 'string' ? item.payload : JSON.stringify(item.payload);
+        let payloadStr = '{}';
+        if (item.payload !== undefined && item.payload !== null) {
+          payloadStr = typeof item.payload === 'string' ? item.payload : JSON.stringify(item.payload);
+        }
+
+        const devId = String(deviceId || 'unknown_device');
+        const uId = userId ? String(userId) : null;
+        const ent = String(item.entity || 'general');
+        const act = String(item.action || 'UPDATE');
+        const ts = Number(item.timestamp) || Date.now();
+
         const result = insertStmt.run(
-          deviceId,
-          userId || null,
-          item.entity,
-          item.action,
+          devId,
+          uId,
+          ent,
+          act,
           payloadStr,
-          item.timestamp || Date.now()
+          ts
         ) as any;
         lastServerId = Number(result?.lastInsertRowid || lastServerId + 1);
       }
