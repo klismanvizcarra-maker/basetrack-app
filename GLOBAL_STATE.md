@@ -50,6 +50,8 @@
 | `TASK-012` | Generador de Reportes en PDF Oficial de Turno & Modo Offline IndexedDB | Frontend & Backend Agent | `TASK-011` | `DONE` | 0/3 | Exportador PDF A4 oficial con consolidado de bombas, ciclones, descarga y firmas; motor IndexedDB local y sincronización en cola |
 | `TASK-013` | Gestión de Cuadrilla & Asignación de Operadores por Área | Frontend & Backend Agent | `TASK-012` | `DONE` | 0/3 | Tablero de 5 posiciones críticas (Operador de Bombas, Ciclones, Descarga, Misceláneos, Relevo), check-in EPP/charla 5m, persistencia SQLite y offline |
 | `TASK-014` | Carga Masiva de Personal por Lote desde Administración | Frontend & Backend Agent | `TASK-013` | `DONE` | 0/3 | Importación masiva vía archivo CSV y copy-paste desde Excel, validación en vivo, descarga de plantilla, transacción SQLite y sincronización dual con crew_members |
+| `TASK-015` | Persistencia en Tiempo Real y Preservación de Fotos/Perfil | Frontend & Backend Agent | `TASK-014` | `DONE` | 0/3 | Utilidad local-store dual (LocalStorage+IndexedDB), compresión Canvas para fotos a 45KB, sincronización con cuadrilla y almacenamiento persistente en todos los módulos |
+| `TASK-016` | Auditoría de Seguridad, Login Obligatorio y Cero Backdoors | QA & Security Agent | `TASK-015` | `DONE` | 0/3 | Eliminación de bypass de auto-login, campos vacíos obligatorios en login, remoción de accesos rápidos expuestos, eliminación de backdoor demo en backend, JWT estricto y pruebas automatizadas |
 
 ---
 
@@ -67,10 +69,11 @@
 | 2026-09-16 | Multi-Agent Team | Orchestrator | `TASK-012` | Generador formal de Reportes en PDF A4 de cierre de guardia y motor IndexedDB con cola de sincronización |
 | 2026-09-17 | Multi-Agent Team | Orchestrator | `TASK-013` | Módulo operacional de Gestión de Cuadrilla con asignación en tiempo real para las 5 posiciones críticas y control de EPP/charla de seguridad |
 | 2026-09-17 | Multi-Agent Team | Orchestrator | `TASK-014` | Carga de personal por lote desde Administración con CSV/Excel, validación interactiva, sincronización dual users+cuadrilla y transacción SQLite |
-
+| 2026-09-17 | Multi-Agent Team | Orchestrator | `TASK-015` | Persistencia en tiempo real unificada, compresión de fotos y retención en registro permanente |
+| 2026-09-17 | QA & Security Agent | Orchestrator | `TASK-016` | Blindaje de seguridad: login obligatorio sin bypass, purga de backdoors, validación estricta de credenciales y tests de seguridad aprobados |
 
 ---
 
 ## 6. Registro de Bloqueos y Alertas de Escalamiento a Humano
 
-_Sin bloqueos activos. Autorización autónoma concedida por el Humano para completar las fases._
+_Sin bloqueos activos. Auditoría de seguridad completada y validada en su totalidad._
