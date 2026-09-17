@@ -52,6 +52,7 @@
 | `TASK-014` | Carga Masiva de Personal por Lote desde Administración | Frontend & Backend Agent | `TASK-013` | `DONE` | 0/3 | Importación masiva vía archivo CSV y copy-paste desde Excel, validación en vivo, descarga de plantilla, transacción SQLite y sincronización dual con crew_members |
 | `TASK-015` | Persistencia en Tiempo Real y Preservación de Fotos/Perfil | Frontend & Backend Agent | `TASK-014` | `DONE` | 0/3 | Utilidad local-store dual (LocalStorage+IndexedDB), compresión Canvas para fotos a 45KB, sincronización con cuadrilla y almacenamiento persistente en todos los módulos |
 | `TASK-016` | Auditoría de Seguridad, Login Obligatorio y Cero Backdoors | QA & Security Agent | `TASK-015` | `DONE` | 0/3 | Eliminación de bypass de auto-login, campos vacíos obligatorios en login, remoción de accesos rápidos expuestos, eliminación de backdoor demo en backend, JWT estricto y pruebas automatizadas |
+| `TASK-017` | Sincronización en la Nube Multi-Dispositivo (Cloud Realtime Sync) | Frontend & Backend Agent | `TASK-016` | `DONE` | 0/3 | Motor reactivo CloudSyncService, BroadcastChannel para multi-pestaña P2P, endpoints /api/sync/push y /api/sync/pull en SQLite, pill en header y gestor de flota en admin |
 
 ---
 
@@ -71,9 +72,10 @@
 | 2026-09-17 | Multi-Agent Team | Orchestrator | `TASK-014` | Carga de personal por lote desde Administración con CSV/Excel, validación interactiva, sincronización dual users+cuadrilla y transacción SQLite |
 | 2026-09-17 | Multi-Agent Team | Orchestrator | `TASK-015` | Persistencia en tiempo real unificada, compresión de fotos y retención en registro permanente |
 | 2026-09-17 | QA & Security Agent | Orchestrator | `TASK-016` | Blindaje de seguridad: login obligatorio sin bypass, purga de backdoors, validación estricta de credenciales y tests de seguridad aprobados |
+| 2026-09-17 | Multi-Agent Team | Orchestrator | `TASK-017` | Sincronización multi-dispositivo en la nube: BroadcastChannel instantáneo, cola offline y replicación central SQLite |
 
 ---
 
 ## 6. Registro de Bloqueos y Alertas de Escalamiento a Humano
 
-_Sin bloqueos activos. Auditoría de seguridad completada y validada en su totalidad._
+_Sin bloqueos activos. Sistema de sincronización multi-dispositivo operativo y desplegado._
