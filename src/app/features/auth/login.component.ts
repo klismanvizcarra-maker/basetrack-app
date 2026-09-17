@@ -203,6 +203,27 @@ import { AuthService } from '../../core/auth/auth.service';
         border-color: #c7d2fe;
       }
     }
+
+    @media (max-width: 480px) {
+      .login-wrapper {
+        padding: 16px;
+      }
+
+      .login-card {
+        padding: 26px 18px;
+        border-radius: var(--radius-lg);
+      }
+
+      .quick-buttons {
+        flex-direction: column;
+        gap: 8px;
+
+        .quick-btn {
+          width: 100%;
+          padding: 8px;
+        }
+      }
+    }
   `]
 })
 export class LoginComponent {

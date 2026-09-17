@@ -128,6 +128,10 @@ import { WaveAreaChartComponent } from '../../shared/ui/wave-area-chart.componen
       display: flex;
       flex-direction: column;
       gap: 24px;
+
+      @media (max-width: 768px) {
+        gap: 14px;
+      }
     }
 
     /* 1. Top KPI Row */
@@ -140,7 +144,18 @@ import { WaveAreaChartComponent } from '../../shared/ui/wave-area-chart.componen
         grid-template-columns: repeat(3, 1fr);
       }
       @media (max-width: 768px) {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+
+        app-stat-card:last-child {
+          grid-column: span 2;
+        }
+      }
+      @media (max-width: 480px) {
         grid-template-columns: 1fr;
+        app-stat-card:last-child {
+          grid-column: span 1;
+        }
       }
     }
 
@@ -152,6 +167,7 @@ import { WaveAreaChartComponent } from '../../shared/ui/wave-area-chart.componen
 
       @media (max-width: 1280px) {
         grid-template-columns: 1fr;
+        gap: 14px;
       }
     }
 
@@ -163,6 +179,7 @@ import { WaveAreaChartComponent } from '../../shared/ui/wave-area-chart.componen
 
       @media (max-width: 1024px) {
         grid-template-columns: 1fr;
+        gap: 14px;
       }
     }
 
@@ -174,6 +191,11 @@ import { WaveAreaChartComponent } from '../../shared/ui/wave-area-chart.componen
       box-shadow: var(--shadow-card);
       display: flex;
       flex-direction: column;
+
+      @media (max-width: 768px) {
+        padding: 16px 14px;
+        border-radius: var(--radius-md);
+      }
     }
 
     .card-head {
@@ -236,6 +258,15 @@ import { WaveAreaChartComponent } from '../../shared/ui/wave-area-chart.componen
       justify-content: space-around;
       gap: 16px;
       padding: 10px 0;
+
+      @media (max-width: 520px) {
+        gap: 8px;
+
+        app-circular-gauge {
+          transform: scale(0.88);
+          transform-origin: center;
+        }
+      }
     }
 
     /* Items List */

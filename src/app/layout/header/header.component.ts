@@ -231,24 +231,44 @@ import { OfflineSyncService } from '../../core/offline/offline-sync.service';
       top: 0;
       z-index: 50;
       backdrop-filter: blur(8px);
+      transition: height 0.2s ease, padding 0.2s ease;
+
+      @media (max-width: 768px) {
+        height: 58px;
+        padding: 0 12px;
+      }
     }
 
     .header-left {
       display: flex;
       align-items: center;
-      gap: 24px;
+      gap: 20px;
+
+      @media (max-width: 768px) {
+        gap: 8px;
+        min-width: 0;
+      }
     }
 
     .title-with-icon {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
+
+      @media (max-width: 768px) {
+        gap: 6px;
+        min-width: 0;
+      }
     }
 
     .icon-grid {
       color: var(--text-secondary);
       display: flex;
       align-items: center;
+
+      @media (max-width: 500px) {
+        display: none;
+      }
     }
 
     .page-title {
@@ -256,6 +276,19 @@ import { OfflineSyncService } from '../../core/offline/offline-sync.service';
       font-weight: 700;
       color: var(--text-primary);
       letter-spacing: -0.01em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+
+      @media (max-width: 768px) {
+        font-size: 1.05rem;
+        max-width: 140px;
+      }
+
+      @media (max-width: 380px) {
+        max-width: 100px;
+        font-size: 0.95rem;
+      }
     }
 
     .shift-indicator {
@@ -267,6 +300,16 @@ import { OfflineSyncService } from '../../core/offline/offline-sync.service';
       border-radius: var(--radius-full);
       border: 1px solid #a7f3d0;
       font-size: 0.75rem;
+      flex-shrink: 0;
+
+      @media (max-width: 640px) {
+        padding: 3px 8px;
+        font-size: 0.7rem;
+
+        .shift-tag {
+          display: none;
+        }
+      }
     }
 
     .shift-tag {
@@ -282,7 +325,12 @@ import { OfflineSyncService } from '../../core/offline/offline-sync.service';
     .header-right {
       display: flex;
       align-items: center;
-      gap: 16px;
+      gap: 14px;
+      flex-shrink: 0;
+
+      @media (max-width: 768px) {
+        gap: 6px;
+      }
     }
 
     .header-action-btn {
@@ -298,6 +346,11 @@ import { OfflineSyncService } from '../../core/offline/offline-sync.service';
       cursor: pointer;
       position: relative;
       transition: var(--transition-smooth);
+
+      @media (max-width: 640px) {
+        width: 36px;
+        height: 36px;
+      }
 
       &:hover {
         background: #f1f5f9;
@@ -332,6 +385,9 @@ import { OfflineSyncService } from '../../core/offline/offline-sync.service';
           display: none;
         }
         padding: 8px;
+        width: 36px;
+        height: 36px;
+        justify-content: center;
       }
     }
 
@@ -354,12 +410,22 @@ import { OfflineSyncService } from '../../core/offline/offline-sync.service';
       padding: 4px 8px;
       border-radius: var(--radius-full);
       transition: var(--transition-smooth);
+
+      @media (max-width: 640px) {
+        margin-left: 0;
+        padding: 0;
+      }
     }
 
     .avatar-wrapper {
       position: relative;
       width: 40px;
       height: 40px;
+
+      @media (max-width: 640px) {
+        width: 34px;
+        height: 34px;
+      }
     }
 
     .user-avatar {
@@ -386,6 +452,10 @@ import { OfflineSyncService } from '../../core/offline/offline-sync.service';
       display: flex;
       flex-direction: column;
       line-height: 1.2;
+
+      @media (max-width: 640px) {
+        display: none;
+      }
     }
 
     .user-name {

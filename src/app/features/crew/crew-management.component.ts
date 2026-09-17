@@ -586,6 +586,32 @@ interface PositionMeta {
       align-items: flex-start;
       gap: 16px;
       flex-wrap: wrap;
+
+      @media (max-width: 768px) {
+        flex-direction: column;
+        gap: 12px;
+
+        .title-group {
+          width: 100%;
+        }
+
+        .title-with-badge h2 {
+          font-size: 1.25rem;
+        }
+
+        .top-actions-cluster {
+          width: 100%;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 8px;
+
+          button {
+            width: 100%;
+            padding: 9px 8px;
+            font-size: 0.78rem;
+          }
+        }
+      }
     }
 
     .title-with-badge {
@@ -658,6 +684,33 @@ interface PositionMeta {
       gap: 24px;
       flex-wrap: wrap;
       box-shadow: var(--shadow-card);
+
+      @media (max-width: 768px) {
+        padding: 12px 14px;
+        gap: 14px;
+
+        .filter-group {
+          width: 100%;
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 6px;
+
+          .guard-tabs, .shift-type-tabs {
+            width: 100%;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+
+            button {
+              text-align: center;
+              padding: 8px 4px;
+            }
+          }
+
+          .shift-type-tabs {
+            grid-template-columns: repeat(2, 1fr);
+          }
+        }
+      }
     }
 
     .filter-group {

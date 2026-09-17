@@ -939,6 +939,11 @@ export interface GeneralAverages {
         border: 1px solid #e2e8f0;
         padding: 10px 14px;
         vertical-align: middle;
+
+        @media (max-width: 640px) {
+          padding: 8px 6px;
+          font-size: 0.8rem;
+        }
       }
 
       /* Sticky columns */

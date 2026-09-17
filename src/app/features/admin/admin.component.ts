@@ -552,12 +552,40 @@ const DEFAULT_LOGS: AuditLog[] = [
       display: flex;
       flex-direction: column;
       gap: 24px;
+
+      @media (max-width: 768px) {
+        gap: 16px;
+      }
     }
 
     .page-top-bar {
       display: flex;
       align-items: center;
       justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+
+      @media (max-width: 768px) {
+        flex-direction: column;
+        align-items: flex-start;
+
+        h2 {
+          font-size: 1.2rem;
+        }
+
+        .top-btns {
+          width: 100%;
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 8px;
+
+          button {
+            width: 100%;
+            justify-content: center;
+            min-height: 42px;
+          }
+        }
+      }
 
       h2 {
         font-size: 1.4rem;
@@ -594,6 +622,11 @@ const DEFAULT_LOGS: AuditLog[] = [
       background: var(--bg-card);
       border: 1px solid var(--border-subtle);
       box-shadow: var(--shadow-card);
+
+      @media (max-width: 768px) {
+        padding: 14px 12px;
+        border-radius: var(--radius-md);
+      }
     }
 
     .card-head {
@@ -677,6 +710,11 @@ const DEFAULT_LOGS: AuditLog[] = [
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 12px;
+
+      @media (max-width: 600px) {
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }
     }
 
     .form-group {

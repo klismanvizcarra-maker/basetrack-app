@@ -790,6 +790,50 @@ export interface PumpReport {
         display: flex;
         gap: 10px;
       }
+
+      @media (max-width: 768px) {
+        padding: 14px 14px;
+        gap: 12px;
+
+        .page-title-group {
+          width: 100%;
+          h2 {
+            font-size: 1.15rem;
+          }
+          .section-sub {
+            font-size: 0.75rem;
+            line-height: 1.35;
+          }
+        }
+
+        .top-controls {
+          width: 100%;
+          flex-direction: column;
+          align-items: stretch;
+          gap: 10px;
+        }
+
+        .view-pill-group {
+          width: 100%;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+
+          .pill-btn {
+            justify-content: center;
+            padding: 8px 10px;
+            font-size: 0.78rem;
+          }
+        }
+
+        .actions-group {
+          width: 100%;
+          .btn {
+            width: 100%;
+            justify-content: center;
+            padding: 10px;
+          }
+        }
+      }
     }
 
     /* REPORT CONTAINER & SECTION CARDS */
@@ -857,6 +901,24 @@ export interface PumpReport {
           font-weight: 700;
           text-align: center;
           width: 120px;
+        }
+      }
+
+      @media (max-width: 600px) {
+        padding: 10px 14px;
+
+        .header-left h3 {
+          font-size: 0.95rem;
+        }
+
+        .header-right {
+          width: 100%;
+          justify-content: space-between;
+
+          .date-input {
+            flex: 1;
+            max-width: 140px;
+          }
         }
       }
     }
@@ -1026,6 +1088,24 @@ export interface PumpReport {
           &.emerald { color: #059669; }
           &.cyan { color: #0284c7; }
           &.purple { color: #047857; }
+        }
+      }
+
+      @media (max-width: 640px) {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        padding: 10px;
+        gap: 6px;
+
+        .status-summary-chip {
+          padding: 6px 4px;
+          flex-direction: column;
+          gap: 2px;
+          text-align: center;
+          justify-content: center;
+
+          .chip-label { font-size: 0.68rem; }
+          .chip-count { font-size: 0.85rem; }
         }
       }
     }
