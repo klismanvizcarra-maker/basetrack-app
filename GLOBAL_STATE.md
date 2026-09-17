@@ -53,6 +53,7 @@
 | `TASK-015` | Persistencia en Tiempo Real y Preservación de Fotos/Perfil | Frontend & Backend Agent | `TASK-014` | `DONE` | 0/3 | Utilidad local-store dual (LocalStorage+IndexedDB), compresión Canvas para fotos a 45KB, sincronización con cuadrilla y almacenamiento persistente en todos los módulos |
 | `TASK-016` | Auditoría de Seguridad, Login Obligatorio y Cero Backdoors | QA & Security Agent | `TASK-015` | `DONE` | 0/3 | Eliminación de bypass de auto-login, campos vacíos obligatorios en login, remoción de accesos rápidos expuestos, eliminación de backdoor demo en backend, JWT estricto y pruebas automatizadas |
 | `TASK-017` | Sincronización en la Nube Multi-Dispositivo (Cloud Realtime Sync) | Frontend & Backend Agent | `TASK-016` | `DONE` | 0/3 | Motor reactivo CloudSyncService, BroadcastChannel para multi-pestaña P2P, endpoints /api/sync/push y /api/sync/pull en SQLite, pill en header y gestor de flota en admin |
+| `TASK-018` | Corrección de Posicionamiento y Centrado de Modales | Frontend Agent | `TASK-017` | `DONE` | 0/3 | Centrado vertical en viewport (desktop y móvil), desacople de containing-block de animaciones transform, z-index 99999 y cierre de admin-page previo a modales |
 
 ---
 
