@@ -104,6 +104,7 @@ export function createUsersBulk(req: AuthenticatedRequest, res: Response) {
           username,
           email,
           hash,
+          fullName,
           ['ADMIN', 'SUPERVISOR', 'OPERATOR'].includes(role) ? role : 'OPERATOR',
           ['GUARDIA_A', 'GUARDIA_B', 'GUARDIA_C'].includes(shift) ? shift : 'GUARDIA_A',
           avatar

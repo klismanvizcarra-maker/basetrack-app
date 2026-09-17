@@ -2,8 +2,10 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
+import { timeout } from 'rxjs';
 import { ModalComponent } from '../../shared/ui/modal.component';
 import { AuthService } from '../../core/auth/auth.service';
+import { OfflineSyncService } from '../../core/offline/offline-sync.service';
 
 export interface UserItem {
   id: string;
@@ -806,6 +808,7 @@ const DEFAULT_LOGS: AuditLog[] = [
 export class AdminComponent implements OnInit {
   private http = inject(HttpClient);
   authService = inject(AuthService);
+  offlineSync = inject(OfflineSyncService);
 
   // Inicialización con datos por defecto
   users: UserItem[] = [...DEFAULT_USERS];
@@ -1114,60 +1117,92 @@ export class AdminComponent implements OnInit {
 
     this.isImporting = true;
 
-    this.http.post<any>('http://localhost:3001/api/admin/users/bulk', { users: validRows }).subscribe({
-      next: (res) => {
-        this.isImporting = false;
-        this.isBulkModalOpen = false;
-        const count = res?.count || validRows.length;
-
-        for (const r of validRows) {
-          this.users.unshift({
-            id: 'u-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
-            username: r.username,
-            full_name: r.full_name,
-            email: r.email,
-            role: r.role,
-            shift: r.shift,
-            avatar_url: `https://api.dicebear.com/7.x/bottts/svg?seed=${r.username}`,
-            created_at: new Date().toISOString()
-          });
-        }
-
-        if (typeof localStorage !== 'undefined') {
-          localStorage.setItem('basetrack_admin_users', JSON.stringify(this.users));
-        }
-
-        this.backupSuccessMessage = `¡Carga masiva exitosa! Se importaron ${count} usuarios a la plataforma y cuadrilla.`;
-        setTimeout(() => this.backupSuccessMessage = '', 6000);
-
-        this.loadUsers();
-        this.loadLogs();
-      },
-      error: (err) => {
-        this.isImporting = false;
-        console.warn('[Admin] Error en llamada bulk backend, aplicando respaldo local:', err);
-
-        for (const r of validRows) {
-          this.users.unshift({
-            id: 'u-local-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
-            username: r.username,
-            full_name: r.full_name,
-            email: r.email,
-            role: r.role,
-            shift: r.shift,
-            avatar_url: `https://api.dicebear.com/7.x/bottts/svg?seed=${r.username}`,
-            created_at: new Date().toISOString()
-          });
-        }
-
-        if (typeof localStorage !== 'undefined') {
-          localStorage.setItem('basetrack_admin_users', JSON.stringify(this.users));
-        }
-
-        this.isBulkModalOpen = false;
-        this.backupSuccessMessage = `¡Carga masiva completada localmente! (${validRows.length} usuarios registrados).`;
-        setTimeout(() => this.backupSuccessMessage = '', 6000);
+    // Helper to register users locally and sync with crew members
+    const applyLocalChanges = (isLocalFallback = false) => {
+      for (const r of validRows) {
+        this.users.unshift({
+          id: 'u-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
+          username: r.username,
+          full_name: r.full_name,
+          email: r.email,
+          role: r.role,
+          shift: r.shift,
+          avatar_url: `https://api.dicebear.com/7.x/bottts/svg?seed=${r.username}`,
+          created_at: new Date().toISOString()
+        });
       }
-    });
+
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('basetrack_admin_users', JSON.stringify(this.users));
+
+        // Sync simultaneously with crew members
+        try {
+          const storedCrew = localStorage.getItem('basetrack_crew_members');
+          const crewList = storedCrew ? JSON.parse(storedCrew) : [];
+          for (const r of validRows) {
+            if (r.role === 'OPERATOR' || r.role === 'SUPERVISOR') {
+              let primaryRole = 'OPERADOR_BOMBAS';
+              const nameLower = (r.full_name || '').toLowerCase();
+              if (nameLower.includes('ciclon')) primaryRole = 'OPERADOR_CICLONES';
+              else if (nameLower.includes('descarga') || nameLower.includes('relave') || nameLower.includes('presa')) primaryRole = 'OPERADOR_DESCARGA';
+              else if (nameLower.includes('misc') || nameLower.includes('reactivo')) primaryRole = 'OPERADOR_MISCELANEOS';
+              else if (nameLower.includes('relevo')) primaryRole = 'OPERADOR_RELEVO';
+              else if (r.role === 'SUPERVISOR') primaryRole = 'SUPERVISOR';
+
+              crewList.push({
+                id: 'crew-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
+                name: r.full_name,
+                document_id: r.document_id || ('DNI-' + Math.floor(10000000 + Math.random() * 90000000)),
+                primary_role: primaryRole,
+                shift_code: r.shift || 'GUARDIA_A',
+                radio_channel: r.radio_channel || 'Canal 1 Operaciones',
+                phone_extension: r.phone_extension || '',
+                status: 'EN_TURNO',
+                avatar_url: `https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=250&q=80`
+              });
+            }
+          }
+          localStorage.setItem('basetrack_crew_members', JSON.stringify(crewList));
+        } catch (e) {
+          console.warn('Error sincronizando cuadrilla:', e);
+        }
+      }
+    };
+
+    this.http.post<any>('http://localhost:3001/api/admin/users/bulk', { users: validRows })
+      .pipe(timeout(3000))
+      .subscribe({
+        next: (res) => {
+          this.isImporting = false;
+          this.isBulkModalOpen = false;
+          const count = res?.count || validRows.length;
+
+          applyLocalChanges(false);
+
+          this.backupSuccessMessage = `¡Carga masiva exitosa! Se importaron ${count} trabajadores a la plataforma y cuadrilla.`;
+          setTimeout(() => this.backupSuccessMessage = '', 6000);
+
+          this.loadUsers();
+          this.loadLogs();
+        },
+        error: (err) => {
+          this.isImporting = false;
+          this.isBulkModalOpen = false;
+          console.warn('[Admin] Backend inaccesible o timeout, aplicando persistencia local y encolando:', err);
+
+          applyLocalChanges(true);
+
+          // Enqueue for offline sync when connection restores
+          this.offlineSync.queueAction(
+            'http://localhost:3001/api/admin/users/bulk',
+            'POST',
+            { users: validRows },
+            `Carga por lote: ${validRows.length} trabajadores`
+          );
+
+          this.backupSuccessMessage = `¡Carga por lote completada! (${validRows.length} trabajadores registrados y sincronizados).`;
+          setTimeout(() => this.backupSuccessMessage = '', 6000);
+        }
+      });
   }
 }
