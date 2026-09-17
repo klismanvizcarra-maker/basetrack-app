@@ -168,6 +168,40 @@ export function initDatabase() {
       timestamp TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
+    -- Crew Members (Personal de Cuadrilla de Planta)
+    CREATE TABLE IF NOT EXISTS crew_members (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      document_id TEXT UNIQUE NOT NULL,
+      primary_role TEXT NOT NULL CHECK(primary_role IN ('OPERADOR_BOMBAS', 'OPERADOR_CICLONES', 'OPERADOR_DESCARGA', 'OPERADOR_MISCELANEOS', 'OPERADOR_RELEVO', 'SUPERVISOR')),
+      shift_code TEXT NOT NULL CHECK(shift_code IN ('GUARDIA_A', 'GUARDIA_B', 'GUARDIA_C')),
+      radio_channel TEXT NOT NULL DEFAULT 'Canal 1 Operaciones',
+      phone_extension TEXT,
+      status TEXT NOT NULL CHECK(status IN ('EN_TURNO', 'DESCANSO', 'VACACIONES', 'PERMISO', 'CAPACITACION')) DEFAULT 'EN_TURNO',
+      avatar_url TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    -- Crew Area Assignments (Asignación en Tiempo Real por Área de Planta)
+    CREATE TABLE IF NOT EXISTS crew_area_assignments (
+      id TEXT PRIMARY KEY,
+      shift_code TEXT NOT NULL,
+      shift_date TEXT NOT NULL,
+      shift_type TEXT NOT NULL CHECK(shift_type IN ('DIA', 'NOCHE')),
+      position_key TEXT NOT NULL CHECK(position_key IN ('BOMBAS', 'CICLONES', 'DESCARGA', 'MISCELANEOS', 'RELEVO')),
+      position_title TEXT NOT NULL,
+      operator_id TEXT NOT NULL,
+      backup_operator_id TEXT,
+      epp_verified INTEGER NOT NULL DEFAULT 1,
+      safety_talk_completed INTEGER NOT NULL DEFAULT 1,
+      radio_channel TEXT,
+      station_location TEXT,
+      notes TEXT,
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY(operator_id) REFERENCES crew_members(id),
+      FOREIGN KEY(backup_operator_id) REFERENCES crew_members(id)
+    );
+
     -- Indexes for performance
     CREATE INDEX IF NOT EXISTS idx_pumps_tag ON pump_reports(tag);
     CREATE INDEX IF NOT EXISTS idx_pumps_created ON pump_reports(created_at);
@@ -175,6 +209,8 @@ export function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_tailings_created ON tailings_reports(created_at);
     CREATE INDEX IF NOT EXISTS idx_maintenance_status ON maintenance_requests(status);
     CREATE INDEX IF NOT EXISTS idx_audit_user ON audit_logs(username);
+    CREATE INDEX IF NOT EXISTS idx_crew_shift ON crew_members(shift_code);
+    CREATE INDEX IF NOT EXISTS idx_crew_assignments ON crew_area_assignments(shift_date, shift_code, shift_type);
   `);
 
   console.log('[Database] Tables and indexes initialized successfully.');

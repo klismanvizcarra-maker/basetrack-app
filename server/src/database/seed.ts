@@ -391,6 +391,240 @@ export function seed() {
     }
   }
 
+  // 8. Crew Members & Area Assignments
+  const crewCount = (db.prepare('SELECT COUNT(*) as count FROM crew_members').get() as { count: number }).count;
+  if (crewCount === 0) {
+    console.log('[Seed] Seeding crew members & operational assignments...');
+    const insertMember = db.prepare(`
+      INSERT INTO crew_members (id, name, document_id, primary_role, shift_code, radio_channel, phone_extension, status, avatar_url)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    const opBombasId = crypto.randomUUID();
+    const opCiclonesId = crypto.randomUUID();
+    const opDescargaId = crypto.randomUUID();
+    const opMiscelaneosId = crypto.randomUUID();
+    const opRelevoId = crypto.randomUUID();
+
+    const backupBombasId = crypto.randomUUID();
+    const backupCiclonesId = crypto.randomUUID();
+    const backupDescargaId = crypto.randomUUID();
+    const backupMiscId = crypto.randomUUID();
+    const backupRelevoId = crypto.randomUUID();
+
+    // Active Guardia A Operators
+    insertMember.run(
+      opBombasId,
+      'Juan Pérez Huamán',
+      '70412893',
+      'OPERADOR_BOMBAS',
+      'GUARDIA_A',
+      'Canal 3 Bombas',
+      'Ext. 4102',
+      'EN_TURNO',
+      'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=250&q=80'
+    );
+
+    insertMember.run(
+      opCiclonesId,
+      'Manuel Condori Ramos',
+      '42819304',
+      'OPERADOR_CICLONES',
+      'GUARDIA_A',
+      'Canal 2 Ciclones',
+      'Ext. 4105',
+      'EN_TURNO',
+      'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=250&q=80'
+    );
+
+    insertMember.run(
+      opDescargaId,
+      'Wilber Mamani Choque',
+      '71940283',
+      'OPERADOR_DESCARGA',
+      'GUARDIA_A',
+      'Canal 4 Presa',
+      'Ext. 4109',
+      'EN_TURNO',
+      'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=250&q=80'
+    );
+
+    insertMember.run(
+      opMiscelaneosId,
+      'Edgar Quispe Vargas',
+      '48910239',
+      'OPERADOR_MISCELANEOS',
+      'GUARDIA_A',
+      'Canal 1 Operaciones',
+      'Ext. 4112',
+      'EN_TURNO',
+      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80'
+    );
+
+    insertMember.run(
+      opRelevoId,
+      'Víctor Zeballos Flores',
+      '73019284',
+      'OPERADOR_RELEVO',
+      'GUARDIA_A',
+      'Canal 5 Relevo/Móvil',
+      'Ext. 4115',
+      'EN_TURNO',
+      'https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?auto=format&fit=crop&w=250&q=80'
+    );
+
+    // Guardia B Operators
+    insertMember.run(
+      backupBombasId,
+      'Jorge Cárdenas Silva',
+      '71284910',
+      'OPERADOR_BOMBAS',
+      'GUARDIA_B',
+      'Canal 3 Bombas',
+      'Ext. 4102',
+      'DESCANSO',
+      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=250&q=80'
+    );
+
+    insertMember.run(
+      backupCiclonesId,
+      'Fabián Morales Arce',
+      '45819203',
+      'OPERADOR_CICLONES',
+      'GUARDIA_B',
+      'Canal 2 Ciclones',
+      'Ext. 4105',
+      'DESCANSO',
+      'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=250&q=80'
+    );
+
+    insertMember.run(
+      backupDescargaId,
+      'Álvaro Rios Gutiérrez',
+      '46820194',
+      'OPERADOR_DESCARGA',
+      'GUARDIA_B',
+      'Canal 4 Presa',
+      'Ext. 4109',
+      'DESCANSO',
+      'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=250&q=80'
+    );
+
+    insertMember.run(
+      backupMiscId,
+      'Santiago Medina Solís',
+      '74910283',
+      'OPERADOR_MISCELANEOS',
+      'GUARDIA_B',
+      'Canal 1 Operaciones',
+      'Ext. 4112',
+      'DESCANSO',
+      'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=250&q=80'
+    );
+
+    insertMember.run(
+      backupRelevoId,
+      'Raúl Espinoza Pinto',
+      '72839102',
+      'OPERADOR_RELEVO',
+      'GUARDIA_B',
+      'Canal 5 Relevo/Móvil',
+      'Ext. 4115',
+      'DESCANSO',
+      'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&w=250&q=80'
+    );
+
+    // Initial Area Assignments for Today DIA Turno Guardia A
+    const today = new Date().toISOString().split('T')[0];
+    const insertAssignment = db.prepare(`
+      INSERT INTO crew_area_assignments (
+        id, shift_code, shift_date, shift_type, position_key, position_title,
+        operator_id, backup_operator_id, epp_verified, safety_talk_completed,
+        radio_channel, station_location, notes
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    insertAssignment.run(
+      crypto.randomUUID(),
+      'GUARDIA_A',
+      today,
+      'DIA',
+      'BOMBAS',
+      'Operador de Bombas',
+      opBombasId,
+      opRelevoId,
+      1,
+      1,
+      'Canal 3 Bombas',
+      'Sala de Bombas Slurry & Sentina Principal',
+      'Control de flujo en bombas PP-101/102 y monitoreo de pozas de drenaje'
+    );
+
+    insertAssignment.run(
+      crypto.randomUUID(),
+      'GUARDIA_A',
+      today,
+      'DIA',
+      'CICLONES',
+      'Operador de Ciclones',
+      opCiclonesId,
+      opRelevoId,
+      1,
+      1,
+      'Canal 2 Ciclones',
+      '1ra y 2da Estación Baterías de Ciclones',
+      'Muestreo horario de sólidos y granulometría de mallas -200'
+    );
+
+    insertAssignment.run(
+      crypto.randomUUID(),
+      'GUARDIA_A',
+      today,
+      'DIA',
+      'DESCARGA',
+      'Operador de descarga',
+      opDescargaId,
+      opRelevoId,
+      1,
+      1,
+      'Canal 4 Presa',
+      'Línea de Impulsión & Presa de Relaves Principal',
+      'Inspección de vertedero, borde libre y lecturas de piezómetros'
+    );
+
+    insertAssignment.run(
+      crypto.randomUUID(),
+      'GUARDIA_A',
+      today,
+      'DIA',
+      'MISCELANEOS',
+      'Operador Misceláneos',
+      opMiscelaneosId,
+      opRelevoId,
+      1,
+      1,
+      'Canal 1 Operaciones',
+      'Planta General & Sistemas Auxiliares',
+      'Preparación de floculante, apoyo a espesadores e inspección de compresores'
+    );
+
+    insertAssignment.run(
+      crypto.randomUUID(),
+      'GUARDIA_A',
+      today,
+      'DIA',
+      'RELEVO',
+      'Operador de Relevo',
+      opRelevoId,
+      null,
+      1,
+      1,
+      'Canal 5 Relevo/Móvil',
+      'Cobertura Volante Móvil en Planta',
+      'Relevo de pausas activas, colaciones y atención inmediata de alarmas SCADA'
+    );
+  }
+
   console.log('[Seed] Database seeded successfully.');
 }
 

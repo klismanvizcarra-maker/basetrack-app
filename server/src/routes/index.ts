@@ -7,6 +7,7 @@ import { getAllTailings, createTailingsReport } from '../controllers/tailings.co
 import { getAllShiftHandovers, createShiftHandover, acceptShiftHandover } from '../controllers/shift.controller.js';
 import { getAllMaintenanceRequests, createMaintenanceRequest, updateMaintenanceStatus } from '../controllers/maintenance.controller.js';
 import { getAllUsers, createUserByAdmin, getAuditLogs, getDatabaseBackup } from '../controllers/admin.controller.js';
+import { getCrewMembers, createCrewMember, updateCrewMember, deleteCrewMember, getAreaAssignments, saveAreaAssignment, checkinAreaAssignment } from '../controllers/crew.controller.js';
 import { authenticateToken, requireRoles } from '../middlewares/auth.middleware.js';
 
 export const apiRouter = Router();
@@ -65,3 +66,12 @@ apiRouter.get('/admin/users', authenticateToken, requireRoles('ADMIN', 'SUPERVIS
 apiRouter.post('/admin/users', authenticateToken, requireRoles('ADMIN'), createUserByAdmin);
 apiRouter.get('/admin/audit-logs', authenticateToken, requireRoles('ADMIN'), getAuditLogs);
 apiRouter.get('/admin/backup', authenticateToken, requireRoles('ADMIN'), getDatabaseBackup);
+
+// 10. Crew & Area Assignments Routes (Gestión de Cuadrilla y Asignación por Área)
+apiRouter.get('/crew/members', getCrewMembers);
+apiRouter.post('/crew/members', authenticateToken, createCrewMember);
+apiRouter.put('/crew/members/:id', authenticateToken, updateCrewMember);
+apiRouter.delete('/crew/members/:id', authenticateToken, deleteCrewMember);
+apiRouter.get('/crew/assignments', getAreaAssignments);
+apiRouter.post('/crew/assignments', authenticateToken, saveAreaAssignment);
+apiRouter.patch('/crew/assignments/:id/checkin', authenticateToken, checkinAreaAssignment);

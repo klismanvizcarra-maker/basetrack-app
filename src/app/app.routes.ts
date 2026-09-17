@@ -26,6 +26,10 @@ export const routes: Routes = [
         loadComponent: () => import('./features/shift-handover/shift-handover.component').then(m => m.ShiftHandoverComponent)
       },
       {
+        path: 'crew',
+        loadComponent: () => import('./features/crew/crew-management.component').then(m => m.CrewManagementComponent)
+      },
+      {
         path: 'pumps',
         loadComponent: () => import('./features/pumps/pumps.component').then(m => m.PumpsComponent)
       },
