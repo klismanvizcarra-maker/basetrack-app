@@ -792,7 +792,7 @@ export class ShiftReportPdfComponent implements OnInit {
     shift_code: 'G-A-01',
     date: new Date().toISOString().split('T')[0],
     shift_type: 'DIA',
-    outgoing_supervisor: 'Ing. Carlos Mendoza',
+    outgoing_supervisor: 'VIZCARRA CORI MANLEY KLISMAN',
     incoming_supervisor: 'Ing. Roberto Silva',
     plant_status: 'Operación normal a ritmo de tratamiento continuo. Se mantuvo estabilidad en flotación y clasificación.',
     tonnage_processed: 24500,

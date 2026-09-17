@@ -10,7 +10,7 @@ export const OFFICIAL_STAFF = [
     email: 'klismanvizcarra@basetrack.com',
     password: 'Password123!', // also can login with DNI 71209033
     document_id: '71209033',
-    role: 'SUPERVISOR',
+    role: 'ADMIN',
     primary_role: 'OPERADOR_BOMBAS',
     shift: 'GUARDIA_A',
     radio_channel: 'Canal 3 Bombas',
@@ -212,27 +212,8 @@ export function applyOfficialStaff() {
   db.exec(`
     DELETE FROM crew_area_assignments;
     DELETE FROM crew_members;
-    DELETE FROM users WHERE username NOT IN ('admin');
+    DELETE FROM users;
   `);
-
-  // Ensure admin user exists
-  const adminExists = db.prepare('SELECT id FROM users WHERE username = ?').get('admin');
-  if (!adminExists) {
-    const adminPass = bcrypt.hashSync('admin123', 10);
-    db.prepare(`
-      INSERT INTO users (id, username, email, password_hash, full_name, role, shift, avatar_url)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      crypto.randomUUID(),
-      'admin',
-      'admin@basetrack.mining.com',
-      adminPass,
-      'Ing. Carlos Mendoza (Jefe de Planta)',
-      'ADMIN',
-      'GUARDIA_A',
-      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=250&q=80'
-    );
-  }
 
   const insertUser = db.prepare(`
     INSERT INTO users (id, username, email, password_hash, full_name, role, shift, avatar_url)

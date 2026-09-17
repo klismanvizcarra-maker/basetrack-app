@@ -5,13 +5,13 @@ import { Observable, tap, catchError, of, map } from 'rxjs';
 import { User, AuthResponse, LoginPayload, RegisterPayload } from './auth.models';
 
 const DEFAULT_ADMIN_USER: User = {
-  id: 'admin-001',
-  username: 'admin',
-  email: 'admin@basetrack.mining.com',
-  fullName: 'Ing. Carlos Mendoza (Jefe de Planta)',
+  id: 'u-klismanv',
+  username: 'KlismanV',
+  email: 'klismanvizcarra@basetrack.com',
+  fullName: 'VIZCARRA CORI MANLEY KLISMAN',
   role: 'ADMIN',
   shift: 'GUARDIA_A',
-  avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=250&q=80'
+  avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80'
 };
 
 @Injectable({
@@ -174,7 +174,7 @@ export class AuthService {
   private getStoredUser(): User | null {
     if (typeof localStorage === 'undefined') return DEFAULT_ADMIN_USER;
     const raw = localStorage.getItem('basetrack_user');
-    if (!raw) {
+    if (!raw || raw.includes('Carlos Mendoza') || raw.includes('"admin"') || raw.includes('admin@basetrack')) {
       localStorage.setItem('basetrack_user', JSON.stringify(DEFAULT_ADMIN_USER));
       localStorage.setItem('basetrack_token', 'demo_basetrack_token');
       return DEFAULT_ADMIN_USER;

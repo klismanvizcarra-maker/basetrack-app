@@ -484,7 +484,7 @@ export class ShiftHandoverComponent implements OnInit {
   };
 
   ngOnInit(): void {
-    this.newHandover.outgoing_supervisor = this.authService.currentUser()?.fullName || 'Ing. Carlos Mendoza';
+    this.newHandover.outgoing_supervisor = this.authService.currentUser()?.fullName || 'VIZCARRA CORI MANLEY KLISMAN';
     this.loadHandovers();
   }
 

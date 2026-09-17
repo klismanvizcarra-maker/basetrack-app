@@ -19,11 +19,11 @@ export function authenticateToken(req: AuthenticatedRequest, res: Response, next
   // Token de desarrollo y contingencia para visualización local
   if (token === 'demo_basetrack_token') {
     req.user = {
-      userId: 'admin-001',
-      username: 'admin',
+      userId: 'u-klismanv',
+      username: 'KlismanV',
       role: 'ADMIN',
       shift: 'GUARDIA_A',
-      fullName: 'Ing. Carlos Mendoza (Jefe de Planta)'
+      fullName: 'VIZCARRA CORI MANLEY KLISMAN'
     };
     return next();
   }

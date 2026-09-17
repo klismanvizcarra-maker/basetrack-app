@@ -149,7 +149,7 @@ import { ShiftCode } from '../../core/auth/auth.models';
                   type="text"
                   [(ngModel)]="profileForm.fullName"
                   name="fullName"
-                  placeholder="Ej. Ing. Carlos Mendoza (Jefe de Planta)"
+                  placeholder="Ej. VIZCARRA CORI MANLEY KLISMAN"
                   required
                 />
               </div>
@@ -161,7 +161,7 @@ import { ShiftCode } from '../../core/auth/auth.models';
                     type="email"
                     [(ngModel)]="profileForm.email"
                     name="email"
-                    placeholder="carlos.mendoza@basetrack.mining.com"
+                    placeholder="klismanvizcarra@basetrack.com"
                     required
                   />
                 </div>

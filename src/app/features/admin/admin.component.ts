@@ -30,21 +30,11 @@ export interface AuditLog {
 
 const DEFAULT_USERS: UserItem[] = [
   {
-    id: 'u-admin',
-    username: 'admin',
-    email: 'admin@basetrack.mining.com',
-    full_name: 'Administrador del Sistema',
-    role: 'ADMIN',
-    shift: 'GUARDIA_A',
-    avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80',
-    created_at: '2026-08-15T08:00:00.000Z'
-  },
-  {
     id: 'u-klismanv',
     username: 'KlismanV',
-    email: 'klismanv@basetrack.mining.com',
+    email: 'klismanvizcarra@basetrack.com',
     full_name: 'VIZCARRA CORI MANLEY KLISMAN',
-    role: 'SUPERVISOR',
+    role: 'ADMIN',
     shift: 'GUARDIA_A',
     avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80',
     created_at: '2026-09-17T08:00:00.000Z'
@@ -194,48 +184,48 @@ const DEFAULT_USERS: UserItem[] = [
 const DEFAULT_LOGS: AuditLog[] = [
   {
     id: 'l-1',
-    username: 'admin',
+    username: 'KlismanV',
     action: 'LOGIN',
     entity: 'AUTH',
     details: 'Inicio de sesión administrativo verificado con éxito',
     ip_address: '192.168.1.104',
-    timestamp: '2026-09-16 19:45:10'
+    timestamp: '2026-09-17 13:40:10'
   },
   {
     id: 'l-2',
-    username: 'supervisor_a',
+    username: 'KlismanV',
     action: 'SHIFT_HANDOVER',
     entity: 'OPERATIONS',
     details: 'Aprobación formal relevo de guardia Turno A a Turno B',
     ip_address: '192.168.1.112',
-    timestamp: '2026-09-16 19:10:24'
+    timestamp: '2026-09-17 12:10:24'
   },
   {
     id: 'l-3',
-    username: 'operador_bombas',
-    action: 'PUMP_STATUS',
-    entity: 'SLURRY_PUMPS',
-    details: 'Transición bomba PP-102 a modo STANDBY preventivo',
-    ip_address: '192.168.1.120',
-    timestamp: '2026-09-16 18:35:02'
-  },
-  {
-    id: 'l-4',
-    username: 'admin',
-    action: 'BACKUP_EXPORT',
-    entity: 'DATABASE',
-    details: 'Exportación manual de snapshot seguro SQLite',
-    ip_address: '192.168.1.104',
-    timestamp: '2026-09-16 17:15:00'
-  },
-  {
-    id: 'l-5',
-    username: 'supervisor_b',
+    username: 'CarlosP',
     action: 'CYCLONES_SAMPLE',
     entity: 'STATION_02',
     details: 'Registro de muestra metalúrgica: OF 18.2% / UF 72.4%',
     ip_address: '192.168.1.115',
-    timestamp: '2026-09-16 16:20:18'
+    timestamp: '2026-09-17 11:20:18'
+  },
+  {
+    id: 'l-4',
+    username: 'KlismanV',
+    action: 'BACKUP_EXPORT',
+    entity: 'DATABASE',
+    details: 'Exportación manual de snapshot seguro SQLite',
+    ip_address: '192.168.1.104',
+    timestamp: '2026-09-17 10:15:00'
+  },
+  {
+    id: 'l-5',
+    username: 'EmilioA',
+    action: 'PUMP_STATUS',
+    entity: 'SLURRY_PUMPS',
+    details: 'Transición bomba PP-102 a modo STANDBY preventivo',
+    ip_address: '192.168.1.120',
+    timestamp: '2026-09-17 09:35:02'
   }
 ];
 
@@ -965,9 +955,10 @@ export class AdminComponent implements OnInit {
         const storedUsers = localStorage.getItem('basetrack_admin_users');
         if (storedUsers) {
           const parsed = JSON.parse(storedUsers);
-          // Si contiene usuarios de prueba antiguos (supervisor_a, operador_bombas) o tiene pocos usuarios, refrescar con DEFAULT_USERS
-          const hasOldMockUsers = Array.isArray(parsed) && parsed.some((u: any) => u.username === 'supervisor_a' || u.username === 'operador_bombas' || u.id === 'u-1');
-          if (Array.isArray(parsed) && parsed.length >= 15 && !hasOldMockUsers) {
+          // Si contiene usuarios obsoletos o 'admin' / Carlos Mendoza, refrescar con la lista real de 15 operadores
+          const hasOldMockUsers = Array.isArray(parsed) && parsed.some((u: any) => u.username === 'admin' || u.username === 'supervisor_a' || u.username === 'operador_bombas' || u.id === 'u-admin');
+          const klismanIsAdmin = Array.isArray(parsed) && parsed.some((u: any) => u.username === 'KlismanV' && u.role === 'ADMIN');
+          if (Array.isArray(parsed) && parsed.length === 15 && !hasOldMockUsers && klismanIsAdmin) {
             this.users = parsed;
           } else {
             this.users = [...DEFAULT_USERS];
@@ -981,10 +972,15 @@ export class AdminComponent implements OnInit {
         const storedLogs = localStorage.getItem('basetrack_admin_logs');
         if (storedLogs) {
           const parsed = JSON.parse(storedLogs);
-          if (Array.isArray(parsed) && parsed.length > 0) {
+          const hasOldLogs = Array.isArray(parsed) && parsed.some((l: any) => l.username === 'admin' || l.username === 'supervisor_a');
+          if (Array.isArray(parsed) && parsed.length > 0 && !hasOldLogs) {
             this.logs = parsed;
+          } else {
+            this.logs = [...DEFAULT_LOGS];
+            localStorage.setItem('basetrack_admin_logs', JSON.stringify(DEFAULT_LOGS));
           }
         } else {
+          this.logs = [...DEFAULT_LOGS];
           localStorage.setItem('basetrack_admin_logs', JSON.stringify(DEFAULT_LOGS));
         }
       } catch (e) {
