@@ -6,7 +6,7 @@ import { getAllCyclones, createCycloneReport, getStationSamples, createStationSa
 import { getAllTailings, createTailingsReport } from '../controllers/tailings.controller.js';
 import { getAllShiftHandovers, createShiftHandover, acceptShiftHandover } from '../controllers/shift.controller.js';
 import { getAllMaintenanceRequests, createMaintenanceRequest, updateMaintenanceStatus } from '../controllers/maintenance.controller.js';
-import { getAllUsers, createUserByAdmin, getAuditLogs, getDatabaseBackup } from '../controllers/admin.controller.js';
+import { getAllUsers, createUserByAdmin, createUsersBulk, getAuditLogs, getDatabaseBackup } from '../controllers/admin.controller.js';
 import { getCrewMembers, createCrewMember, updateCrewMember, deleteCrewMember, getAreaAssignments, saveAreaAssignment, checkinAreaAssignment } from '../controllers/crew.controller.js';
 import { authenticateToken, requireRoles } from '../middlewares/auth.middleware.js';
 
@@ -64,6 +64,7 @@ apiRouter.patch('/maintenance/:id/status', authenticateToken, updateMaintenanceS
 // 9. Admin & Backups
 apiRouter.get('/admin/users', authenticateToken, requireRoles('ADMIN', 'SUPERVISOR'), getAllUsers);
 apiRouter.post('/admin/users', authenticateToken, requireRoles('ADMIN'), createUserByAdmin);
+apiRouter.post('/admin/users/bulk', authenticateToken, requireRoles('ADMIN'), createUsersBulk);
 apiRouter.get('/admin/audit-logs', authenticateToken, requireRoles('ADMIN'), getAuditLogs);
 apiRouter.get('/admin/backup', authenticateToken, requireRoles('ADMIN'), getDatabaseBackup);
 

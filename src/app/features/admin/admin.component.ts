@@ -129,6 +129,15 @@ const DEFAULT_LOGS: AuditLog[] = [
           <p class="section-sub">Control de accesos RBAC, auditoría de eventos y respaldo de base de datos</p>
         </div>
         <div class="top-btns">
+          <button class="btn btn-secondary" (click)="openBulkModal()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+            </svg>
+            Carga por Lote (CSV/Excel)
+          </button>
           <button class="btn btn-secondary" (click)="exportBackup()">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
@@ -293,6 +302,137 @@ const DEFAULT_LOGS: AuditLog[] = [
           </div>
         </form>
       </app-modal>
+
+      <!-- Modal Bulk Import Users -->
+      <app-modal
+        [isOpen]="isBulkModalOpen"
+        [title]="'Carga Masiva de Personal por Lote (Excel / CSV)'"
+        [showFooter]="true"
+        (close)="isBulkModalOpen = false"
+      >
+        <div class="bulk-modal-container">
+          <!-- Mode Tabs -->
+          <div class="bulk-mode-tabs">
+            <button
+              type="button"
+              class="bulk-tab-btn"
+              [class.active]="bulkTab === 'CSV'"
+              (click)="bulkTab = 'CSV'"
+            >
+              📁 Subir Archivo (.csv)
+            </button>
+            <button
+              type="button"
+              class="bulk-tab-btn"
+              [class.active]="bulkTab === 'PASTE'"
+              (click)="bulkTab = 'PASTE'"
+            >
+              📋 Pegar desde Excel
+            </button>
+            <button
+              type="button"
+              class="download-tpl-btn"
+              (click)="downloadTemplateCsv()"
+              title="Descargar archivo modelo con encabezados y datos de ejemplo"
+            >
+              ⬇️ Descargar Plantilla CSV
+            </button>
+          </div>
+
+          <!-- Tab 1: CSV Upload -->
+          <div class="bulk-input-section" *ngIf="bulkTab === 'CSV'">
+            <div class="upload-dropzone">
+              <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
+              <p class="dropzone-text">Selecciona o arrastra tu archivo <strong>.csv</strong> con la nómina</p>
+              <input
+                type="file"
+                accept=".csv,.txt"
+                class="file-input-hidden"
+                id="csvFileInput"
+                (change)="onCsvFileSelected($event)"
+              />
+              <label for="csvFileInput" class="btn btn-secondary btn-sm" style="cursor: pointer;">Examinar Archivo...</label>
+            </div>
+          </div>
+
+          <!-- Tab 2: Copy-Paste from Excel -->
+          <div class="bulk-input-section" *ngIf="bulkTab === 'PASTE'">
+            <label class="form-label" style="font-size: 0.8rem; font-weight: 700; color: var(--text-secondary);">
+              Pega las celdas copiadas directamente de tu Excel o Google Sheets:
+            </label>
+            <textarea
+              class="paste-textarea"
+              rows="5"
+              [(ngModel)]="pastedText"
+              (ngModelChange)="parsePastedText()"
+              placeholder="Ejemplo:&#10;jperez&#9;Juan Pérez Huamán&#9;juan.perez@mina.com&#9;OPERATOR&#9;GUARDIA_A&#9;70412893&#9;Canal 3 Bombas&#10;mcondori&#9;Manuel Condori Ramos&#9;manuel.condori@mina.com&#9;OPERATOR&#9;GUARDIA_A&#9;42819304&#9;Canal 2 Ciclones"
+            ></textarea>
+            <span class="textarea-hint">El sistema detecta automáticamente tabulaciones (Excel) o comas (CSV). Contraseña por defecto: <code>Basetrack2026!</code></span>
+          </div>
+
+          <!-- Preview & Validation Table -->
+          <div class="bulk-preview-section" *ngIf="parsedBulkUsers.length > 0">
+            <div class="preview-head">
+              <h4>Previsualización ({{ parsedBulkUsers.length }} Filas Detectadas)</h4>
+              <div class="preview-stats">
+                <span class="stat-badge stat-valid">✓ {{ validBulkCount }} Listos</span>
+                <span class="stat-badge stat-invalid" *ngIf="invalidBulkCount > 0">⚠️ {{ invalidBulkCount }} Observados</span>
+              </div>
+            </div>
+
+            <div class="preview-table-wrapper">
+              <table class="preview-table">
+                <thead>
+                  <tr>
+                    <th>ESTADO</th>
+                    <th>USUARIO</th>
+                    <th>NOMBRE COMPLETO</th>
+                    <th>CORREO</th>
+                    <th>ROL</th>
+                    <th>GUARDIA</th>
+                    <th>DNI</th>
+                    <th>CANAL RADIO</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let row of parsedBulkUsers" [class.row-invalid]="!row.isValid">
+                    <td>
+                      <span class="status-indicator" [class.valid]="row.isValid" [class.invalid]="!row.isValid">
+                        {{ row.isValid ? '✓ Listo' : '⚠️ ' + row.validationMsg }}
+                      </span>
+                    </td>
+                    <td><strong>{{ row.username }}</strong></td>
+                    <td>{{ row.full_name }}</td>
+                    <td>{{ row.email }}</td>
+                    <td><span class="badge badge-slate">{{ row.role }}</span></td>
+                    <td><span class="badge badge-slate">{{ row.shift }}</span></td>
+                    <td><code>{{ row.document_id || '---' }}</code></td>
+                    <td>{{ row.radio_channel || '---' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div footer class="modal-footer-actions">
+          <button type="button" class="btn btn-secondary" (click)="isBulkModalOpen = false">
+            Cancelar
+          </button>
+          <button
+            type="button"
+            class="btn btn-primary"
+            [disabled]="validBulkCount === 0 || isImporting"
+            (click)="executeBulkImport()"
+          >
+            {{ isImporting ? 'Importando...' : 'Confirmar e Importar ' + validBulkCount + ' Usuarios' }}
+          </button>
+        </div>
+      </app-modal>
     </div>
   `,
   styles: [`
@@ -445,6 +585,222 @@ const DEFAULT_LOGS: AuditLog[] = [
       justify-content: flex-end;
       width: 100%;
     }
+
+    /* Bulk Import Modal Styles */
+    .bulk-modal-container {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .bulk-mode-tabs {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      background: #f1f5f9;
+      padding: 4px;
+      border-radius: var(--radius-md);
+    }
+
+    .bulk-tab-btn {
+      border: none;
+      background: transparent;
+      padding: 7px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: var(--transition-smooth);
+
+      &:hover {
+        color: var(--text-primary);
+      }
+
+      &.active {
+        background: #ffffff;
+        color: #047857;
+        font-weight: 700;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      }
+    }
+
+    .download-tpl-btn {
+      margin-left: auto;
+      background: none;
+      border: 1px dashed #059669;
+      color: #047857;
+      padding: 5px 10px;
+      border-radius: var(--radius-sm);
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: var(--transition-smooth);
+
+      &:hover {
+        background: #ecfdf5;
+      }
+    }
+
+    .bulk-input-section {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .upload-dropzone {
+      border: 2px dashed #cbd5e1;
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      text-align: center;
+      background: #f8fafc;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      transition: var(--transition-smooth);
+
+      &:hover {
+        border-color: #059669;
+        background: #f0fdf4;
+      }
+    }
+
+    .dropzone-text {
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+      margin: 0;
+    }
+
+    .file-input-hidden {
+      display: none;
+    }
+
+    .paste-textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      font-family: monospace;
+      font-size: 0.8rem;
+      color: var(--text-primary);
+      outline: none;
+      resize: vertical;
+      box-sizing: border-box;
+
+      &:focus {
+        border-color: #059669;
+        box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.15);
+      }
+    }
+
+    .textarea-hint {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+
+    .bulk-preview-section {
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 12px;
+      background: #ffffff;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .preview-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+
+      h4 {
+        margin: 0;
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: var(--text-primary);
+      }
+    }
+
+    .preview-stats {
+      display: flex;
+      gap: 6px;
+    }
+
+    .stat-badge {
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: var(--radius-full);
+
+      &.stat-valid {
+        background: #ecfdf5;
+        color: #047857;
+      }
+
+      &.stat-invalid {
+        background: #fffbeb;
+        color: #b45309;
+      }
+    }
+
+    .preview-table-wrapper {
+      max-height: 200px;
+      overflow-y: auto;
+      overflow-x: auto;
+    }
+
+    .preview-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.75rem;
+
+      th {
+        position: sticky;
+        top: 0;
+        background: #f8fafc;
+        padding: 6px 8px;
+        text-align: left;
+        font-size: 0.68rem;
+        font-weight: 700;
+        color: var(--text-muted);
+        border-bottom: 1px solid var(--border-subtle);
+        z-index: 1;
+      }
+
+      td {
+        padding: 6px 8px;
+        border-bottom: 1px solid #f1f5f9;
+        white-space: nowrap;
+      }
+
+      &.row-invalid {
+        background: #fff7ed;
+      }
+    }
+
+    .status-indicator {
+      font-size: 0.7rem;
+      font-weight: 700;
+
+      &.valid {
+        color: #059669;
+      }
+
+      &.invalid {
+        color: #d97706;
+      }
+    }
+
+    .modal-footer-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      width: 100%;
+    }
   `]
 })
 export class AdminComponent implements OnInit {
@@ -457,6 +813,13 @@ export class AdminComponent implements OnInit {
 
   isCreateUserModalOpen = false;
   backupSuccessMessage = '';
+
+  // Bulk Import State
+  isBulkModalOpen = false;
+  bulkTab: 'CSV' | 'PASTE' = 'CSV';
+  pastedText = '';
+  isImporting = false;
+  parsedBulkUsers: any[] = [];
 
   newUser = {
     username: '',
@@ -617,6 +980,193 @@ export class AdminComponent implements OnInit {
         window.URL.revokeObjectURL(url);
         this.backupSuccessMessage = 'Backup local seguro generado y descargado exitosamente.';
         setTimeout(() => this.backupSuccessMessage = '', 5000);
+      }
+    });
+  }
+
+  openBulkModal(): void {
+    this.isBulkModalOpen = true;
+    this.bulkTab = 'CSV';
+    this.pastedText = '';
+    this.parsedBulkUsers = [];
+  }
+
+  get validBulkCount(): number {
+    return this.parsedBulkUsers.filter(u => u.isValid).length;
+  }
+
+  get invalidBulkCount(): number {
+    return this.parsedBulkUsers.filter(u => !u.isValid).length;
+  }
+
+  downloadTemplateCsv(): void {
+    const headers = 'username,full_name,email,password,role,shift,document_id,radio_channel,phone_extension\n';
+    const rows = [
+      'cbarrios,Carlos Barrios Huamán,carlos.barrios@mina.com,Basetrack2026!,OPERATOR,GUARDIA_B,72190458,Canal 3 Bombas,Ext. 4102',
+      'fmorales,Fabián Morales Arce,fabian.morales@mina.com,Basetrack2026!,OPERATOR,GUARDIA_B,45819203,Canal 2 Ciclones,Ext. 4105',
+      'arios,Álvaro Rios Gutiérrez,alvaro.rios@mina.com,Basetrack2026!,OPERATOR,GUARDIA_B,46820194,Canal 4 Presa,Ext. 4109',
+      'smedina,Santiago Medina Solís,santiago.medina@mina.com,Basetrack2026!,OPERATOR,GUARDIA_B,74910283,Canal 1 Operaciones,Ext. 4112',
+      'respinoza,Raúl Espinoza Pinto,raul.espinoza@mina.com,Basetrack2026!,OPERATOR,GUARDIA_B,72839102,Canal 5 Relevo/Móvil,Ext. 4115'
+    ].join('\n');
+
+    const blob = new Blob([headers + rows], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'plantilla_usuarios_basetrack.csv';
+    a.click();
+    window.URL.revokeObjectURL(url);
+  }
+
+  onCsvFileSelected(event: any): void {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e: any) => {
+      const text = e.target.result;
+      this.parseCsvContent(text);
+    };
+    reader.readAsText(file);
+    event.target.value = '';
+  }
+
+  parsePastedText(): void {
+    if (!this.pastedText || !this.pastedText.trim()) {
+      this.parsedBulkUsers = [];
+      return;
+    }
+    this.parseCsvContent(this.pastedText);
+  }
+
+  private parseCsvContent(content: string): void {
+    const lines = content.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+    if (lines.length === 0) {
+      this.parsedBulkUsers = [];
+      return;
+    }
+
+    const results: any[] = [];
+    const firstLine = lines[0].toLowerCase();
+    const hasHeader = firstLine.includes('username') || firstLine.includes('usuario') || firstLine.includes('correo') || firstLine.includes('email');
+    const startIdx = hasHeader ? 1 : 0;
+
+    for (let i = startIdx; i < lines.length; i++) {
+      const line = lines[i];
+      let parts: string[] = [];
+      if (line.includes('\t')) {
+        parts = line.split('\t').map(p => p.trim());
+      } else if (line.includes(';')) {
+        parts = line.split(';').map(p => p.trim());
+      } else {
+        parts = line.split(',').map(p => p.trim());
+      }
+
+      if (parts.length === 0 || parts.every(p => p === '')) continue;
+
+      const username = parts[0] || '';
+      const full_name = parts[1] || username;
+      const email = parts[2] || (username ? `${username}@basetrack.mining.com` : '');
+      const password = parts[3] || 'Basetrack2026!';
+      const rawRole = (parts[4] || 'OPERATOR').toUpperCase();
+      const role = ['ADMIN', 'SUPERVISOR', 'OPERATOR'].includes(rawRole) ? rawRole : 'OPERATOR';
+      const rawShift = (parts[5] || 'GUARDIA_A').toUpperCase();
+      const shift = ['GUARDIA_A', 'GUARDIA_B', 'GUARDIA_C'].includes(rawShift) ? rawShift : 'GUARDIA_A';
+      const document_id = parts[6] || '';
+      const radio_channel = parts[7] || 'Canal 1 Operaciones';
+      const phone_extension = parts[8] || '';
+
+      let isValid = true;
+      let validationMsg = '';
+
+      if (!username) {
+        isValid = false;
+        validationMsg = 'Falta usuario';
+      } else if (this.users.some(u => u.username.toLowerCase() === username.toLowerCase())) {
+        isValid = false;
+        validationMsg = 'Usuario ya existe';
+      } else if (email && this.users.some(u => u.email.toLowerCase() === email.toLowerCase())) {
+        isValid = false;
+        validationMsg = 'Correo ya registrado';
+      }
+
+      results.push({
+        username,
+        full_name,
+        email,
+        password,
+        role,
+        shift,
+        document_id,
+        radio_channel,
+        phone_extension,
+        isValid,
+        validationMsg
+      });
+    }
+
+    this.parsedBulkUsers = results;
+  }
+
+  executeBulkImport(): void {
+    const validRows = this.parsedBulkUsers.filter(r => r.isValid);
+    if (validRows.length === 0) return;
+
+    this.isImporting = true;
+
+    this.http.post<any>('http://localhost:3001/api/admin/users/bulk', { users: validRows }).subscribe({
+      next: (res) => {
+        this.isImporting = false;
+        this.isBulkModalOpen = false;
+        const count = res?.count || validRows.length;
+
+        for (const r of validRows) {
+          this.users.unshift({
+            id: 'u-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
+            username: r.username,
+            full_name: r.full_name,
+            email: r.email,
+            role: r.role,
+            shift: r.shift,
+            avatar_url: `https://api.dicebear.com/7.x/bottts/svg?seed=${r.username}`,
+            created_at: new Date().toISOString()
+          });
+        }
+
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem('basetrack_admin_users', JSON.stringify(this.users));
+        }
+
+        this.backupSuccessMessage = `¡Carga masiva exitosa! Se importaron ${count} usuarios a la plataforma y cuadrilla.`;
+        setTimeout(() => this.backupSuccessMessage = '', 6000);
+
+        this.loadUsers();
+        this.loadLogs();
+      },
+      error: (err) => {
+        this.isImporting = false;
+        console.warn('[Admin] Error en llamada bulk backend, aplicando respaldo local:', err);
+
+        for (const r of validRows) {
+          this.users.unshift({
+            id: 'u-local-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
+            username: r.username,
+            full_name: r.full_name,
+            email: r.email,
+            role: r.role,
+            shift: r.shift,
+            avatar_url: `https://api.dicebear.com/7.x/bottts/svg?seed=${r.username}`,
+            created_at: new Date().toISOString()
+          });
+        }
+
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem('basetrack_admin_users', JSON.stringify(this.users));
+        }
+
+        this.isBulkModalOpen = false;
+        this.backupSuccessMessage = `¡Carga masiva completada localmente! (${validRows.length} usuarios registrados).`;
+        setTimeout(() => this.backupSuccessMessage = '', 6000);
       }
     });
   }

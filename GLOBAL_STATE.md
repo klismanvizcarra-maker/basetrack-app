@@ -49,6 +49,7 @@
 | `TASK-011` | PWA Completa & Modo Instalable en Celulares y Tablets | Frontend & QA Agent | `TASK-010` | `DONE` | 0/3 | Manifest web, Service Worker caching, iconos 192/512px, detección iOS/Android/Desktop, modal guía y botones de instalación nativa |
 | `TASK-012` | Generador de Reportes en PDF Oficial de Turno & Modo Offline IndexedDB | Frontend & Backend Agent | `TASK-011` | `DONE` | 0/3 | Exportador PDF A4 oficial con consolidado de bombas, ciclones, descarga y firmas; motor IndexedDB local y sincronización en cola |
 | `TASK-013` | Gestión de Cuadrilla & Asignación de Operadores por Área | Frontend & Backend Agent | `TASK-012` | `DONE` | 0/3 | Tablero de 5 posiciones críticas (Operador de Bombas, Ciclones, Descarga, Misceláneos, Relevo), check-in EPP/charla 5m, persistencia SQLite y offline |
+| `TASK-014` | Carga Masiva de Personal por Lote desde Administración | Frontend & Backend Agent | `TASK-013` | `DONE` | 0/3 | Importación masiva vía archivo CSV y copy-paste desde Excel, validación en vivo, descarga de plantilla, transacción SQLite y sincronización dual con crew_members |
 
 ---
 
@@ -65,6 +66,7 @@
 | 2026-09-16 | Frontend & QA Agent | Orchestrator | `TASK-011` | Implementación y verificación de PWA standalone, Service Worker con fallback offline, e instalación en dispositivos móviles y PC |
 | 2026-09-16 | Multi-Agent Team | Orchestrator | `TASK-012` | Generador formal de Reportes en PDF A4 de cierre de guardia y motor IndexedDB con cola de sincronización |
 | 2026-09-17 | Multi-Agent Team | Orchestrator | `TASK-013` | Módulo operacional de Gestión de Cuadrilla con asignación en tiempo real para las 5 posiciones críticas y control de EPP/charla de seguridad |
+| 2026-09-17 | Multi-Agent Team | Orchestrator | `TASK-014` | Carga de personal por lote desde Administración con CSV/Excel, validación interactiva, sincronización dual users+cuadrilla y transacción SQLite |
 
 
 ---
