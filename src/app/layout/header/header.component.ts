@@ -5,6 +5,7 @@ import { AuthService } from '../../core/auth/auth.service';
 import { LayoutService } from '../../core/layout/layout.service';
 import { PwaService } from '../../core/pwa/pwa.service';
 import { OfflineSyncService } from '../../core/offline/offline-sync.service';
+import { CloudSyncService } from '../../core/services/cloud-sync.service';
 
 @Component({
   selector: 'app-header',
@@ -48,21 +49,23 @@ import { OfflineSyncService } from '../../core/offline/offline-sync.service';
 
       <!-- Action items on right side (CRAVEAT style) -->
       <div class="header-right">
-        <!-- Offline & Sync Status Pill (IndexedDB) -->
+        <!-- Cloud Realtime Sync & Multi-Device Status Pill -->
         <button
           type="button"
           class="btn-sync-header"
-          [class.offline-pill]="!offlineSync.isOnline()"
-          [class.pending-pill]="offlineSync.pendingCount() > 0"
-          [class.syncing-pill]="offlineSync.isSyncing()"
+          [class.offline-pill]="!cloudSync.isOnline() && !offlineSync.isOnline()"
+          [class.pending-pill]="cloudSync.pendingCount() > 0 || offlineSync.pendingCount() > 0"
+          [class.syncing-pill]="cloudSync.isSyncing() || offlineSync.isSyncing()"
           (click)="offlineSync.openSyncDrawer()"
-          title="Gestión de Sincronización e IndexedDB Local"
+          title="Sincronización en la Nube Multi-Dispositivo"
         >
-          <span class="status-pulse-dot" [class.dot-green]="offlineSync.isOnline() && offlineSync.pendingCount() === 0" [class.dot-orange]="!offlineSync.isOnline() || offlineSync.pendingCount() > 0"></span>
-          <span *ngIf="offlineSync.isSyncing()">Sincronizando...</span>
-          <span *ngIf="!offlineSync.isSyncing() && offlineSync.isOnline() && offlineSync.pendingCount() === 0">En Línea</span>
-          <span *ngIf="!offlineSync.isSyncing() && (!offlineSync.isOnline() || offlineSync.pendingCount() > 0)">
-            {{ offlineSync.isOnline() ? offlineSync.pendingCount() + ' pendiente' + (offlineSync.pendingCount() > 1 ? 's' : '') : 'Offline (' + offlineSync.pendingCount() + ')' }}
+          <span class="status-pulse-dot" [class.dot-green]="(cloudSync.isOnline() || offlineSync.isOnline()) && cloudSync.pendingCount() === 0 && offlineSync.pendingCount() === 0" [class.dot-orange]="(!cloudSync.isOnline() && !offlineSync.isOnline()) || cloudSync.pendingCount() > 0 || offlineSync.pendingCount() > 0"></span>
+          <span *ngIf="cloudSync.isSyncing() || offlineSync.isSyncing()">Sincronizando...</span>
+          <span *ngIf="!cloudSync.isSyncing() && !offlineSync.isSyncing() && (cloudSync.isOnline() || offlineSync.isOnline()) && cloudSync.pendingCount() === 0 && offlineSync.pendingCount() === 0">
+            Nube Activa ({{ cloudSync.activeDevicesCount() }})
+          </span>
+          <span *ngIf="!cloudSync.isSyncing() && !offlineSync.isSyncing() && (!cloudSync.isOnline() || cloudSync.pendingCount() > 0 || offlineSync.pendingCount() > 0)">
+            {{ (cloudSync.isOnline() || offlineSync.isOnline()) ? (cloudSync.pendingCount() + offlineSync.pendingCount()) + ' pend.' : 'Modo Mina' }}
           </span>
         </button>
 
@@ -177,14 +180,38 @@ import { OfflineSyncService } from '../../core/offline/offline-sync.service';
             </div>
           </div>
 
+          <!-- Multi-Device Cloud Realtime Card -->
+          <div class="cloud-devices-card">
+            <div class="cloud-card-header">
+              <span class="cloud-icon">☁️</span>
+              <div class="cloud-info">
+                <strong>Sincronización en la Nube Multi-Dispositivo</strong>
+                <p>Terminal activa: <span class="badge-terminal">{{ cloudSync.deviceName }}</span></p>
+              </div>
+              <span class="badge-devices">{{ cloudSync.activeDevicesCount() }} terminal{{ cloudSync.activeDevicesCount() > 1 ? 'es' : '' }} en red</span>
+            </div>
+            <div class="cloud-stats-row">
+              <div class="stat-col">
+                <span class="s-label">Último Evento:</span>
+                <span class="s-val">{{ cloudSync.lastSyncedEntity() }}</span>
+              </div>
+              <div class="stat-col">
+                <span class="s-label">Hora Réplica:</span>
+                <span class="s-val">{{ (cloudSync.lastSyncTime() | date:'HH:mm:ss') || 'En vivo' }}</span>
+              </div>
+            </div>
+          </div>
+
           <div class="sync-meta-grid">
             <div class="meta-box">
               <span class="m-lbl">Registros en Cola</span>
-              <span class="m-count" [class.count-orange]="offlineSync.pendingCount() > 0">{{ offlineSync.pendingCount() }}</span>
+              <span class="m-count" [class.count-orange]="cloudSync.pendingCount() > 0 || offlineSync.pendingCount() > 0">
+                {{ cloudSync.pendingCount() + offlineSync.pendingCount() }}
+              </span>
             </div>
             <div class="meta-box">
               <span class="m-lbl">Última Sincronización</span>
-              <span class="m-count text-sm">{{ offlineSync.lastSyncTime() || 'Al iniciar sesión' }}</span>
+              <span class="m-count text-sm">{{ (cloudSync.lastSyncTime() | date:'HH:mm:ss') || offlineSync.lastSyncTime() || 'Al iniciar sesión' }}</span>
             </div>
           </div>
 
@@ -199,9 +226,9 @@ import { OfflineSyncService } from '../../core/offline/offline-sync.service';
             </div>
           </div>
 
-          <div class="empty-queue-msg" *ngIf="offlineSync.queueItems().length === 0">
+          <div class="empty-queue-msg" *ngIf="offlineSync.queueItems().length === 0 && cloudSync.pendingCount() === 0">
             <span class="check-icon">✓</span>
-            <p>Todos los reportes, planillas y bitácoras operacionales están sincronizados con la base de datos.</p>
+            <p>Todos los reportes, planillas y bitácoras operacionales están sincronizados entre dispositivos.</p>
           </div>
         </div>
 
@@ -209,10 +236,10 @@ import { OfflineSyncService } from '../../core/offline/offline-sync.service';
           <button class="btn btn-secondary" (click)="offlineSync.closeSyncDrawer()">Cerrar</button>
           <button
             class="btn btn-primary"
-            (click)="offlineSync.forceSyncNow()"
-            [disabled]="offlineSync.isSyncing() || !offlineSync.isOnline() || offlineSync.pendingCount() === 0"
+            (click)="syncAll()"
+            [disabled]="cloudSync.isSyncing() || offlineSync.isSyncing()"
           >
-            {{ offlineSync.isSyncing() ? 'Sincronizando...' : '🔄 Sincronizar Ahora' }}
+            {{ (cloudSync.isSyncing() || offlineSync.isSyncing()) ? 'Sincronizando...' : '🔄 Sincronizar en la Nube' }}
           </button>
         </div>
       </div>
@@ -722,6 +749,73 @@ import { OfflineSyncService } from '../../core/offline/offline-sync.service';
       }
     }
 
+    .cloud-devices-card {
+      background: #f0fdfa;
+      border: 1px solid #99f6e4;
+      border-radius: 10px;
+      padding: 0.85rem 1rem;
+      margin-bottom: 1.25rem;
+
+      .cloud-card-header {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+
+        .cloud-icon {
+          font-size: 1.4rem;
+        }
+
+        .cloud-info {
+          flex: 1;
+
+          strong {
+            display: block;
+            font-size: 0.84rem;
+            color: #0f766e;
+          }
+
+          p {
+            margin: 2px 0 0;
+            font-size: 0.74rem;
+            color: #115e59;
+          }
+
+          .badge-terminal {
+            font-weight: 700;
+            background: #ccfbf1;
+            padding: 1px 6px;
+            border-radius: 4px;
+            color: #0f766e;
+          }
+        }
+
+        .badge-devices {
+          font-size: 0.72rem;
+          font-weight: 600;
+          background: #0d9488;
+          color: #ffffff;
+          padding: 3px 8px;
+          border-radius: 9999px;
+        }
+      }
+
+      .cloud-stats-row {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 0.6rem;
+        padding-top: 0.6rem;
+        border-top: 1px dashed #99f6e4;
+        font-size: 0.72rem;
+
+        .stat-col {
+          display: flex;
+          gap: 4px;
+          .s-label { color: #115e59; font-weight: 600; }
+          .s-val { color: #042f2e; font-weight: 500; }
+        }
+      }
+    }
+
     .sync-meta-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -909,6 +1003,7 @@ export class HeaderComponent {
   layoutService = inject(LayoutService);
   pwa = inject(PwaService);
   offlineSync = inject(OfflineSyncService);
+  cloudSync = inject(CloudSyncService);
   private router = inject(Router);
   showNotifications = false;
 
@@ -930,6 +1025,11 @@ export class HeaderComponent {
 
   goToProfile(): void {
     this.router.navigate(['/profile']);
+  }
+
+  syncAll(): void {
+    this.cloudSync.forceSync();
+    this.offlineSync.forceSyncNow();
   }
 }
 

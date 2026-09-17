@@ -15,7 +15,7 @@ export function saveRealtimeData(key: string, data: any): void {
     console.warn(`[LocalStore] Quota exceeded or storage error on ${storageKey}:`, err);
   }
 
-  // Also asynchronously persist to IndexedDB if available
+    // Also asynchronously persist to IndexedDB if available
   if (typeof window !== 'undefined' && 'indexedDB' in window) {
     try {
       const openReq = indexedDB.open('basetrack_db', 1);
@@ -32,6 +32,17 @@ export function saveRealtimeData(key: string, data: any): void {
       };
     } catch {
       // Ignore IDB fallback errors
+    }
+  }
+
+  // Dispatch local notification event for CloudSyncService
+  if (typeof window !== 'undefined' && !storageKey.includes('sync_')) {
+    try {
+      window.dispatchEvent(new CustomEvent('basetrack_local_change', {
+        detail: { key: storageKey, data, timestamp: Date.now() }
+      }));
+    } catch {
+      // Ignore event error
     }
   }
 }

@@ -8,6 +8,7 @@ import { getAllShiftHandovers, createShiftHandover, acceptShiftHandover } from '
 import { getAllMaintenanceRequests, createMaintenanceRequest, updateMaintenanceStatus } from '../controllers/maintenance.controller.js';
 import { getAllUsers, createUserByAdmin, createUsersBulk, getAuditLogs, getDatabaseBackup } from '../controllers/admin.controller.js';
 import { getCrewMembers, createCrewMember, updateCrewMember, deleteCrewMember, getAreaAssignments, saveAreaAssignment, checkinAreaAssignment } from '../controllers/crew.controller.js';
+import { pushEvents, pullEvents, getSyncStatus } from '../controllers/sync.controller.js';
 import { authenticateToken, requireRoles } from '../middlewares/auth.middleware.js';
 
 export const apiRouter = Router();
@@ -76,3 +77,8 @@ apiRouter.delete('/crew/members/:id', authenticateToken, deleteCrewMember);
 apiRouter.get('/crew/assignments', getAreaAssignments);
 apiRouter.post('/crew/assignments', authenticateToken, saveAreaAssignment);
 apiRouter.patch('/crew/assignments/:id/checkin', authenticateToken, checkinAreaAssignment);
+
+// 11. Cloud Realtime Sync Routes (Sincronización Multi-Dispositivo)
+apiRouter.post('/sync/push', pushEvents);
+apiRouter.get('/sync/pull', pullEvents);
+apiRouter.get('/sync/status', getSyncStatus);

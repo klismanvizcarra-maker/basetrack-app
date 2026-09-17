@@ -202,6 +202,18 @@ export function initDatabase() {
       FOREIGN KEY(backup_operator_id) REFERENCES crew_members(id)
     );
 
+    -- Cloud Realtime Sync Events (Sincronización Multi-Dispositivo)
+    CREATE TABLE IF NOT EXISTS sync_events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      device_id TEXT NOT NULL,
+      user_id TEXT,
+      entity TEXT NOT NULL,
+      action TEXT NOT NULL,
+      payload TEXT NOT NULL,
+      timestamp INTEGER NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
     -- Indexes for performance
     CREATE INDEX IF NOT EXISTS idx_pumps_tag ON pump_reports(tag);
     CREATE INDEX IF NOT EXISTS idx_pumps_created ON pump_reports(created_at);
@@ -211,6 +223,8 @@ export function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_audit_user ON audit_logs(username);
     CREATE INDEX IF NOT EXISTS idx_crew_shift ON crew_members(shift_code);
     CREATE INDEX IF NOT EXISTS idx_crew_assignments ON crew_area_assignments(shift_date, shift_code, shift_type);
+    CREATE INDEX IF NOT EXISTS idx_sync_events_timestamp ON sync_events(timestamp);
+    CREATE INDEX IF NOT EXISTS idx_sync_events_device ON sync_events(device_id);
   `);
 
   console.log('[Database] Tables and indexes initialized successfully.');

@@ -6,6 +6,7 @@ import { timeout } from 'rxjs';
 import { ModalComponent } from '../../shared/ui/modal.component';
 import { AuthService } from '../../core/auth/auth.service';
 import { OfflineSyncService } from '../../core/offline/offline-sync.service';
+import { CloudSyncService } from '../../core/services/cloud-sync.service';
 import { getRealtimeData, saveRealtimeData } from '../../core/storage/local-store.util';
 
 export interface UserItem {
@@ -276,6 +277,33 @@ const DEFAULT_LOGS: AuditLog[] = [
           <polyline points="22 4 12 14.01 9 11.01"></polyline>
         </svg>
         <span>{{ backupSuccessMessage }}</span>
+      </div>
+
+      <!-- Cloud Realtime Sync & Multi-Device Fleet Manager -->
+      <div class="cloud-sync-card glass-panel animate-fade-in">
+        <div class="sync-card-left">
+          <div class="cloud-avatar-icon">☁️</div>
+          <div>
+            <h4>Sincronización en la Nube Multi-Dispositivo (Cloud Realtime Sync)</h4>
+            <p>Réplica bidireccional continua entre salas de control, tablets y teléfonos móviles de guardia.</p>
+            <div class="sync-pill-tags">
+              <span class="tag-item">Terminal Local: <strong>{{ cloudSync.deviceName }}</strong></span>
+              <span class="tag-item">ID Dispositivo: <code>{{ cloudSync.deviceId }}</code></span>
+              <span class="tag-item">Terminales en Red: <strong>{{ cloudSync.activeDevicesCount() }} activas</strong></span>
+              <span class="tag-item">Última Réplica: <strong>{{ (cloudSync.lastSyncTime() | date:'HH:mm:ss') || 'En vivo' }}</strong></span>
+            </div>
+          </div>
+        </div>
+        <div class="sync-card-right">
+          <div class="sync-status-indicator">
+            <span class="pulse-dot" [class.dot-green]="cloudSync.isOnline()" [class.dot-orange]="!cloudSync.isOnline()"></span>
+            <span class="status-label">{{ cloudSync.isSyncing() ? 'Sincronizando...' : (cloudSync.isOnline() ? 'En Línea • Conectado' : 'Modo Mina • Offline') }}</span>
+          </div>
+          <button class="btn btn-emerald-outline" (click)="cloudSync.forceSync()" [disabled]="cloudSync.isSyncing()">
+            <span *ngIf="!cloudSync.isSyncing()">🔄 Forzar Réplica Inmediata</span>
+            <span *ngIf="cloudSync.isSyncing()">Sincronizando...</span>
+          </button>
+        </div>
       </div>
 
       <!-- Users Management Table -->
@@ -615,6 +643,136 @@ const DEFAULT_LOGS: AuditLog[] = [
       color: var(--success);
       font-weight: 600;
       font-size: 0.88rem;
+    }
+
+    .cloud-sync-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 18px 24px;
+      border-radius: var(--radius-lg);
+      background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+      border: 1px solid #a7f3d0;
+      box-shadow: 0 4px 15px rgba(5, 150, 105, 0.08);
+
+      @media (max-width: 768px) {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 16px;
+        gap: 14px;
+      }
+
+      .sync-card-left {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+
+        .cloud-avatar-icon {
+          font-size: 2.2rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 52px;
+          height: 52px;
+          border-radius: 12px;
+          background: #ffffff;
+          border: 1px solid #bbf7d0;
+          box-shadow: 0 2px 8px rgba(5, 150, 105, 0.12);
+        }
+
+        h4 {
+          margin: 0;
+          font-size: 1rem;
+          font-weight: 700;
+          color: #065f46;
+        }
+
+        p {
+          margin: 3px 0 8px;
+          font-size: 0.78rem;
+          color: #047857;
+        }
+
+        .sync-pill-tags {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+
+          .tag-item {
+            font-size: 0.72rem;
+            color: #0f766e;
+            background: rgba(255, 255, 255, 0.85);
+            padding: 3px 8px;
+            border-radius: 6px;
+            border: 1px solid #99f6e4;
+
+            strong {
+              color: #065f46;
+            }
+
+            code {
+              font-family: monospace;
+              font-weight: 600;
+            }
+          }
+        }
+      }
+
+      .sync-card-right {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 10px;
+
+        @media (max-width: 768px) {
+          width: 100%;
+          align-items: stretch;
+        }
+
+        .sync-status-indicator {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 0.78rem;
+          font-weight: 600;
+
+          .pulse-dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            &.dot-green { background: #10b981; box-shadow: 0 0 8px rgba(16, 185, 129, 0.5); }
+            &.dot-orange { background: #f59e0b; box-shadow: 0 0 8px rgba(245, 158, 11, 0.5); }
+          }
+
+          .status-label {
+            color: #065f46;
+          }
+        }
+
+        .btn-emerald-outline {
+          background: #ffffff;
+          border: 1.5px solid #059669;
+          color: #059669;
+          padding: 8px 16px;
+          font-size: 0.82rem;
+          font-weight: 600;
+          border-radius: 8px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+
+          &:hover:not(:disabled) {
+            background: #059669;
+            color: #ffffff;
+            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.25);
+          }
+
+          &:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+          }
+        }
+      }
     }
 
     .section-card {
@@ -958,6 +1116,7 @@ export class AdminComponent implements OnInit {
   private http = inject(HttpClient);
   authService = inject(AuthService);
   offlineSync = inject(OfflineSyncService);
+  cloudSync = inject(CloudSyncService);
 
   // Inicialización con datos por defecto
   users: UserItem[] = [...DEFAULT_USERS];
