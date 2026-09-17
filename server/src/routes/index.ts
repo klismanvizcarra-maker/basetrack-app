@@ -7,7 +7,7 @@ import { getAllTailings, createTailingsReport } from '../controllers/tailings.co
 import { getAllShiftHandovers, createShiftHandover, acceptShiftHandover } from '../controllers/shift.controller.js';
 import { getAllMaintenanceRequests, createMaintenanceRequest, updateMaintenanceStatus } from '../controllers/maintenance.controller.js';
 import { getAllUsers, createUserByAdmin, createUsersBulk, getAuditLogs, getDatabaseBackup } from '../controllers/admin.controller.js';
-import { getCrewMembers, createCrewMember, updateCrewMember, deleteCrewMember, getAreaAssignments, saveAreaAssignment, checkinAreaAssignment } from '../controllers/crew.controller.js';
+import { getCrewMembers, createCrewMember, updateCrewMember, deleteCrewMember, getAreaAssignments, saveAreaAssignment, checkinAreaAssignment, getCrewPositions, createCrewPosition, deleteCrewPosition } from '../controllers/crew.controller.js';
 import { pushEvents, pullEvents, getSyncStatus } from '../controllers/sync.controller.js';
 import { authenticateToken, requireRoles } from '../middlewares/auth.middleware.js';
 
@@ -77,6 +77,9 @@ apiRouter.delete('/crew/members/:id', authenticateToken, deleteCrewMember);
 apiRouter.get('/crew/assignments', getAreaAssignments);
 apiRouter.post('/crew/assignments', authenticateToken, saveAreaAssignment);
 apiRouter.patch('/crew/assignments/:id/checkin', authenticateToken, checkinAreaAssignment);
+apiRouter.get('/crew/positions', getCrewPositions);
+apiRouter.post('/crew/positions', authenticateToken, createCrewPosition);
+apiRouter.delete('/crew/positions/:key', authenticateToken, deleteCrewPosition);
 
 // 11. Cloud Realtime Sync Routes (Sincronización Multi-Dispositivo)
 apiRouter.post('/sync/push', pushEvents);

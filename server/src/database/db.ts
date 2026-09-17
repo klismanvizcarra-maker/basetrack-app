@@ -188,7 +188,7 @@ export function initDatabase() {
       shift_code TEXT NOT NULL,
       shift_date TEXT NOT NULL,
       shift_type TEXT NOT NULL CHECK(shift_type IN ('DIA', 'NOCHE')),
-      position_key TEXT NOT NULL CHECK(position_key IN ('BOMBAS', 'CICLONES', 'DESCARGA', 'MISCELANEOS', 'RELEVO')),
+      position_key TEXT NOT NULL,
       position_title TEXT NOT NULL,
       operator_id TEXT NOT NULL,
       backup_operator_id TEXT,
@@ -200,6 +200,21 @@ export function initDatabase() {
       updated_at TEXT NOT NULL DEFAULT (datetime('now')),
       FOREIGN KEY(operator_id) REFERENCES crew_members(id),
       FOREIGN KEY(backup_operator_id) REFERENCES crew_members(id)
+    );
+
+    -- Operational Plant Positions (Standard and Custom Areas)
+    CREATE TABLE IF NOT EXISTS crew_positions (
+      key TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      default_location TEXT,
+      default_radio TEXT,
+      badge_class TEXT,
+      route_link TEXT,
+      route_label TEXT,
+      icon_svg TEXT,
+      description TEXT,
+      is_custom INTEGER NOT NULL DEFAULT 1,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
     -- Cloud Realtime Sync Events (Sincronización Multi-Dispositivo)
@@ -226,6 +241,42 @@ export function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_sync_events_timestamp ON sync_events(timestamp);
     CREATE INDEX IF NOT EXISTS idx_sync_events_device ON sync_events(device_id);
   `);
+
+  // Safe migration: remove CHECK constraint from existing crew_area_assignments if present
+  try {
+    const tableInfo = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='crew_area_assignments'").get() as { sql: string } | undefined;
+    if (tableInfo && tableInfo.sql && tableInfo.sql.includes('CHECK(position_key IN')) {
+      db.exec(`
+        PRAGMA foreign_keys=off;
+        CREATE TABLE IF NOT EXISTS crew_area_assignments_v2 (
+          id TEXT PRIMARY KEY,
+          shift_code TEXT NOT NULL,
+          shift_date TEXT NOT NULL,
+          shift_type TEXT NOT NULL CHECK(shift_type IN ('DIA', 'NOCHE')),
+          position_key TEXT NOT NULL,
+          position_title TEXT NOT NULL,
+          operator_id TEXT NOT NULL,
+          backup_operator_id TEXT,
+          epp_verified INTEGER NOT NULL DEFAULT 1,
+          safety_talk_completed INTEGER NOT NULL DEFAULT 1,
+          radio_channel TEXT,
+          station_location TEXT,
+          notes TEXT,
+          updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+          FOREIGN KEY(operator_id) REFERENCES crew_members(id),
+          FOREIGN KEY(backup_operator_id) REFERENCES crew_members(id)
+        );
+        INSERT OR IGNORE INTO crew_area_assignments_v2 SELECT * FROM crew_area_assignments;
+        DROP TABLE crew_area_assignments;
+        ALTER TABLE crew_area_assignments_v2 RENAME TO crew_area_assignments;
+        CREATE INDEX IF NOT EXISTS idx_crew_assignments ON crew_area_assignments(shift_date, shift_code, shift_type);
+        PRAGMA foreign_keys=on;
+      `);
+      console.log('[Database] Migrated crew_area_assignments to support dynamic custom positions.');
+    }
+  } catch (e) {
+    console.warn('[Database] crew_area_assignments migration check:', e);
+  }
 
   console.log('[Database] Tables and indexes initialized successfully.');
 }

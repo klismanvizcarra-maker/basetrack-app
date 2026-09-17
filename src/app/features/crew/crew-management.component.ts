@@ -2,20 +2,8 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
-import { CrewService, CrewMember, CrewAreaAssignment, PositionKey } from '../../core/services/crew.service';
+import { CrewService, CrewMember, CrewAreaAssignment, PositionKey, CrewPositionMeta } from '../../core/services/crew.service';
 import { ModalComponent } from '../../shared/ui/modal.component';
-
-interface PositionMeta {
-  key: PositionKey;
-  title: string;
-  defaultLocation: string;
-  defaultRadio: string;
-  badgeClass: string;
-  routeLink: string;
-  routeLabel: string;
-  iconSvg: string;
-  description: string;
-}
 
 @Component({
   selector: 'app-crew-management',
@@ -28,26 +16,35 @@ interface PositionMeta {
         <div class="title-group">
           <div class="title-with-badge">
             <h2>Gestión de Cuadrilla & Asignación de Planta</h2>
-            <span class="coverage-pill" [class.full-coverage]="coverageCount === 5">
+            <span class="coverage-pill" [class.full-coverage]="coverageCount === positionsList.length">
               <span class="pulse-dot"></span>
-              {{ coverageCount }} / 5 Posiciones Cubiertas ({{ (coverageCount / 5) * 100 | number:'1.0-0' }}% Dotación)
+              {{ coverageCount }} / {{ positionsList.length }} Posiciones Cubiertas ({{ (coverageCount / (positionsList.length || 1)) * 100 | number:'1.0-0' }}% Dotación)
             </span>
           </div>
           <p class="section-sub">
-            Control en tiempo real de dotación operativa, verificación de EPP y charla de 5 minutos en las 5 áreas críticas
+            Control en tiempo real de dotación operativa, verificación de EPP y charla de 5 minutos en todas las áreas de planta
           </p>
         </div>
 
         <div class="top-actions-cluster">
-          <button type="button" class="btn btn-secondary" (click)="validateAllEppAndTalk()" title="Validar EPP y Charla de 5 min en las 5 posiciones">
+          <button type="button" class="btn btn-secondary" (click)="openCreatePositionModal()" title="Crear y agregar una nueva posición operativa al tablero">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="12" y1="8" x2="12" y2="16"></line>
+              <line x1="8" y1="12" x2="16" y2="12"></line>
+            </svg>
+            <span>+ Nueva Posición</span>
+          </button>
+
+          <button type="button" class="btn btn-secondary" (click)="validateAllEppAndTalk()" title="Validar EPP y Charla de 5 min en todas las posiciones">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
               <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
               <polyline points="22 4 12 14.01 9 11.01"></polyline>
             </svg>
-            <span>Validar Todo EPP (5/5)</span>
+            <span>Validar Todo EPP ({{ positionsList.length }}/{{ positionsList.length }})</span>
           </button>
 
-          <button type="button" class="btn btn-primary" (click)="openCreateModal()">
+          <button type="button" class="btn btn-primary" (click)="openCreateModal()" title="Registrar nuevo operador en la nómina general">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
               <line x1="12" y1="5" x2="12" y2="19"></line>
               <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -133,28 +130,31 @@ interface PositionMeta {
         </div>
       </div>
 
-      <!-- THE 5 CRITICAL OPERATIONAL POSITIONS (PIZARRA INTERACTIVA) -->
+      <!-- THE OPERATIONAL POSITIONS BOARD (PIZARRA INTERACTIVA) -->
       <div class="section-divider-title">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.2">
           <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
           <line x1="3" y1="9" x2="21" y2="9"></line>
           <line x1="9" y1="21" x2="9" y2="9"></line>
         </svg>
-        <span>TABLERO DE ASIGNACIÓN EN TIEMPO REAL (5 POSICIONES OPERATIVAS)</span>
+        <span>TABLERO DE ASIGNACIÓN EN TIEMPO REAL ({{ positionsList.length }} POSICIONES OPERATIVAS)</span>
       </div>
 
       <div class="positions-grid">
         <div
           *ngFor="let pos of positionsList"
           class="position-card glass-panel"
-          [ngClass]="pos.badgeClass"
+          [ngClass]="pos.badgeClass || 'card-custom'"
         >
           <!-- Card Header -->
           <div class="pos-card-header">
             <div class="pos-header-left">
               <span class="pos-icon" [innerHTML]="pos.iconSvg"></span>
               <div>
-                <h3 class="pos-title">{{ pos.title }}</h3>
+                <div class="pos-title-row">
+                  <h3 class="pos-title">{{ pos.title }}</h3>
+                  <span class="badge-custom-pill" *ngIf="pos.isCustom">NUEVA ÁREA</span>
+                </div>
                 <span class="pos-location">{{ getAssignment(pos.key)?.station_location || pos.defaultLocation }}</span>
               </div>
             </div>
@@ -180,9 +180,16 @@ interface PositionMeta {
                 (ngModelChange)="onAssignOperator(pos.key, $event)"
               >
                 <option [ngValue]="null" disabled>-- Seleccionar Operador Titular --</option>
-                <option *ngFor="let m of crewService.crewMembers()" [value]="m.id">
-                  {{ m.name }} ({{ formatRoleName(m.primary_role) }} - {{ m.shift_code }})
-                </option>
+                <optgroup [label]="'Operadores ' + selectedShift + ' (En Turno Recomendados)'">
+                  <option *ngFor="let m of activeShiftMembers" [value]="m.id">
+                    {{ m.name }} ({{ formatRoleName(m.primary_role) }})
+                  </option>
+                </optgroup>
+                <optgroup label="Todos los Operadores de Planta">
+                  <option *ngFor="let m of otherShiftMembers" [value]="m.id">
+                    {{ m.name }} ({{ formatRoleName(m.primary_role) }} - {{ m.shift_code }})
+                  </option>
+                </optgroup>
               </select>
             </div>
 
@@ -199,7 +206,7 @@ interface PositionMeta {
             </div>
           </div>
 
-          <!-- Backup / Relevo Operator Selector (if applicable) -->
+          <!-- Backup / Relevo Operator Selector -->
           <div class="pos-backup-select-box" *ngIf="pos.key !== 'RELEVO'">
             <label class="operator-field-label">Operador de Soporte / Relevo:</label>
             <select
@@ -208,9 +215,16 @@ interface PositionMeta {
               (ngModelChange)="onAssignBackup(pos.key, $event)"
             >
               <option [ngValue]="null">-- Sin Relevo Asignado --</option>
-              <option *ngFor="let m of crewService.crewMembers()" [value]="m.id">
-                {{ m.name }} ({{ formatRoleName(m.primary_role) }})
-              </option>
+              <optgroup [label]="'Personal ' + selectedShift">
+                <option *ngFor="let m of activeShiftMembers" [value]="m.id">
+                  {{ m.name }} ({{ formatRoleName(m.primary_role) }})
+                </option>
+              </optgroup>
+              <optgroup label="Otros Operadores de Planta">
+                <option *ngFor="let m of otherShiftMembers" [value]="m.id">
+                  {{ m.name }} ({{ formatRoleName(m.primary_role) }} - {{ m.shift_code }})
+                </option>
+              </optgroup>
             </select>
           </div>
 
@@ -268,6 +282,16 @@ interface PositionMeta {
                 ✏️ Editar
               </button>
 
+              <button
+                *ngIf="pos.isCustom"
+                type="button"
+                class="btn-delete-pos"
+                (click)="onDeletePosition(pos)"
+                title="Eliminar esta posición personalizada de la cuadrilla"
+              >
+                🗑️ Eliminar
+              </button>
+
               <a
                 *ngIf="pos.routeLink"
                 [routerLink]="pos.routeLink"
@@ -299,7 +323,7 @@ interface PositionMeta {
               [class.active]="rosterFilter === 'ALL'"
               (click)="rosterFilter = 'ALL'"
             >
-              Todos ({{ crewService.crewMembers().length }})
+              Todos ({{ crewService.allMembers().length }})
             </button>
             <button
               type="button"
@@ -411,7 +435,7 @@ interface PositionMeta {
       <form class="modal-form" (ngSubmit)="saveNewOperator()">
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label">Nombre y Apellidos:</label>
+            <label class="form-label">Nombre y Apellidos: *</label>
             <input
               type="text"
               class="form-control"
@@ -422,7 +446,7 @@ interface PositionMeta {
             />
           </div>
           <div class="form-group">
-            <label class="form-label">DNI / Documento de Identidad:</label>
+            <label class="form-label">DNI / Documento de Identidad: *</label>
             <input
               type="text"
               class="form-control"
@@ -449,6 +473,9 @@ interface PositionMeta {
               <option value="OPERADOR_MISCELANEOS">Operador Misceláneos</option>
               <option value="OPERADOR_RELEVO">Operador de Relevo</option>
               <option value="SUPERVISOR">Supervisor de Planta</option>
+              <option *ngFor="let p of customPositionsList" [value]="p.key">
+                {{ p.title }}
+              </option>
             </select>
           </div>
           <div class="form-group">
@@ -519,6 +546,119 @@ interface PositionMeta {
           (click)="saveNewOperator()"
         >
           Guardar Operador
+        </button>
+      </div>
+    </app-modal>
+
+    <!-- MODAL: CREAR NUEVA POSICIÓN OPERATIVA EN PLANTA -->
+    <app-modal
+      [isOpen]="isCreatePositionModalOpen"
+      [title]="'Crear Nueva Posición Operativa en Cuadrilla'"
+      [showFooter]="true"
+      (close)="isCreatePositionModalOpen = false"
+    >
+      <form class="modal-form" (ngSubmit)="saveNewPosition()">
+        <div class="form-group">
+          <label class="form-label">Nombre del Puesto / Cargo Operativo: *</label>
+          <input
+            type="text"
+            class="form-control"
+            placeholder="Ej. Operador de Espesadores, Operador de Filtros de Prensa..."
+            [(ngModel)]="newPositionData.title"
+            name="pos_title"
+            required
+          />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Área / Ubicación en Planta:</label>
+            <input
+              type="text"
+              class="form-control"
+              placeholder="Ej. Área de Espesadores & Clarificación"
+              [(ngModel)]="newPositionData.defaultLocation"
+              name="pos_location"
+            />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Canal Radial de Contacto:</label>
+            <select
+              class="form-control"
+              [(ngModel)]="newPositionData.defaultRadio"
+              name="pos_radio"
+            >
+              <option value="Canal 1 Operaciones">Canal 1 Operaciones</option>
+              <option value="Canal 2 Ciclones">Canal 2 Ciclones</option>
+              <option value="Canal 3 Bombas">Canal 3 Bombas</option>
+              <option value="Canal 4 Presa">Canal 4 Presa</option>
+              <option value="Canal 5 Relevo/Móvil">Canal 5 Relevo/Móvil</option>
+              <option value="Canal 6 Mantenimiento">Canal 6 Mantenimiento</option>
+              <option value="Canal 7 Emergencias">Canal 7 Emergencias</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Icono Representativo del Puesto:</label>
+          <div class="icon-picker-grid">
+            <button
+              type="button"
+              *ngFor="let opt of iconOptions"
+              class="icon-picker-btn"
+              [class.selected]="newPositionData.iconSvg === opt.icon"
+              (click)="newPositionData.iconSvg = opt.icon"
+            >
+              <span class="icon-emoji">{{ opt.icon }}</span>
+              <span class="icon-label">{{ opt.label }}</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Asignar Operador Titular Inicial (Opcional):</label>
+          <select
+            class="form-control"
+            [(ngModel)]="newPositionData.initialOperatorId"
+            name="pos_operator"
+          >
+            <option value="">-- Sin asignar por ahora --</option>
+            <optgroup [label]="'Operadores ' + selectedShift">
+              <option *ngFor="let m of activeShiftMembers" [value]="m.id">
+                {{ m.name }} ({{ formatRoleName(m.primary_role) }})
+              </option>
+            </optgroup>
+            <optgroup label="Otros Operadores de Planta">
+              <option *ngFor="let m of otherShiftMembers" [value]="m.id">
+                {{ m.name }} ({{ formatRoleName(m.primary_role) }} - {{ m.shift_code }})
+              </option>
+            </optgroup>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Consignas y Tareas Principales:</label>
+          <textarea
+            class="form-control"
+            rows="3"
+            placeholder="Responsabilidades específicas del puesto, controles periódicos y medidas de seguridad..."
+            [(ngModel)]="newPositionData.description"
+            name="pos_description"
+          ></textarea>
+        </div>
+      </form>
+
+      <div footer class="modal-footer-actions">
+        <button type="button" class="btn btn-secondary" (click)="isCreatePositionModalOpen = false">
+          Cancelar
+        </button>
+        <button
+          type="button"
+          class="btn btn-primary"
+          [disabled]="!newPositionData.title.trim()"
+          (click)="saveNewPosition()"
+        >
+          Crear Posición
         </button>
       </div>
     </app-modal>
@@ -601,14 +741,14 @@ interface PositionMeta {
 
         .top-actions-cluster {
           width: 100%;
-          display: grid;
-          grid-template-columns: 1fr 1fr;
+          display: flex;
+          flex-direction: column;
           gap: 8px;
 
           button {
             width: 100%;
             padding: 9px 8px;
-            font-size: 0.78rem;
+            font-size: 0.8rem;
           }
         }
       }
@@ -671,6 +811,7 @@ interface PositionMeta {
       display: flex;
       gap: 10px;
       align-items: center;
+      flex-wrap: wrap;
     }
 
     /* Shift & Filter Panel */
@@ -699,15 +840,10 @@ interface PositionMeta {
             width: 100%;
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-
-            button {
-              text-align: center;
-              padding: 8px 4px;
-            }
           }
 
           .shift-type-tabs {
-            grid-template-columns: repeat(2, 1fr);
+            grid-template-columns: 1fr 1fr;
           }
         }
       }
@@ -720,19 +856,19 @@ interface PositionMeta {
     }
 
     .filter-label {
-      font-size: 0.8rem;
+      font-size: 0.78rem;
       font-weight: 700;
-      color: var(--text-muted);
+      color: var(--text-secondary);
       text-transform: uppercase;
-      letter-spacing: 0.05em;
+      letter-spacing: 0.04em;
     }
 
     .guard-tabs, .shift-type-tabs {
       display: flex;
       background: #f1f5f9;
-      padding: 3px;
       border-radius: var(--radius-md);
-      gap: 2px;
+      padding: 3px;
+      gap: 3px;
     }
 
     .guard-tab-btn, .type-tab-btn {
@@ -860,11 +996,24 @@ interface PositionMeta {
         height: 4px;
       }
 
-      &.card-bombas::before { background: linear-gradient(90deg, #0284c7, #059669); }
-      &.card-ciclones::before { background: linear-gradient(90deg, #6366f1, #059669); }
-      &.card-descarga::before { background: linear-gradient(90deg, #d97706, #059669); }
-      &.card-miscelaneos::before { background: linear-gradient(90deg, #8b5cf6, #0284c7); }
-      &.card-relevo::before { background: linear-gradient(90deg, #059669, #10b981); }
+      &.card-bombas::before {
+        background: linear-gradient(90deg, #0284c7, #38bdf8);
+      }
+      &.card-ciclones::before {
+        background: linear-gradient(90deg, #6366f1, #818cf8);
+      }
+      &.card-descarga::before {
+        background: linear-gradient(90deg, #d97706, #fbbf24);
+      }
+      &.card-miscelaneos::before {
+        background: linear-gradient(90deg, #475569, #94a3b8);
+      }
+      &.card-relevo::before {
+        background: linear-gradient(90deg, #059669, #34d399);
+      }
+      &.card-custom::before {
+        background: linear-gradient(90deg, #8b5cf6, #06b6d4);
+      }
     }
 
     .pos-card-header {
@@ -876,20 +1025,28 @@ interface PositionMeta {
 
     .pos-header-left {
       display: flex;
-      gap: 10px;
       align-items: center;
+      gap: 12px;
     }
 
     .pos-icon {
-      font-size: 1.4rem;
-      width: 38px;
-      height: 38px;
+      width: 42px;
+      height: 42px;
       border-radius: var(--radius-md);
-      background: #f1f5f9;
       display: flex;
       align-items: center;
       justify-content: center;
+      font-size: 1.45rem;
+      background: #f8fafc;
+      border: 1px solid var(--border-subtle);
       flex-shrink: 0;
+    }
+
+    .pos-title-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
     }
 
     .pos-title {
@@ -899,10 +1056,20 @@ interface PositionMeta {
       margin: 0;
     }
 
+    .badge-custom-pill {
+      font-size: 0.68rem;
+      font-weight: 800;
+      color: #047857;
+      background: #ecfdf5;
+      border: 1px solid #a7f3d0;
+      padding: 2px 8px;
+      border-radius: var(--radius-full);
+      letter-spacing: 0.04em;
+    }
+
     .pos-location {
-      font-size: 0.74rem;
-      font-weight: 600;
-      color: var(--text-muted);
+      font-size: 0.78rem;
+      color: var(--text-secondary);
       display: block;
       margin-top: 2px;
     }
@@ -911,16 +1078,17 @@ interface PositionMeta {
       display: inline-flex;
       align-items: center;
       gap: 5px;
-      padding: 4px 9px;
+      padding: 3px 9px;
       border-radius: var(--radius-full);
       background: #f1f5f9;
-      border: 1px solid var(--border-subtle);
-      color: var(--text-primary);
-      font-size: 0.72rem;
+      color: #475569;
+      font-size: 0.74rem;
       font-weight: 700;
       white-space: nowrap;
+      border: 1px solid #e2e8f0;
     }
 
+    /* Operator Selection */
     .pos-operator-select-box, .pos-backup-select-box {
       display: flex;
       flex-direction: column;
@@ -929,21 +1097,21 @@ interface PositionMeta {
 
     .operator-field-label {
       font-size: 0.72rem;
-      font-weight: 700;
-      color: var(--text-muted);
+      font-weight: 800;
+      color: var(--text-secondary);
       text-transform: uppercase;
-      letter-spacing: 0.04em;
+      letter-spacing: 0.03em;
     }
 
     .operator-select, .operator-select-sm {
       width: 100%;
-      padding: 8px 12px;
+      padding: 9px 12px;
       border-radius: var(--radius-md);
-      border: 1px solid var(--border-subtle);
-      background: #ffffff;
+      border: 1.5px solid var(--border-subtle);
       font-size: 0.85rem;
       font-weight: 600;
       color: var(--text-primary);
+      background: #ffffff;
       outline: none;
       transition: var(--transition-smooth);
 
@@ -956,6 +1124,7 @@ interface PositionMeta {
     .operator-select-sm {
       padding: 6px 10px;
       font-size: 0.8rem;
+      background: #f8fafc;
     }
 
     .operator-snapshot {
@@ -964,142 +1133,181 @@ interface PositionMeta {
       gap: 12px;
       padding: 8px 12px;
       background: #f8fafc;
-      border-radius: var(--radius-md);
       border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      margin-top: 4px;
     }
 
     .operator-avatar {
-      width: 36px;
-      height: 36px;
+      width: 38px;
+      height: 38px;
       border-radius: var(--radius-full);
       object-fit: cover;
-      border: 2px solid #059669;
+      border: 2px solid #ffffff;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      flex-shrink: 0;
     }
 
     .operator-meta {
-      flex: 1;
       display: flex;
       flex-direction: column;
+      flex: 1;
+      min-width: 0;
     }
 
     .op-name {
-      font-size: 0.85rem;
+      font-size: 0.82rem;
       font-weight: 700;
       color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .op-doc {
       font-size: 0.72rem;
       color: var(--text-muted);
+      font-family: monospace;
     }
 
     .op-status-badge {
-      font-size: 0.7rem;
+      font-size: 0.68rem;
       font-weight: 700;
-      padding: 2px 8px;
+      padding: 2px 7px;
       border-radius: var(--radius-full);
-      background: #e2e8f0;
-      color: #475569;
+      background: #f1f5f9;
+      color: #64748b;
+      white-space: nowrap;
 
       &.en-turno {
         background: #ecfdf5;
         color: #047857;
+        border: 1px solid #a7f3d0;
       }
     }
 
-    /* Checks Row (EPP & 5 Min) */
+    /* Checks row */
     .pos-checks-row {
-      display: flex;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
       gap: 8px;
-      flex-wrap: wrap;
+      margin-top: 2px;
     }
 
     .check-pill {
-      flex: 1;
-      display: inline-flex;
+      border: 1.5px solid #e2e8f0;
+      background: #ffffff;
+      padding: 8px 10px;
+      border-radius: var(--radius-md);
+      display: flex;
       align-items: center;
       justify-content: center;
       gap: 6px;
-      padding: 7px 10px;
-      border-radius: var(--radius-md);
-      border: 1px solid #cbd5e1;
-      background: #f8fafc;
-      color: var(--text-secondary);
       font-size: 0.76rem;
       font-weight: 700;
+      color: #64748b;
       cursor: pointer;
       transition: var(--transition-smooth);
 
       &:hover {
-        background: #f1f5f9;
+        background: #f8fafc;
+        border-color: #cbd5e1;
       }
 
       &.checked {
         background: #ecfdf5;
-        border-color: #a7f3d0;
+        border-color: #059669;
         color: #047857;
+        box-shadow: 0 1px 4px rgba(5, 150, 105, 0.15);
       }
     }
 
-    /* Card Footer */
+    /* Footer */
     .pos-card-footer {
       border-top: 1px solid var(--border-subtle);
-      padding-top: 10px;
+      padding-top: 12px;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 10px;
     }
 
     .pos-notes-text {
       display: flex;
       align-items: flex-start;
-      gap: 6px;
-      font-size: 0.75rem;
+      gap: 8px;
+      font-size: 0.76rem;
       color: var(--text-secondary);
-      line-height: 1.35;
+      line-height: 1.4;
+
+      svg {
+        flex-shrink: 0;
+        margin-top: 2px;
+        color: var(--text-muted);
+      }
     }
 
     .pos-footer-actions {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-top: 2px;
+      gap: 8px;
     }
 
     .btn-edit-notes {
-      background: none;
-      border: none;
+      background: transparent;
+      border: 1px solid var(--border-subtle);
+      padding: 5px 10px;
+      border-radius: var(--radius-sm);
       font-size: 0.75rem;
       font-weight: 700;
-      color: var(--text-muted);
+      color: var(--text-secondary);
       cursor: pointer;
-      padding: 4px 8px;
-      border-radius: var(--radius-sm);
       transition: var(--transition-smooth);
 
       &:hover {
-        color: var(--text-primary);
         background: #f1f5f9;
+        color: var(--text-primary);
+      }
+    }
+
+    .btn-delete-pos {
+      background: none;
+      border: 1px solid #fee2e2;
+      color: #dc2626;
+      font-size: 0.74rem;
+      font-weight: 700;
+      padding: 5px 9px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: var(--transition-smooth);
+
+      &:hover {
+        background: #fef2f2;
+        border-color: #fca5a5;
       }
     }
 
     .module-direct-link {
+      margin-left: auto;
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      font-size: 0.78rem;
+      gap: 4px;
+      font-size: 0.76rem;
       font-weight: 700;
       color: #047857;
       text-decoration: none;
       transition: var(--transition-smooth);
 
       &:hover {
-        color: #065f46;
+        color: #059669;
         text-decoration: underline;
       }
     }
 
-    /* Roster Section */
+    /* Roster Table Section */
     .roster-section {
       background: var(--bg-card);
       border: 1px solid var(--border-subtle);
@@ -1118,20 +1326,25 @@ interface PositionMeta {
       gap: 16px;
       flex-wrap: wrap;
 
-      h3 {
-        font-size: 1.15rem;
-        font-weight: 800;
-        color: var(--text-primary);
-        margin: 0;
+      @media (max-width: 768px) {
+        flex-direction: column;
+        align-items: flex-start;
       }
+    }
+
+    .roster-title-block h3 {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: var(--text-primary);
+      margin: 0;
     }
 
     .roster-filter-tabs {
       display: flex;
       background: #f1f5f9;
-      padding: 3px;
       border-radius: var(--radius-md);
-      gap: 2px;
+      padding: 3px;
+      gap: 3px;
     }
 
     .tab-btn {
@@ -1139,7 +1352,7 @@ interface PositionMeta {
       background: transparent;
       padding: 6px 12px;
       border-radius: var(--radius-sm);
-      font-size: 0.8rem;
+      font-size: 0.78rem;
       font-weight: 600;
       color: var(--text-secondary);
       cursor: pointer;
@@ -1149,12 +1362,8 @@ interface PositionMeta {
         background: #ffffff;
         color: #047857;
         font-weight: 700;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
       }
-    }
-
-    .table-responsive {
-      overflow-x: auto;
     }
 
     .roster-table {
@@ -1163,23 +1372,24 @@ interface PositionMeta {
       font-size: 0.85rem;
 
       th {
-        padding: 10px 12px;
         text-align: left;
+        padding: 10px 12px;
+        background: #f8fafc;
+        color: var(--text-secondary);
         font-size: 0.72rem;
         font-weight: 700;
-        color: var(--text-muted);
         text-transform: uppercase;
-        border-bottom: 1px solid var(--border-subtle);
-        background: #f8fafc;
+        letter-spacing: 0.04em;
+        border-bottom: 1.5px solid var(--border-subtle);
       }
 
       td {
-        padding: 12px;
+        padding: 10px 12px;
         border-bottom: 1px solid var(--border-subtle);
-        color: var(--text-primary);
+        vertical-align: middle;
       }
 
-      tr:hover td {
+      tbody tr:hover {
         background: #f8fafc;
       }
     }
@@ -1195,6 +1405,7 @@ interface PositionMeta {
       height: 32px;
       border-radius: var(--radius-full);
       object-fit: cover;
+      flex-shrink: 0;
     }
 
     .table-op-name {
@@ -1203,42 +1414,38 @@ interface PositionMeta {
     }
 
     .dni-badge {
-      font-family: monospace;
-      font-size: 0.8rem;
-      font-weight: 700;
       background: #f1f5f9;
-      padding: 2px 6px;
+      padding: 3px 6px;
       border-radius: var(--radius-sm);
-      color: var(--text-secondary);
+      font-size: 0.76rem;
+      color: #334155;
     }
 
     .role-badge {
-      display: inline-block;
-      padding: 3px 8px;
-      border-radius: var(--radius-sm);
-      background: #ecfdf5;
+      font-weight: 600;
       color: #047857;
-      font-weight: 700;
-      font-size: 0.76rem;
+      background: #ecfdf5;
+      padding: 3px 8px;
+      border-radius: var(--radius-full);
+      font-size: 0.75rem;
+      border: 1px solid #a7f3d0;
     }
 
     .guard-badge {
-      display: inline-block;
-      padding: 3px 8px;
-      border-radius: var(--radius-sm);
-      background: #f1f5f9;
-      color: var(--text-secondary);
       font-weight: 700;
+      color: #475569;
+      background: #f1f5f9;
+      padding: 3px 8px;
+      border-radius: var(--radius-full);
       font-size: 0.74rem;
     }
 
     .radio-tag {
       display: inline-flex;
       align-items: center;
-      gap: 4px;
+      gap: 5px;
       font-size: 0.76rem;
-      font-weight: 600;
-      color: var(--text-secondary);
+      color: #475569;
     }
 
     .table-status-select {
@@ -1247,26 +1454,26 @@ interface PositionMeta {
       border: 1px solid var(--border-subtle);
       font-size: 0.78rem;
       font-weight: 600;
-      background: #ffffff;
       color: var(--text-primary);
+      background: #ffffff;
+      outline: none;
     }
 
     .assigned-position-tag {
-      display: inline-block;
-      padding: 3px 8px;
-      border-radius: var(--radius-sm);
-      background: #e0f2fe;
-      color: #0369a1;
       font-weight: 700;
+      color: #0284c7;
+      background: #f0f9ff;
+      border: 1px solid #bae6fd;
+      padding: 2px 7px;
+      border-radius: var(--radius-full);
       font-size: 0.74rem;
     }
 
     .action-icon-btn {
-      background: none;
+      background: transparent;
       border: none;
       cursor: pointer;
-      font-size: 1rem;
-      padding: 4px;
+      padding: 5px;
       border-radius: var(--radius-sm);
       transition: var(--transition-smooth);
 
@@ -1275,11 +1482,7 @@ interface PositionMeta {
       }
     }
 
-    .text-right {
-      text-align: right;
-    }
-
-    /* Modal Form Styling */
+    /* Modal Form Styles */
     .modal-form {
       display: flex;
       flex-direction: column;
@@ -1289,10 +1492,11 @@ interface PositionMeta {
     .form-row {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 14px;
+      gap: 12px;
 
       @media (max-width: 600px) {
         grid-template-columns: 1fr;
+        gap: 10px;
       }
     }
 
@@ -1320,6 +1524,61 @@ interface PositionMeta {
       &:focus {
         border-color: #059669;
         box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.15);
+      }
+    }
+
+    /* Icon Picker Grid */
+    .icon-picker-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 8px;
+
+      @media (max-width: 600px) {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+
+    .icon-picker-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 8px 4px;
+      background: #f8fafc;
+      border: 1.5px solid #e2e8f0;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: var(--transition-smooth);
+
+      .icon-emoji {
+        font-size: 1.4rem;
+      }
+
+      .icon-label {
+        font-size: 0.68rem;
+        color: var(--text-secondary);
+        text-align: center;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+      }
+
+      &:hover {
+        background: #ffffff;
+        border-color: #059669;
+        transform: translateY(-1px);
+      }
+
+      &.selected {
+        background: #ecfdf5;
+        border-color: #059669;
+        box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.2);
+
+        .icon-label {
+          color: #047857;
+          font-weight: 700;
+        }
       }
     }
 
@@ -1365,13 +1624,39 @@ export class CrewManagementComponent implements OnInit {
 
   // Modals
   isCreateModalOpen = false;
+  isCreatePositionModalOpen = false;
   isEditAssignmentModalOpen = false;
-  activeEditPosition: PositionMeta | null = null;
+  activeEditPosition: CrewPositionMeta | null = null;
   editAssignmentData: { station_location: string; radio_channel: string; notes: string } = {
     station_location: '',
     radio_channel: '',
     notes: ''
   };
+
+  // Form: Create Position
+  newPositionData = {
+    title: '',
+    defaultLocation: '',
+    defaultRadio: 'Canal 1 Operaciones',
+    iconSvg: '🏭',
+    description: '',
+    initialOperatorId: ''
+  };
+
+  iconOptions = [
+    { icon: '🌊', label: 'Bombas' },
+    { icon: '🌀', label: 'Ciclones' },
+    { icon: '🏔️', label: 'Descarga/Presa' },
+    { icon: '⚙️', label: 'Misceláneos' },
+    { icon: '🔄', label: 'Relevo' },
+    { icon: '🏭', label: 'Espesadores' },
+    { icon: '🧪', label: 'Muestreo/Lab' },
+    { icon: '⚡', label: 'Eléctrica' },
+    { icon: '⛏️', label: 'Chancado' },
+    { icon: '🛡️', label: 'Seguridad' },
+    { icon: '🦺', label: 'Supervisión' },
+    { icon: '🚒', label: 'Emergencias' }
+  ];
 
   newOperator: Partial<CrewMember> = {
     name: '',
@@ -1394,70 +1679,28 @@ export class CrewManagementComponent implements OnInit {
     'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=250&q=80'
   ];
 
-  // THE 5 PRECISE POSITIONS
-  positionsList: PositionMeta[] = [
-    {
-      key: 'BOMBAS',
-      title: 'Operador de Bombas',
-      defaultLocation: 'Sala de Bombas Slurry & Sentina Principal',
-      defaultRadio: 'Canal 3 Bombas',
-      badgeClass: 'card-bombas',
-      routeLink: '/pumps',
-      routeLabel: 'Reporte de bombas',
-      iconSvg: '🌊',
-      description: 'Monitoreo de flujo, amperaje y presión en bombas PP-101 a PP-104 y niveles de poza'
-    },
-    {
-      key: 'CICLONES',
-      title: 'Operador de Ciclones',
-      defaultLocation: '1ra y 2da Estación Baterías de Ciclones',
-      defaultRadio: 'Canal 2 Ciclones',
-      badgeClass: 'card-ciclones',
-      routeLink: '/cyclones',
-      routeLabel: 'Reporte de ciclones',
-      iconSvg: '🌀',
-      description: 'Muestreo metalúrgico horario de pulpa, % de sólidos y granulometría de mallas -200'
-    },
-    {
-      key: 'DESCARGA',
-      title: 'Operador de descarga',
-      defaultLocation: 'Línea de Impulsión & Presa de Relaves',
-      defaultRadio: 'Canal 4 Presa',
-      badgeClass: 'card-descarga',
-      routeLink: '/tailings',
-      routeLabel: 'Reporte de descarga',
-      iconSvg: '🏔️',
-      description: 'Supervisión de descarga de relaves, borde libre, vertedero y lecturas piezométricas'
-    },
-    {
-      key: 'MISCELANEOS',
-      title: 'Operador Misceláneos',
-      defaultLocation: 'Planta General & Sistemas Auxiliares',
-      defaultRadio: 'Canal 1 Operaciones',
-      badgeClass: 'card-miscelaneos',
-      routeLink: '',
-      routeLabel: '',
-      iconSvg: '⚙️',
-      description: 'Preparación de reactivos, control de floculante y rondas de soporte en planta'
-    },
-    {
-      key: 'RELEVO',
-      title: 'Operador de Relevo',
-      defaultLocation: 'Cobertura Volante Móvil en Planta',
-      defaultRadio: 'Canal 5 Relevo/Móvil',
-      badgeClass: 'card-relevo',
-      routeLink: '',
-      routeLabel: '',
-      iconSvg: '🔄',
-      description: 'Relevo de pausas activas, refrigerios y atención inmediata de alarmas SCADA'
-    }
-  ];
+  get positionsList(): CrewPositionMeta[] {
+    return this.crewService.positions();
+  }
+
+  get customPositionsList(): CrewPositionMeta[] {
+    return this.crewService.positions().filter(p => p.isCustom);
+  }
+
+  get activeShiftMembers(): CrewMember[] {
+    return this.crewService.allMembers().filter(m => m.shift_code === this.selectedShift);
+  }
+
+  get otherShiftMembers(): CrewMember[] {
+    return this.crewService.allMembers().filter(m => m.shift_code !== this.selectedShift);
+  }
 
   ngOnInit(): void {
     this.loadData();
   }
 
   loadData(): void {
+    this.crewService.loadPositions().subscribe();
     this.crewService.loadCrew(this.selectedShift).subscribe();
     this.crewService.loadAssignments(this.selectedDate, this.selectedShift, this.selectedShiftType).subscribe();
   }
@@ -1482,7 +1725,8 @@ export class CrewManagementComponent implements OnInit {
 
   getOperator(operatorId?: string | null): CrewMember | undefined {
     if (!operatorId) return undefined;
-    return this.crewService.crewMembers().find(m => m.id === operatorId);
+    return this.crewService.allMembers().find(m => m.id === operatorId) ||
+           this.crewService.crewMembers().find(m => m.id === operatorId);
   }
 
   get coverageCount(): number {
@@ -1490,7 +1734,7 @@ export class CrewManagementComponent implements OnInit {
   }
 
   get activeCrewCount(): number {
-    return this.crewService.crewMembers().filter(m => m.status === 'EN_TURNO').length;
+    return this.crewService.allMembers().filter(m => m.shift_code === this.selectedShift && m.status === 'EN_TURNO').length;
   }
 
   get eppCompliancePercent(): number {
@@ -1501,7 +1745,7 @@ export class CrewManagementComponent implements OnInit {
   }
 
   get filteredCrew(): CrewMember[] {
-    const all = this.crewService.crewMembers();
+    const all = this.crewService.allMembers();
     if (this.rosterFilter === 'EN_TURNO') {
       return all.filter(m => m.status === 'EN_TURNO');
     }
@@ -1519,7 +1763,10 @@ export class CrewManagementComponent implements OnInit {
       case 'OPERADOR_MISCELANEOS': return 'Operador Misceláneos';
       case 'OPERADOR_RELEVO': return 'Operador de Relevo';
       case 'SUPERVISOR': return 'Supervisor de Planta';
-      default: return role;
+      default: {
+        const custom = this.positionsList.find(p => p.key === role);
+        return custom ? custom.title : role;
+      }
     }
   }
 
@@ -1542,6 +1789,7 @@ export class CrewManagementComponent implements OnInit {
 
     const payload: Partial<CrewAreaAssignment> = {
       ...existing,
+      id: existing?.id || ('assign-' + key.toString().toLowerCase() + '-' + Date.now()),
       position_key: key,
       position_title: meta?.title || key,
       operator_id: operatorId,
@@ -1624,6 +1872,49 @@ export class CrewManagementComponent implements OnInit {
     });
   }
 
+  // ===================================
+  // Position Creation & Removal
+  // ===================================
+  openCreatePositionModal(): void {
+    this.newPositionData = {
+      title: '',
+      defaultLocation: '',
+      defaultRadio: 'Canal 1 Operaciones',
+      iconSvg: '🏭',
+      description: '',
+      initialOperatorId: ''
+    };
+    this.isCreatePositionModalOpen = true;
+  }
+
+  saveNewPosition(): void {
+    if (!this.newPositionData.title.trim()) return;
+
+    this.crewService.createPosition({
+      title: this.newPositionData.title.trim(),
+      defaultLocation: this.newPositionData.defaultLocation.trim() || 'Planta Concentradora',
+      defaultRadio: this.newPositionData.defaultRadio,
+      iconSvg: this.newPositionData.iconSvg,
+      description: this.newPositionData.description.trim() || 'Consignas y responsabilidades de puesto'
+    }).subscribe(res => {
+      const createdKey = res?.key;
+      if (createdKey && this.newPositionData.initialOperatorId) {
+        this.onAssignOperator(createdKey, this.newPositionData.initialOperatorId);
+      }
+      this.isCreatePositionModalOpen = false;
+    });
+  }
+
+  onDeletePosition(pos: CrewPositionMeta): void {
+    if (!pos.isCustom) return;
+    if (confirm(`¿Confirma eliminar la posición "${pos.title}" del tablero de la cuadrilla?`)) {
+      this.crewService.deletePosition(pos.key).subscribe();
+    }
+  }
+
+  // ===================================
+  // Operator Management
+  // ===================================
   openCreateModal(): void {
     this.newOperator = {
       name: '',

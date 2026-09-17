@@ -280,3 +280,53 @@ export function checkinAreaAssignment(req: AuthenticatedRequest, res: Response) 
   }
 }
 
+export function getCrewPositions(req: Request, res: Response) {
+  try {
+    const positions = db.prepare('SELECT * FROM crew_positions ORDER BY created_at ASC').all();
+    return res.json({ success: true, count: positions.length, data: positions });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+export function createCrewPosition(req: AuthenticatedRequest, res: Response) {
+  try {
+    const { key, title, default_location, default_radio, badge_class, icon_svg, description } = req.body;
+    if (!title) {
+      return res.status(400).json({ success: false, message: 'El título de la posición es requerido' });
+    }
+    const safeKey = (key || ('POS_' + title.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase() + '_' + Date.now().toString(36))).slice(0, 35);
+    
+    db.prepare(`
+      INSERT OR REPLACE INTO crew_positions (key, title, default_location, default_radio, badge_class, icon_svg, description, is_custom)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 1)
+    `).run(
+      safeKey,
+      title.trim(),
+      default_location || 'Planta Concentradora',
+      default_radio || 'Canal 1 Operaciones',
+      badge_class || 'card-custom',
+      icon_svg || '⚙️',
+      description || 'Posición operativa de planta'
+    );
+
+    logAudit(req.user?.userId || null, req.user?.username || 'system', 'CREATE', 'CREW_POSITION', safeKey, `Creación de posición ${title}`, req.ip || '127.0.0.1');
+
+    return res.status(201).json({ success: true, message: 'Posición creada exitosamente', key: safeKey });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+export function deleteCrewPosition(req: AuthenticatedRequest, res: Response) {
+  try {
+    const key = req.params.key as string;
+    db.prepare('DELETE FROM crew_positions WHERE key = ?').run(key);
+    db.prepare('DELETE FROM crew_area_assignments WHERE position_key = ?').run(key);
+    logAudit(req.user?.userId || null, req.user?.username || 'system', 'DELETE', 'CREW_POSITION', key, `Baja de posición ${key}`, req.ip || '127.0.0.1');
+    return res.json({ success: true, message: 'Posición eliminada correctamente' });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+

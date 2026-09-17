@@ -1,16 +1,16 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, tap, catchError, of } from 'rxjs';
+import { Observable, tap, catchError, of, map } from 'rxjs';
 import { OfflineSyncService } from '../offline/offline-sync.service';
 
-export type PositionKey = 'BOMBAS' | 'CICLONES' | 'DESCARGA' | 'MISCELANEOS' | 'RELEVO';
+export type PositionKey = 'BOMBAS' | 'CICLONES' | 'DESCARGA' | 'MISCELANEOS' | 'RELEVO' | string;
 
 export interface CrewMember {
   id: string;
   name: string;
   document_id: string;
-  primary_role: 'OPERADOR_BOMBAS' | 'OPERADOR_CICLONES' | 'OPERADOR_DESCARGA' | 'OPERADOR_MISCELANEOS' | 'OPERADOR_RELEVO' | 'SUPERVISOR';
-  shift_code: 'GUARDIA_A' | 'GUARDIA_B' | 'GUARDIA_C';
+  primary_role: 'OPERADOR_BOMBAS' | 'OPERADOR_CICLONES' | 'OPERADOR_DESCARGA' | 'OPERADOR_MISCELANEOS' | 'OPERADOR_RELEVO' | 'SUPERVISOR' | string;
+  shift_code: 'GUARDIA_A' | 'GUARDIA_B' | 'GUARDIA_C' | string;
   radio_channel: string;
   phone_extension?: string;
   status: 'EN_TURNO' | 'DESCANSO' | 'VACACIONES' | 'PERMISO' | 'CAPACITACION';
@@ -18,11 +18,24 @@ export interface CrewMember {
   created_at?: string;
 }
 
+export interface CrewPositionMeta {
+  key: PositionKey;
+  title: string;
+  defaultLocation: string;
+  defaultRadio: string;
+  badgeClass?: string;
+  routeLink?: string;
+  routeLabel?: string;
+  iconSvg: string;
+  description: string;
+  isCustom?: boolean;
+}
+
 export interface CrewAreaAssignment {
   id: string;
   shift_code: string;
   shift_date: string;
-  shift_type: 'DIA' | 'NOCHE';
+  shift_type: 'DIA' | 'NOCHE' | string;
   position_key: PositionKey;
   position_title: string;
   operator_id: string;
@@ -51,10 +64,69 @@ export class CrewService {
   private offlineSync = inject(OfflineSyncService);
   private apiUrl = 'http://localhost:3001/api/crew';
 
-  // Reactive State Signals
-  crewMembers = signal<CrewMember[]>([]);
-  activeAssignments = signal<CrewAreaAssignment[]>([]);
-  isLoading = signal<boolean>(false);
+  // Standard Baseline Operational Positions
+  readonly defaultPositions: CrewPositionMeta[] = [
+    {
+      key: 'BOMBAS',
+      title: 'Operador de Bombas',
+      defaultLocation: 'Sala de Bombas Slurry & Sentina Principal',
+      defaultRadio: 'Canal 3 Bombas',
+      badgeClass: 'card-bombas',
+      routeLink: '/pumps',
+      routeLabel: 'Reporte de bombas',
+      iconSvg: '🌊',
+      description: 'Monitoreo de flujo, amperaje y presión en bombas PP-101 a PP-104 y niveles de poza',
+      isCustom: false
+    },
+    {
+      key: 'CICLONES',
+      title: 'Operador de Ciclones',
+      defaultLocation: '1ra y 2da Estación Baterías de Ciclones',
+      defaultRadio: 'Canal 2 Ciclones',
+      badgeClass: 'card-ciclones',
+      routeLink: '/cyclones',
+      routeLabel: 'Reporte de ciclones',
+      iconSvg: '🌀',
+      description: 'Muestreo metalúrgico horario de pulpa, % de sólidos y granulometría de mallas -200',
+      isCustom: false
+    },
+    {
+      key: 'DESCARGA',
+      title: 'Operador de descarga',
+      defaultLocation: 'Línea de Impulsión & Presa de Relaves',
+      defaultRadio: 'Canal 4 Presa',
+      badgeClass: 'card-descarga',
+      routeLink: '/tailings',
+      routeLabel: 'Reporte de descarga',
+      iconSvg: '🏔️',
+      description: 'Supervisión de descarga de relaves, borde libre, vertedero y lecturas piezométricas',
+      isCustom: false
+    },
+    {
+      key: 'MISCELANEOS',
+      title: 'Operador Misceláneos',
+      defaultLocation: 'Planta General & Sistemas Auxiliares',
+      defaultRadio: 'Canal 1 Operaciones',
+      badgeClass: 'card-miscelaneos',
+      routeLink: '',
+      routeLabel: '',
+      iconSvg: '⚙️',
+      description: 'Preparación de reactivos, control de floculante y rondas de soporte en planta',
+      isCustom: false
+    },
+    {
+      key: 'RELEVO',
+      title: 'Operador de Relevo',
+      defaultLocation: 'Cobertura Volante Móvil en Planta',
+      defaultRadio: 'Canal 5 Relevo/Móvil',
+      badgeClass: 'card-relevo',
+      routeLink: '',
+      routeLabel: '',
+      iconSvg: '🔄',
+      description: 'Relevo de pausas activas, refrigerios y atención inmediata de alarmas SCADA',
+      isCustom: false
+    }
+  ];
 
   // Default fallback seeds when offline or first load (15 Official Plant Operators)
   private defaultMembers: CrewMember[] = [
@@ -228,24 +300,145 @@ export class CrewService {
     }
   ];
 
+  // Reactive State Signals
+  positions = signal<CrewPositionMeta[]>(this.defaultPositions);
+  crewMembers = signal<CrewMember[]>([]);
+  allMembers = signal<CrewMember[]>(this.defaultMembers);
+  activeAssignments = signal<CrewAreaAssignment[]>([]);
+  isLoading = signal<boolean>(false);
+
+  constructor() {
+    this.loadPositions().subscribe();
+  }
+
+  // ==========================================
+  // 1. POSITIONS MANAGEMENT (STANDARD & CUSTOM)
+  // ==========================================
+  loadPositions(): Observable<CrewPositionMeta[]> {
+    const cachedCustom = this.loadCachedCustomPositions();
+    const initialList = [...this.defaultPositions, ...cachedCustom];
+    this.positions.set(initialList);
+
+    return this.http.get<{ success: boolean; data: any[] }>(`${this.apiUrl}/positions`).pipe(
+      tap(res => {
+        if (res?.success && Array.isArray(res.data)) {
+          const apiCustoms: CrewPositionMeta[] = res.data.map(d => ({
+            key: d.key,
+            title: d.title,
+            defaultLocation: d.default_location || d.defaultLocation || 'Planta Concentradora',
+            defaultRadio: d.default_radio || d.defaultRadio || 'Canal 1 Operaciones',
+            badgeClass: d.badge_class || d.badgeClass || 'card-custom',
+            iconSvg: d.icon_svg || d.iconSvg || '⚙️',
+            description: d.description || 'Posición operativa de planta',
+            isCustom: true
+          }));
+
+          const mapPositions = new Map<string, CrewPositionMeta>();
+          cachedCustom.forEach(c => mapPositions.set(c.key, c));
+          apiCustoms.forEach(c => mapPositions.set(c.key, c));
+          const mergedCustoms = Array.from(mapPositions.values());
+
+          this.saveCache('basetrack_custom_positions', mergedCustoms);
+          this.positions.set([...this.defaultPositions, ...mergedCustoms]);
+        }
+      }),
+      map(() => this.positions()),
+      catchError(err => {
+        console.warn('[CrewService] Error cargando posiciones de API, usando locales:', err);
+        return of(this.positions());
+      })
+    );
+  }
+
+  createPosition(pos: Partial<CrewPositionMeta>): Observable<any> {
+    const rawKey = pos.key || ('POS_' + (pos.title || 'EXTRA').replace(/[^a-zA-Z0-9]/g, '_').toUpperCase() + '_' + Date.now().toString(36));
+    const newPos: CrewPositionMeta = {
+      key: rawKey,
+      title: (pos.title || 'Nueva Posición').trim(),
+      defaultLocation: (pos.defaultLocation || 'Planta Concentradora').trim(),
+      defaultRadio: (pos.defaultRadio || 'Canal 1 Operaciones').trim(),
+      badgeClass: pos.badgeClass || 'card-custom',
+      iconSvg: pos.iconSvg || '⚙️',
+      description: (pos.description || 'Consignas y responsabilidades de puesto en planta').trim(),
+      isCustom: true
+    };
+
+    const current = [...this.positions(), newPos];
+    this.positions.set(current);
+
+    const customs = current.filter(p => p.isCustom);
+    this.saveCache('basetrack_custom_positions', customs);
+
+    return this.http.post<any>(`${this.apiUrl}/positions`, {
+      key: newPos.key,
+      title: newPos.title,
+      default_location: newPos.defaultLocation,
+      default_radio: newPos.defaultRadio,
+      badge_class: newPos.badgeClass,
+      icon_svg: newPos.iconSvg,
+      description: newPos.description
+    }).pipe(
+      catchError(err => {
+        console.warn('[CrewService] Error guardando posición en API, registrada localmente:', err);
+        return of({ success: true, key: newPos.key });
+      })
+    );
+  }
+
+  deletePosition(key: string): Observable<any> {
+    const current = this.positions().filter(p => p.key !== key);
+    this.positions.set(current);
+
+    const customs = current.filter(p => p.isCustom);
+    this.saveCache('basetrack_custom_positions', customs);
+
+    // Also remove from activeAssignments
+    const currentAssigns = this.activeAssignments().filter(a => a.position_key !== key);
+    this.activeAssignments.set(currentAssigns);
+
+    return this.http.delete(`${this.apiUrl}/positions/${key}`).pipe(
+      catchError(err => {
+        console.warn('[CrewService] Error eliminando posición en API:', err);
+        return of({ success: true });
+      })
+    );
+  }
+
+  private loadCachedCustomPositions(): CrewPositionMeta[] {
+    try {
+      const cached = localStorage.getItem('basetrack_custom_positions');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch (e) {
+      console.warn('[CrewService] Error leyendo basetrack_custom_positions:', e);
+    }
+    return [];
+  }
+
+  // ==========================================
+  // 2. CREW MEMBERS DIRECTORY
+  // ==========================================
   loadCrew(shift?: string): Observable<any> {
     this.isLoading.set(true);
-    const url = shift ? `${this.apiUrl}/members?shift=${shift}` : `${this.apiUrl}/members`;
 
-    return this.http.get<{ success: boolean; count: number; data: CrewMember[] }>(url).pipe(
+    return this.http.get<{ success: boolean; count: number; data: CrewMember[] }>(`${this.apiUrl}/members`).pipe(
       tap((res) => {
         this.isLoading.set(false);
         if (res?.success && res.data?.length > 0) {
-          this.crewMembers.set(res.data);
+          this.allMembers.set(res.data);
+          const filtered = shift ? res.data.filter(m => m.shift_code === shift) : res.data;
+          this.crewMembers.set(filtered);
           this.saveCache('basetrack_crew_members', res.data);
         } else {
-          this.loadCachedMembers();
+          this.loadCachedMembers(shift);
         }
       }),
       catchError((err) => {
         this.isLoading.set(false);
         console.warn('[CrewService] Error conectando a API backend, cargando caché local:', err);
-        this.loadCachedMembers();
+        this.loadCachedMembers(shift);
         return of({ success: true, data: this.crewMembers() });
       })
     );
@@ -258,7 +451,7 @@ export class CrewService {
     return this.http.get<{ success: boolean; data: CrewAreaAssignment[] }>(url).pipe(
       tap((res) => {
         this.isLoading.set(false);
-        if (res?.success && res.data) {
+        if (res?.success && res.data && res.data.length > 0) {
           this.activeAssignments.set(res.data);
           this.saveCache(`basetrack_assignments_${date}_${shiftCode}_${shiftType}`, res.data);
         } else {
@@ -277,29 +470,46 @@ export class CrewService {
   saveAssignment(payload: Partial<CrewAreaAssignment>): Observable<any> {
     const url = `${this.apiUrl}/assignments`;
 
+    const assignId = payload.id || ('assign-' + (payload.position_key || 'pos').toString().toLowerCase() + '-' + Date.now());
+    const completePayload: CrewAreaAssignment = {
+      id: assignId,
+      shift_code: payload.shift_code || 'GUARDIA_A',
+      shift_date: payload.shift_date || new Date().toISOString().split('T')[0],
+      shift_type: payload.shift_type || 'DIA',
+      position_key: payload.position_key || 'BOMBAS',
+      position_title: payload.position_title || 'Operador',
+      operator_id: payload.operator_id || '',
+      backup_operator_id: payload.backup_operator_id || null,
+      epp_verified: payload.epp_verified !== undefined ? payload.epp_verified : 1,
+      safety_talk_completed: payload.safety_talk_completed !== undefined ? payload.safety_talk_completed : 1,
+      radio_channel: payload.radio_channel,
+      station_location: payload.station_location,
+      notes: payload.notes
+    };
+
     // Optimistic local update
     const current = [...this.activeAssignments()];
-    const idx = current.findIndex(a => a.position_key === payload.position_key);
+    const idx = current.findIndex(a => a.position_key === completePayload.position_key);
     if (idx >= 0) {
-      current[idx] = { ...current[idx], ...payload } as CrewAreaAssignment;
+      current[idx] = { ...current[idx], ...completePayload };
     } else {
-      current.push(payload as CrewAreaAssignment);
+      current.push(completePayload);
     }
     this.activeAssignments.set(current);
 
-    if (payload.shift_date && payload.shift_code && payload.shift_type) {
-      this.saveCache(`basetrack_assignments_${payload.shift_date}_${payload.shift_code}_${payload.shift_type}`, current);
+    if (completePayload.shift_date && completePayload.shift_code && completePayload.shift_type) {
+      this.saveCache(`basetrack_assignments_${completePayload.shift_date}_${completePayload.shift_code}_${completePayload.shift_type}`, current);
     }
 
     if (!this.offlineSync.isOnline()) {
-      this.offlineSync.queueAction(url, 'POST', payload, `Asignación ${payload.position_title || payload.position_key}`);
+      this.offlineSync.queueAction(url, 'POST', completePayload, `Asignación ${completePayload.position_title}`);
       return of({ success: true, message: 'Asignación guardada en almacenamiento local' });
     }
 
-    return this.http.post<any>(url, payload).pipe(
+    return this.http.post<any>(url, completePayload).pipe(
       catchError((err) => {
         console.warn('[CrewService] Fallo al guardar en backend, agregando a cola offline:', err);
-        this.offlineSync.queueAction(url, 'POST', payload, `Asignación ${payload.position_title || payload.position_key}`);
+        this.offlineSync.queueAction(url, 'POST', completePayload, `Asignación ${completePayload.position_title}`);
         return of({ success: true, message: 'Guardado local offline' });
       })
     );
@@ -312,7 +522,6 @@ export class CrewService {
       safety_talk_completed: safetyTalk
     };
 
-    // Optimistic update
     const current = this.activeAssignments().map(a => {
       if (a.id === assignmentId) {
         return {
@@ -358,10 +567,11 @@ export class CrewService {
       avatar_url: member.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=250&q=80'
     };
 
-    // Optimistic real-time local persistence
-    const updated = [...this.crewMembers(), localNew];
-    this.crewMembers.set(updated);
-    this.saveCache('basetrack_crew_members', updated);
+    const updatedAll = [...this.allMembers(), localNew];
+    this.allMembers.set(updatedAll);
+    const updatedShift = [...this.crewMembers(), localNew];
+    this.crewMembers.set(updatedShift);
+    this.saveCache('basetrack_crew_members', updatedAll);
 
     return this.http.post<any>(url, member).pipe(
       tap(() => {
@@ -378,10 +588,11 @@ export class CrewService {
   updateCrewMember(id: string, member: Partial<CrewMember>): Observable<any> {
     const url = `${this.apiUrl}/members/${id}`;
 
-    // Optimistic update
-    const updated = this.crewMembers().map(m => m.id === id ? { ...m, ...member } as CrewMember : m);
-    this.crewMembers.set(updated);
-    this.saveCache('basetrack_crew_members', updated);
+    const updatedAll = this.allMembers().map(m => m.id === id ? { ...m, ...member } as CrewMember : m);
+    this.allMembers.set(updatedAll);
+    const updatedShift = this.crewMembers().map(m => m.id === id ? { ...m, ...member } as CrewMember : m);
+    this.crewMembers.set(updatedShift);
+    this.saveCache('basetrack_crew_members', updatedAll);
 
     if (!this.offlineSync.isOnline()) {
       this.offlineSync.queueAction(url, 'PUT', member, `Actualizar Operador ${member.name || id}`);
@@ -399,9 +610,11 @@ export class CrewService {
   deleteCrewMember(id: string): Observable<any> {
     const url = `${this.apiUrl}/members/${id}`;
 
-    const filtered = this.crewMembers().filter(m => m.id !== id);
-    this.crewMembers.set(filtered);
-    this.saveCache('basetrack_crew_members', filtered);
+    const filteredAll = this.allMembers().filter(m => m.id !== id);
+    this.allMembers.set(filteredAll);
+    const filteredShift = this.crewMembers().filter(m => m.id !== id);
+    this.crewMembers.set(filteredShift);
+    this.saveCache('basetrack_crew_members', filteredAll);
 
     if (!this.offlineSync.isOnline()) {
       this.offlineSync.queueAction(url, 'DELETE' as any, {}, `Baja Operador ${id}`);
@@ -416,24 +629,22 @@ export class CrewService {
     );
   }
 
-  private loadCachedMembers(): void {
+  private loadCachedMembers(shift?: string): void {
     try {
       const cached = localStorage.getItem('basetrack_crew_members');
+      let list = this.defaultMembers;
       if (cached) {
         const parsed = JSON.parse(cached);
         const hasOldMocks = Array.isArray(parsed) && parsed.some((m: any) => m.name === 'Juan Pérez Huamán' || m.document_id === '70412893');
         if (Array.isArray(parsed) && parsed.length >= 15 && !hasOldMocks) {
-          this.crewMembers.set(parsed);
-        } else {
-          this.crewMembers.set(this.defaultMembers);
-          this.saveCache('basetrack_crew_members', this.defaultMembers);
+          list = parsed;
         }
-      } else {
-        this.crewMembers.set(this.defaultMembers);
-        this.saveCache('basetrack_crew_members', this.defaultMembers);
       }
+      this.allMembers.set(list);
+      this.crewMembers.set(shift ? list.filter(m => m.shift_code === shift) : list);
     } catch {
-      this.crewMembers.set(this.defaultMembers);
+      this.allMembers.set(this.defaultMembers);
+      this.crewMembers.set(shift ? this.defaultMembers.filter(m => m.shift_code === shift) : this.defaultMembers);
     }
   }
 
@@ -446,20 +657,20 @@ export class CrewService {
         const hasOldMocks = Array.isArray(parsed) && parsed.some((a: any) => a.operator_name === 'Juan Pérez Huamán' || a.operator_name === 'Manuel Condori Ramos');
         if (Array.isArray(parsed) && parsed.length > 0 && !hasOldMocks) {
           this.activeAssignments.set(parsed);
-        } else {
-          this.synthesizeDefaultAssignments(date, shiftCode, shiftType as 'DIA' | 'NOCHE');
+          return;
         }
-      } else {
-        // Synthesize default 5 assignments from available members
-        this.synthesizeDefaultAssignments(date, shiftCode, shiftType as 'DIA' | 'NOCHE');
       }
+      this.synthesizeDefaultAssignments(date, shiftCode, shiftType as 'DIA' | 'NOCHE');
     } catch {
       this.synthesizeDefaultAssignments(date, shiftCode, shiftType as 'DIA' | 'NOCHE');
     }
   }
 
   private synthesizeDefaultAssignments(date: string, shiftCode: string, shiftType: 'DIA' | 'NOCHE'): void {
-    const members = this.crewMembers();
+    const all = this.allMembers().length > 0 ? this.allMembers() : this.defaultMembers;
+    const shiftMembers = all.filter(m => m.shift_code === shiftCode);
+    const members = shiftMembers.length > 0 ? shiftMembers : all;
+
     const opBombas = members.find(m => m.primary_role === 'OPERADOR_BOMBAS') || members[0];
     const opCiclones = members.find(m => m.primary_role === 'OPERADOR_CICLONES') || members[1] || members[0];
     const opDescarga = members.find(m => m.primary_role === 'OPERADOR_DESCARGA') || members[2] || members[0];
@@ -468,7 +679,7 @@ export class CrewService {
 
     const defaults: CrewAreaAssignment[] = [
       {
-        id: 'assign-bombas',
+        id: `assign-bombas-${shiftCode}-${shiftType}`,
         shift_code: shiftCode,
         shift_date: date,
         shift_type: shiftType,
@@ -479,7 +690,7 @@ export class CrewService {
         operator_avatar: opBombas?.avatar_url || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80',
         operator_role: opBombas?.primary_role || 'OPERADOR_BOMBAS',
         operator_phone: opBombas?.phone_extension || 'Ext. 4125',
-        operator_default_radio: 'Canal 3 Bombas',
+        operator_default_radio: opBombas?.radio_channel || 'Canal 3 Bombas',
         backup_operator_id: opRelevo?.id || null,
         backup_name: opRelevo?.name || 'PARI COAYLA JHOFER LUIS',
         epp_verified: 1,
@@ -489,7 +700,7 @@ export class CrewService {
         notes: 'Monitoreo de bombas PP-101 a PP-104 y niveles de poza'
       },
       {
-        id: 'assign-ciclones',
+        id: `assign-ciclones-${shiftCode}-${shiftType}`,
         shift_code: shiftCode,
         shift_date: date,
         shift_type: shiftType,
@@ -500,7 +711,7 @@ export class CrewService {
         operator_avatar: opCiclones?.avatar_url || 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=250&q=80',
         operator_role: opCiclones?.primary_role || 'OPERADOR_CICLONES',
         operator_phone: opCiclones?.phone_extension || 'Ext. 4122',
-        operator_default_radio: 'Canal 2 Ciclones',
+        operator_default_radio: opCiclones?.radio_channel || 'Canal 2 Ciclones',
         backup_operator_id: opRelevo?.id || null,
         backup_name: opRelevo?.name || 'PARI COAYLA JHOFER LUIS',
         epp_verified: 1,
@@ -510,7 +721,7 @@ export class CrewService {
         notes: 'Muestreo metalúrgico horario y granulometría de mallas -200'
       },
       {
-        id: 'assign-descarga',
+        id: `assign-descarga-${shiftCode}-${shiftType}`,
         shift_code: shiftCode,
         shift_date: date,
         shift_type: shiftType,
@@ -521,7 +732,7 @@ export class CrewService {
         operator_avatar: opDescarga?.avatar_url || 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=250&q=80',
         operator_role: opDescarga?.primary_role || 'OPERADOR_DESCARGA',
         operator_phone: opDescarga?.phone_extension || 'Ext. 4124',
-        operator_default_radio: 'Canal 4 Presa',
+        operator_default_radio: opDescarga?.radio_channel || 'Canal 4 Presa',
         backup_operator_id: opRelevo?.id || null,
         backup_name: opRelevo?.name || 'PARI COAYLA JHOFER LUIS',
         epp_verified: 1,
@@ -531,7 +742,7 @@ export class CrewService {
         notes: 'Inspección de canaletas, borde libre de presa y piezómetros'
       },
       {
-        id: 'assign-miscelaneos',
+        id: `assign-miscelaneos-${shiftCode}-${shiftType}`,
         shift_code: shiftCode,
         shift_date: date,
         shift_type: shiftType,
@@ -542,7 +753,7 @@ export class CrewService {
         operator_avatar: opMisc?.avatar_url || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=250&q=80',
         operator_role: opMisc?.primary_role || 'OPERADOR_MISCELANEOS',
         operator_phone: opMisc?.phone_extension || 'Ext. 4123',
-        operator_default_radio: 'Canal 1 Operaciones',
+        operator_default_radio: opMisc?.radio_channel || 'Canal 1 Operaciones',
         backup_operator_id: opRelevo?.id || null,
         backup_name: opRelevo?.name || 'PARI COAYLA JHOFER LUIS',
         epp_verified: 1,
@@ -552,7 +763,7 @@ export class CrewService {
         notes: 'Preparación de reactivos, control de floculante y apoyo en campo'
       },
       {
-        id: 'assign-relevo',
+        id: `assign-relevo-${shiftCode}-${shiftType}`,
         shift_code: shiftCode,
         shift_date: date,
         shift_type: shiftType,
@@ -563,7 +774,7 @@ export class CrewService {
         operator_avatar: opRelevo?.avatar_url || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=250&q=80',
         operator_role: opRelevo?.primary_role || 'OPERADOR_RELEVO',
         operator_phone: opRelevo?.phone_extension || 'Ext. 4121',
-        operator_default_radio: 'Canal 5 Relevo/Móvil',
+        operator_default_radio: opRelevo?.radio_channel || 'Canal 5 Relevo/Móvil',
         backup_operator_id: null,
         epp_verified: 1,
         safety_talk_completed: 1,
