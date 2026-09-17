@@ -30,44 +30,164 @@ export interface AuditLog {
 
 const DEFAULT_USERS: UserItem[] = [
   {
-    id: 'u-1',
+    id: 'u-admin',
     username: 'admin',
     email: 'admin@basetrack.mining.com',
-    full_name: 'Ing. Carlos Mendoza (Jefe de Planta)',
+    full_name: 'Administrador del Sistema',
     role: 'ADMIN',
     shift: 'GUARDIA_A',
     avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80',
     created_at: '2026-08-15T08:00:00.000Z'
   },
   {
-    id: 'u-2',
-    username: 'supervisor_a',
-    email: 'supervisor.a@basetrack.mining.com',
-    full_name: 'Ing. Roberto Quispe (Supervisor Turno A)',
+    id: 'u-klismanv',
+    username: 'KlismanV',
+    email: 'klismanv@basetrack.mining.com',
+    full_name: 'VIZCARRA CORI MANLEY KLISMAN',
     role: 'SUPERVISOR',
     shift: 'GUARDIA_A',
     avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80',
-    created_at: '2026-08-16T14:30:00.000Z'
+    created_at: '2026-09-17T08:00:00.000Z'
   },
   {
-    id: 'u-3',
-    username: 'operador_bombas',
-    email: 'juan.perez@basetrack.mining.com',
-    full_name: 'Juan Pérez (Operador Sala de Bombas)',
+    id: 'u-carlosp',
+    username: 'CarlosP',
+    email: 'carlosp@basetrack.mining.com',
+    full_name: 'PILCO APAZA CARLOS EDUARDO',
     role: 'OPERATOR',
     shift: 'GUARDIA_A',
     avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=120&q=80',
-    created_at: '2026-08-18T07:15:00.000Z'
+    created_at: '2026-09-17T08:00:00.000Z'
   },
   {
-    id: 'u-4',
-    username: 'supervisor_b',
-    email: 'supervisor.b@basetrack.mining.com',
-    full_name: 'Ing. Marco Velásquez (Supervisor Turno B)',
-    role: 'SUPERVISOR',
+    id: 'u-jorgev',
+    username: 'JorgeV',
+    email: 'jorgev@basetrack.mining.com',
+    full_name: 'VILCAMIZA PEVE JORGE RICARDO',
+    role: 'OPERATOR',
+    shift: 'GUARDIA_A',
+    avatar_url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=120&q=80',
+    created_at: '2026-09-17T08:00:00.000Z'
+  },
+  {
+    id: 'u-vilmar',
+    username: 'VilmaR',
+    email: 'vilmar@basetrack.mining.com',
+    full_name: 'ROSADO FALCON VILMA LUCIA',
+    role: 'OPERATOR',
+    shift: 'GUARDIA_A',
+    avatar_url: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=120&q=80',
+    created_at: '2026-09-17T08:00:00.000Z'
+  },
+  {
+    id: 'u-jhoferp',
+    username: 'JhoferP',
+    email: 'jhoferp@basetrack.mining.com',
+    full_name: 'PARI COAYLA JHOFER LUIS',
+    role: 'OPERATOR',
+    shift: 'GUARDIA_A',
+    avatar_url: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=120&q=80',
+    created_at: '2026-09-17T08:00:00.000Z'
+  },
+  {
+    id: 'u-diegom',
+    username: 'DiegoM',
+    email: 'diegom@basetrack.mining.com',
+    full_name: 'MONTES RODRIGUEZ DIEGO ALEXANDER',
+    role: 'OPERATOR',
+    shift: 'GUARDIA_A',
+    avatar_url: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=120&q=80',
+    created_at: '2026-09-17T08:00:00.000Z'
+  },
+  {
+    id: 'u-ronalm',
+    username: 'RonalM',
+    email: 'ronalm@basetrack.mining.com',
+    full_name: 'MAMANI MIRANDA RONAL',
+    role: 'OPERATOR',
+    shift: 'GUARDIA_A',
+    avatar_url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=120&q=80',
+    created_at: '2026-09-17T08:00:00.000Z'
+  },
+  {
+    id: 'u-anthonyj',
+    username: 'AnthonyJ',
+    email: 'anthonyj@basetrack.mining.com',
+    full_name: 'MAMANI CUTIPA ANTHONY JESUS SMIT',
+    role: 'OPERATOR',
+    shift: 'GUARDIA_A',
+    avatar_url: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=120&q=80',
+    created_at: '2026-09-17T08:00:00.000Z'
+  },
+  {
+    id: 'u-victora',
+    username: 'VictorA',
+    email: 'victora@basetrack.mining.com',
+    full_name: 'LLERENA CALLE-BRACAMONTE VICTOR ALEJANDRO II',
+    role: 'OPERATOR',
+    shift: 'GUARDIA_A',
+    avatar_url: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&w=120&q=80',
+    created_at: '2026-09-17T08:00:00.000Z'
+  },
+  {
+    id: 'u-edsonh',
+    username: 'EdsonH',
+    email: 'edsonh@basetrack.mining.com',
+    full_name: 'HILARI CABRERA EDSON EUSEBIO',
+    role: 'OPERATOR',
+    shift: 'GUARDIA_A',
+    avatar_url: 'https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?auto=format&fit=crop&w=120&q=80',
+    created_at: '2026-09-17T08:00:00.000Z'
+  },
+  {
+    id: 'u-emilioa',
+    username: 'EmilioA',
+    email: 'emilioa@basetrack.mining.com',
+    full_name: 'ALIAGA CASTAÑEDA EMILIO URIEL',
+    role: 'OPERATOR',
+    shift: 'GUARDIA_B',
+    avatar_url: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=120&q=80',
+    created_at: '2026-09-17T08:00:00.000Z'
+  },
+  {
+    id: 'u-luisa',
+    username: 'LuisA',
+    email: 'luisa@basetrack.mining.com',
+    full_name: 'CASCASI FLORES LUIS ANTONIO',
+    role: 'OPERATOR',
+    shift: 'GUARDIA_B',
+    avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=120&q=80',
+    created_at: '2026-09-17T08:00:00.000Z'
+  },
+  {
+    id: 'u-valeriec',
+    username: 'ValerieC',
+    email: 'valeriec@basetrack.mining.com',
+    full_name: 'CAYO GOMEZ VALERIE JAZMINE',
+    role: 'OPERATOR',
+    shift: 'GUARDIA_B',
+    avatar_url: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=120&q=80',
+    created_at: '2026-09-17T08:00:00.000Z'
+  },
+  {
+    id: 'u-pedroi',
+    username: 'PedroI',
+    email: 'pedroi@basetrack.mining.com',
+    full_name: 'CHOQUE MANZANO PEDRO IVAN',
+    role: 'OPERATOR',
     shift: 'GUARDIA_B',
     avatar_url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=120&q=80',
-    created_at: '2026-08-20T19:00:00.000Z'
+    created_at: '2026-09-17T08:00:00.000Z'
+  },
+  {
+    id: 'u-paulc',
+    username: 'PaulC',
+    email: 'paulc@basetrack.mining.com',
+    full_name: 'CRUZ APAZA PAUL',
+    role: 'OPERATOR',
+    shift: 'GUARDIA_B',
+    avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80',
+    created_at: '2026-09-17T08:00:00.000Z'
   }
 ];
 
@@ -845,10 +965,16 @@ export class AdminComponent implements OnInit {
         const storedUsers = localStorage.getItem('basetrack_admin_users');
         if (storedUsers) {
           const parsed = JSON.parse(storedUsers);
-          if (Array.isArray(parsed) && parsed.length > 0) {
+          // Si contiene usuarios de prueba antiguos (supervisor_a, operador_bombas) o tiene pocos usuarios, refrescar con DEFAULT_USERS
+          const hasOldMockUsers = Array.isArray(parsed) && parsed.some((u: any) => u.username === 'supervisor_a' || u.username === 'operador_bombas' || u.id === 'u-1');
+          if (Array.isArray(parsed) && parsed.length >= 15 && !hasOldMockUsers) {
             this.users = parsed;
+          } else {
+            this.users = [...DEFAULT_USERS];
+            localStorage.setItem('basetrack_admin_users', JSON.stringify(DEFAULT_USERS));
           }
         } else {
+          this.users = [...DEFAULT_USERS];
           localStorage.setItem('basetrack_admin_users', JSON.stringify(DEFAULT_USERS));
         }
 

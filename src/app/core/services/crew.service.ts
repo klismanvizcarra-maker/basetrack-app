@@ -56,62 +56,175 @@ export class CrewService {
   activeAssignments = signal<CrewAreaAssignment[]>([]);
   isLoading = signal<boolean>(false);
 
-  // Default fallback seeds when offline or first load
+  // Default fallback seeds when offline or first load (15 Official Plant Operators)
   private defaultMembers: CrewMember[] = [
+    // Guardia A
     {
-      id: 'op-bombas-a',
-      name: 'Juan Pérez Huamán',
-      document_id: '70412893',
+      id: 'op-klisman-a',
+      name: 'VIZCARRA CORI MANLEY KLISMAN',
+      document_id: '71209033',
       primary_role: 'OPERADOR_BOMBAS',
       shift_code: 'GUARDIA_A',
       radio_channel: 'Canal 3 Bombas',
-      phone_extension: 'Ext. 4102',
+      phone_extension: 'Ext. 4125',
       status: 'EN_TURNO',
-      avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=250&q=80'
+      avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=250&q=80'
     },
     {
-      id: 'op-ciclones-a',
-      name: 'Manuel Condori Ramos',
-      document_id: '42819304',
+      id: 'op-carlos-a',
+      name: 'PILCO APAZA CARLOS EDUARDO',
+      document_id: '42324277',
       primary_role: 'OPERADOR_CICLONES',
       shift_code: 'GUARDIA_A',
       radio_channel: 'Canal 2 Ciclones',
-      phone_extension: 'Ext. 4105',
-      status: 'EN_TURNO',
-      avatar_url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=250&q=80'
-    },
-    {
-      id: 'op-descarga-a',
-      name: 'Wilber Mamani Choque',
-      document_id: '71940283',
-      primary_role: 'OPERADOR_DESCARGA',
-      shift_code: 'GUARDIA_A',
-      radio_channel: 'Canal 4 Presa',
-      phone_extension: 'Ext. 4109',
-      status: 'EN_TURNO',
-      avatar_url: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=250&q=80'
-    },
-    {
-      id: 'op-misc-a',
-      name: 'Edgar Quispe Vargas',
-      document_id: '48910239',
-      primary_role: 'OPERADOR_MISCELANEOS',
-      shift_code: 'GUARDIA_A',
-      radio_channel: 'Canal 1 Operaciones',
-      phone_extension: 'Ext. 4112',
+      phone_extension: 'Ext. 4122',
       status: 'EN_TURNO',
       avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80'
     },
     {
-      id: 'op-relevo-a',
-      name: 'Víctor Zeballos Flores',
-      document_id: '73019284',
+      id: 'op-jorge-a',
+      name: 'VILCAMIZA PEVE JORGE RICARDO',
+      document_id: '41748219',
+      primary_role: 'OPERADOR_DESCARGA',
+      shift_code: 'GUARDIA_A',
+      radio_channel: 'Canal 4 Presa',
+      phone_extension: 'Ext. 4124',
+      status: 'EN_TURNO',
+      avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=250&q=80'
+    },
+    {
+      id: 'op-vilma-a',
+      name: 'ROSADO FALCON VILMA LUCIA',
+      document_id: '45564062',
+      primary_role: 'OPERADOR_MISCELANEOS',
+      shift_code: 'GUARDIA_A',
+      radio_channel: 'Canal 1 Operaciones',
+      phone_extension: 'Ext. 4123',
+      status: 'EN_TURNO',
+      avatar_url: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=250&q=80'
+    },
+    {
+      id: 'op-jhofer-a',
+      name: 'PARI COAYLA JHOFER LUIS',
+      document_id: '74924255',
       primary_role: 'OPERADOR_RELEVO',
       shift_code: 'GUARDIA_A',
       radio_channel: 'Canal 5 Relevo/Móvil',
-      phone_extension: 'Ext. 4115',
+      phone_extension: 'Ext. 4121',
+      status: 'EN_TURNO',
+      avatar_url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=250&q=80'
+    },
+    {
+      id: 'op-diego-a',
+      name: 'MONTES RODRIGUEZ DIEGO ALEXANDER',
+      document_id: '45437279',
+      primary_role: 'OPERADOR_BOMBAS',
+      shift_code: 'GUARDIA_A',
+      radio_channel: 'Canal 3 Bombas',
+      phone_extension: 'Ext. 4120',
+      status: 'EN_TURNO',
+      avatar_url: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=250&q=80'
+    },
+    {
+      id: 'op-ronal-a',
+      name: 'MAMANI MIRANDA RONAL',
+      document_id: '72958467',
+      primary_role: 'OPERADOR_CICLONES',
+      shift_code: 'GUARDIA_A',
+      radio_channel: 'Canal 2 Ciclones',
+      phone_extension: 'Ext. 4119',
       status: 'EN_TURNO',
       avatar_url: 'https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?auto=format&fit=crop&w=250&q=80'
+    },
+    {
+      id: 'op-anthony-a',
+      name: 'MAMANI CUTIPA ANTHONY JESUS SMIT',
+      document_id: '72297288',
+      primary_role: 'OPERADOR_DESCARGA',
+      shift_code: 'GUARDIA_A',
+      radio_channel: 'Canal 4 Presa',
+      phone_extension: 'Ext. 4118',
+      status: 'EN_TURNO',
+      avatar_url: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=250&q=80'
+    },
+    {
+      id: 'op-victor-a',
+      name: 'LLERENA CALLE-BRACAMONTE VICTOR ALEJANDRO II',
+      document_id: '71491945',
+      primary_role: 'OPERADOR_MISCELANEOS',
+      shift_code: 'GUARDIA_A',
+      radio_channel: 'Canal 1 Operaciones',
+      phone_extension: 'Ext. 4117',
+      status: 'EN_TURNO',
+      avatar_url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=250&q=80'
+    },
+    {
+      id: 'op-edson-a',
+      name: 'HILARI CABRERA EDSON EUSEBIO',
+      document_id: '40824273',
+      primary_role: 'OPERADOR_RELEVO',
+      shift_code: 'GUARDIA_A',
+      radio_channel: 'Canal 5 Relevo/Móvil',
+      phone_extension: 'Ext. 4116',
+      status: 'EN_TURNO',
+      avatar_url: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=250&q=80'
+    },
+
+    // Guardia B
+    {
+      id: 'op-emilio-b',
+      name: 'ALIAGA CASTAÑEDA EMILIO URIEL',
+      document_id: '46593500',
+      primary_role: 'OPERADOR_BOMBAS',
+      shift_code: 'GUARDIA_B',
+      radio_channel: 'Canal 3 Bombas',
+      phone_extension: 'Ext. 4102',
+      status: 'EN_TURNO',
+      avatar_url: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&w=250&q=80'
+    },
+    {
+      id: 'op-luis-b',
+      name: 'CASCASI FLORES LUIS ANTONIO',
+      document_id: '43132072',
+      primary_role: 'OPERADOR_CICLONES',
+      shift_code: 'GUARDIA_B',
+      radio_channel: 'Canal 2 Ciclones',
+      phone_extension: 'Ext. 4105',
+      status: 'EN_TURNO',
+      avatar_url: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=250&q=80'
+    },
+    {
+      id: 'op-valerie-b',
+      name: 'CAYO GOMEZ VALERIE JAZMINE',
+      document_id: '71719330',
+      primary_role: 'OPERADOR_DESCARGA',
+      shift_code: 'GUARDIA_B',
+      radio_channel: 'Canal 4 Presa',
+      phone_extension: 'Ext. 4109',
+      status: 'EN_TURNO',
+      avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=250&q=80'
+    },
+    {
+      id: 'op-pedro-b',
+      name: 'CHOQUE MANZANO PEDRO IVAN',
+      document_id: '75555937',
+      primary_role: 'OPERADOR_MISCELANEOS',
+      shift_code: 'GUARDIA_B',
+      radio_channel: 'Canal 1 Operaciones',
+      phone_extension: 'Ext. 4112',
+      status: 'EN_TURNO',
+      avatar_url: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=250&q=80'
+    },
+    {
+      id: 'op-paul-b',
+      name: 'CRUZ APAZA PAUL',
+      document_id: '44428468',
+      primary_role: 'OPERADOR_RELEVO',
+      shift_code: 'GUARDIA_B',
+      radio_channel: 'Canal 5 Relevo/Móvil',
+      phone_extension: 'Ext. 4115',
+      status: 'EN_TURNO',
+      avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80'
     }
   ];
 
@@ -304,7 +417,14 @@ export class CrewService {
     try {
       const cached = localStorage.getItem('basetrack_crew_members');
       if (cached) {
-        this.crewMembers.set(JSON.parse(cached));
+        const parsed = JSON.parse(cached);
+        const hasOldMocks = Array.isArray(parsed) && parsed.some((m: any) => m.name === 'Juan Pérez Huamán' || m.document_id === '70412893');
+        if (Array.isArray(parsed) && parsed.length >= 15 && !hasOldMocks) {
+          this.crewMembers.set(parsed);
+        } else {
+          this.crewMembers.set(this.defaultMembers);
+          this.saveCache('basetrack_crew_members', this.defaultMembers);
+        }
       } else {
         this.crewMembers.set(this.defaultMembers);
         this.saveCache('basetrack_crew_members', this.defaultMembers);
@@ -319,7 +439,13 @@ export class CrewService {
       const key = `basetrack_assignments_${date}_${shiftCode}_${shiftType}`;
       const cached = localStorage.getItem(key);
       if (cached) {
-        this.activeAssignments.set(JSON.parse(cached));
+        const parsed = JSON.parse(cached);
+        const hasOldMocks = Array.isArray(parsed) && parsed.some((a: any) => a.operator_name === 'Juan Pérez Huamán' || a.operator_name === 'Manuel Condori Ramos');
+        if (Array.isArray(parsed) && parsed.length > 0 && !hasOldMocks) {
+          this.activeAssignments.set(parsed);
+        } else {
+          this.synthesizeDefaultAssignments(date, shiftCode, shiftType as 'DIA' | 'NOCHE');
+        }
       } else {
         // Synthesize default 5 assignments from available members
         this.synthesizeDefaultAssignments(date, shiftCode, shiftType as 'DIA' | 'NOCHE');
@@ -345,14 +471,14 @@ export class CrewService {
         shift_type: shiftType,
         position_key: 'BOMBAS',
         position_title: 'Operador de Bombas',
-        operator_id: opBombas?.id || 'op-bombas-a',
-        operator_name: opBombas?.name || 'Juan Pérez Huamán',
-        operator_avatar: opBombas?.avatar_url || 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=250&q=80',
+        operator_id: opBombas?.id || 'op-klisman-a',
+        operator_name: opBombas?.name || 'VIZCARRA CORI MANLEY KLISMAN',
+        operator_avatar: opBombas?.avatar_url || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80',
         operator_role: opBombas?.primary_role || 'OPERADOR_BOMBAS',
-        operator_phone: opBombas?.phone_extension || 'Ext. 4102',
+        operator_phone: opBombas?.phone_extension || 'Ext. 4125',
         operator_default_radio: 'Canal 3 Bombas',
         backup_operator_id: opRelevo?.id || null,
-        backup_name: opRelevo?.name || 'Víctor Zeballos Flores',
+        backup_name: opRelevo?.name || 'PARI COAYLA JHOFER LUIS',
         epp_verified: 1,
         safety_talk_completed: 1,
         radio_channel: 'Canal 3 Bombas',
@@ -366,14 +492,14 @@ export class CrewService {
         shift_type: shiftType,
         position_key: 'CICLONES',
         position_title: 'Operador de Ciclones',
-        operator_id: opCiclones?.id || 'op-ciclones-a',
-        operator_name: opCiclones?.name || 'Manuel Condori Ramos',
-        operator_avatar: opCiclones?.avatar_url || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=250&q=80',
+        operator_id: opCiclones?.id || 'op-carlos-a',
+        operator_name: opCiclones?.name || 'PILCO APAZA CARLOS EDUARDO',
+        operator_avatar: opCiclones?.avatar_url || 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=250&q=80',
         operator_role: opCiclones?.primary_role || 'OPERADOR_CICLONES',
-        operator_phone: opCiclones?.phone_extension || 'Ext. 4105',
+        operator_phone: opCiclones?.phone_extension || 'Ext. 4122',
         operator_default_radio: 'Canal 2 Ciclones',
         backup_operator_id: opRelevo?.id || null,
-        backup_name: opRelevo?.name || 'Víctor Zeballos Flores',
+        backup_name: opRelevo?.name || 'PARI COAYLA JHOFER LUIS',
         epp_verified: 1,
         safety_talk_completed: 1,
         radio_channel: 'Canal 2 Ciclones',
@@ -387,14 +513,14 @@ export class CrewService {
         shift_type: shiftType,
         position_key: 'DESCARGA',
         position_title: 'Operador de descarga',
-        operator_id: opDescarga?.id || 'op-descarga-a',
-        operator_name: opDescarga?.name || 'Wilber Mamani Choque',
-        operator_avatar: opDescarga?.avatar_url || 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=250&q=80',
+        operator_id: opDescarga?.id || 'op-jorge-a',
+        operator_name: opDescarga?.name || 'VILCAMIZA PEVE JORGE RICARDO',
+        operator_avatar: opDescarga?.avatar_url || 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=250&q=80',
         operator_role: opDescarga?.primary_role || 'OPERADOR_DESCARGA',
-        operator_phone: opDescarga?.phone_extension || 'Ext. 4109',
+        operator_phone: opDescarga?.phone_extension || 'Ext. 4124',
         operator_default_radio: 'Canal 4 Presa',
         backup_operator_id: opRelevo?.id || null,
-        backup_name: opRelevo?.name || 'Víctor Zeballos Flores',
+        backup_name: opRelevo?.name || 'PARI COAYLA JHOFER LUIS',
         epp_verified: 1,
         safety_talk_completed: 1,
         radio_channel: 'Canal 4 Presa',
@@ -408,14 +534,14 @@ export class CrewService {
         shift_type: shiftType,
         position_key: 'MISCELANEOS',
         position_title: 'Operador Misceláneos',
-        operator_id: opMisc?.id || 'op-misc-a',
-        operator_name: opMisc?.name || 'Edgar Quispe Vargas',
-        operator_avatar: opMisc?.avatar_url || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80',
+        operator_id: opMisc?.id || 'op-vilma-a',
+        operator_name: opMisc?.name || 'ROSADO FALCON VILMA LUCIA',
+        operator_avatar: opMisc?.avatar_url || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=250&q=80',
         operator_role: opMisc?.primary_role || 'OPERADOR_MISCELANEOS',
-        operator_phone: opMisc?.phone_extension || 'Ext. 4112',
+        operator_phone: opMisc?.phone_extension || 'Ext. 4123',
         operator_default_radio: 'Canal 1 Operaciones',
         backup_operator_id: opRelevo?.id || null,
-        backup_name: opRelevo?.name || 'Víctor Zeballos Flores',
+        backup_name: opRelevo?.name || 'PARI COAYLA JHOFER LUIS',
         epp_verified: 1,
         safety_talk_completed: 1,
         radio_channel: 'Canal 1 Operaciones',
@@ -429,11 +555,11 @@ export class CrewService {
         shift_type: shiftType,
         position_key: 'RELEVO',
         position_title: 'Operador de Relevo',
-        operator_id: opRelevo?.id || 'op-relevo-a',
-        operator_name: opRelevo?.name || 'Víctor Zeballos Flores',
-        operator_avatar: opRelevo?.avatar_url || 'https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?auto=format&fit=crop&w=250&q=80',
+        operator_id: opRelevo?.id || 'op-jhofer-a',
+        operator_name: opRelevo?.name || 'PARI COAYLA JHOFER LUIS',
+        operator_avatar: opRelevo?.avatar_url || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=250&q=80',
         operator_role: opRelevo?.primary_role || 'OPERADOR_RELEVO',
-        operator_phone: opRelevo?.phone_extension || 'Ext. 4115',
+        operator_phone: opRelevo?.phone_extension || 'Ext. 4121',
         operator_default_radio: 'Canal 5 Relevo/Móvil',
         backup_operator_id: null,
         epp_verified: 1,
