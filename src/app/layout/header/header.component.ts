@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 import { LayoutService } from '../../core/layout/layout.service';
 import { PwaService } from '../../core/pwa/pwa.service';
+import { OfflineSyncService } from '../../core/offline/offline-sync.service';
 
 @Component({
   selector: 'app-header',
@@ -47,6 +48,24 @@ import { PwaService } from '../../core/pwa/pwa.service';
 
       <!-- Action items on right side (CRAVEAT style) -->
       <div class="header-right">
+        <!-- Offline & Sync Status Pill (IndexedDB) -->
+        <button
+          type="button"
+          class="btn-sync-header"
+          [class.offline-pill]="!offlineSync.isOnline()"
+          [class.pending-pill]="offlineSync.pendingCount() > 0"
+          [class.syncing-pill]="offlineSync.isSyncing()"
+          (click)="offlineSync.openSyncDrawer()"
+          title="Gestión de Sincronización e IndexedDB Local"
+        >
+          <span class="status-pulse-dot" [class.dot-green]="offlineSync.isOnline() && offlineSync.pendingCount() === 0" [class.dot-orange]="!offlineSync.isOnline() || offlineSync.pendingCount() > 0"></span>
+          <span *ngIf="offlineSync.isSyncing()">Sincronizando...</span>
+          <span *ngIf="!offlineSync.isSyncing() && offlineSync.isOnline() && offlineSync.pendingCount() === 0">En Línea</span>
+          <span *ngIf="!offlineSync.isSyncing() && (!offlineSync.isOnline() || offlineSync.pendingCount() > 0)">
+            {{ offlineSync.isOnline() ? offlineSync.pendingCount() + ' pendiente' + (offlineSync.pendingCount() > 1 ? 's' : '') : 'Offline (' + offlineSync.pendingCount() + ')' }}
+          </span>
+        </button>
+
         <!-- PWA Install Action Button (Desktop & Mobile) -->
         <button
           *ngIf="!pwa.isInstalled()"
@@ -132,6 +151,69 @@ import { PwaService } from '../../core/pwa/pwa.service';
             <strong>Presa de Relaves:</strong> Nivel de espejo de agua reportado estable.
             <span class="notif-time">Hace 1 hora</span>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL DE GESTIÓN OFFLINE E INDEXEDDB -->
+    <div class="sync-modal-backdrop" *ngIf="offlineSync.showSyncModal()" (click)="offlineSync.closeSyncDrawer()">
+      <div class="sync-modal-card animate-scale-in" (click)="$event.stopPropagation()">
+        <div class="sync-modal-head">
+          <div class="head-left">
+            <span class="status-indicator-dot" [class.dot-green]="offlineSync.isOnline()" [class.dot-orange]="!offlineSync.isOnline()"></span>
+            <h4>Estado de Conectividad & Persistencia Local</h4>
+          </div>
+          <button class="close-x-btn" (click)="offlineSync.closeSyncDrawer()">✕</button>
+        </div>
+
+        <div class="sync-modal-body">
+          <div class="conn-status-banner" [class.banner-offline]="!offlineSync.isOnline()">
+            <div class="banner-icon">
+              {{ offlineSync.isOnline() ? '📶' : '🔌' }}
+            </div>
+            <div class="banner-text">
+              <strong>{{ offlineSync.isOnline() ? 'Conectado a la Red de Planta' : 'Modo Offline Activo (Sin Conexión)' }}</strong>
+              <p>Almacenamiento de alta capacidad: <strong>IndexedDB (basetrack_db)</strong> activo para registrar operaciones en terreno.</p>
+            </div>
+          </div>
+
+          <div class="sync-meta-grid">
+            <div class="meta-box">
+              <span class="m-lbl">Registros en Cola</span>
+              <span class="m-count" [class.count-orange]="offlineSync.pendingCount() > 0">{{ offlineSync.pendingCount() }}</span>
+            </div>
+            <div class="meta-box">
+              <span class="m-lbl">Última Sincronización</span>
+              <span class="m-count text-sm">{{ offlineSync.lastSyncTime() || 'Al iniciar sesión' }}</span>
+            </div>
+          </div>
+
+          <div class="pending-list-wrapper" *ngIf="offlineSync.queueItems().length > 0">
+            <h5>Acciones pendientes de subir al servidor:</h5>
+            <div class="pending-items">
+              <div class="pending-row" *ngFor="let item of offlineSync.queueItems()">
+                <span class="method-tag">{{ item.method }}</span>
+                <span class="item-name">{{ item.entityName }}</span>
+                <span class="item-time">{{ item.timestamp | date:'HH:mm:ss' }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="empty-queue-msg" *ngIf="offlineSync.queueItems().length === 0">
+            <span class="check-icon">✓</span>
+            <p>Todos los reportes, planillas y bitácoras operacionales están sincronizados con la base de datos.</p>
+          </div>
+        </div>
+
+        <div class="sync-modal-foot">
+          <button class="btn btn-secondary" (click)="offlineSync.closeSyncDrawer()">Cerrar</button>
+          <button
+            class="btn btn-primary"
+            (click)="offlineSync.forceSyncNow()"
+            [disabled]="offlineSync.isSyncing() || !offlineSync.isOnline() || offlineSync.pendingCount() === 0"
+          >
+            {{ offlineSync.isSyncing() ? 'Sincronizando...' : '🔄 Sincronizar Ahora' }}
+          </button>
         </div>
       </div>
     </div>
@@ -406,6 +488,315 @@ import { PwaService } from '../../core/pwa/pwa.service';
       }
     }
 
+    /* SYNC STATUS PILL */
+    .btn-sync-header {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0.4rem 0.8rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+      border: 1px solid #a7f3d0;
+      background: #ecfdf5;
+      color: #047857;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: #d1fae5;
+        border-color: #6ee7b7;
+      }
+
+      &.offline-pill, &.pending-pill {
+        background: #fffbeb;
+        border-color: #fde68a;
+        color: #b45309;
+        &:hover {
+          background: #fef3c7;
+        }
+      }
+
+      &.syncing-pill {
+        background: #eff6ff;
+        border-color: #bfdbfe;
+        color: #1d4ed8;
+      }
+    }
+
+    .status-pulse-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+
+      &.dot-green {
+        background: #10b981;
+        box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+      }
+
+      &.dot-orange {
+        background: #f59e0b;
+        box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2);
+        animation: pulse 1.5s infinite;
+      }
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.15); opacity: 1; }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+
+    /* MODAL DE SINCRONIZACIÓN */
+    .sync-modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(4px);
+      z-index: 1300;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+
+    .sync-modal-card {
+      background: #ffffff;
+      width: 100%;
+      max-width: 520px;
+      border-radius: 16px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      border: 1px solid #e2e8f0;
+      overflow: hidden;
+    }
+
+    .sync-modal-head {
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #f8fafc;
+
+      .head-left {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+
+        .status-indicator-dot {
+          width: 10px;
+          height: 10px;
+          border-radius: 50%;
+          &.dot-green { background: #10b981; }
+          &.dot-orange { background: #f59e0b; }
+        }
+
+        h4 {
+          margin: 0;
+          font-size: 1rem;
+          font-weight: 700;
+          color: #0f172a;
+        }
+      }
+
+      .close-x-btn {
+        background: none;
+        border: none;
+        font-size: 1.25rem;
+        color: #64748b;
+        cursor: pointer;
+        padding: 0.25rem;
+        border-radius: 6px;
+        &:hover { background: #e2e8f0; color: #0f172a; }
+      }
+    }
+
+    .sync-modal-body {
+      padding: 1.5rem;
+    }
+
+    .conn-status-banner {
+      display: flex;
+      gap: 1rem;
+      background: #ecfdf5;
+      border: 1px solid #a7f3d0;
+      border-radius: 10px;
+      padding: 1rem;
+      margin-bottom: 1.25rem;
+
+      .banner-icon {
+        font-size: 1.8rem;
+      }
+
+      .banner-text {
+        strong {
+          display: block;
+          font-size: 0.9rem;
+          color: #065f46;
+          margin-bottom: 0.2rem;
+        }
+        p {
+          margin: 0;
+          font-size: 0.78rem;
+          color: #047857;
+          line-height: 1.4;
+        }
+      }
+
+      &.banner-offline {
+        background: #fffbeb;
+        border-color: #fde68a;
+        .banner-text strong { color: #92400e; }
+        .banner-text p { color: #78350f; }
+      }
+    }
+
+    .sync-meta-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-bottom: 1.25rem;
+
+      .meta-box {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 0.75rem;
+        text-align: center;
+
+        .m-lbl {
+          display: block;
+          font-size: 0.7rem;
+          font-weight: 600;
+          color: #64748b;
+          text-transform: uppercase;
+        }
+
+        .m-count {
+          display: block;
+          font-size: 1.3rem;
+          font-weight: 800;
+          color: #0f172a;
+          margin-top: 0.15rem;
+
+          &.count-orange { color: #d97706; }
+          &.text-sm { font-size: 0.85rem; font-weight: 700; }
+        }
+      }
+    }
+
+    .pending-list-wrapper {
+      h5 {
+        margin: 0 0 0.5rem;
+        font-size: 0.8rem;
+        color: #475569;
+        font-weight: 700;
+      }
+
+      .pending-items {
+        max-height: 140px;
+        overflow-y: auto;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+      }
+
+      .pending-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.5rem 0.75rem;
+        border-bottom: 1px solid #f1f5f9;
+        font-size: 0.75rem;
+        &:last-child { border-bottom: none; }
+
+        .method-tag {
+          background: #eff6ff;
+          color: #2563eb;
+          font-weight: 800;
+          font-size: 0.65rem;
+          padding: 0.1rem 0.4rem;
+          border-radius: 4px;
+        }
+
+        .item-name {
+          font-weight: 600;
+          color: #1e293b;
+          flex: 1;
+          margin: 0 0.5rem;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .item-time {
+          color: #94a3b8;
+          font-size: 0.7rem;
+        }
+      }
+    }
+
+    .empty-queue-msg {
+      text-align: center;
+      padding: 1rem;
+      background: #f8fafc;
+      border: 1px dashed #cbd5e1;
+      border-radius: 8px;
+
+      .check-icon {
+        display: inline-block;
+        width: 28px;
+        height: 28px;
+        line-height: 28px;
+        border-radius: 50%;
+        background: #ecfdf5;
+        color: #059669;
+        font-weight: 800;
+        margin-bottom: 0.4rem;
+      }
+
+      p {
+        margin: 0;
+        font-size: 0.8rem;
+        color: #475569;
+      }
+    }
+
+    .sync-modal-foot {
+      padding: 1rem 1.5rem;
+      background: #f8fafc;
+      border-top: 1px solid #e2e8f0;
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.75rem;
+
+      .btn {
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        cursor: pointer;
+        border: 1px solid transparent;
+      }
+
+      .btn-secondary {
+        background: #ffffff;
+        border-color: #cbd5e1;
+        color: #334155;
+        &:hover { background: #f1f5f9; }
+      }
+
+      .btn-primary {
+        background: #059669;
+        color: #ffffff;
+        &:hover:not(:disabled) { background: #047857; }
+        &:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+      }
+    }
+
     @media (max-width: 768px) {
       .app-header {
         padding: 0 16px;
@@ -447,6 +838,7 @@ export class HeaderComponent {
   authService = inject(AuthService);
   layoutService = inject(LayoutService);
   pwa = inject(PwaService);
+  offlineSync = inject(OfflineSyncService);
   private router = inject(Router);
   showNotifications = false;
 

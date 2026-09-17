@@ -303,3 +303,38 @@ input::placeholder, textarea::placeholder {
 .pulse-glow {
   animation: pulseGlow 3s infinite ease-in-out;
 }
+
+/* ==========================================================================
+   Global Print Styles for Official Shift PDF Reports
+   ========================================================================== */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 10mm 12mm 10mm 12mm;
+  }
+
+  html, body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    font-size: 10.5pt !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Ocultar elementos de navegación e interfaz interactiva */
+  app-sidebar,
+  app-header,
+  .mobile-menu-btn,
+  .no-print,
+  .btn-install-header,
+  .btn-sync-header {
+    display: none !important;
+  }
+
+  .main-content, .page-wrapper {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}

@@ -1,90 +1,130 @@
 import { Injectable, signal, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-
-export interface OfflineAction {
-  id: string;
-  endpoint: string;
-  method: 'POST' | 'PATCH' | 'PUT';
-  body: any;
-  timestamp: string;
-  entityName: string;
-}
+import { IndexedDbService, SyncQueueItem } from '../storage/indexed-db.service';
+import { firstValueFrom } from 'rxjs';
 
 @Injectable({
   providedIn: 'root'
 })
 export class OfflineSyncService {
   private http = inject(HttpClient);
-  private queueKey = 'basetrack_offline_queue';
+  private idb = inject(IndexedDbService);
 
   public isOnline = signal<boolean>(typeof window !== 'undefined' ? navigator.onLine : true);
-  public pendingCount = signal<number>(this.getQueue().length);
+  public pendingCount = signal<number>(0);
   public lastSyncTime = signal<string | null>(null);
+  public isSyncing = signal<boolean>(false);
+  public queueItems = signal<SyncQueueItem[]>([]);
+  public showSyncModal = signal<boolean>(false);
 
   constructor() {
+    this.refreshQueueStatus();
+
     if (typeof window !== 'undefined') {
       window.addEventListener('online', () => {
+        console.log('[OfflineSync] Conexión de red restablecida.');
         this.isOnline.set(true);
         this.syncPendingActions();
       });
 
       window.addEventListener('offline', () => {
+        console.warn('[OfflineSync] Se perdió la conexión. Modo Offline activado.');
         this.isOnline.set(false);
       });
     }
   }
 
-  queueAction(endpoint: string, method: 'POST' | 'PATCH' | 'PUT', body: any, entityName: string): void {
-    const queue = this.getQueue();
-    const action: OfflineAction = {
-      id: crypto.randomUUID(),
+  async refreshQueueStatus(): Promise<void> {
+    try {
+      const items = await this.idb.getQueue();
+      this.queueItems.set(items);
+      this.pendingCount.set(items.length);
+    } catch (e) {
+      console.warn('[OfflineSync] Error refreshing queue status:', e);
+    }
+  }
+
+  async queueAction(
+    endpoint: string,
+    method: 'POST' | 'PATCH' | 'PUT',
+    body: any,
+    entityName: string
+  ): Promise<void> {
+    const item: Omit<SyncQueueItem, 'retryCount'> = {
+      id: crypto.randomUUID ? crypto.randomUUID() : `offline_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
       endpoint,
       method,
       body,
       timestamp: new Date().toISOString(),
       entityName
     };
-    queue.push(action);
-    this.saveQueue(queue);
-    this.pendingCount.set(queue.length);
-    console.log(`[OfflineSync] Action queued for offline sync: ${entityName}`);
+
+    await this.idb.addToQueue(item);
+    await this.refreshQueueStatus();
+    console.log(`[OfflineSync] Acción encolada en IndexedDB: ${entityName} (Total pendientes: ${this.pendingCount()})`);
+
+    // Si por alguna razón estamos online, intentar sincronizar de inmediato
+    if (this.isOnline() && !this.isSyncing()) {
+      this.syncPendingActions();
+    }
   }
 
   async syncPendingActions(): Promise<void> {
-    const queue = this.getQueue();
-    if (queue.length === 0) return;
+    if (this.isSyncing()) return;
+    const items = await this.idb.getQueue();
+    if (items.length === 0) return;
 
-    console.log(`[OfflineSync] Attempting sync of ${queue.length} pending actions...`);
-    const remaining: OfflineAction[] = [];
+    this.isSyncing.set(true);
+    console.log(`[OfflineSync] Iniciando sincronización de ${items.length} acciones pendientes con el servidor...`);
 
-    for (const action of queue) {
+    for (const item of items) {
       try {
-        if (action.method === 'POST') {
-          await this.http.post(action.endpoint, action.body).toPromise();
-        } else if (action.method === 'PATCH') {
-          await this.http.patch(action.endpoint, action.body).toPromise();
+        if (item.method === 'POST') {
+          await firstValueFrom(this.http.post(item.endpoint, item.body));
+        } else if (item.method === 'PATCH') {
+          await firstValueFrom(this.http.patch(item.endpoint, item.body));
+        } else if (item.method === 'PUT') {
+          await firstValueFrom(this.http.put(item.endpoint, item.body));
         }
-        console.log(`[OfflineSync] Synced action: ${action.entityName}`);
+
+        await this.idb.removeFromQueue(item.id);
+        console.log(`[OfflineSync] ✅ Sincronizado con éxito: ${item.entityName}`);
       } catch (err) {
-        console.error(`[OfflineSync] Failed syncing action ${action.entityName}, keeping in queue`, err);
-        remaining.push(action);
+        console.error(`[OfflineSync] ❌ Error sincronizando ${item.entityName}:`, err);
+        await this.idb.incrementRetry(item.id);
+        // Si el servidor está caído o hay error de red, pausar para no saturar
+        if (!navigator.onLine) {
+          this.isOnline.set(false);
+          break;
+        }
       }
     }
 
-    this.saveQueue(remaining);
-    this.pendingCount.set(remaining.length);
-    this.lastSyncTime.set(new Date().toLocaleTimeString());
+    await this.refreshQueueStatus();
+    this.isSyncing.set(false);
+    this.lastSyncTime.set(new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
   }
 
-  private getQueue(): OfflineAction[] {
-    if (typeof localStorage === 'undefined') return [];
-    const raw = localStorage.getItem(this.queueKey);
-    return raw ? JSON.parse(raw) : [];
+  async forceSyncNow(): Promise<void> {
+    this.isOnline.set(navigator.onLine);
+    await this.syncPendingActions();
   }
 
-  private saveQueue(queue: OfflineAction[]): void {
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem(this.queueKey, JSON.stringify(queue));
-    }
+  openSyncDrawer(): void {
+    this.refreshQueueStatus();
+    this.showSyncModal.set(true);
+  }
+
+  closeSyncDrawer(): void {
+    this.showSyncModal.set(false);
+  }
+
+  // Métodos de almacenamiento en caché para datos de módulos
+  async saveModuleCache(key: string, data: any): Promise<void> {
+    await this.idb.setCache(key, data);
+  }
+
+  async getModuleCache<T = any>(key: string): Promise<T | null> {
+    return await this.idb.getCache<T>(key);
   }
 }

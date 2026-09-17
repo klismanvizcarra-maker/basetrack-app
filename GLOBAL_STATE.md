@@ -47,6 +47,7 @@
 | `TASK-009` | Módulo de Configuración de Cuenta & Perfil de Usuario | Frontend & Backend Agent | `TASK-007`, `TASK-008` | `DONE` | 0/3 | Edición de nombres, cambio seguro de contraseña, subida de foto/avatar, presets de planta y persistencia |
 | `TASK-010` | Unificación Global de Paleta Verde Esmeralda & Menta Industrial | Frontend Agent | `TASK-007`, `TASK-009` | `DONE` | 0/3 | Paleta esmeralda (#059669/#047857), fondos menta (#ecfdf5/#e6f7ef), botones, tabs y gráficas unificados |
 | `TASK-011` | PWA Completa & Modo Instalable en Celulares y Tablets | Frontend & QA Agent | `TASK-010` | `DONE` | 0/3 | Manifest web, Service Worker caching, iconos 192/512px, detección iOS/Android/Desktop, modal guía y botones de instalación nativa |
+| `TASK-012` | Generador de Reportes en PDF Oficial de Turno & Modo Offline IndexedDB | Frontend & Backend Agent | `TASK-011` | `DONE` | 0/3 | Exportador PDF A4 oficial con consolidado de bombas, ciclones, descarga y firmas; motor IndexedDB local y sincronización en cola |
 
 ---
 
@@ -61,6 +62,7 @@
 | 2026-09-16 | Orchestrator / Multi-Agent | QA & Security Agent | `TASK-006` | Entrega de tabla operativa 2da Estación Ciclones, endpoints, tests y UI de alta fidelidad |
 | 2026-09-16 | Frontend Agent | Orchestrator | `TASK-007` | Transformación global a tema blanco puro (#ffffff, #f8fafc), contraste WCAG y componentes unificados |
 | 2026-09-16 | Frontend & QA Agent | Orchestrator | `TASK-011` | Implementación y verificación de PWA standalone, Service Worker con fallback offline, e instalación en dispositivos móviles y PC |
+| 2026-09-16 | Multi-Agent Team | Orchestrator | `TASK-012` | Generador formal de Reportes en PDF A4 de cierre de guardia y motor IndexedDB con cola de sincronización |
 
 
 ---

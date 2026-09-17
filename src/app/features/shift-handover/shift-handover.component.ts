@@ -5,6 +5,7 @@ import { HttpClient } from '@angular/common/http';
 import { ModalComponent } from '../../shared/ui/modal.component';
 import { AuthService } from '../../core/auth/auth.service';
 import { OfflineSyncService } from '../../core/offline/offline-sync.service';
+import { ShiftReportPdfComponent } from '../reports/shift-report-pdf.component';
 
 export interface ShiftHandover {
   id: string;
@@ -25,7 +26,7 @@ export interface ShiftHandover {
 @Component({
   selector: 'app-shift-handover',
   standalone: true,
-  imports: [CommonModule, FormsModule, ModalComponent],
+  imports: [CommonModule, FormsModule, ModalComponent, ShiftReportPdfComponent],
   template: `
     <div class="shift-page animate-fade-in">
       <!-- Header Actions -->
@@ -34,13 +35,24 @@ export interface ShiftHandover {
           <h2>Bitácora de Relevo de Guardia</h2>
           <p class="section-sub">Transferencia de turno, seguridad y novedades operacionales</p>
         </div>
-        <button class="btn btn-primary" (click)="openCreateModal()">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-            <line x1="12" y1="5" x2="12" y2="19"></line>
-            <line x1="5" y1="12" x2="19" y2="12"></line>
-          </svg>
-          Registrar Entrega de Guardia
-        </button>
+        <div class="top-actions-cluster">
+          <button class="btn btn-secondary action-btn-pdf" (click)="openPdfReport(latestHandover)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+            </svg>
+            Generar Reporte Oficial PDF
+          </button>
+          <button class="btn btn-primary" (click)="openCreateModal()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            Registrar Entrega de Guardia
+          </button>
+        </div>
       </div>
 
       <!-- Current Handover Banner -->
@@ -81,8 +93,17 @@ export interface ShiftHandover {
           <p class="block-content highlight-orange">{{ latestHandover.pending_tasks }}</p>
         </div>
 
-        <div class="banner-actions" *ngIf="latestHandover.status === 'SUBMITTED' && authService.isSupervisor()">
-          <button class="btn btn-success" (click)="acceptHandover(latestHandover.id)">
+        <div class="banner-actions">
+          <button class="btn btn-secondary" (click)="openPdfReport(latestHandover)">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+            </svg>
+            Exportar Informe Oficial PDF
+          </button>
+          <button *ngIf="latestHandover.status === 'SUBMITTED' && authService.isSupervisor()" class="btn btn-success" (click)="acceptHandover(latestHandover.id)">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <polyline points="20 6 9 17 4 12"></polyline>
             </svg>
@@ -125,8 +146,15 @@ export interface ShiftHandover {
                     {{ h.status }}
                   </span>
                 </td>
-                <td>
+                <td class="action-cell">
                   <button class="btn btn-secondary btn-sm" (click)="viewDetails(h)">Detalles</button>
+                  <button class="btn btn-primary btn-sm btn-pdf-icon" (click)="openPdfReport(h)" title="Generar PDF Oficial">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                      <polyline points="14 2 14 8 20 8"></polyline>
+                    </svg>
+                    PDF
+                  </button>
                 </td>
               </tr>
             </tbody>
@@ -188,6 +216,13 @@ export interface ShiftHandover {
           </div>
         </form>
       </app-modal>
+
+      <!-- Official Shift Report PDF Modal -->
+      <app-shift-report-pdf
+        [isOpen]="isPdfModalOpen"
+        [handover]="selectedHandoverForPdf"
+        (close)="isPdfModalOpen = false"
+      ></app-shift-report-pdf>
     </div>
   `,
   styles: [`
@@ -195,6 +230,38 @@ export interface ShiftHandover {
       display: flex;
       flex-direction: column;
       gap: 24px;
+    }
+
+    .top-actions-cluster {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .action-btn-pdf {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      color: #0f172a;
+      font-weight: 600;
+      &:hover {
+        background: #f8fafc;
+        border-color: #94a3b8;
+      }
+    }
+
+    .action-cell {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-pdf-icon {
+      background: #059669;
+      color: #ffffff;
+      padding: 0.35rem 0.65rem;
+      &:hover {
+        background: #047857;
+      }
     }
 
     .page-top-bar {
@@ -402,6 +469,8 @@ export class ShiftHandoverComponent implements OnInit {
   handovers: ShiftHandover[] = [];
   latestHandover: ShiftHandover | null = null;
   isCreateModalOpen = false;
+  isPdfModalOpen = false;
+  selectedHandoverForPdf: ShiftHandover | null = null;
 
   newHandover = {
     shift_code: 'GUARDIA_A_DIA_' + new Date().toISOString().slice(5, 10).replace('-', ''),
@@ -489,5 +558,10 @@ export class ShiftHandoverComponent implements OnInit {
 
   viewDetails(h: ShiftHandover): void {
     this.latestHandover = h;
+  }
+
+  openPdfReport(h?: ShiftHandover | null): void {
+    this.selectedHandoverForPdf = h || this.latestHandover || (this.handovers.length > 0 ? this.handovers[0] : null);
+    this.isPdfModalOpen = true;
   }
 }
