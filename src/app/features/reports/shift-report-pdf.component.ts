@@ -2,6 +2,7 @@ import { Component, Input, Output, EventEmitter, OnInit, inject } from '@angular
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { ShiftHandover } from '../shift-handover/shift-handover.component';
+import { PdfExportService } from '../../core/services/pdf-export.service';
 
 @Component({
   selector: 'app-shift-report-pdf',
@@ -18,20 +19,28 @@ import { ShiftHandover } from '../shift-handover/shift-handover.component';
             <h3>Informe Consolidado de Turno & Relevo de Guardia</h3>
           </div>
           <div class="header-actions">
-            <button class="btn btn-copy" (click)="copyExecutiveSummary()" [title]="copiedText ? 'Copiado!' : 'Copiar Resumen'">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            <button type="button" class="btn btn-download-pdf" (click)="downloadDirectPdf()" [disabled]="isDownloading" title="Descargar archivo PDF directamente">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
               </svg>
-              {{ copiedText ? '¡Copiado!' : 'Copiar Resumen' }}
+              {{ isDownloading ? 'Guardando PDF...' : (downloadSuccess ? '¡PDF Guardado!' : 'Descargar PDF Directo') }}
             </button>
-            <button class="btn btn-print" (click)="triggerPrint()">
+            <button class="btn btn-print" (click)="triggerPrint()" title="Imprimir">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
                 <polyline points="6 9 6 2 18 2 18 9"></polyline>
                 <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
                 <rect x="6" y="14" width="12" height="8"></rect>
               </svg>
-              Imprimir / Guardar en PDF
+              Imprimir
+            </button>
+            <button class="btn btn-copy" (click)="copyExecutiveSummary()" [title]="copiedText ? 'Copiado!' : 'Copiar Resumen'">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+              {{ copiedText ? '¡Copiado!' : 'Copiar' }}
             </button>
             <button class="close-btn" (click)="closeModal()">✕</button>
           </div>
@@ -357,6 +366,32 @@ import { ShiftHandover } from '../shift-handover/shift-handover.component';
       border: 1px solid transparent;
     }
 
+    .btn-download-pdf {
+      background: #059669;
+      color: #ffffff;
+      border: none;
+      box-shadow: 0 2px 8px rgba(5, 150, 105, 0.4);
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      transition: all 0.2s;
+
+      &:hover {
+        background: #047857;
+        transform: translateY(-1px);
+      }
+
+      &:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+      }
+    }
+
     .btn-copy {
       background: #ffffff;
       border-color: #cbd5e1;
@@ -368,10 +403,10 @@ import { ShiftHandover } from '../shift-handover/shift-handover.component';
     }
 
     .btn-print {
-      background: #059669;
+      background: #334155;
       color: #ffffff;
       &:hover {
-        background: #047857;
+        background: #475569;
       }
     }
 
@@ -786,10 +821,27 @@ import { ShiftHandover } from '../shift-handover/shift-handover.component';
   `]
 })
 export class ShiftReportPdfComponent implements OnInit {
+  private pdfService = inject(PdfExportService);
+
   @Input() handover: ShiftHandover | null = null;
-  @Input() isOpen = false;
+  
+  private _isOpen = false;
+  @Input() set isOpen(val: boolean) {
+    this._isOpen = val;
+    if (val) {
+      setTimeout(() => {
+        this.downloadDirectPdf();
+      }, 350);
+    }
+  }
+  get isOpen(): boolean {
+    return this._isOpen;
+  }
+
   @Output() close = new EventEmitter<void>();
 
+  isDownloading = false;
+  downloadSuccess = false;
   copiedText = false;
 
   reportData: ShiftHandover = {
@@ -811,6 +863,21 @@ export class ShiftReportPdfComponent implements OnInit {
   ngOnInit(): void {
     if (this.handover) {
       this.reportData = { ...this.handover };
+    }
+  }
+
+  async downloadDirectPdf(): Promise<void> {
+    if (this.isDownloading) return;
+    this.isDownloading = true;
+    const cleanDate = this.reportData.date.replace(/[\/\\]/g, '-');
+    const filename = `Informe_Oficial_Guardia_${cleanDate}.pdf`;
+    const success = await this.pdfService.exportToPdf('printable-shift-report', filename);
+    this.isDownloading = false;
+    if (success) {
+      this.downloadSuccess = true;
+      setTimeout(() => {
+        this.downloadSuccess = false;
+      }, 3500);
     }
   }
 
