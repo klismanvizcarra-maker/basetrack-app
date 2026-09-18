@@ -55,6 +55,7 @@
 | `TASK-017` | Sincronización en la Nube Multi-Dispositivo (Cloud Realtime Sync) | Frontend & Backend Agent | `TASK-016` | `DONE` | 0/3 | Motor reactivo CloudSyncService, BroadcastChannel para multi-pestaña P2P, endpoints /api/sync/push y /api/sync/pull en SQLite, pill en header y gestor de flota en admin |
 | `TASK-018` | Corrección de Posicionamiento y Centrado de Modales | Frontend Agent | `TASK-017` | `DONE` | 0/3 | Centrado vertical en viewport (desktop y móvil), desacople de containing-block de animaciones transform, z-index 99999 y cierre de admin-page previo a modales |
 | `TASK-019` | Posiciones Dinámicas y Creación de Nuevos Puestos en Cuadrilla | Frontend & Backend Agent | `TASK-018` | `DONE` | 0/3 | Modal de creación de posiciones con selector de emojis, canal radial y consignas; asignación multi-guardia optgroup; migración de schema SQLite sin restricción CHECK; persistencia local y backend |
+| `TASK-020` | Exportación de Reportes PDF en 1 Hoja (Bombas, Ciclones, Descarga) | Frontend Agent | `TASK-019` | `DONE` | 0/3 | Botón "Exportar PDF (1 Hoja)" en cada módulo individual, maquetación A4 portrait estricta de 1 página con membrete, KPIs, tablas, notas y firmas oficiales |
 
 ---
 
@@ -75,9 +76,10 @@
 | 2026-09-17 | Multi-Agent Team | Orchestrator | `TASK-015` | Persistencia en tiempo real unificada, compresión de fotos y retención en registro permanente |
 | 2026-09-17 | QA & Security Agent | Orchestrator | `TASK-016` | Blindaje de seguridad: login obligatorio sin bypass, purga de backdoors, validación estricta de credenciales y tests de seguridad aprobados |
 | 2026-09-17 | Multi-Agent Team | Orchestrator | `TASK-017` | Sincronización multi-dispositivo en la nube: BroadcastChannel instantáneo, cola offline y replicación central SQLite |
+| 2026-09-17 | Frontend Agent | Orchestrator | `TASK-020` | Integración de botón de exportación PDF (1 hoja) en Bombas, Ciclones y Descarga con maquetación A4 de página única garantizada |
 
 ---
 
 ## 6. Registro de Bloqueos y Alertas de Escalamiento a Humano
 
-_Sin bloqueos activos. Sistema de sincronización multi-dispositivo operativo y desplegado._
+_Sin bloqueos activos. Exportación PDF de 1 hoja completada y desplegada._
