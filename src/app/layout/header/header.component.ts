@@ -12,7 +12,7 @@ import { CloudSyncService } from '../../core/services/cloud-sync.service';
   standalone: true,
   imports: [CommonModule],
   template: `
-    <header class="app-header">
+    <header class="app-header no-print">
       <!-- Title area -->
       <div class="header-left">
         <!-- Mobile hamburger toggle button -->

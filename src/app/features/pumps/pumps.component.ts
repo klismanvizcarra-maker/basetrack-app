@@ -87,7 +87,7 @@ export interface PumpReport {
   template: `
     <div class="pumps-page animate-fade-in">
       <!-- Top Action Bar -->
-      <div class="page-top-bar glass-panel">
+      <div class="page-top-bar glass-panel no-print">
         <div class="page-title-group">
           <div class="title-badge-row">
             <span class="area-badge">ÁREA DE BOMBEO Y SENTINAS</span>
@@ -155,7 +155,7 @@ export interface PumpReport {
       </div>
 
       <!-- TAB 1: REPORTE INTEGRAL DE BOMBAS (FORMATO PLANTA SECCIONES A - E) -->
-      <div *ngIf="activeTab === 'REPORT'" class="report-container animate-fade-in">
+      <div *ngIf="activeTab === 'REPORT'" class="report-container no-print animate-fade-in">
         
         <!-- SECCIÓN A: REPORTE DE BOMBAS -->
         <section class="section-card glass-panel">
@@ -436,8 +436,8 @@ export interface PumpReport {
 
       </div>
 
-      <!-- TAB 2: TELEMETRÍA EN VIVO DE BOMBAS SLURRY -->
-      <div *ngIf="activeTab === 'TELEMETRY'" class="telemetry-container animate-fade-in">
+      <!-- TAB 2: TELEMETRÍA SLURRY (MONITOREO DE EQUIPOS CRÍTICOS) -->
+      <div *ngIf="activeTab === 'TELEMETRY'" class="telemetry-container no-print animate-fade-in">
         <div class="pumps-cards-grid">
           <div *ngFor="let pump of pumps" class="pump-card glass-panel" [class.operating]="pump.status === 'OPERATING'" [class.standby]="pump.status === 'STANDBY'" [class.maintenance]="pump.status === 'MAINTENANCE'">
             <div class="pump-card-header">

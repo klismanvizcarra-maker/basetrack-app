@@ -739,38 +739,43 @@ import { ShiftHandover } from '../shift-handover/shift-handover.component';
 
     /* REGLAS DE IMPRESIÓN OFICIAL A4 */
     @media print {
-      body * {
-        visibility: hidden;
+      @page {
+        size: A4 portrait;
+        margin: 4mm 6mm 4mm 6mm !important;
       }
 
-      .no-print, .header-actions, .close-btn {
+      .no-print, .header-actions, .close-btn, button, .report-modal-header {
         display: none !important;
+        visibility: hidden !important;
       }
 
       .report-backdrop {
         position: static !important;
         background: transparent !important;
         padding: 0 !important;
+        margin: 0 !important;
         overflow: visible !important;
+        display: block !important;
       }
 
       .report-modal-wrapper {
         box-shadow: none !important;
+        border: none !important;
         border-radius: 0 !important;
         max-width: 100% !important;
         max-height: none !important;
-      }
-
-      #printable-shift-report, #printable-shift-report * {
-        visibility: visible !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        overflow: visible !important;
+        display: block !important;
       }
 
       #printable-shift-report {
-        position: absolute !important;
-        left: 0 !important;
-        top: 0 !important;
+        position: static !important;
         width: 100% !important;
         padding: 0 !important;
+        margin: 0 !important;
+        display: block !important;
       }
 
       .page-break-inside-avoid {

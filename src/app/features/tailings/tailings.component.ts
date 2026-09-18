@@ -29,7 +29,7 @@ export interface TailingsReport {
   imports: [CommonModule, FormsModule, ModalComponent, TailingsReportPdfComponent],
   template: `
     <div class="tailings-page animate-fade-in">
-      <div class="page-top-bar">
+      <div class="page-top-bar no-print">
         <div>
           <h2>Reporte de Descarga</h2>
           <p class="section-sub">Espesamiento de pulpas, porcentaje de sólidos y estabilidad de presa</p>
@@ -55,7 +55,7 @@ export interface TailingsReport {
       </div>
 
       <!-- Dam Level & Safety Metrics Row -->
-      <div class="safety-metrics-grid">
+      <div class="safety-metrics-grid no-print">
         <div class="metric-box glass-panel">
           <span class="m-title">Nivel de Espejo de Agua</span>
           <span class="m-val">4,120.4 <small>msnm</small></span>
@@ -79,7 +79,7 @@ export interface TailingsReport {
       </div>
 
       <!-- Tailings Monitoring Stations Table -->
-      <div class="table-card glass-panel">
+      <div class="table-card glass-panel no-print">
         <div class="card-head">
           <h3>Estaciones de Descarga y Espesamiento</h3>
           <span class="counter">{{ tailings.length }} Estaciones Activas</span>

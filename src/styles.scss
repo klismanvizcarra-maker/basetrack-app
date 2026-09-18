@@ -318,30 +318,75 @@ input::placeholder, textarea::placeholder {
 }
 
 /* ==========================================================================
-   Global Print Styles for Official Shift PDF Reports
+   Global Print Styles for Official Single-Page A4 PDF Reports
    ========================================================================== */
 @media print {
   @page {
     size: A4 portrait;
-    margin: 10mm 12mm 10mm 12mm;
+    margin: 4mm 6mm 4mm 6mm !important;
   }
 
   html, body {
     background: #ffffff !important;
     color: #0f172a !important;
-    font-size: 10.5pt !important;
+    font-size: 7.8pt !important;
+    line-height: 1.15 !important;
     margin: 0 !important;
     padding: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
-  /* Ocultar elementos de navegación e interfaz interactiva */
+  /* SUPRIMIR COMPLETAMENTE TODOS LOS BOTONES, NAVEGACIÓN Y CONTROLES INTERACTIVOS */
+  button,
+  .btn,
+  .action-btn,
+  .action-btn-pdf,
+  .pill-btn,
+  .station-tab-btn,
+  .header-actions,
+  .close-btn,
+  .report-modal-header,
+  .no-print,
   app-sidebar,
   app-header,
+  .app-header,
   .mobile-menu-btn,
-  .no-print,
   .btn-install-header,
-  .btn-sync-header {
+  .btn-sync-header,
+  .cloud-sync-pill,
+  .page-top-bar,
+  .top-controls,
+  .top-actions,
+  .actions-group,
+  .view-pill-group,
+  .station-controls-card,
+  .station-tabs {
     display: none !important;
+    visibility: hidden !important;
+  }
+
+  /* Ocultar contenido subyacente de la app para que NADA se filtre al reporte */
+  .pumps-page > *:not(app-pump-report-pdf),
+  .cyclones-page > *:not(app-cyclone-report-pdf),
+  .tailings-page > *:not(app-tailings-report-pdf),
+  .shift-page > *:not(app-shift-report-pdf),
+  .report-container,
+  .pumps-table-wrapper,
+  .section-card,
+  .telemetry-grid,
+  .safety-metrics-grid,
+  .table-card,
+  .summary-cards-grid,
+  .handover-form-card,
+  .samples-sheet-card,
+  .cyclones-grid,
+  app-modal {
+    display: none !important;
+    visibility: hidden !important;
   }
 
   .main-content, .page-wrapper {
@@ -349,5 +394,57 @@ input::placeholder, textarea::placeholder {
     padding: 0 !important;
     width: 100% !important;
     max-width: 100% !important;
+    background: #ffffff !important;
+  }
+
+  /* Desmontar la caja modal para que el reporte fluya como hoja nativa A4 */
+  .report-backdrop {
+    position: static !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    display: block !important;
+    overflow: visible !important;
+    backdrop-filter: none !important;
+    z-index: auto !important;
+  }
+
+  .report-modal-wrapper {
+    position: static !important;
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    max-width: 100% !important;
+    max-height: none !important;
+    width: 100% !important;
+    height: auto !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    display: block !important;
+    overflow: visible !important;
+    background: transparent !important;
+  }
+
+  .report-document-body {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+    font-size: 7.8pt !important;
+    line-height: 1.15 !important;
+    page-break-after: avoid !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .doc-section, .signatures-grid {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
 }

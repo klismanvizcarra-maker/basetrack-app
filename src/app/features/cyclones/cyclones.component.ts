@@ -61,7 +61,7 @@ export interface GeneralAverages {
   template: `
     <div class="cyclones-page animate-fade-in">
       <!-- Top Action Bar -->
-      <div class="page-top-bar">
+      <div class="page-top-bar no-print">
         <div class="top-text">
           <h2>Baterías de Ciclones (Cyclopac & Estaciones)</h2>
           <p class="section-sub">Control granulométrico de malla -200, balance de sólidos y presión manifold</p>
@@ -102,7 +102,7 @@ export interface GeneralAverages {
       </div>
 
       <!-- Controls & Station Tabs -->
-      <div class="station-controls-card glass-panel">
+      <div class="station-controls-card glass-panel no-print">
         <div class="station-tabs">
           <button
             class="station-tab-btn"
@@ -145,7 +145,7 @@ export interface GeneralAverages {
       </div>
 
       <!-- Promedios Clave Cards -->
-      <div class="promedios-hero-grid">
+      <div class="promedios-hero-grid no-print">
         <div class="promedio-kpi-card glass-panel">
           <div class="kpi-icon-wrap emerald">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3">
@@ -180,7 +180,7 @@ export interface GeneralAverages {
       </div>
 
       <!-- ÚNICA TABLA METALÚRGICA (Modo Escritorio y Modo Móvil unificados) -->
-      <div class="metallurgical-sheet-wrapper glass-panel animate-fade-in">
+      <div class="metallurgical-sheet-wrapper glass-panel no-print animate-fade-in">
         <!-- Station Header Banner -->
         <div class="station-banner-header">
           <div class="banner-title-group">
@@ -290,7 +290,7 @@ export interface GeneralAverages {
       </div>
 
       <!-- Telemetry Section: Cyclopac Cluster Batteries -->
-      <div class="section-divider">
+      <div class="section-divider no-print">
         <div>
           <h3>Telemetría de Nidos Cyclopac (Manifold & Células)</h3>
           <p class="section-sub">Presión de trabajo, corte granulométrico P80 en micrometros y estado de ápice/vortex</p>
@@ -298,7 +298,7 @@ export interface GeneralAverages {
       </div>
 
       <!-- Batteries Grid -->
-      <div class="batteries-grid">
+      <div class="batteries-grid no-print">
         <div *ngFor="let battery of cyclones" class="battery-card glass-panel" [class.optimal]="battery.status === 'OPTIMAL'" [class.attention]="battery.status === 'ATTENTION'">
           <div class="battery-header">
             <div>

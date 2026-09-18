@@ -18,7 +18,7 @@ import { PwaService } from '../../core/pwa/pwa.service';
       (click)="layoutService.closeSidebar()"
     ></div>
 
-    <aside class="app-sidebar" [class.mobile-open]="layoutService.isSidebarOpen()">
+    <aside class="app-sidebar no-print" [class.mobile-open]="layoutService.isSidebarOpen()">
       <!-- Logo brand & Mobile close button -->
       <div class="sidebar-brand">
         <div class="brand-icon">

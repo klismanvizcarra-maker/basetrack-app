@@ -573,22 +573,21 @@ import { StationSample, GeneralAverages } from '../cyclones/cyclones.component';
     @media print {
       @page {
         size: A4 portrait;
-        margin: 6mm 8mm 6mm 8mm;
+        margin: 4mm 6mm 4mm 6mm !important;
       }
 
-      body * {
-        visibility: hidden !important;
-      }
-
-      .no-print, .header-actions, .close-btn {
+      .no-print, .header-actions, .close-btn, button, .report-modal-header {
         display: none !important;
+        visibility: hidden !important;
       }
 
       .report-backdrop {
         position: static !important;
         background: transparent !important;
         padding: 0 !important;
+        margin: 0 !important;
         overflow: visible !important;
+        display: block !important;
       }
 
       .report-modal-wrapper {
@@ -597,20 +596,20 @@ import { StationSample, GeneralAverages } from '../cyclones/cyclones.component';
         border-radius: 0 !important;
         max-width: 100% !important;
         max-height: none !important;
-      }
-
-      #printable-cyclone-report, #printable-cyclone-report * {
-        visibility: visible !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        overflow: visible !important;
+        display: block !important;
       }
 
       #printable-cyclone-report {
-        position: absolute !important;
-        left: 0 !important;
-        top: 0 !important;
+        position: static !important;
         width: 100% !important;
         padding: 0 !important;
-        font-size: 7.8pt !important;
+        margin: 0 !important;
+        font-size: 7.6pt !important;
         line-height: 1.15 !important;
+        display: block !important;
       }
 
       .doc-section, .signatures-grid {
