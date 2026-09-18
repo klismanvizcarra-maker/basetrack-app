@@ -5,6 +5,7 @@ import { HttpClient } from '@angular/common/http';
 import { ModalComponent } from '../../shared/ui/modal.component';
 import { OfflineSyncService } from '../../core/offline/offline-sync.service';
 import { getRealtimeData, saveRealtimeData } from '../../core/storage/local-store.util';
+import { TailingsReportPdfComponent } from '../reports/tailings-report-pdf.component';
 
 export interface TailingsReport {
   id: string;
@@ -25,7 +26,7 @@ export interface TailingsReport {
 @Component({
   selector: 'app-tailings',
   standalone: true,
-  imports: [CommonModule, FormsModule, ModalComponent],
+  imports: [CommonModule, FormsModule, ModalComponent, TailingsReportPdfComponent],
   template: `
     <div class="tailings-page animate-fade-in">
       <div class="page-top-bar">
@@ -33,13 +34,24 @@ export interface TailingsReport {
           <h2>Reporte de Descarga</h2>
           <p class="section-sub">Espesamiento de pulpas, porcentaje de sólidos y estabilidad de presa</p>
         </div>
-        <button class="btn btn-primary" (click)="isCreateModalOpen = true">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-            <line x1="12" y1="5" x2="12" y2="19"></line>
-            <line x1="5" y1="12" x2="19" y2="12"></line>
-          </svg>
-          Registrar Lectura de Relaves
-        </button>
+        <div class="top-actions">
+          <button class="btn btn-secondary action-btn-pdf" (click)="isPdfModalOpen = true" title="Exportar reporte de relaves en PDF a una sola hoja">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+            </svg>
+            <span class="btn-text">Exportar PDF (1 Hoja)</span>
+          </button>
+          <button class="btn btn-primary" (click)="isCreateModalOpen = true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            Registrar Lectura de Relaves
+          </button>
+        </div>
       </div>
 
       <!-- Dam Level & Safety Metrics Row -->
@@ -169,6 +181,13 @@ export interface TailingsReport {
           </div>
         </form>
       </app-modal>
+
+      <!-- Modal Exportar Reporte PDF Oficial a 1 Hoja -->
+      <app-tailings-report-pdf
+        [isOpen]="isPdfModalOpen"
+        [items]="tailings"
+        (close)="isPdfModalOpen = false">
+      </app-tailings-report-pdf>
     </div>
   `,
   styles: [`
@@ -182,6 +201,15 @@ export interface TailingsReport {
       display: flex;
       align-items: center;
       justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 14px;
+
+      .top-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
 
       h2 {
         font-size: 1.4rem;
@@ -348,6 +376,7 @@ export class TailingsComponent implements OnInit {
 
   tailings: TailingsReport[] = [];
   isCreateModalOpen = false;
+  isPdfModalOpen = false;
 
   newTailings = {
     station_tag: 'CANALETA-RELAVES-02',

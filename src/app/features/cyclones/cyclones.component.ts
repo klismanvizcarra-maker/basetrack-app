@@ -5,6 +5,7 @@ import { HttpClient } from '@angular/common/http';
 import { ModalComponent } from '../../shared/ui/modal.component';
 import { OfflineSyncService } from '../../core/offline/offline-sync.service';
 import { getRealtimeData, saveRealtimeData } from '../../core/storage/local-store.util';
+import { CycloneReportPdfComponent } from '../reports/cyclone-report-pdf.component';
 
 export interface CycloneReport {
   id: string;
@@ -56,7 +57,7 @@ export interface GeneralAverages {
 @Component({
   selector: 'app-cyclones',
   standalone: true,
-  imports: [CommonModule, FormsModule, ModalComponent],
+  imports: [CommonModule, FormsModule, ModalComponent, CycloneReportPdfComponent],
   template: `
     <div class="cyclones-page animate-fade-in">
       <!-- Top Action Bar -->
@@ -66,6 +67,15 @@ export interface GeneralAverages {
           <p class="section-sub">Control granulométrico de malla -200, balance de sólidos y presión manifold</p>
         </div>
         <div class="top-actions">
+          <button class="btn btn-secondary action-btn-pdf" (click)="isPdfModalOpen = true" title="Exportar planilla metalúrgica de ciclones en PDF a una sola hoja">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+            </svg>
+            <span class="btn-text">Exportar PDF (1 Hoja)</span>
+          </button>
           <button class="btn btn-secondary action-btn" (click)="exportCsv()" title="Exportar reporte en CSV">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
@@ -551,6 +561,16 @@ export interface GeneralAverages {
           </div>
         </div>
       </app-modal>
+
+      <!-- Modal Exportar Reporte PDF Oficial a 1 Hoja -->
+      <app-cyclone-report-pdf
+        [isOpen]="isPdfModalOpen"
+        [samples]="filteredStationSamples"
+        [station]="selectedStation"
+        [shiftCode]="selectedShift"
+        [averages]="generalAverages"
+        (close)="isPdfModalOpen = false">
+      </app-cyclone-report-pdf>
     </div>
   `,
   styles: [`
@@ -1740,6 +1760,7 @@ export class CyclonesComponent implements OnInit {
   filterDate: string = '';
 
   isDeleteModalOpen = false;
+  isPdfModalOpen = false;
   groupToDelete: GroupedSample | null = null;
 
   quickHours: string[] = ['20:00', '23:00', '02:00', '05:00', '08:00', '11:00', '14:00', '17:00'];

@@ -5,6 +5,7 @@ import { HttpClient } from '@angular/common/http';
 import { ModalComponent } from '../../shared/ui/modal.component';
 import { OfflineSyncService } from '../../core/offline/offline-sync.service';
 import { getRealtimeData, saveRealtimeData } from '../../core/storage/local-store.util';
+import { PumpReportPdfComponent } from '../reports/pump-report-pdf.component';
 
 export interface PumpStatusItem {
   tag: string;
@@ -82,7 +83,7 @@ export interface PumpReport {
 @Component({
   selector: 'app-pumps',
   standalone: true,
-  imports: [CommonModule, FormsModule, ModalComponent],
+  imports: [CommonModule, FormsModule, ModalComponent, PumpReportPdfComponent],
   template: `
     <div class="pumps-page animate-fade-in">
       <!-- Top Action Bar -->
@@ -118,6 +119,15 @@ export interface PumpReport {
 
           <!-- Action Buttons -->
           <div class="actions-group">
+            <button class="btn btn-secondary action-btn-pdf" (click)="isPdfModalOpen = true" title="Exportar reporte oficial de bombas en PDF a una sola hoja">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+              </svg>
+              Exportar PDF (1 Hoja)
+            </button>
             <button *ngIf="activeTab === 'REPORT'" class="btn btn-secondary" (click)="openEditModal()">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
@@ -671,6 +681,14 @@ export interface PumpReport {
           </div>
         </div>
       </app-modal>
+
+      <!-- Modal Exportar Reporte PDF Oficial a 1 Hoja -->
+      <app-pump-report-pdf
+        [isOpen]="isPdfModalOpen"
+        [sheet]="sheet"
+        [pumps]="pumps"
+        (close)="isPdfModalOpen = false">
+      </app-pump-report-pdf>
     </div>
   `,
   styles: [`
@@ -1524,6 +1542,7 @@ export class PumpsComponent implements OnInit {
   isEditModalOpen = false;
   isCreateModalOpen = false;
   isStatusModalOpen = false;
+  isPdfModalOpen = false;
   isSaving = false;
 
   // Max rows in Section A is 10 (Torre 5 has PU021..PU030)
