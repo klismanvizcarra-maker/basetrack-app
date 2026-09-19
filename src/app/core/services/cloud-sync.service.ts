@@ -13,12 +13,16 @@ export interface SyncEventPayload {
 
 export type SyncState = 'ONLINE' | 'SYNCING' | 'OFFLINE' | 'LOCAL';
 
+import { getApiBaseUrl } from '../constants/api.config';
+
 @Injectable({
   providedIn: 'root'
 })
 export class CloudSyncService {
   private http = inject(HttpClient);
-  private apiUrl = 'http://localhost:3001/api/sync';
+  private get apiUrl(): string {
+    return `${getApiBaseUrl()}/sync`;
+  }
 
   // Signals for reactive UI
   public syncStatus = signal<SyncState>('ONLINE');

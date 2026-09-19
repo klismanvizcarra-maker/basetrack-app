@@ -2,6 +2,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
+import { getApiBaseUrl } from '../../core/constants/api.config';
 import { ModalComponent } from '../../shared/ui/modal.component';
 import { OfflineSyncService } from '../../core/offline/offline-sync.service';
 import { getRealtimeData, saveRealtimeData } from '../../core/storage/local-store.util';
@@ -452,7 +453,7 @@ export class MaintenanceComponent implements OnInit {
       this.tickets = cached;
     }
 
-    this.http.get<any>('http://localhost:3001/api/maintenance').subscribe({
+    this.http.get<any>(`${getApiBaseUrl()}/maintenance`).subscribe({
       next: (res) => {
         if (res.success && res.data && res.data.length > 0) {
           this.tickets = res.data;
@@ -563,17 +564,18 @@ export class MaintenanceComponent implements OnInit {
     saveRealtimeData('maintenance_tickets', this.tickets);
     this.isCreateModalOpen = false;
 
+    const endpoint = `${getApiBaseUrl()}/maintenance`;
     if (this.offlineSync.isOnline()) {
-      this.http.post<any>('http://localhost:3001/api/maintenance', this.newTicket).subscribe({
+      this.http.post<any>(endpoint, this.newTicket).subscribe({
         next: () => {
           this.loadTickets();
         },
         error: () => {
-          this.offlineSync.queueAction('http://localhost:3001/api/maintenance', 'POST', this.newTicket, 'OT ' + this.newTicket.equipment_tag);
+          this.offlineSync.queueAction(endpoint, 'POST', this.newTicket, 'OT ' + this.newTicket.equipment_tag);
         }
       });
     } else {
-      this.offlineSync.queueAction('http://localhost:3001/api/maintenance', 'POST', this.newTicket, 'OT ' + this.newTicket.equipment_tag);
+      this.offlineSync.queueAction(endpoint, 'POST', this.newTicket, 'OT ' + this.newTicket.equipment_tag);
     }
   }
 
@@ -581,12 +583,13 @@ export class MaintenanceComponent implements OnInit {
     t.status = newStatus;
     saveRealtimeData('maintenance_tickets', this.tickets);
 
-    this.http.patch<any>(`http://localhost:3001/api/maintenance/${t.id}/status`, { status: newStatus }).subscribe({
+    const endpoint = `${getApiBaseUrl()}/maintenance/${t.id}/status`;
+    this.http.patch<any>(endpoint, { status: newStatus }).subscribe({
       next: () => {
         this.loadTickets();
       },
       error: () => {
-        this.offlineSync.queueAction(`http://localhost:3001/api/maintenance/${t.id}/status`, 'PATCH' as any, { status: newStatus }, `Estado OT ${t.ticket_number}`);
+        this.offlineSync.queueAction(endpoint, 'PATCH' as any, { status: newStatus }, `Estado OT ${t.ticket_number}`);
       }
     });
   }

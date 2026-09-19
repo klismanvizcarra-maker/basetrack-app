@@ -197,13 +197,17 @@ INITIAL_USERS_REGISTRY['operador_bombas'] = {
   fullName: `${DEFAULT_ADMIN_USER.fullName} (Operador Bombas)`
 };
 
+import { getApiBaseUrl } from '../constants/api.config';
+
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
   private http = inject(HttpClient);
   private router = inject(Router);
-  private apiUrl = 'http://localhost:3001/api/auth';
+  private get apiUrl(): string {
+    return `${getApiBaseUrl()}/auth`;
+  }
 
   // Reactive State Signals - NULL BY DEFAULT, no auto-login without valid token
   private tokenSignal = signal<string | null>(this.getStoredToken());

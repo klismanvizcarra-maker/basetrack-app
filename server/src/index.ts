@@ -11,9 +11,19 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// CORS setup to allow Angular frontend
+// CORS setup to allow Angular frontend and local network devices
 app.use(cors({
-  origin: ['http://localhost:4200', 'http://127.0.0.1:4200', 'http://localhost:5173'],
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps, curl or server-to-server)
+    if (!origin) return callback(null, true);
+    
+    // Allow localhost, 127.0.0.1, local private network IPs (192.168.x, 10.x, 172.x) and Vercel domains
+    const isLocalOrNetwork = /^(http:\/\/localhost(:\d+)?|http:\/\/127\.0\.0\.1(:\d+)?|http:\/\/192\.168\.\d+\.\d+(:\d+)?|http:\/\/10\.\d+\.\d+\.\d+(:\d+)?|https:\/\/.*\.vercel\.app)$/.test(origin);
+    if (isLocalOrNetwork || process.env.NODE_ENV !== 'production') {
+      return callback(null, true);
+    }
+    return callback(new Error('CORS no permitido para este origen'), false);
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']

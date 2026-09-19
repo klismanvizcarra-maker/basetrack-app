@@ -2,6 +2,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
+import { getApiBaseUrl } from '../../core/constants/api.config';
 import { timeout } from 'rxjs';
 import { ModalComponent } from '../../shared/ui/modal.component';
 import { AuthService } from '../../core/auth/auth.service';
@@ -1813,7 +1814,7 @@ export class AdminComponent implements OnInit {
   }
 
   loadUsers(): void {
-    this.http.get<any>('http://localhost:3001/api/admin/users').subscribe({
+    this.http.get<any>(`${getApiBaseUrl()}/admin/users`).subscribe({
       next: (res) => {
         if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
           this.users = res.data;
@@ -1829,7 +1830,7 @@ export class AdminComponent implements OnInit {
   }
 
   loadLogs(): void {
-    this.http.get<any>('http://localhost:3001/api/admin/audit-logs').subscribe({
+    this.http.get<any>(`${getApiBaseUrl()}/admin/audit-logs`).subscribe({
       next: (res) => {
         if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
           this.logs = res.data;
@@ -1876,7 +1877,7 @@ export class AdminComponent implements OnInit {
 
     this.isCreateUserModalOpen = false;
 
-    this.http.post<any>('http://localhost:3001/api/admin/users', this.newUser).subscribe({
+    this.http.post<any>(`${getApiBaseUrl()}/admin/users`, this.newUser).subscribe({
       next: (res) => {
         if (res && res.id) {
           createdUser.id = res.id;
@@ -1899,7 +1900,7 @@ export class AdminComponent implements OnInit {
   }
 
   exportBackup(): void {
-    this.http.get<any>('http://localhost:3001/api/admin/backup').subscribe({
+    this.http.get<any>(`${getApiBaseUrl()}/admin/backup`).subscribe({
       next: (res) => {
         if (res && res.success && res.backup) {
           const blob = new Blob([JSON.stringify(res.backup, null, 2)], { type: 'application/json' });
@@ -1950,7 +1951,7 @@ export class AdminComponent implements OnInit {
           return;
         }
 
-        this.http.post<any>('http://localhost:3001/api/admin/restore', { backup: json.backup || json }).subscribe({
+        this.http.post<any>(`${getApiBaseUrl()}/admin/restore`, { backup: json.backup || json }).subscribe({
           next: (res) => {
             if (res && res.success) {
               this.backupSuccessMessage = '¡Respaldo restaurado exitosamente! Los datos del sistema han sido sincronizados.';
@@ -2171,7 +2172,8 @@ export class AdminComponent implements OnInit {
       }
     };
 
-    this.http.post<any>('http://localhost:3001/api/admin/users/bulk', { users: validRows })
+    const bulkEndpoint = `${getApiBaseUrl()}/admin/users/bulk`;
+    this.http.post<any>(bulkEndpoint, { users: validRows })
       .pipe(timeout(3000))
       .subscribe({
         next: (res) => {
@@ -2196,7 +2198,7 @@ export class AdminComponent implements OnInit {
 
           // Enqueue for offline sync when connection restores
           this.offlineSync.queueAction(
-            'http://localhost:3001/api/admin/users/bulk',
+            bulkEndpoint,
             'POST',
             { users: validRows },
             `Carga por lote: ${validRows.length} trabajadores`
@@ -2214,7 +2216,7 @@ export class AdminComponent implements OnInit {
 
   loadConnectedDevices(): void {
     this.isLoadingDevices = true;
-    this.http.get<any>('http://localhost:3001/api/admin/devices').subscribe({
+    this.http.get<any>(`${getApiBaseUrl()}/admin/devices`).subscribe({
       next: (res) => {
         this.isLoadingDevices = false;
         const list = res?.devices || res?.data;
@@ -2249,7 +2251,7 @@ export class AdminComponent implements OnInit {
       return;
     }
 
-    this.http.post<any>(`http://localhost:3001/api/admin/devices/${dev.device_id}/revoke`, {}).subscribe({
+    this.http.post<any>(`${getApiBaseUrl()}/admin/devices/${dev.device_id}/revoke`, {}).subscribe({
       next: () => {
         dev.is_revoked = 1;
         dev.is_online = 0;
@@ -2316,7 +2318,7 @@ export class AdminComponent implements OnInit {
     const newRole = this.editRole;
     const newShift = this.editShift;
 
-    this.http.patch<any>(`http://localhost:3001/api/admin/users/${user.id}/role-shift`, {
+    this.http.patch<any>(`${getApiBaseUrl()}/admin/users/${user.id}/role-shift`, {
       role: newRole,
       shift: newShift
     }).subscribe({
@@ -2353,7 +2355,7 @@ export class AdminComponent implements OnInit {
     this.isSavingUser = true;
     const user = this.selectedUserForReset;
 
-    this.http.post<any>(`http://localhost:3001/api/admin/users/${user.id}/reset-password`, {
+    this.http.post<any>(`${getApiBaseUrl()}/admin/users/${user.id}/reset-password`, {
       newPassword: this.resetNewPassword.trim() || undefined
     }).subscribe({
       next: (res) => {
@@ -2386,7 +2388,7 @@ export class AdminComponent implements OnInit {
       return;
     }
 
-    this.http.patch<any>(`http://localhost:3001/api/admin/users/${u.id}/status`, {
+    this.http.patch<any>(`${getApiBaseUrl()}/admin/users/${u.id}/status`, {
       isActive: newStatus
     }).subscribe({
       next: () => {

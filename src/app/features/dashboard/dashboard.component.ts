@@ -1,6 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
+import { getApiBaseUrl } from '../../core/constants/api.config';
 import { StatCardComponent } from '../../shared/ui/stat-card.component';
 import { CircularGaugeComponent } from '../../shared/ui/circular-gauge.component';
 import { DistributionDonutComponent } from '../../shared/ui/distribution-donut.component';
@@ -399,7 +400,7 @@ export class DashboardComponent implements OnInit {
   }
 
   fetchMetrics(): void {
-    this.http.get<any>('http://localhost:3001/api/dashboard/metrics').subscribe({
+    this.http.get<any>(`${getApiBaseUrl()}/dashboard/metrics`).subscribe({
       next: (res) => {
         if (res.success && res.data) {
           const d = res.data;

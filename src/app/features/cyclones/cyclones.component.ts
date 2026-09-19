@@ -2,6 +2,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
+import { getApiBaseUrl } from '../../core/constants/api.config';
 import { ModalComponent } from '../../shared/ui/modal.component';
 import { OfflineSyncService } from '../../core/offline/offline-sync.service';
 import { getRealtimeData, saveRealtimeData } from '../../core/storage/local-store.util';
@@ -1869,7 +1870,7 @@ export class CyclonesComponent implements OnInit {
       this.filterSamples();
     }
 
-    const url = `http://localhost:3001/api/cyclones/station-samples?station=${encodeURIComponent(this.selectedStation)}`;
+    const url = `${getApiBaseUrl()}/cyclones/station-samples?station=${encodeURIComponent(this.selectedStation)}`;
     this.http.get<any>(url).subscribe({
       next: (res) => {
         if (res.success && res.data && res.data.length > 0) {
@@ -1982,17 +1983,18 @@ export class CyclonesComponent implements OnInit {
     this.filterSamples();
     this.isSampleModalOpen = false;
 
+    const endpoint = `${getApiBaseUrl()}/cyclones/station-samples`;
     if (this.offlineSync.isOnline()) {
-      this.http.post<any>('http://localhost:3001/api/cyclones/station-samples', payload).subscribe({
+      this.http.post<any>(endpoint, payload).subscribe({
         next: () => {
           this.loadStationSamples();
         },
         error: () => {
-          this.offlineSync.queueAction('http://localhost:3001/api/cyclones/station-samples', 'POST', payload, `Muestra ${payload.station} ${payload.sample_time} ${payload.battery_tag}`);
+          this.offlineSync.queueAction(endpoint, 'POST', payload, `Muestra ${payload.station} ${payload.sample_time} ${payload.battery_tag}`);
         }
       });
     } else {
-      this.offlineSync.queueAction('http://localhost:3001/api/cyclones/station-samples', 'POST', payload, `Muestra ${payload.station} ${payload.sample_time} ${payload.battery_tag}`);
+      this.offlineSync.queueAction(endpoint, 'POST', payload, `Muestra ${payload.station} ${payload.sample_time} ${payload.battery_tag}`);
     }
   }
 
@@ -2004,20 +2006,20 @@ export class CyclonesComponent implements OnInit {
   deleteSingleRow(row: StationSample): void {
     const id = row.id;
     if (id && !id.startsWith('s-') && !id.startsWith('temp-') && !id.startsWith('sample-')) {
+      const deleteUrl = `${getApiBaseUrl()}/cyclones/station-samples/${id}`;
       if (this.offlineSync.isOnline()) {
-        this.http.delete<any>(`http://localhost:3001/api/cyclones/station-samples/${id}`).subscribe({
+        this.http.delete<any>(deleteUrl).subscribe({
           next: () => console.log(`Deleted sample ${id}`),
           error: (err) => console.warn('Delete error or offline', err)
         });
       } else {
-        this.offlineSync.queueAction(`http://localhost:3001/api/cyclones/station-samples/${id}`, 'DELETE' as any, {}, `Eliminar muestra ${row.station} ${row.sample_time} ${row.battery_tag}`);
+        this.offlineSync.queueAction(deleteUrl, 'DELETE' as any, {}, `Eliminar muestra ${row.station} ${row.sample_time} ${row.battery_tag}`);
       }
     }
 
     this.rawStationSamples = this.rawStationSamples.filter(s => s !== row && s.id !== id);
     saveRealtimeData('cyclone_samples', this.rawStationSamples);
     this.filterSamples();
-
     if (this.groupToDelete) {
       this.groupToDelete.rows = this.groupToDelete.rows.filter(r => r !== row && r.id !== id);
       if (this.groupToDelete.rows.length === 0) {
@@ -2031,13 +2033,14 @@ export class CyclonesComponent implements OnInit {
     for (const row of group.rows) {
       const id = row.id;
       if (id && !id.startsWith('s-') && !id.startsWith('temp-') && !id.startsWith('sample-')) {
+        const deleteUrl = `${getApiBaseUrl()}/cyclones/station-samples/${id}`;
         if (this.offlineSync.isOnline()) {
-          this.http.delete<any>(`http://localhost:3001/api/cyclones/station-samples/${id}`).subscribe({
+          this.http.delete<any>(deleteUrl).subscribe({
             next: () => console.log(`Deleted sample ${id}`),
             error: (err) => console.warn('Delete error or offline', err)
           });
         } else {
-          this.offlineSync.queueAction(`http://localhost:3001/api/cyclones/station-samples/${id}`, 'DELETE' as any, {}, `Eliminar muestra ${row.station} ${row.sample_time} ${row.battery_tag}`);
+          this.offlineSync.queueAction(deleteUrl, 'DELETE' as any, {}, `Eliminar muestra ${row.station} ${row.sample_time} ${row.battery_tag}`);
         }
       }
     }
@@ -2100,7 +2103,7 @@ export class CyclonesComponent implements OnInit {
   }
 
   loadCyclones(): void {
-    this.http.get<any>('http://localhost:3001/api/cyclones').subscribe({
+    this.http.get<any>(`${getApiBaseUrl()}/cyclones`).subscribe({
       next: (res) => {
         if (res.success && res.data) {
           this.cyclones = res.data;
@@ -2138,19 +2141,20 @@ export class CyclonesComponent implements OnInit {
   }
 
   saveCyclone(): void {
+    const endpoint = `${getApiBaseUrl()}/cyclones`;
     if (this.offlineSync.isOnline()) {
-      this.http.post<any>('http://localhost:3001/api/cyclones', this.newCyclone).subscribe({
+      this.http.post<any>(endpoint, this.newCyclone).subscribe({
         next: () => {
           this.isCreateModalOpen = false;
           this.loadCyclones();
         },
         error: () => {
-          this.offlineSync.queueAction('http://localhost:3001/api/cyclones', 'POST', this.newCyclone, 'Ciclón ' + this.newCyclone.battery_tag);
+          this.offlineSync.queueAction(endpoint, 'POST', this.newCyclone, 'Ciclón ' + this.newCyclone.battery_tag);
           this.isCreateModalOpen = false;
         }
       });
     } else {
-      this.offlineSync.queueAction('http://localhost:3001/api/cyclones', 'POST', this.newCyclone, 'Ciclón ' + this.newCyclone.battery_tag);
+      this.offlineSync.queueAction(endpoint, 'POST', this.newCyclone, 'Ciclón ' + this.newCyclone.battery_tag);
       this.isCreateModalOpen = false;
     }
   }

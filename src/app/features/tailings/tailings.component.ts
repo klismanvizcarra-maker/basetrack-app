@@ -2,6 +2,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
+import { getApiBaseUrl } from '../../core/constants/api.config';
 import { ModalComponent } from '../../shared/ui/modal.component';
 import { OfflineSyncService } from '../../core/offline/offline-sync.service';
 import { getRealtimeData, saveRealtimeData } from '../../core/storage/local-store.util';
@@ -400,7 +401,7 @@ export class TailingsComponent implements OnInit {
       this.tailings = cached;
     }
 
-    this.http.get<any>('http://localhost:3001/api/tailings').subscribe({
+    this.http.get<any>(`${getApiBaseUrl()}/tailings`).subscribe({
       next: (res) => {
         if (res.success && res.data && res.data.length > 0) {
           this.tailings = res.data;
@@ -461,17 +462,18 @@ export class TailingsComponent implements OnInit {
     saveRealtimeData('tailings_reports', this.tailings);
     this.isCreateModalOpen = false;
 
+    const endpoint = `${getApiBaseUrl()}/tailings`;
     if (this.offlineSync.isOnline()) {
-      this.http.post<any>('http://localhost:3001/api/tailings', this.newTailings).subscribe({
+      this.http.post<any>(endpoint, this.newTailings).subscribe({
         next: () => {
           this.loadTailings();
         },
         error: () => {
-          this.offlineSync.queueAction('http://localhost:3001/api/tailings', 'POST', this.newTailings, 'Relaves ' + this.newTailings.station_tag);
+          this.offlineSync.queueAction(endpoint, 'POST', this.newTailings, 'Relaves ' + this.newTailings.station_tag);
         }
       });
     } else {
-      this.offlineSync.queueAction('http://localhost:3001/api/tailings', 'POST', this.newTailings, 'Relaves ' + this.newTailings.station_tag);
+      this.offlineSync.queueAction(endpoint, 'POST', this.newTailings, 'Relaves ' + this.newTailings.station_tag);
     }
   }
 }

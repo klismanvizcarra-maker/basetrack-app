@@ -2,6 +2,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
+import { getApiBaseUrl } from '../../core/constants/api.config';
 import { ModalComponent } from '../../shared/ui/modal.component';
 import { AuthService } from '../../core/auth/auth.service';
 import { OfflineSyncService } from '../../core/offline/offline-sync.service';
@@ -496,7 +497,7 @@ export class ShiftHandoverComponent implements OnInit {
       this.latestHandover = this.handovers[0];
     }
 
-    this.http.get<any>('http://localhost:3001/api/shift-handover').subscribe({
+    this.http.get<any>(`${getApiBaseUrl()}/shift-handover`).subscribe({
       next: (res) => {
         if (res.success && res.data && res.data.length > 0) {
           this.handovers = res.data;
@@ -556,17 +557,18 @@ export class ShiftHandoverComponent implements OnInit {
     saveRealtimeData('shift_handovers', this.handovers);
     this.isCreateModalOpen = false;
 
+    const endpoint = `${getApiBaseUrl()}/shift-handover`;
     if (this.offlineSync.isOnline()) {
-      this.http.post<any>('http://localhost:3001/api/shift-handover', payload).subscribe({
+      this.http.post<any>(endpoint, payload).subscribe({
         next: () => {
           this.loadHandovers();
         },
         error: () => {
-          this.offlineSync.queueAction('http://localhost:3001/api/shift-handover', 'POST', payload, 'Relevo ' + payload.shift_code);
+          this.offlineSync.queueAction(endpoint, 'POST', payload, 'Relevo ' + payload.shift_code);
         }
       });
     } else {
-      this.offlineSync.queueAction('http://localhost:3001/api/shift-handover', 'POST', payload, 'Relevo ' + payload.shift_code);
+      this.offlineSync.queueAction(endpoint, 'POST', payload, 'Relevo ' + payload.shift_code);
     }
   }
 
@@ -577,12 +579,13 @@ export class ShiftHandoverComponent implements OnInit {
       saveRealtimeData('shift_handovers', this.handovers);
     }
 
-    this.http.patch<any>(`http://localhost:3001/api/shift-handover/${id}/accept`, {}).subscribe({
+    const endpoint = `${getApiBaseUrl()}/shift-handover/${id}/accept`;
+    this.http.patch<any>(endpoint, {}).subscribe({
       next: () => {
         this.loadHandovers();
       },
       error: () => {
-        this.offlineSync.queueAction(`http://localhost:3001/api/shift-handover/${id}/accept`, 'PATCH' as any, {}, `Aceptar relevo ${id}`);
+        this.offlineSync.queueAction(endpoint, 'PATCH' as any, {}, `Aceptar relevo ${id}`);
       }
     });
   }

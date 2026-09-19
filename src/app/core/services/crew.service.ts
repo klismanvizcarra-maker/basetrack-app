@@ -56,13 +56,17 @@ export interface CrewAreaAssignment {
   backup_avatar?: string;
 }
 
+import { getApiBaseUrl } from '../constants/api.config';
+
 @Injectable({
   providedIn: 'root'
 })
 export class CrewService {
   private http = inject(HttpClient);
   private offlineSync = inject(OfflineSyncService);
-  private apiUrl = 'http://localhost:3001/api/crew';
+  private get apiUrl(): string {
+    return `${getApiBaseUrl()}/crew`;
+  }
 
   // Standard Baseline Operational Positions
   readonly defaultPositions: CrewPositionMeta[] = [

@@ -2,6 +2,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
+import { getApiBaseUrl } from '../../core/constants/api.config';
 import { ModalComponent } from '../../shared/ui/modal.component';
 import { OfflineSyncService } from '../../core/offline/offline-sync.service';
 import { getRealtimeData, saveRealtimeData } from '../../core/storage/local-store.util';
@@ -1660,7 +1661,7 @@ export class PumpsComponent implements OnInit {
       this.sheet = { ...this.sheet, ...cached };
     }
 
-    this.http.get<any>(`http://localhost:3001/api/pumps/operational-sheet?date=${this.sheet.report_date}`).subscribe({
+    this.http.get<any>(`${getApiBaseUrl()}/pumps/operational-sheet?date=${this.sheet.report_date}`).subscribe({
       next: (res) => {
         if (res.success && res.data) {
           this.sheet = {
@@ -1684,7 +1685,7 @@ export class PumpsComponent implements OnInit {
       this.pumps = cached;
     }
 
-    this.http.get<any>('http://localhost:3001/api/pumps').subscribe({
+    this.http.get<any>(`${getApiBaseUrl()}/pumps`).subscribe({
       next: (res) => {
         if (res.success && res.data && res.data.length > 0) {
           this.pumps = res.data;
@@ -1770,18 +1771,19 @@ export class PumpsComponent implements OnInit {
     saveRealtimeData('pump_sheet_' + this.sheet.report_date, payload);
     saveRealtimeData('pump_sheet_latest', payload);
 
+    const endpoint = `${getApiBaseUrl()}/pumps/operational-sheet`;
     if (this.offlineSync.isOnline()) {
-      this.http.post<any>('http://localhost:3001/api/pumps/operational-sheet', payload).subscribe({
+      this.http.post<any>(endpoint, payload).subscribe({
         next: () => {
           this.isSaving = false;
         },
         error: () => {
-          this.offlineSync.queueAction('http://localhost:3001/api/pumps/operational-sheet', 'POST', payload, 'Reporte Bombas ' + this.sheet.report_date);
+          this.offlineSync.queueAction(endpoint, 'POST', payload, 'Reporte Bombas ' + this.sheet.report_date);
           this.isSaving = false;
         }
       });
     } else {
-      this.offlineSync.queueAction('http://localhost:3001/api/pumps/operational-sheet', 'POST', payload, 'Reporte Bombas ' + this.sheet.report_date);
+      this.offlineSync.queueAction(endpoint, 'POST', payload, 'Reporte Bombas ' + this.sheet.report_date);
       this.isSaving = false;
     }
   }
@@ -1814,17 +1816,18 @@ export class PumpsComponent implements OnInit {
     saveRealtimeData('pumps_telemetry', this.pumps);
     this.isCreateModalOpen = false;
 
+    const endpoint = `${getApiBaseUrl()}/pumps`;
     if (this.offlineSync.isOnline()) {
-      this.http.post<any>('http://localhost:3001/api/pumps', this.newPump).subscribe({
+      this.http.post<any>(endpoint, this.newPump).subscribe({
         next: () => {
           this.loadTelemetryPumps();
         },
         error: () => {
-          this.offlineSync.queueAction('http://localhost:3001/api/pumps', 'POST', this.newPump, 'Bomba ' + this.newPump.tag);
+          this.offlineSync.queueAction(endpoint, 'POST', this.newPump, 'Bomba ' + this.newPump.tag);
         }
       });
     } else {
-      this.offlineSync.queueAction('http://localhost:3001/api/pumps', 'POST', this.newPump, 'Bomba ' + this.newPump.tag);
+      this.offlineSync.queueAction(endpoint, 'POST', this.newPump, 'Bomba ' + this.newPump.tag);
     }
   }
 
@@ -1848,12 +1851,13 @@ export class PumpsComponent implements OnInit {
       notes: this.updatedNotes
     };
 
-    this.http.patch<any>(`http://localhost:3001/api/pumps/${this.selectedPump.id}/status`, payload).subscribe({
+    const endpoint = `${getApiBaseUrl()}/pumps/${this.selectedPump.id}/status`;
+    this.http.patch<any>(endpoint, payload).subscribe({
       next: () => {
         this.loadTelemetryPumps();
       },
       error: () => {
-        this.offlineSync.queueAction(`http://localhost:3001/api/pumps/${this.selectedPump!.id}/status`, 'PATCH' as any, payload, `Estado Bomba ${this.selectedPump!.tag}`);
+        this.offlineSync.queueAction(endpoint, 'PATCH' as any, payload, `Estado Bomba ${this.selectedPump!.tag}`);
       }
     });
   }

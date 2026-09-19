@@ -91,9 +91,18 @@ export class OfflineSyncService {
 
         await this.idb.removeFromQueue(item.id);
         console.log(`[OfflineSync] ✅ Sincronizado con éxito: ${item.entityName}`);
-      } catch (err) {
+      } catch (err: any) {
         console.error(`[OfflineSync] ❌ Error sincronizando ${item.entityName}:`, err);
-        await this.idb.incrementRetry(item.id);
+        const status = err?.status;
+        
+        // Si es un error 4xx no recuperable (bad request, validación, etc.) o superó 5 reintentos, descartar
+        if ((status >= 400 && status < 500 && status !== 408) || item.retryCount >= 5) {
+          console.warn(`[OfflineSync] Descartando acción no recuperable (status ${status}, retries: ${item.retryCount}): ${item.entityName}`);
+          await this.idb.removeFromQueue(item.id);
+        } else {
+          await this.idb.incrementRetry(item.id);
+        }
+
         // Si el servidor está caído o hay error de red, pausar para no saturar
         if (!navigator.onLine) {
           this.isOnline.set(false);
