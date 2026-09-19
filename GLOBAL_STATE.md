@@ -60,6 +60,7 @@
 | `TASK-022` | Auditoría Integral de Fallas y Mejoras (Test Suite 100%, Auth Robusto, Backup & Restore Total) | Orchestrator & Multi-Agent | `TASK-021` | `DONE` | 0/3 | Resolución de fallas de login y seeds idempotentes, 10/10 tests backend aprobados, build Angular sin advertencias CommonJS, exportación e importación/restauración total de backup JSON |
 | `TASK-023` | Gestión Avanzada de Usuarios (Toolbar, Filtros, Acciones Rápidas) y Monitor de Terminales (Fleet Manager) | Multi-Agent Team | `TASK-022` | `DONE` | 0/3 | Barra de búsqueda reactiva, filtros por guardia y rol, edición modal de rol/guardia con sync cuadrilla, restablecimiento de contraseña, suspensión/activación de cuenta, monitor de flota en tiempo real y revocación remota de sesión con FORCE_LOGOUT |
 | `TASK-024` | Ficha Operacional de Planta en Mi Perfil (DNI, Canal de Radio, Anexo, Especialidad y Sync Cuadrilla) | Multi-Agent Team | `TASK-023` | `DONE` | 0/3 | Ficha de guardia en Mi Perfil, DNI oficial, canal radial walkie-talkie, anexo/celular de emergencia, especialidad en planta, tarjeta lateral "Ficha Rápida", propagación bidireccional a crew_members y prueba unitaria backend #13 aprobada |
+| `TASK-025` | Unificación del Color de Identidad Institucional a Azul Cobalto Real (#031795) | Frontend Agent | `TASK-024` | `DONE` | 0/3 | Adopción de #031795 como color de identidad oficial; tokens CSS, layout, header, sidebar, mobile bar, login, profile, admin, reportes PDF y gráficas unificados; semáforos operacionales de planta preservados; compilación y tests 100% aprobados |
 
 ---
 
@@ -85,10 +86,11 @@
 | 2026-09-18 | Orchestrator & QA Agent | Orchestrator | `TASK-022` | Auditoría de fallas y entrega de mejoras: suite de pruebas al 100% (10/10), autenticación tolerante a fallas, restauración de backup en Admin y build optimizado |
 | 2026-09-18 | Multi-Agent Team | Orchestrator | `TASK-023` | Entrega de Puntos 1 y 5 en Admin: Gestión Avanzada de Usuarios (búsqueda, filtros guardia/rol, edición rápida, restablecer clave, suspender/activar) y Monitor de Flota de Terminales con revocación remota de sesión |
 | 2026-09-19 | Multi-Agent Team | Orchestrator | `TASK-024` | Entrega de Ficha Operacional de Planta en Mi Perfil (DNI, Canal Radial, Anexo Telefónico, Especialidad en Planta, Ficha Rápida lateral y sincronización dual con cuadrilla) |
+| 2026-09-19 | Frontend Agent | Orchestrator | `TASK-025` | Unificación de identidad de marca al azul cobalto #031795 en layout, auth, dashboard, administración, reportes A4 y componentes UI con preservación de semáforos operacionales |
 
 ---
 
 ## 6. Registro de Bloqueos y Alertas de Escalamiento a Humano
 
-_Sin bloqueos activos. Ficha Operacional integrada y sincronizada con éxito. Suite de pruebas backend 100% verde (13/13) y frontend compilando sin errores._
+_Sin bloqueos activos. Identidad de marca #031795 (Deep Royal Blue) desplegada globalmente. Suite de pruebas backend 100% verde (13/13) y frontend compilando sin errores._
 
