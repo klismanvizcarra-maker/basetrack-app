@@ -9,7 +9,7 @@ import { logAudit } from '../middlewares/error.middleware.js';
 
 export function getAllUsers(req: Request, res: Response) {
   try {
-    const users = db.prepare('SELECT id, username, email, full_name, role, shift, avatar_url, created_at FROM users ORDER BY created_at DESC').all();
+    const users = db.prepare('SELECT id, username, email, full_name, role, shift, avatar_url, COALESCE(is_active, 1) as is_active, created_at FROM users ORDER BY created_at DESC').all();
     return res.json({ success: true, count: users.length, data: users });
   } catch (error: any) {
     return res.status(500).json({ success: false, message: error.message });
@@ -425,5 +425,223 @@ export function restoreDatabaseBackup(req: AuthenticatedRequest, res: Response) 
     });
   } catch (error: any) {
     return res.status(500).json({ success: false, message: 'Error al restaurar respaldo: ' + error.message });
+  }
+}
+
+export function updateUserRoleShift(req: AuthenticatedRequest, res: Response) {
+  try {
+    const id = String(req.params.id || '');
+    const { role, shift } = req.body;
+
+    if (!id) {
+      return res.status(400).json({ success: false, message: 'ID de usuario requerido' });
+    }
+
+    const user = db.prepare('SELECT * FROM users WHERE id = ?').get(id) as any;
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+    }
+
+    const newRole = role && ['ADMIN', 'SUPERVISOR', 'OPERATOR'].includes(role) ? String(role) : user.role;
+    const newShift = shift && ['GUARDIA_A', 'GUARDIA_B', 'GUARDIA_C'].includes(shift) ? String(shift) : user.shift;
+
+    db.prepare('UPDATE users SET role = ?, shift = ? WHERE id = ?').run(newRole, newShift, id);
+
+    // Sync with crew_members if exists
+    try {
+      let crewRole = 'OPERADOR_BOMBAS';
+      if (newRole === 'SUPERVISOR') crewRole = 'SUPERVISOR';
+      db.prepare(`
+        UPDATE crew_members 
+        SET shift_code = ?, primary_role = CASE WHEN primary_role = 'SUPERVISOR' OR ? = 'SUPERVISOR' THEN ? ELSE primary_role END
+        WHERE LOWER(name) = LOWER(?)
+      `).run(newShift, newRole, crewRole, String(user.full_name || ''));
+    } catch (e) {
+      console.warn('[Admin] Sync with crew_members notice:', e);
+    }
+
+    logAudit(
+      req.user?.userId || null,
+      req.user?.username || 'admin',
+      'UPDATE_USER_ROLE_SHIFT',
+      'USERS',
+      id,
+      `Usuario ${user.username}: Rol cambiado a ${newRole}, Guardia cambiada a ${newShift}`,
+      req.ip || '127.0.0.1'
+    );
+
+    return res.json({
+      success: true,
+      message: 'Usuario actualizado exitosamente',
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        fullName: user.full_name,
+        role: newRole,
+        shift: newShift,
+        isActive: user.is_active !== undefined ? user.is_active : 1
+      }
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+export function resetUserPassword(req: AuthenticatedRequest, res: Response) {
+  try {
+    const id = String(req.params.id || '');
+    let { newPassword } = req.body;
+
+    if (!id) {
+      return res.status(400).json({ success: false, message: 'ID de usuario requerido' });
+    }
+
+    const user = db.prepare('SELECT * FROM users WHERE id = ?').get(id) as any;
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+    }
+
+    // If newPassword is not provided, try to use crew document_id or default to Password123!
+    if (!newPassword || typeof newPassword !== 'string' || newPassword.trim().length === 0) {
+      const crew = db.prepare('SELECT document_id FROM crew_members WHERE LOWER(name) = LOWER(?)').get(String(user.full_name || '')) as any;
+      if (crew && crew.document_id) {
+        newPassword = String(crew.document_id);
+      } else {
+        newPassword = 'Password123!';
+      }
+    } else {
+      newPassword = String(newPassword).trim();
+    }
+
+    const hash = bcrypt.hashSync(newPassword, 10);
+    db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hash, id);
+
+    logAudit(
+      req.user?.userId || null,
+      req.user?.username || 'admin',
+      'RESET_PASSWORD',
+      'USERS',
+      id,
+      `Contraseña restablecida para el usuario ${user.username}`,
+      req.ip || '127.0.0.1'
+    );
+
+    return res.json({
+      success: true,
+      message: `Contraseña restablecida exitosamente para ${user.username}`,
+      defaultAssigned: newPassword
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+export function toggleUserStatus(req: AuthenticatedRequest, res: Response) {
+  try {
+    const id = String(req.params.id || '');
+    const { isActive } = req.body;
+
+    const user = db.prepare('SELECT * FROM users WHERE id = ?').get(id) as any;
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+    }
+
+    if (user.username === 'KlismanV' || (req.user && req.user.userId === id)) {
+      return res.status(403).json({ success: false, message: 'No es posible suspender la cuenta del Administrador principal o la sesión activa.' });
+    }
+
+    const newStatus = typeof isActive === 'boolean' ? (isActive ? 1 : 0) : (user.is_active === 0 ? 1 : 0);
+    db.prepare('UPDATE users SET is_active = ? WHERE id = ?').run(newStatus, id);
+
+    logAudit(
+      req.user?.userId || null,
+      req.user?.username || 'admin',
+      'TOGGLE_USER_STATUS',
+      'USERS',
+      id,
+      `Estado de usuario ${user.username} cambiado a ${newStatus === 1 ? 'ACTIVO' : 'SUSPENDIDO'}`,
+      req.ip || '127.0.0.1'
+    );
+
+    return res.json({
+      success: true,
+      message: `Usuario ${user.username} ${newStatus === 1 ? 'activado' : 'suspendido'} exitosamente`,
+      isActive: newStatus === 1
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+export function getConnectedDevices(req: AuthenticatedRequest, res: Response) {
+  try {
+    const devices = db.prepare(`
+      SELECT 
+        device_id,
+        device_name,
+        user_id,
+        username,
+        ip_address,
+        user_agent,
+        last_seen,
+        is_revoked,
+        CASE 
+          WHEN last_seen >= datetime('now', '-3 minutes') THEN 1 
+          ELSE 0 
+        END as is_online
+      FROM connected_devices
+      ORDER BY last_seen DESC
+      LIMIT 50
+    `).all();
+
+    return res.json({
+      success: true,
+      count: devices.length,
+      devices,
+      data: devices
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+export function revokeDeviceSession(req: AuthenticatedRequest, res: Response) {
+  try {
+    const deviceId = String(req.params.deviceId || '');
+
+    if (!deviceId) {
+      return res.status(400).json({ success: false, message: 'ID de dispositivo requerido' });
+    }
+
+    db.prepare('UPDATE connected_devices SET is_revoked = 1 WHERE device_id = ?').run(deviceId);
+
+    // Insert sync event so remote device terminates session
+    db.prepare(`
+      INSERT INTO sync_events (device_id, user_id, entity, action, payload, timestamp)
+      VALUES (?, ?, 'AUTH', 'FORCE_LOGOUT', ?, ?)
+    `).run(
+      deviceId,
+      req.user?.userId ? String(req.user.userId) : null,
+      JSON.stringify({ deviceId, reason: 'Sesión revocada por el Administrador de Planta' }),
+      Date.now()
+    );
+
+    logAudit(
+      req.user?.userId || null,
+      req.user?.username || 'admin',
+      'REVOKE_DEVICE_SESSION',
+      'SECURITY',
+      deviceId,
+      `Sesión revocada remotamente para el dispositivo ${deviceId}`,
+      req.ip || '127.0.0.1'
+    );
+
+    return res.json({
+      success: true,
+      message: 'Sesión de terminal revocada remotamente'
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
   }
 }

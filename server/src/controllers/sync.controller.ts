@@ -8,11 +8,38 @@ export interface SyncEventItem {
   timestamp: number;
 }
 
+export function upsertConnectedDevice(req: Request, deviceId?: string, userId?: string, username?: string, deviceName?: string) {
+  try {
+    if (!deviceId) return;
+    const ip = req.ip || req.socket.remoteAddress || '127.0.0.1';
+    const userAgent = (req.headers['user-agent'] || 'Basetrack Client').substring(0, 200);
+    const dName = deviceName || (req.headers['x-device-name'] as string) || (req.query['deviceName'] as string) || 'Terminal Operativa';
+    const uName = username || (req as any).user?.username || null;
+    const uId = userId || (req as any).user?.userId || null;
+
+    db.prepare(`
+      INSERT INTO connected_devices (device_id, device_name, user_id, username, ip_address, user_agent, last_seen, is_revoked)
+      VALUES (?, ?, ?, ?, ?, ?, datetime('now'), 0)
+      ON CONFLICT(device_id) DO UPDATE SET
+        device_name = COALESCE(excluded.device_name, connected_devices.device_name),
+        user_id = COALESCE(excluded.user_id, connected_devices.user_id),
+        username = COALESCE(excluded.username, connected_devices.username),
+        ip_address = excluded.ip_address,
+        user_agent = excluded.user_agent,
+        last_seen = datetime('now')
+    `).run(deviceId, dName, uId, uName, ip, userAgent);
+  } catch (e) {
+    // Non-critical logging
+  }
+}
+
 export async function pushEvents(req: Request, res: Response) {
   try {
-    const { deviceId, userId, events } = req.body as {
+    const { deviceId, userId, events, username, deviceName } = req.body as {
       deviceId: string;
       userId?: string;
+      username?: string;
+      deviceName?: string;
       events: SyncEventItem[];
     };
 
@@ -22,6 +49,8 @@ export async function pushEvents(req: Request, res: Response) {
         message: 'deviceId y lista de eventos requeridos'
       });
     }
+
+    upsertConnectedDevice(req, deviceId, userId, username, deviceName);
 
     const insertStmt = db.prepare(`
       INSERT INTO sync_events (device_id, user_id, entity, action, payload, timestamp)
@@ -61,7 +90,6 @@ export async function pushEvents(req: Request, res: Response) {
 
     return res.json({
       success: true,
-      message: `${events.length} eventos sincronizados con éxito`,
       processedCount: events.length,
       lastServerId
     });
@@ -79,6 +107,12 @@ export async function pullEvents(req: Request, res: Response) {
   try {
     const sinceId = Number(req.query['sinceId']) || 0;
     const deviceId = (req.query['deviceId'] as string) || '';
+    const username = (req.query['username'] as string) || '';
+    const deviceName = (req.query['deviceName'] as string) || '';
+
+    if (deviceId) {
+      upsertConnectedDevice(req, deviceId, undefined, username, deviceName);
+    }
 
     let query = `
       SELECT id, device_id, user_id, entity, action, payload, timestamp, created_at
@@ -88,7 +122,8 @@ export async function pullEvents(req: Request, res: Response) {
     const params: any[] = [sinceId];
 
     if (deviceId) {
-      query += ` AND device_id != ?`;
+      // Exclude events created by this device UNLESS it is a FORCE_LOGOUT action targeting devices
+      query += ` AND (device_id != ? OR action = 'FORCE_LOGOUT')`;
       params.push(deviceId);
     }
 

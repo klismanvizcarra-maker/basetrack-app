@@ -229,6 +229,18 @@ export function initDatabase() {
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
+    -- Connected Devices & Realtime Fleet Sessions
+    CREATE TABLE IF NOT EXISTS connected_devices (
+      device_id TEXT PRIMARY KEY,
+      device_name TEXT NOT NULL,
+      user_id TEXT,
+      username TEXT,
+      ip_address TEXT,
+      user_agent TEXT,
+      last_seen TEXT NOT NULL DEFAULT (datetime('now')),
+      is_revoked INTEGER NOT NULL DEFAULT 0
+    );
+
     -- Indexes for performance
     CREATE INDEX IF NOT EXISTS idx_pumps_tag ON pump_reports(tag);
     CREATE INDEX IF NOT EXISTS idx_pumps_created ON pump_reports(created_at);
@@ -240,6 +252,7 @@ export function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_crew_assignments ON crew_area_assignments(shift_date, shift_code, shift_type);
     CREATE INDEX IF NOT EXISTS idx_sync_events_timestamp ON sync_events(timestamp);
     CREATE INDEX IF NOT EXISTS idx_sync_events_device ON sync_events(device_id);
+    CREATE INDEX IF NOT EXISTS idx_devices_last_seen ON connected_devices(last_seen);
   `);
 
   // Safe migration: remove CHECK constraint from existing crew_area_assignments if present
@@ -276,6 +289,17 @@ export function initDatabase() {
     }
   } catch (e) {
     console.warn('[Database] crew_area_assignments migration check:', e);
+  }
+
+  // Safe migration: add is_active column to users table if not present
+  try {
+    const userCols = db.prepare('PRAGMA table_info(users)').all() as any[];
+    if (!userCols.some((c: any) => c.name === 'is_active')) {
+      db.exec('ALTER TABLE users ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1;');
+      console.log('[Database] Added is_active column to users table.');
+    }
+  } catch (e) {
+    console.warn('[Database] users is_active migration check:', e);
   }
 
   console.log('[Database] Tables and indexes initialized successfully.');

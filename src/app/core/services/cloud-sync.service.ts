@@ -164,8 +164,11 @@ export class CloudSyncService {
     this.isProcessingQueue = true;
     this.syncStatus.set('SYNCING');
 
+    const user = getRealtimeData<any>('user', null);
     const payload = {
       deviceId: this.deviceId,
+      deviceName: this.deviceName,
+      username: user?.username || null,
       events: queue
     };
 
@@ -198,7 +201,11 @@ export class CloudSyncService {
    * Pull new updates published by other devices
    */
   public pullRemoteUpdates(): Observable<any> {
-    return this.http.get<any>(`${this.apiUrl}/pull?sinceId=${this.lastServerId}&deviceId=${this.deviceId}`).pipe(
+    const user = getRealtimeData<any>('user', null);
+    const username = user?.username || '';
+    const url = `${this.apiUrl}/pull?sinceId=${this.lastServerId}&deviceId=${this.deviceId}&deviceName=${encodeURIComponent(this.deviceName)}&username=${encodeURIComponent(username)}`;
+
+    return this.http.get<any>(url).pipe(
       map(res => {
         if (res && res.success && Array.isArray(res.events)) {
           if (res.events.length > 0) {
@@ -251,6 +258,19 @@ export class CloudSyncService {
     try {
       const { entity, action, payload } = ev;
       this.lastSyncedEntity.set(`${entity} (${action})`);
+
+      // Remote force logout listener
+      if (action === 'FORCE_LOGOUT') {
+        const targetDeviceId = payload?.deviceId || ev.deviceId;
+        if (targetDeviceId === this.deviceId) {
+          console.warn('[CloudSync] Sesión revocada remotamente por el Administrador.');
+          alert('Tu sesión ha sido revocada remotamente por el Administrador de Planta.');
+          localStorage.removeItem('basetrack_token');
+          localStorage.removeItem('basetrack_user');
+          window.location.href = '/auth/login';
+          return;
+        }
+      }
 
       // If key is present in payload or event, persist to local store
       if (payload && payload.key && payload.data !== undefined) {

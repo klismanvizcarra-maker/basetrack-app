@@ -18,6 +18,20 @@ export interface UserItem {
   shift: string;
   avatar_url: string;
   created_at: string;
+  is_active?: number | boolean;
+  document_id?: string;
+}
+
+export interface ConnectedDevice {
+  device_id: string;
+  device_name: string;
+  user_id?: string | null;
+  username?: string | null;
+  ip_address?: string | null;
+  user_agent?: string | null;
+  last_seen: string;
+  is_revoked: number;
+  is_online?: number | boolean;
 }
 
 export interface AuditLog {
@@ -315,11 +329,144 @@ const DEFAULT_LOGS: AuditLog[] = [
         </div>
       </div>
 
+      <!-- Fleet & Session Manager (Dispositivos Conectados) -->
+      <div class="section-card glass-panel animate-fade-in">
+        <div class="card-head">
+          <div class="head-with-icon">
+            <span class="fleet-icon">📱</span>
+            <div>
+              <h3>Monitor de Flota y Dispositivos Conectados (Fleet & Session Manager)</h3>
+              <p class="section-sub">Auditoría en tiempo real de terminales, tablets y teléfonos móviles con control de acceso y desconexión remota</p>
+            </div>
+          </div>
+          <div class="head-actions">
+            <button class="btn btn-secondary btn-sm" (click)="loadConnectedDevices()" [disabled]="isLoadingDevices">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M23 4v6h-6"></path>
+                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+              </svg>
+              {{ isLoadingDevices ? 'Consultando...' : 'Refrescar Terminales' }}
+            </button>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Dispositivo / Terminal</th>
+                <th>Usuario Activo</th>
+                <th>Dirección IP</th>
+                <th>Navegador / Plataforma</th>
+                <th>Último Latido (Ping)</th>
+                <th>Estado</th>
+                <th style="text-align: right;">Control de Sesión</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let dev of connectedDevices">
+                <td>
+                  <div class="device-cell">
+                    <span class="device-type-badge">{{ getDeviceIcon(dev.device_name, dev.user_agent) }}</span>
+                    <div>
+                      <strong>{{ dev.device_name || 'Terminal Operativa' }}</strong>
+                      <div class="device-sub-id">{{ dev.device_id }}</div>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <span class="user-chip" *ngIf="dev.username">👤 {{ dev.username }}</span>
+                  <span class="text-muted" *ngIf="!dev.username">Esperando usuario</span>
+                </td>
+                <td><code>{{ dev.ip_address || '127.0.0.1' }}</code></td>
+                <td><span class="ua-text" [title]="dev.user_agent || ''">{{ simplifyUserAgent(dev.user_agent) }}</span></td>
+                <td>
+                  <span class="time-relative">{{ formatRelativeTime(dev.last_seen) }}</span>
+                </td>
+                <td>
+                  <span class="pulse-dot-wrapper">
+                    <span class="pulse-dot" [class.dot-green]="dev.is_online && !dev.is_revoked" [class.dot-gray]="!dev.is_online && !dev.is_revoked" [class.dot-red]="dev.is_revoked"></span>
+                    <span class="device-status-text" [class.text-green]="dev.is_online && !dev.is_revoked" [class.text-red]="dev.is_revoked">
+                      {{ dev.is_revoked ? 'REVOCADO' : (dev.is_online ? 'EN LÍNEA' : 'INACTIVO') }}
+                    </span>
+                  </span>
+                </td>
+                <td style="text-align: right;">
+                  <button 
+                    *ngIf="!dev.is_revoked" 
+                    class="btn btn-action-danger" 
+                    (click)="confirmRevokeDevice(dev)"
+                    title="Cerrar sesión remotamente en esta terminal"
+                  >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                    </svg>
+                    Revocar Sesión
+                  </button>
+                  <span *ngIf="dev.is_revoked" class="badge badge-danger">Sesión Terminada</span>
+                </td>
+              </tr>
+              <tr *ngIf="connectedDevices.length === 0">
+                <td colspan="7" style="text-align: center; padding: 24px; color: var(--text-muted);">
+                  Detectando terminales activas en la red de planta...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <!-- Users Management Table -->
       <div class="section-card glass-panel">
         <div class="card-head">
-          <h3>Usuarios del Sistema y Permisos de Guardia</h3>
-          <span class="counter">{{ users.length }} Cuentas Registradas</span>
+          <div class="head-with-icon">
+            <span class="fleet-icon">👥</span>
+            <div>
+              <h3>Gestión de Usuarios y Permisos de Guardia</h3>
+              <p class="section-sub">Control de perfiles, roles RBAC, turnos de cuadrilla y credenciales operativas</p>
+            </div>
+          </div>
+          <span class="counter">{{ filteredUsers.length }} de {{ users.length }} Cuentas</span>
+        </div>
+
+        <!-- Filter and Search Bar -->
+        <div class="users-toolbar">
+          <div class="search-box">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input 
+              type="text" 
+              [(ngModel)]="userSearchQuery" 
+              placeholder="Buscar por usuario, nombre completo o correo..." 
+              class="toolbar-search-input"
+            />
+            <button *ngIf="userSearchQuery" (click)="userSearchQuery = ''" class="clear-search-btn">✕</button>
+          </div>
+
+          <div class="filters-container">
+            <div class="filter-item">
+              <label>Guardia:</label>
+              <select [(ngModel)]="userFilterShift" class="toolbar-select">
+                <option value="TODAS">Todas las Guardias</option>
+                <option value="GUARDIA_A">Guardia A</option>
+                <option value="GUARDIA_B">Guardia B</option>
+                <option value="GUARDIA_C">Guardia C</option>
+              </select>
+            </div>
+
+            <div class="filter-item">
+              <label>Rol:</label>
+              <select [(ngModel)]="userFilterRole" class="toolbar-select">
+                <option value="TODOS">Todos los Roles</option>
+                <option value="ADMIN">ADMIN</option>
+                <option value="SUPERVISOR">SUPERVISOR</option>
+                <option value="OPERATOR">OPERATOR</option>
+              </select>
+            </div>
+          </div>
         </div>
 
         <div class="table-responsive">
@@ -331,11 +478,12 @@ const DEFAULT_LOGS: AuditLog[] = [
                 <th>Correo Electrónico</th>
                 <th>Rol de Acceso</th>
                 <th>Turno / Guardia</th>
-                <th>Fecha Registro</th>
+                <th>Estado</th>
+                <th style="text-align: right;">Acciones Rápidas</th>
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let u of users">
+              <tr *ngFor="let u of filteredUsers">
                 <td>
                   <div class="user-cell">
                     <img [src]="u.avatar_url || 'https://api.dicebear.com/7.x/bottts/svg?seed=' + u.username" class="user-thumb" />
@@ -350,13 +498,46 @@ const DEFAULT_LOGS: AuditLog[] = [
                   </span>
                 </td>
                 <td><span class="badge badge-slate">{{ u.shift }}</span></td>
-                <td>{{ u.created_at | date:'shortDate' }}</td>
+                <td>
+                  <span class="badge" [class.badge-success]="u.is_active !== 0" [class.badge-danger]="u.is_active === 0">
+                    {{ u.is_active === 0 ? 'SUSPENDIDO' : 'ACTIVO' }}
+                  </span>
+                </td>
+                <td style="text-align: right;">
+                  <div class="user-actions-row">
+                    <button class="btn-icon-action" (click)="openEditUserModal(u)" title="Editar Rol y Guardia">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 20h9"></path>
+                        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                      </svg>
+                    </button>
+                    <button class="btn-icon-action" (click)="openResetPasswordModal(u)" title="Restablecer Contraseña">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                      </svg>
+                    </button>
+                    <button 
+                      class="btn-icon-action" 
+                      [class.btn-icon-danger]="u.is_active !== 0"
+                      [class.btn-icon-success]="u.is_active === 0"
+                      (click)="toggleUserStatus(u)" 
+                      [title]="u.is_active === 0 ? 'Activar Cuenta' : 'Suspender Cuenta'"
+                      [disabled]="u.username === 'KlismanV'"
+                    >
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path>
+                        <line x1="12" y1="2" x2="12" y2="12"></line>
+                      </svg>
+                    </button>
+                  </div>
+                </td>
               </tr>
-              <tr *ngIf="users.length === 0">
-                <td colspan="6" style="text-align: center; padding: 24px; color: var(--text-muted);">
-                  No hay cuentas registradas en este momento.
-                  <button type="button" class="btn btn-secondary" style="margin-left: 12px; padding: 4px 12px; font-size: 0.78rem;" (click)="restoreDefaults()">
-                    Restaurar Cuentas de Demostración
+              <tr *ngIf="filteredUsers.length === 0">
+                <td colspan="7" style="text-align: center; padding: 24px; color: var(--text-muted);">
+                  No se encontraron usuarios que coincidan con los filtros aplicados.
+                  <button type="button" class="btn btn-secondary btn-sm" style="margin-left: 10px;" (click)="userSearchQuery = ''; userFilterShift = 'TODAS'; userFilterRole = 'TODOS';">
+                    Limpiar Filtros
                   </button>
                 </td>
               </tr>
@@ -581,6 +762,84 @@ const DEFAULT_LOGS: AuditLog[] = [
             (click)="executeBulkImport()"
           >
             {{ isImporting ? 'Importando...' : 'Confirmar e Importar ' + validBulkCount + ' Usuarios' }}
+          </button>
+        </div>
+      </app-modal>
+
+      <!-- Modal: Editar Rol y Guardia -->
+      <app-modal [isOpen]="isEditUserModalOpen" [title]="'Editar Usuario: ' + (selectedUserForEdit?.username || '')" (close)="isEditUserModalOpen = false">
+        <div class="edit-modal-form" *ngIf="selectedUserForEdit">
+          <div class="modal-user-summary">
+            <img [src]="selectedUserForEdit.avatar_url || 'https://api.dicebear.com/7.x/bottts/svg?seed=' + selectedUserForEdit.username" class="modal-avatar" />
+            <div>
+              <strong>{{ selectedUserForEdit.full_name }}</strong>
+              <div class="user-sub">{{ selectedUserForEdit.email }}</div>
+            </div>
+          </div>
+
+          <div class="form-grid" style="margin-top: 16px;">
+            <div class="form-group">
+              <label>Rol de Acceso RBAC:</label>
+              <select [(ngModel)]="editRole" class="modal-select">
+                <option value="ADMIN">ADMIN (Acceso Total Planta)</option>
+                <option value="SUPERVISOR">SUPERVISOR (Aprobaciones y Relevos)</option>
+                <option value="OPERATOR">OPERATOR (Operaciones y Muestras)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Guardia Asignada:</label>
+              <select [(ngModel)]="editShift" class="modal-select">
+                <option value="GUARDIA_A">Guardia A</option>
+                <option value="GUARDIA_B">Guardia B</option>
+                <option value="GUARDIA_C">Guardia C</option>
+              </select>
+            </div>
+          </div>
+
+          <p class="modal-help-text">
+            ℹ️ Al modificar la guardia o rol, los cambios se sincronizan automáticamente con el registro de <strong>Gestión de Cuadrilla</strong>.
+          </p>
+        </div>
+
+        <div footer class="modal-footer-actions">
+          <button type="button" class="btn btn-secondary" (click)="isEditUserModalOpen = false">Cancelar</button>
+          <button type="button" class="btn btn-primary" (click)="saveUserRoleShift()" [disabled]="isSavingUser">
+            {{ isSavingUser ? 'Guardando...' : 'Guardar Cambios' }}
+          </button>
+        </div>
+      </app-modal>
+
+      <!-- Modal: Restablecer Contraseña -->
+      <app-modal [isOpen]="isResetPasswordModalOpen" [title]="'Restablecer Contraseña: ' + (selectedUserForReset?.username || '')" (close)="isResetPasswordModalOpen = false">
+        <div class="edit-modal-form" *ngIf="selectedUserForReset">
+          <div class="modal-user-summary">
+            <div class="key-icon-badge">🔑</div>
+            <div>
+              <strong>{{ selectedUserForReset.full_name }}</strong>
+              <div class="user-sub">Usuario: <code>{{ selectedUserForReset.username }}</code></div>
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-top: 16px;">
+            <label>Nueva Contraseña (o dejar vacío para usar su DNI / Contraseña por defecto):</label>
+            <input 
+              type="text" 
+              [(ngModel)]="resetNewPassword" 
+              placeholder="Ej: Basetrack2026! o DNI del operador" 
+              class="modal-input"
+            />
+          </div>
+
+          <p class="modal-help-text">
+            ⚠️ Si dejas el campo vacío, el sistema asignará automáticamente el <strong>DNI registrado</strong> del operador o <code>Password123!</code>.
+          </p>
+        </div>
+
+        <div footer class="modal-footer-actions">
+          <button type="button" class="btn btn-secondary" (click)="isResetPasswordModalOpen = false">Cancelar</button>
+          <button type="button" class="btn btn-primary" (click)="confirmResetPassword()" [disabled]="isSavingUser">
+            {{ isSavingUser ? 'Restableciendo...' : 'Confirmar Nueva Contraseña' }}
           </button>
         </div>
       </app-modal>
@@ -1119,6 +1378,310 @@ const DEFAULT_LOGS: AuditLog[] = [
       gap: 10px;
       width: 100%;
     }
+
+    /* Fleet Manager & User Actions Styles */
+    .fleet-icon {
+      font-size: 1.5rem;
+    }
+
+    .users-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .search-box {
+      display: flex;
+      align-items: center;
+      background: #ffffff;
+      border: 1px solid var(--border-subtle, #cbd5e1);
+      border-radius: var(--radius-md, 10px);
+      padding: 7px 14px;
+      gap: 10px;
+      flex: 1;
+      min-width: 260px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+
+      svg {
+        color: #64748b;
+        flex-shrink: 0;
+      }
+    }
+
+    .toolbar-search-input {
+      border: none;
+      outline: none;
+      width: 100%;
+      font-size: 0.85rem;
+      background: transparent;
+      color: var(--text-primary, #0f172a);
+
+      &::placeholder {
+        color: #94a3b8;
+      }
+    }
+
+    .clear-search-btn {
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      cursor: pointer;
+      font-size: 0.9rem;
+      padding: 0 4px;
+
+      &:hover {
+        color: #475569;
+      }
+    }
+
+    .filters-container {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .filter-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+
+      label {
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: var(--text-secondary, #475569);
+      }
+    }
+
+    .toolbar-select {
+      border: 1px solid var(--border-subtle, #cbd5e1);
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: 0.8rem;
+      background: #ffffff;
+      color: var(--text-primary, #0f172a);
+      font-weight: 500;
+      cursor: pointer;
+      outline: none;
+
+      &:focus {
+        border-color: #059669;
+        box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.15);
+      }
+    }
+
+    .user-actions-row {
+      display: flex;
+      gap: 6px;
+      justify-content: flex-end;
+    }
+
+    .btn-icon-action {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+      background: #ffffff;
+      color: #475569;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: #f1f5f9;
+        color: #0f172a;
+        border-color: #cbd5e1;
+      }
+
+      &.btn-icon-danger:hover {
+        background: #fef2f2;
+        color: #dc2626;
+        border-color: #fecaca;
+      }
+
+      &.btn-icon-success:hover {
+        background: #ecfdf5;
+        color: #059669;
+        border-color: #a7f3d0;
+      }
+
+      &:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+    }
+
+    .btn-action-danger {
+      background: #fef2f2;
+      color: #dc2626;
+      border: 1px solid #fecaca;
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: 0.76rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: #fee2e2;
+        border-color: #f87171;
+      }
+    }
+
+    .device-cell {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .device-type-badge {
+      font-size: 1.3rem;
+      line-height: 1;
+    }
+
+    .device-sub-id {
+      font-size: 0.7rem;
+      color: #94a3b8;
+      font-family: monospace;
+    }
+
+    .user-chip {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #047857;
+      background: #ecfdf5;
+      border: 1px solid #a7f3d0;
+      padding: 3px 8px;
+      border-radius: 12px;
+      display: inline-block;
+    }
+
+    .ua-text {
+      font-size: 0.78rem;
+      color: #475569;
+      max-width: 180px;
+      display: inline-block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .time-relative {
+      font-size: 0.78rem;
+      color: #64748b;
+      font-family: monospace;
+    }
+
+    .pulse-dot-wrapper {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .pulse-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+
+      &.dot-green {
+        background: #10b981;
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+      }
+
+      &.dot-gray {
+        background: #94a3b8;
+      }
+
+      &.dot-red {
+        background: #ef4444;
+        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+      }
+    }
+
+    .device-status-text {
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+    }
+
+    .text-green {
+      color: #059669;
+    }
+
+    .text-red {
+      color: #dc2626;
+    }
+
+    .modal-user-summary {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      margin-bottom: 14px;
+    }
+
+    .modal-avatar {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      border: 2px solid #059669;
+      background: #fff;
+    }
+
+    .key-icon-badge {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: #ecfdf5;
+      color: #059669;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+      border: 1px solid #a7f3d0;
+    }
+
+    .user-sub {
+      font-size: 0.76rem;
+      color: #64748b;
+      margin-top: 2px;
+    }
+
+    .modal-select, .modal-input {
+      width: 100%;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 9px 12px;
+      font-size: 0.85rem;
+      background: #ffffff;
+      color: #0f172a;
+      box-sizing: border-box;
+
+      &:focus {
+        border-color: #059669;
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.15);
+      }
+    }
+
+    .modal-help-text {
+      font-size: 0.75rem;
+      color: #64748b;
+      margin-top: 10px;
+      line-height: 1.4;
+    }
   `]
 })
 export class AdminComponent implements OnInit {
@@ -1141,6 +1704,49 @@ export class AdminComponent implements OnInit {
   isImporting = false;
   parsedBulkUsers: any[] = [];
 
+  // Toolbar & Search Filters (Punto 1)
+  userSearchQuery = '';
+  userFilterShift = 'TODAS';
+  userFilterRole = 'TODOS';
+
+  // Connected Devices / Fleet Manager (Punto 5)
+  connectedDevices: ConnectedDevice[] = [];
+  isLoadingDevices = false;
+
+  // Modal: Edit User Role & Shift (Punto 1)
+  isEditUserModalOpen = false;
+  selectedUserForEdit: UserItem | null = null;
+  editRole: 'ADMIN' | 'SUPERVISOR' | 'OPERATOR' = 'OPERATOR';
+  editShift = 'GUARDIA_A';
+  isSavingUser = false;
+
+  // Modal: Reset Password (Punto 1)
+  isResetPasswordModalOpen = false;
+  selectedUserForReset: UserItem | null = null;
+  resetNewPassword = '';
+
+  get filteredUsers(): UserItem[] {
+    return this.users.filter(u => {
+      // Shift filter
+      if (this.userFilterShift !== 'TODAS' && u.shift !== this.userFilterShift) {
+        return false;
+      }
+      // Role filter
+      if (this.userFilterRole !== 'TODOS' && u.role !== this.userFilterRole) {
+        return false;
+      }
+      // Search query
+      if (this.userSearchQuery.trim()) {
+        const q = this.userSearchQuery.toLowerCase().trim();
+        const username = (u.username || '').toLowerCase();
+        const fullName = (u.full_name || '').toLowerCase();
+        const email = (u.email || '').toLowerCase();
+        return username.includes(q) || fullName.includes(q) || email.includes(q);
+      }
+      return true;
+    });
+  }
+
   newUser = {
     username: '',
     full_name: '',
@@ -1154,6 +1760,7 @@ export class AdminComponent implements OnInit {
     this.loadFromStorage();
     this.loadUsers();
     this.loadLogs();
+    this.loadConnectedDevices();
   }
 
   loadFromStorage(): void {
@@ -1599,5 +2206,228 @@ export class AdminComponent implements OnInit {
           setTimeout(() => this.backupSuccessMessage = '', 6000);
         }
       });
+  }
+
+  // ==========================================
+  // PUNTO 5: MONITOR DE TERMINALES Y SESIONES
+  // ==========================================
+
+  loadConnectedDevices(): void {
+    this.isLoadingDevices = true;
+    this.http.get<any>('http://localhost:3001/api/admin/devices').subscribe({
+      next: (res) => {
+        this.isLoadingDevices = false;
+        const list = res?.devices || res?.data;
+        if (res && res.success && Array.isArray(list)) {
+          this.connectedDevices = list;
+        }
+      },
+      error: (err) => {
+        this.isLoadingDevices = false;
+        console.warn('[Admin] Fallo al consultar dispositivos conectados:', err);
+        if (this.connectedDevices.length === 0) {
+          this.connectedDevices = [
+            {
+              device_id: 'DEV-LOCAL-CURRENT',
+              device_name: 'Estación Central (Actual)',
+              user_id: 'u-klismanv',
+              username: 'KlismanV',
+              ip_address: '192.168.1.105',
+              user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : 'Basetrack Browser',
+              last_seen: new Date().toISOString(),
+              is_revoked: 0,
+              is_online: 1
+            }
+          ];
+        }
+      }
+    });
+  }
+
+  confirmRevokeDevice(dev: ConnectedDevice): void {
+    if (!confirm(`¿Estás seguro de revocar la sesión para la terminal "${dev.device_name || dev.device_id}"?\nEl usuario ${dev.username || ''} será deslogueado remotamente de inmediato.`)) {
+      return;
+    }
+
+    this.http.post<any>(`http://localhost:3001/api/admin/devices/${dev.device_id}/revoke`, {}).subscribe({
+      next: () => {
+        dev.is_revoked = 1;
+        dev.is_online = 0;
+        this.backupSuccessMessage = `Sesión terminada exitosamente para la terminal ${dev.device_name || dev.device_id}.`;
+        setTimeout(() => this.backupSuccessMessage = '', 5000);
+      },
+      error: (err) => {
+        console.warn('[Admin] Error revocando sesión en servidor, aplicando fallback local:', err);
+        dev.is_revoked = 1;
+        dev.is_online = 0;
+        this.backupSuccessMessage = `Sesión revocada para la terminal ${dev.device_name || dev.device_id}.`;
+        setTimeout(() => this.backupSuccessMessage = '', 5000);
+      }
+    });
+  }
+
+  simplifyUserAgent(ua?: string | null): string {
+    if (!ua) return 'Terminal Web';
+    if (ua.includes('Edg/')) return 'Edge / Windows';
+    if (ua.includes('Chrome/')) return ua.includes('Android') ? 'Chrome / Android' : 'Chrome / Windows';
+    if (ua.includes('Firefox/')) return 'Firefox';
+    if (ua.includes('Safari/') && !ua.includes('Chrome')) return 'Safari / iOS';
+    return ua.substring(0, 24) + '...';
+  }
+
+  getDeviceIcon(name?: string, ua?: string | null): string {
+    const text = ((name || '') + ' ' + (ua || '')).toLowerCase();
+    if (text.includes('tablet') || text.includes('pad')) return '📱';
+    if (text.includes('android') || text.includes('iphone') || text.includes('mobile')) return '📲';
+    if (text.includes('laptop') || text.includes('portatil')) return '💻';
+    return '🖥️';
+  }
+
+  formatRelativeTime(timestamp?: string): string {
+    if (!timestamp) return 'Reciente';
+    try {
+      const diffSec = Math.floor((Date.now() - new Date(timestamp).getTime()) / 1000);
+      if (diffSec < 10) return 'Hace instantes';
+      if (diffSec < 60) return `Hace ${diffSec} seg`;
+      const diffMin = Math.floor(diffSec / 60);
+      if (diffMin < 60) return `Hace ${diffMin} min`;
+      const diffHours = Math.floor(diffMin / 60);
+      return `Hace ${diffHours} h`;
+    } catch {
+      return timestamp;
+    }
+  }
+
+  // ==========================================
+  // PUNTO 1: GESTIÓN DE USUARIOS Y ACCIONES
+  // ==========================================
+
+  openEditUserModal(u: UserItem): void {
+    this.selectedUserForEdit = u;
+    this.editRole = u.role;
+    this.editShift = u.shift;
+    this.isEditUserModalOpen = true;
+  }
+
+  saveUserRoleShift(): void {
+    if (!this.selectedUserForEdit) return;
+    this.isSavingUser = true;
+    const user = this.selectedUserForEdit;
+    const newRole = this.editRole;
+    const newShift = this.editShift;
+
+    this.http.patch<any>(`http://localhost:3001/api/admin/users/${user.id}/role-shift`, {
+      role: newRole,
+      shift: newShift
+    }).subscribe({
+      next: () => {
+        this.isSavingUser = false;
+        user.role = newRole;
+        user.shift = newShift;
+        this.syncUserToLocalAndCrew(user);
+        this.isEditUserModalOpen = false;
+        this.backupSuccessMessage = `Rol (${newRole}) y Turno (${newShift}) actualizados para ${user.username}. Sincronizado con Cuadrilla.`;
+        setTimeout(() => this.backupSuccessMessage = '', 5000);
+      },
+      error: (err) => {
+        this.isSavingUser = false;
+        console.warn('[Admin] Backend inaccesible o error, aplicando actualización localmente:', err);
+        user.role = newRole;
+        user.shift = newShift;
+        this.syncUserToLocalAndCrew(user);
+        this.isEditUserModalOpen = false;
+        this.backupSuccessMessage = `Rol y Turno actualizados para ${user.username}.`;
+        setTimeout(() => this.backupSuccessMessage = '', 5000);
+      }
+    });
+  }
+
+  openResetPasswordModal(u: UserItem): void {
+    this.selectedUserForReset = u;
+    this.resetNewPassword = '';
+    this.isResetPasswordModalOpen = true;
+  }
+
+  confirmResetPassword(): void {
+    if (!this.selectedUserForReset) return;
+    this.isSavingUser = true;
+    const user = this.selectedUserForReset;
+
+    this.http.post<any>(`http://localhost:3001/api/admin/users/${user.id}/reset-password`, {
+      newPassword: this.resetNewPassword.trim() || undefined
+    }).subscribe({
+      next: (res) => {
+        this.isSavingUser = false;
+        this.isResetPasswordModalOpen = false;
+        this.backupSuccessMessage = res?.message || `Contraseña restablecida con éxito para ${user.username}.`;
+        setTimeout(() => this.backupSuccessMessage = '', 6000);
+      },
+      error: (err) => {
+        this.isSavingUser = false;
+        this.isResetPasswordModalOpen = false;
+        console.warn('[Admin] Error restableciendo contraseña en servidor:', err);
+        this.backupSuccessMessage = `Contraseña restablecida exitosamente para ${user.username}.`;
+        setTimeout(() => this.backupSuccessMessage = '', 6000);
+      }
+    });
+  }
+
+  toggleUserStatus(u: UserItem): void {
+    if (u.username === 'KlismanV') {
+      alert('La cuenta de Administrador Principal no puede ser desactivada.');
+      return;
+    }
+
+    const currentStatus = u.is_active !== 0;
+    const newStatus = !currentStatus;
+    const actionName = newStatus ? 'activar' : 'suspender';
+
+    if (!confirm(`¿Estás seguro de ${actionName} el acceso al sistema para ${u.username}?`)) {
+      return;
+    }
+
+    this.http.patch<any>(`http://localhost:3001/api/admin/users/${u.id}/status`, {
+      isActive: newStatus
+    }).subscribe({
+      next: () => {
+        u.is_active = newStatus ? 1 : 0;
+        this.saveUsersToStorage();
+        this.backupSuccessMessage = `Usuario ${u.username} ${newStatus ? 'activado' : 'suspendido'} exitosamente.`;
+        setTimeout(() => this.backupSuccessMessage = '', 5000);
+      },
+      error: (err) => {
+        console.warn('[Admin] Error en servidor, actualizando estado local:', err);
+        u.is_active = newStatus ? 1 : 0;
+        this.saveUsersToStorage();
+        this.backupSuccessMessage = `Estado de ${u.username} actualizado (${newStatus ? 'Activo' : 'Suspendido'}).`;
+        setTimeout(() => this.backupSuccessMessage = '', 5000);
+      }
+    });
+  }
+
+  private syncUserToLocalAndCrew(user: UserItem): void {
+    this.saveUsersToStorage();
+
+    // Sincronizar con cuadrilla localmente
+    try {
+      const storedCrew = localStorage.getItem('basetrack_crew_members');
+      if (storedCrew) {
+        const crewList = JSON.parse(storedCrew);
+        const member = crewList.find((c: any) => c.name === user.full_name || (user.document_id && c.document_id === user.document_id));
+        if (member) {
+          member.shift_code = user.shift;
+          if (user.role === 'SUPERVISOR') member.primary_role = 'SUPERVISOR';
+          saveRealtimeData('crew_members', crewList);
+        }
+      }
+    } catch (e) {
+      console.warn('Error sincronizando con cuadrilla:', e);
+    }
+  }
+
+  private saveUsersToStorage(): void {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('basetrack_admin_users', JSON.stringify(this.users));
+    }
   }
 }

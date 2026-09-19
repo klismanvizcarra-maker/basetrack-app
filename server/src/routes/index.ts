@@ -6,7 +6,19 @@ import { getAllCyclones, createCycloneReport, getStationSamples, createStationSa
 import { getAllTailings, createTailingsReport } from '../controllers/tailings.controller.js';
 import { getAllShiftHandovers, createShiftHandover, acceptShiftHandover } from '../controllers/shift.controller.js';
 import { getAllMaintenanceRequests, createMaintenanceRequest, updateMaintenanceStatus } from '../controllers/maintenance.controller.js';
-import { getAllUsers, createUserByAdmin, createUsersBulk, getAuditLogs, getDatabaseBackup, restoreDatabaseBackup } from '../controllers/admin.controller.js';
+import { 
+  getAllUsers, 
+  createUserByAdmin, 
+  createUsersBulk, 
+  getAuditLogs, 
+  getDatabaseBackup, 
+  restoreDatabaseBackup,
+  updateUserRoleShift,
+  resetUserPassword,
+  toggleUserStatus,
+  getConnectedDevices,
+  revokeDeviceSession
+} from '../controllers/admin.controller.js';
 import { getCrewMembers, createCrewMember, updateCrewMember, deleteCrewMember, getAreaAssignments, saveAreaAssignment, checkinAreaAssignment, getCrewPositions, createCrewPosition, deleteCrewPosition } from '../controllers/crew.controller.js';
 import { pushEvents, pullEvents, getSyncStatus } from '../controllers/sync.controller.js';
 import { authenticateToken, requireRoles } from '../middlewares/auth.middleware.js';
@@ -69,6 +81,11 @@ apiRouter.post('/admin/users/bulk', authenticateToken, requireRoles('ADMIN'), cr
 apiRouter.get('/admin/audit-logs', authenticateToken, requireRoles('ADMIN'), getAuditLogs);
 apiRouter.get('/admin/backup', authenticateToken, requireRoles('ADMIN'), getDatabaseBackup);
 apiRouter.post('/admin/restore', authenticateToken, requireRoles('ADMIN'), restoreDatabaseBackup);
+apiRouter.patch('/admin/users/:id/role-shift', authenticateToken, requireRoles('ADMIN'), updateUserRoleShift);
+apiRouter.post('/admin/users/:id/reset-password', authenticateToken, requireRoles('ADMIN'), resetUserPassword);
+apiRouter.patch('/admin/users/:id/status', authenticateToken, requireRoles('ADMIN'), toggleUserStatus);
+apiRouter.get('/admin/devices', authenticateToken, requireRoles('ADMIN', 'SUPERVISOR'), getConnectedDevices);
+apiRouter.post('/admin/devices/:deviceId/revoke', authenticateToken, requireRoles('ADMIN'), revokeDeviceSession);
 
 // 10. Crew & Area Assignments Routes (Gestión de Cuadrilla y Asignación por Área)
 apiRouter.get('/crew/members', getCrewMembers);

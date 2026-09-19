@@ -232,4 +232,87 @@ test('10. GET /api/admin/backup and POST /api/admin/restore should backup and re
   assert.ok(restoreJson.summary);
 });
 
+test('11. PATCH /api/admin/users/:id/role-shift and reset-password should update user and reset password', async () => {
+  const usersRes = await fetch(`${baseUrl}/admin/users`, {
+    headers: { 'Authorization': `Bearer ${authToken}` }
+  });
+  const usersData = await usersRes.json() as any;
+  assert.strictEqual(usersRes.status, 200);
+  const targetUser = usersData.data.find((u: any) => u.username === 'CarlosP');
+  assert.ok(targetUser);
+
+  // Update role and shift
+  const patchRes = await fetch(`${baseUrl}/admin/users/${targetUser.id}/role-shift`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${authToken}`
+    },
+    body: JSON.stringify({ role: 'SUPERVISOR', shift: 'GUARDIA_B' })
+  });
+  assert.strictEqual(patchRes.status, 200);
+  const patchJson = await patchRes.json() as any;
+  assert.strictEqual(patchJson.success, true);
+  assert.strictEqual(patchJson.user.role, 'SUPERVISOR');
+  assert.strictEqual(patchJson.user.shift, 'GUARDIA_B');
+
+  // Reset password
+  const resetRes = await fetch(`${baseUrl}/admin/users/${targetUser.id}/reset-password`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${authToken}`
+    },
+    body: JSON.stringify({ newPassword: 'TempPassword2026!' })
+  });
+  assert.strictEqual(resetRes.status, 200);
+  const resetJson = await resetRes.json() as any;
+  assert.strictEqual(resetJson.success, true);
+
+  // Verify login with new password
+  const loginRes = await fetch(`${baseUrl}/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username: 'CarlosP', password: 'TempPassword2026!' })
+  });
+  assert.strictEqual(loginRes.status, 200);
+  const loginJson = await loginRes.json() as any;
+  assert.strictEqual(loginJson.success, true);
+});
+
+test('12. GET /api/admin/devices and POST /api/admin/devices/:id/revoke should list and revoke device session', async () => {
+  // Push an event from a test device to register it
+  await fetch(`${baseUrl}/sync/push`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      deviceId: 'test_tablet_plant_01',
+      deviceName: 'Tablet Zona Bombas',
+      username: 'KlismanV',
+      events: [{ entity: 'PUMPS', action: 'PING', payload: {}, timestamp: Date.now() }]
+    })
+  });
+
+  // Get devices
+  const devicesRes = await fetch(`${baseUrl}/admin/devices`, {
+    headers: { 'Authorization': `Bearer ${authToken}` }
+  });
+  assert.strictEqual(devicesRes.status, 200);
+  const devicesData = await devicesRes.json() as any;
+  assert.strictEqual(devicesData.success, true);
+  assert.ok(Array.isArray(devicesData.devices));
+  const found = devicesData.devices.find((d: any) => d.device_id === 'test_tablet_plant_01');
+  assert.ok(found);
+
+  // Revoke device
+  const revokeRes = await fetch(`${baseUrl}/admin/devices/test_tablet_plant_01/revoke`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${authToken}` }
+  });
+  assert.strictEqual(revokeRes.status, 200);
+  const revokeData = await revokeRes.json() as any;
+  assert.strictEqual(revokeData.success, true);
+});
+
+
 
