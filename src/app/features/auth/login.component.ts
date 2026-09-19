@@ -14,11 +14,7 @@ import { AuthService } from '../../core/auth/auth.service';
         <!-- Logo & Header -->
         <div class="login-brand">
           <div class="brand-logo">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <circle cx="12" cy="12" r="9" />
-              <path d="M12 3v18" />
-              <path d="M3 12h18" />
-            </svg>
+            <img src="/images/basetrack-icon-transparent.png" alt="BASETRACK Logo" class="brand-logo-img" />
           </div>
           <h2>BASETRACK APP</h2>
           <p class="subtitle">Monitoreo Operacional y Bitácora de Planta</p>
@@ -143,16 +139,23 @@ import { AuthService } from '../../core/auth/auth.service';
     }
 
     .brand-logo {
-      width: 54px;
-      height: 54px;
-      border-radius: 14px;
-      background: linear-gradient(135deg, #031795 0%, #02106b 100%);
+      width: 68px;
+      height: 68px;
+      border-radius: 18px;
+      background: #ffffff;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #ffffff;
-      box-shadow: 0 8px 20px rgba(3, 23, 149, 0.35);
+      box-shadow: 0 8px 24px rgba(3, 23, 149, 0.16), 0 0 0 1px rgba(3, 23, 149, 0.1);
       margin-bottom: 14px;
+      padding: 6px;
+      overflow: hidden;
+    }
+
+    .brand-logo-img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
     }
 
     h2 {

@@ -13,7 +13,7 @@
   ],
   "orientation": "any",
   "background_color": "#f8fafc",
-  "theme_color": "#059669",
+  "theme_color": "#031795",
   "lang": "es",
   "dir": "ltr",
   "categories": [
@@ -22,12 +22,6 @@
     "utilities"
   ],
   "icons": [
-    {
-      "src": "/icons/icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any"
-    },
     {
       "src": "/icons/icon-192.png",
       "sizes": "192x192",

@@ -63,6 +63,7 @@
 | `TASK-025` | Unificación del Color de Identidad Institucional a Azul Cobalto Real (#031795) | Frontend Agent | `TASK-024` | `DONE` | 0/3 | Adopción de #031795 como color de identidad oficial; tokens CSS, layout, header, sidebar, mobile bar, login, profile, admin, reportes PDF y gráficas unificados; semáforos operacionales de planta preservados; compilación y tests 100% aprobados |
 | `TASK-026` | Integración Exhaustiva del Color de Marca en Toda la Aplicación | Frontend Agent | `TASK-025` | `DONE` | 0/3 | Barrido integral en componentes (Sidebar PWA badge, Header Sync modal y notificaciones, Ciclones tablas y modales, Bombas vista y tarjetas, Cuadrilla pizarras y avatares, Admin cloud sync card y dropzone CSV, Perfil sincronización, Reportes PDF sellos oficiales de firma, Gráficos Wave y clases globales) |
 | `TASK-027` | Auditoría Integral de Fallas y Resiliencia de Red / Offline / CORS | Multi-Agent Team | `TASK-026` | `DONE` | 0/3 | Resolución de URLs hardcodeadas a getApiBaseUrl() dinámico para soporte local/móvil/PWA, CORS dinámico para red local de planta (192.168.x, 10.x), descarte inteligente de errores 4xx en cola IndexedDB para prevenir deadlocks, compilación 100% limpia y 13/13 tests backend aprobados |
+| `TASK-028` | Integración del Isotipo y Logotipo Oficial BASETRACK en Toda la Aplicación | Frontend Agent | `TASK-027` | `DONE` | 0/3 | Integración del isotipo oficial (piocha minera en azul cobalto #031795, montaña y flecha de ascenso naranja) en favicon, manifest PWA, íconos 192/512px, sidebar corporativo, pantalla de login, modal de instalación PWA y en los 4 reportes PDF institucionales (Bombas, Ciclones, Relaves y Turno Completo) |
 
 ---
 
@@ -89,10 +90,11 @@
 | 2026-09-18 | Multi-Agent Team | Orchestrator | `TASK-023` | Entrega de Puntos 1 y 5 en Admin: Gestión Avanzada de Usuarios (búsqueda, filtros guardia/rol, edición rápida, restablecer clave, suspender/activar) y Monitor de Flota de Terminales con revocación remota de sesión |
 | 2026-09-19 | Multi-Agent Team | Orchestrator | `TASK-024` | Entrega de Ficha Operacional de Planta en Mi Perfil (DNI, Canal Radial, Anexo Telefónico, Especialidad en Planta, Ficha Rápida lateral y sincronización dual con cuadrilla) |
 | 2026-09-19 | Frontend Agent | Orchestrator | `TASK-025` | Unificación de identidad de marca al azul cobalto #031795 en layout, auth, dashboard, administración, reportes A4 y componentes UI con preservación de semáforos operacionales |
+| 2026-09-19 | Multi-Agent Team | Orchestrator | `TASK-027` | Auditoría de fallas y robustez: API dinámico, CORS multi-IP para red de planta y manejo resiliente de colas offline |
+| 2026-09-19 | Frontend Agent | Orchestrator | `TASK-028` | Despliegue global del isotipo oficial BASETRACK (piocha, montaña y flecha naranja) en favicon, PWA, sidebar, login, modal de instalación y encabezados de reportes PDF |
 
 ---
 
 ## 6. Registro de Bloqueos y Alertas de Escalamiento a Humano
 
-_Sin bloqueos activos. Identidad de marca #031795 (Deep Royal Blue) desplegada globalmente. Suite de pruebas backend 100% verde (13/13) y frontend compilando sin errores._
 

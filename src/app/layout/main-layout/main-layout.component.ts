@@ -92,7 +92,7 @@ import { LayoutService } from '../../core/layout/layout.service';
     >
       <div class="pwa-guide-content">
         <div class="app-icon-hero">
-          <img src="/icons/icon.svg" alt="BASETRACK App" class="hero-icon-img" />
+          <img src="/images/basetrack-icon-transparent.png" alt="BASETRACK App" class="hero-icon-img" />
           <div>
             <h4>BASETRACK Mobile & Tablet</h4>
             <p class="hero-desc">Monitoreo de planta sin barras de navegador, pantalla completa y acceso rápido offline.</p>

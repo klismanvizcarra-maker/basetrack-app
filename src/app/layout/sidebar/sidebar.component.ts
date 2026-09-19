@@ -22,11 +22,7 @@ import { PwaService } from '../../core/pwa/pwa.service';
       <!-- Logo brand & Mobile close button -->
       <div class="sidebar-brand">
         <div class="brand-icon">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <circle cx="12" cy="12" r="9" />
-            <path d="M12 3v18" />
-            <path d="M3 12h18" />
-          </svg>
+          <img src="/images/basetrack-icon-transparent.png" alt="BASETRACK Logo" class="brand-icon-img" />
         </div>
         <span class="brand-title">BASETRACK</span>
         <button
@@ -302,15 +298,23 @@ import { PwaService } from '../../core/pwa/pwa.service';
     }
 
     .brand-icon {
-      width: 36px;
-      height: 36px;
+      width: 38px;
+      height: 38px;
       border-radius: var(--radius-md);
-      background: linear-gradient(135deg, #031795 0%, #02106b 100%);
+      background: #ffffff;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #ffffff;
-      box-shadow: 0 3px 12px rgba(3, 23, 149, 0.35);
+      box-shadow: 0 2px 8px rgba(3, 23, 149, 0.18), 0 0 0 1px rgba(3, 23, 149, 0.12);
+      padding: 3px;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .brand-icon-img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
     }
 
     .brand-title {

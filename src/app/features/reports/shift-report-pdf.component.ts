@@ -53,11 +53,7 @@ import { PdfExportService } from '../../core/services/pdf-export.service';
           <div class="doc-header">
             <div class="doc-logo-group">
               <div class="brand-symbol">
-                <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#031795" stroke-width="2.2">
-                  <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
-                  <path d="M2 17l10 5 10-5"></path>
-                  <path d="M2 12l10 5 10-5"></path>
-                </svg>
+                <img src="/images/basetrack-icon-transparent.png" alt="BASETRACK" class="brand-img" />
               </div>
               <div class="brand-titles">
                 <h1>BASETRACK INDUSTRIAL</h1>
@@ -451,11 +447,19 @@ import { PdfExportService } from '../../core/services/pdf-export.service';
         width: 48px;
         height: 48px;
         border-radius: 10px;
-        background: #eef2ff;
+        background: #ffffff;
         border: 1px solid #c7d2fe;
         display: flex;
         align-items: center;
         justify-content: center;
+        padding: 3px;
+        overflow: hidden;
+      }
+
+      .brand-img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
       }
 
       .brand-titles {
