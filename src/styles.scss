@@ -15,27 +15,28 @@
   /* Gauge & Progress Track */
   --gauge-track: #e2e8f0;
 
-  /* Primary Brand & Accents (Industrial Emerald & Forest Green Palette) */
-  --primary-purple: #059669;
-  --primary-violet: #047857;
-  --primary-lavender: #065f46;
-  --primary-glow: rgba(5, 150, 105, 0.2);
-  --primary-border: rgba(5, 150, 105, 0.3);
+  /* Primary Brand & Accents (Deep Royal Cobalt Blue Palette #031795) */
+  --primary-purple: #031795;
+  --primary-violet: #02106b;
+  --primary-lavender: #1e40af;
+  --primary-glow: rgba(3, 23, 149, 0.22);
+  --primary-border: rgba(3, 23, 149, 0.3);
+  --primary-bg-subtle: #eef2ff;
 
   /* Secondary Accents */
   --accent-pink: #db2777;
-  --accent-cyan: #0284c7;
-  --accent-cyan-glow: rgba(2, 132, 199, 0.15);
+  --accent-cyan: #2563eb;
+  --accent-cyan-glow: rgba(37, 99, 235, 0.18);
   --accent-pink-glow: rgba(219, 39, 119, 0.15);
 
-  /* Semantics (High Contrast for White Backgrounds) */
+  /* Semantics (Industrial Operational Standards) */
   --success: #059669;
   --success-bg: #ecfdf5;
   --warning: #d97706;
   --warning-bg: #fffbeb;
   --danger: #dc2626;
   --danger-bg: #fef2f2;
-  --info: #0284c7;
+  --info: #031795;
 
   /* Typography Colors (Slate Scale for Crisp Readability) */
   --text-primary: #0f172a;
@@ -45,10 +46,10 @@
 
   /* Borders & Shadows */
   --border-subtle: #e2e8f0;
-  --border-focus: #059669;
+  --border-focus: #031795;
   --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 6px 20px -3px rgba(15, 23, 42, 0.05);
-  --shadow-glow: 0 4px 14px rgba(5, 150, 105, 0.25);
-  --shadow-glow-cyan: 0 4px 14px rgba(2, 132, 199, 0.18);
+  --shadow-glow: 0 4px 14px rgba(3, 23, 149, 0.25);
+  --shadow-glow-cyan: 0 4px 14px rgba(37, 99, 235, 0.18);
 
   /* Sizing & Radius */
   --radius-sm: 8px;
@@ -133,8 +134,8 @@ input, select, textarea {
 }
 
 input:focus, select:focus, textarea:focus {
-  border-color: #059669;
-  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.18);
+  border-color: #031795;
+  box-shadow: 0 0 0 3px rgba(3, 23, 149, 0.18);
 }
 
 input::placeholder, textarea::placeholder {
@@ -159,14 +160,15 @@ input::placeholder, textarea::placeholder {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  background: linear-gradient(135deg, #031795 0%, #02106b 100%);
   color: #ffffff;
-  box-shadow: 0 3px 12px rgba(5, 150, 105, 0.28);
+  box-shadow: 0 3px 12px rgba(3, 23, 149, 0.28);
 }
 
 .btn-primary:hover {
   transform: translateY(-1px);
-  box-shadow: 0 5px 16px rgba(5, 150, 105, 0.45);
+  box-shadow: 0 5px 16px rgba(3, 23, 149, 0.45);
+  background: linear-gradient(135deg, #1e40af 0%, #031795 100%);
 }
 
 .btn-secondary {
@@ -202,9 +204,14 @@ input::placeholder, textarea::placeholder {
   border-radius: var(--radius-full);
 }
 
-.badge-success,
-.badge-purple,
 .badge-primary,
+.badge-purple {
+  background: #eef2ff;
+  color: #031795;
+  border: 1px solid #c7d2fe;
+}
+
+.badge-success,
 .badge-emerald {
   background: #ecfdf5;
   color: #047857;
@@ -265,14 +272,14 @@ input::placeholder, textarea::placeholder {
   }
 
   &.active {
-    border-color: #059669;
-    color: #047857;
+    border-color: #031795;
+    color: #031795;
     background: #ffffff;
-    box-shadow: 0 2px 8px rgba(5, 150, 105, 0.14);
+    box-shadow: 0 2px 8px rgba(3, 23, 149, 0.14);
 
     .pill-dot {
-      background: #059669;
-      box-shadow: 0 0 6px rgba(5, 150, 105, 0.4);
+      background: #031795;
+      box-shadow: 0 0 6px rgba(3, 23, 149, 0.4);
     }
   }
 
@@ -283,16 +290,18 @@ input::placeholder, textarea::placeholder {
   }
 }
 
-/* Table Emerald Banner & Mint Group Headers (Matching Reference Image) */
+/* Table Royal Blue Banner & Ice Group Headers */
+.table-banner-royal,
 .table-banner-emerald {
-  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  background: linear-gradient(135deg, #031795 0%, #02106b 100%);
   color: #ffffff;
   padding: 14px 22px;
 }
 
+.table-header-ice,
 .table-header-mint {
-  background: #e6f7ef !important;
-  color: #047857 !important;
+  background: #eef2ff !important;
+  color: #031795 !important;
   font-weight: 800 !important;
   letter-spacing: 0.04em;
 }

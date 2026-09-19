@@ -888,7 +888,7 @@ import { ModalComponent } from '../../shared/ui/modal.component';
 
       &.active {
         background: #ffffff;
-        color: #047857;
+        color: #031795;
         font-weight: 700;
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
       }
@@ -905,7 +905,7 @@ import { ModalComponent } from '../../shared/ui/modal.component';
       outline: none;
 
       &:focus {
-        border-color: #059669;
+        border-color: #031795;
       }
     }
 
@@ -953,7 +953,7 @@ import { ModalComponent } from '../../shared/ui/modal.component';
       gap: 8px;
       font-size: 0.82rem;
       font-weight: 800;
-      color: #047857;
+      color: #031795;
       letter-spacing: 0.06em;
       margin-top: 6px;
     }
@@ -1059,9 +1059,9 @@ import { ModalComponent } from '../../shared/ui/modal.component';
     .badge-custom-pill {
       font-size: 0.68rem;
       font-weight: 800;
-      color: #047857;
-      background: #ecfdf5;
-      border: 1px solid #a7f3d0;
+      color: #031795;
+      background: #eef2ff;
+      border: 1px solid #c7d2fe;
       padding: 2px 8px;
       border-radius: var(--radius-full);
       letter-spacing: 0.04em;
@@ -1116,8 +1116,8 @@ import { ModalComponent } from '../../shared/ui/modal.component';
       transition: var(--transition-smooth);
 
       &:focus {
-        border-color: #059669;
-        box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.15);
+        border-color: #031795;
+        box-shadow: 0 0 0 3px rgba(3, 23, 149, 0.15);
       }
     }
 
@@ -1297,12 +1297,12 @@ import { ModalComponent } from '../../shared/ui/modal.component';
       gap: 4px;
       font-size: 0.76rem;
       font-weight: 700;
-      color: #047857;
+      color: #031795;
       text-decoration: none;
       transition: var(--transition-smooth);
 
       &:hover {
-        color: #059669;
+        color: #1e40af;
         text-decoration: underline;
       }
     }
@@ -1360,7 +1360,7 @@ import { ModalComponent } from '../../shared/ui/modal.component';
 
       &.active {
         background: #ffffff;
-        color: #047857;
+        color: #031795;
         font-weight: 700;
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
       }

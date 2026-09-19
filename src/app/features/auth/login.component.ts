@@ -120,7 +120,7 @@ import { AuthService } from '../../core/auth/auth.service';
       display: flex;
       align-items: center;
       justify-content: center;
-      background: radial-gradient(circle at 50% 20%, #ecfdf5 0%, #0f172a 120%), #020617;
+      background: radial-gradient(circle at 50% 20%, #eef2ff 0%, #020e5c 120%), #020617;
       padding: 24px;
     }
 
@@ -146,12 +146,12 @@ import { AuthService } from '../../core/auth/auth.service';
       width: 54px;
       height: 54px;
       border-radius: 14px;
-      background: linear-gradient(135deg, #059669 0%, #047857 100%);
+      background: linear-gradient(135deg, #031795 0%, #02106b 100%);
       display: flex;
       align-items: center;
       justify-content: center;
       color: #ffffff;
-      box-shadow: 0 8px 20px rgba(5, 150, 105, 0.35);
+      box-shadow: 0 8px 20px rgba(3, 23, 149, 0.35);
       margin-bottom: 14px;
     }
 
@@ -173,9 +173,9 @@ import { AuthService } from '../../core/auth/auth.service';
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      background: #f0fdf4;
-      border: 1px solid #bbf7d0;
-      color: #166534;
+      background: #eef2ff;
+      border: 1px solid #c7d2fe;
+      color: #031795;
       padding: 4px 10px;
       border-radius: 9999px;
       font-size: 0.72rem;
@@ -241,8 +241,8 @@ import { AuthService } from '../../core/auth/auth.service';
         &:focus {
           outline: none;
           background: #ffffff;
-          border-color: #059669;
-          box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.15);
+          border-color: #031795;
+          box-shadow: 0 0 0 3px rgba(3, 23, 149, 0.15);
         }
 
         &::placeholder {
@@ -277,15 +277,15 @@ import { AuthService } from '../../core/auth/auth.service';
       font-weight: 600;
       margin-top: 6px;
       border-radius: 10px;
-      background: linear-gradient(135deg, #059669 0%, #047857 100%);
+      background: linear-gradient(135deg, #031795 0%, #02106b 100%);
       color: white;
       border: none;
       cursor: pointer;
-      box-shadow: 0 4px 12px rgba(5, 150, 105, 0.25);
+      box-shadow: 0 4px 12px rgba(3, 23, 149, 0.25);
       transition: all 0.2s ease;
 
       &:hover:not(:disabled) {
-        box-shadow: 0 6px 16px rgba(5, 150, 105, 0.35);
+        box-shadow: 0 6px 16px rgba(3, 23, 149, 0.35);
         transform: translateY(-1px);
       }
 

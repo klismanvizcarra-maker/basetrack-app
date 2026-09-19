@@ -342,9 +342,9 @@ export class DashboardComponent implements OnInit {
   shiftDistribution = {
     heroPercentage: 52,
     slices: [
-      { name: 'Guardia A (Día)', percentage: 52, color: '#059669' },
-      { name: 'Guardia B (Noche)', percentage: 33, color: '#10b981' },
-      { name: 'Guardia C (Relevo)', percentage: 15, color: '#047857' }
+      { name: 'Guardia A (Día)', percentage: 52, color: '#031795' },
+      { name: 'Guardia B (Noche)', percentage: 33, color: '#2563eb' },
+      { name: 'Guardia C (Relevo)', percentage: 15, color: '#60a5fa' }
     ]
   };
 

@@ -52,7 +52,7 @@ import { PdfExportService } from '../../core/services/pdf-export.service';
           <div class="doc-header">
             <div class="doc-logo-group">
               <div class="brand-symbol">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.4">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#031795" stroke-width="2.4">
                   <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path>
                 </svg>
               </div>
@@ -267,10 +267,10 @@ import { PdfExportService } from '../../core/services/pdf-export.service';
       }
 
       .btn-download-pdf {
-        background: #059669;
+        background: #031795;
         color: #ffffff;
         border: none;
-        box-shadow: 0 2px 8px rgba(5, 150, 105, 0.4);
+        box-shadow: 0 2px 8px rgba(3, 23, 149, 0.4);
         font-weight: 700;
         cursor: pointer;
         display: inline-flex;
@@ -282,7 +282,7 @@ import { PdfExportService } from '../../core/services/pdf-export.service';
         transition: all 0.2s;
 
         &:hover {
-          background: #047857;
+          background: #1e40af;
           transform: translateY(-1px);
         }
 
@@ -329,7 +329,7 @@ import { PdfExportService } from '../../core/services/pdf-export.service';
       display: flex;
       justify-content: space-between;
       align-items: center;
-      border-bottom: 2px solid #059669;
+      border-bottom: 2px solid #031795;
       padding-bottom: 8px;
       margin-bottom: 8px;
     }
@@ -342,8 +342,8 @@ import { PdfExportService } from '../../core/services/pdf-export.service';
       .brand-symbol {
         width: 38px;
         height: 38px;
-        background: #ecfdf5;
-        border: 1.5px solid #a7f3d0;
+        background: #eef2ff;
+        border: 1.5px solid #c7d2fe;
         border-radius: 8px;
         display: flex;
         align-items: center;
@@ -361,7 +361,7 @@ import { PdfExportService } from '../../core/services/pdf-export.service';
       .doc-sub {
         font-size: 0.65rem;
         font-weight: 700;
-        color: #059669;
+        color: #031795;
         margin: 2px 0 0;
         letter-spacing: 0.05em;
       }
@@ -381,7 +381,7 @@ import { PdfExportService } from '../../core/services/pdf-export.service';
     .doc-title-banner {
       background: #f1f5f9;
       border: 1px solid #e2e8f0;
-      border-left: 4px solid #059669;
+      border-left: 4px solid #031795;
       padding: 5px 10px;
       margin-bottom: 8px;
 
@@ -424,7 +424,7 @@ import { PdfExportService } from '../../core/services/pdf-export.service';
         margin: 2px 0;
         small { font-size: 0.68rem; font-weight: 700; color: #64748b; }
 
-        &.highlight-emerald { color: #047857; }
+        &.highlight-emerald { color: #031795; }
         &.highlight-blue { color: #0284c7; }
       }
 
@@ -445,11 +445,11 @@ import { PdfExportService } from '../../core/services/pdf-export.service';
     .section-heading {
       font-size: 0.72rem;
       font-weight: 800;
-      color: #047857;
-      background: #ecfdf5;
+      color: #031795;
+      background: #eef2ff;
       padding: 3px 8px;
       border-radius: 4px;
-      border-left: 3px solid #059669;
+      border-left: 3px solid #031795;
       margin-bottom: 5px;
       letter-spacing: 0.03em;
     }

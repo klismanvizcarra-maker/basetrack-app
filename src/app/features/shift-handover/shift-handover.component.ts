@@ -257,11 +257,11 @@ export interface ShiftHandover {
     }
 
     .btn-pdf-icon {
-      background: #059669;
+      background: #031795;
       color: #ffffff;
       padding: 0.35rem 0.65rem;
       &:hover {
-        background: #047857;
+        background: #1e40af;
       }
     }
 

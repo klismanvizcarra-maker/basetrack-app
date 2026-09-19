@@ -29,12 +29,12 @@ export interface WavePoint {
           <svg viewBox="0 0 500 180" preserveAspectRatio="none" class="wave-svg">
             <defs>
               <linearGradient id="emeraldWaveGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stop-color="#059669" stop-opacity="0.25" />
-                <stop offset="60%" stop-color="#34d399" stop-opacity="0.1" />
-                <stop offset="100%" stop-color="#059669" stop-opacity="0.0" />
+                <stop offset="0%" stop-color="#031795" stop-opacity="0.30" />
+                <stop offset="60%" stop-color="#2563eb" stop-opacity="0.12" />
+                <stop offset="100%" stop-color="#031795" stop-opacity="0.0" />
               </linearGradient>
               <filter id="waveGlow" x="-20%" y="-20%" width="140%" height="140%">
-                <feDropShadow dx="0" dy="0" stdDeviation="3" flood-color="#059669" flood-opacity="0.3" />
+                <feDropShadow dx="0" dy="0" stdDeviation="3" flood-color="#031795" flood-opacity="0.35" />
               </filter>
             </defs>
 
@@ -46,7 +46,7 @@ export interface WavePoint {
 
             <!-- Vertical peak marker line -->
             <line x1="250" y1="42" x2="250" y2="180" stroke="#94a3b8" stroke-dasharray="3,3" stroke-width="1" />
-            <circle cx="250" cy="42" r="3.5" fill="#059669" filter="url(#waveGlow)" />
+            <circle cx="250" cy="42" r="3.5" fill="#031795" filter="url(#waveGlow)" />
 
             <!-- Wave area fill -->
             <path
@@ -58,7 +58,7 @@ export interface WavePoint {
             <path
               d="M 0 170 C 50 165, 80 155, 120 120 C 160 85, 200 45, 250 42 C 300 40, 340 140, 390 120 C 440 100, 470 30, 500 20"
               fill="none"
-              stroke="#059669"
+              stroke="#031795"
               stroke-width="2.5"
             />
 

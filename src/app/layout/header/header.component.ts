@@ -322,10 +322,10 @@ import { CloudSyncService } from '../../core/services/cloud-sync.service';
       display: flex;
       align-items: center;
       gap: 6px;
-      background: #ecfdf5;
+      background: #eef2ff;
       padding: 4px 12px;
       border-radius: var(--radius-full);
-      border: 1px solid #a7f3d0;
+      border: 1px solid #c7d2fe;
       font-size: 0.75rem;
       flex-shrink: 0;
 
@@ -340,12 +340,12 @@ import { CloudSyncService } from '../../core/services/cloud-sync.service';
     }
 
     .shift-tag {
-      color: #065f46;
+      color: #1e40af;
       font-weight: 500;
     }
 
     .shift-name {
-      color: #047857;
+      color: #031795;
       font-weight: 800;
     }
 
@@ -392,19 +392,19 @@ import { CloudSyncService } from '../../core/services/cloud-sync.service';
       gap: 6px;
       padding: 7px 12px;
       border-radius: var(--radius-full);
-      background: #ecfdf5;
-      border: 1px solid #a7f3d0;
-      color: #047857;
+      background: #eef2ff;
+      border: 1px solid #c7d2fe;
+      color: #031795;
       font-size: 0.78rem;
       font-weight: 700;
       cursor: pointer;
       transition: var(--transition-smooth);
 
       &:hover {
-        background: #d1fae5;
-        border-color: #059669;
+        background: #e0e7ff;
+        border-color: #031795;
         transform: translateY(-1px);
-        box-shadow: 0 2px 8px rgba(5, 150, 105, 0.2);
+        box-shadow: 0 2px 8px rgba(3, 23, 149, 0.2);
       }
 
       @media (max-width: 640px) {
@@ -424,9 +424,9 @@ import { CloudSyncService } from '../../core/services/cloud-sync.service';
       right: 9px;
       width: 8px;
       height: 8px;
-      background: #059669;
+      background: #031795;
       border-radius: var(--radius-full);
-      box-shadow: 0 0 6px rgba(5, 150, 105, 0.45);
+      box-shadow: 0 0 6px rgba(3, 23, 149, 0.45);
     }
 
     .user-profile-badge {

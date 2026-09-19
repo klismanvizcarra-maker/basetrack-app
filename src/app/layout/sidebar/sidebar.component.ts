@@ -305,12 +305,12 @@ import { PwaService } from '../../core/pwa/pwa.service';
       width: 36px;
       height: 36px;
       border-radius: var(--radius-md);
-      background: linear-gradient(135deg, #059669 0%, #047857 100%);
+      background: linear-gradient(135deg, #031795 0%, #02106b 100%);
       display: flex;
       align-items: center;
       justify-content: center;
       color: #ffffff;
-      box-shadow: 0 3px 12px rgba(5, 150, 105, 0.35);
+      box-shadow: 0 3px 12px rgba(3, 23, 149, 0.35);
     }
 
     .brand-title {
@@ -365,10 +365,10 @@ import { PwaService } from '../../core/pwa/pwa.service';
       }
 
       &.active {
-        background: linear-gradient(135deg, #059669 0%, #047857 100%);
+        background: linear-gradient(135deg, #031795 0%, #02106b 100%);
         color: #ffffff;
         font-weight: 600;
-        box-shadow: 0 3px 12px rgba(5, 150, 105, 0.3);
+        box-shadow: 0 3px 12px rgba(3, 23, 149, 0.3);
       }
     }
 
@@ -390,13 +390,13 @@ import { PwaService } from '../../core/pwa/pwa.service';
 
     .nav-badge-crew {
       margin-left: auto;
-      background: #ecfdf5;
-      color: #047857;
+      background: #eef2ff;
+      color: #031795;
       font-size: 0.7rem;
       font-weight: 700;
       padding: 2px 7px;
       border-radius: var(--radius-full);
-      border: 1px solid #a7f3d0;
+      border: 1px solid #c7d2fe;
     }
 
     .logout-btn:hover {
@@ -424,19 +424,19 @@ import { PwaService } from '../../core/pwa/pwa.service';
       gap: 8px;
       padding: 9px 12px;
       border-radius: var(--radius-md);
-      background: linear-gradient(135deg, #059669 0%, #047857 100%);
+      background: linear-gradient(135deg, #031795 0%, #02106b 100%);
       color: #ffffff;
       border: none;
       font-size: 0.78rem;
       font-weight: 700;
       cursor: pointer;
-      box-shadow: 0 3px 10px rgba(5, 150, 105, 0.28);
+      box-shadow: 0 3px 10px rgba(3, 23, 149, 0.28);
       transition: var(--transition-smooth);
 
       &:hover {
         transform: translateY(-1px);
-        box-shadow: 0 5px 14px rgba(5, 150, 105, 0.42);
-        background: linear-gradient(135deg, #047857 0%, #065f46 100%);
+        box-shadow: 0 5px 14px rgba(3, 23, 149, 0.42);
+        background: linear-gradient(135deg, #1e40af 0%, #031795 100%);
       }
     }
 

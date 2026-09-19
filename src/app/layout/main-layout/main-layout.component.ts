@@ -207,15 +207,15 @@ import { LayoutService } from '../../core/layout/layout.service';
       }
 
       &.active {
-        color: #047857;
+        color: #031795;
 
         .bottom-nav-icon-wrap svg {
-          stroke: #059669;
-          filter: drop-shadow(0 1px 4px rgba(5, 150, 105, 0.35));
+          stroke: #031795;
+          filter: drop-shadow(0 1px 4px rgba(3, 23, 149, 0.35));
         }
 
         .bottom-nav-label {
-          color: #047857;
+          color: #031795;
           font-weight: 800;
         }
 
@@ -255,7 +255,7 @@ import { LayoutService } from '../../core/layout/layout.service';
       width: 4px;
       height: 4px;
       border-radius: 50%;
-      background: #059669;
+      background: #031795;
       opacity: 0;
       transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
@@ -267,8 +267,8 @@ import { LayoutService } from '../../core/layout/layout.service';
       width: 6px;
       height: 6px;
       border-radius: 50%;
-      background: #10b981;
-      box-shadow: 0 0 5px rgba(16, 185, 129, 0.6);
+      background: #2563eb;
+      box-shadow: 0 0 5px rgba(37, 99, 235, 0.6);
     }
 
     .btn-menu-toggle {
@@ -287,27 +287,27 @@ import { LayoutService } from '../../core/layout/layout.service';
       align-items: center;
       gap: 16px;
       padding: 14px 16px;
-      background: #ecfdf5;
-      border: 1px solid #a7f3d0;
+      background: #eef2ff;
+      border: 1px solid #c7d2fe;
       border-radius: var(--radius-md);
 
       .hero-icon-img {
         width: 56px;
         height: 56px;
         border-radius: var(--radius-md);
-        box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
+        box-shadow: 0 4px 12px rgba(3, 23, 149, 0.3);
       }
 
       h4 {
         font-size: 1.05rem;
         font-weight: 800;
-        color: #047857;
+        color: #031795;
         margin-bottom: 2px;
       }
 
       .hero-desc {
         font-size: 0.8rem;
-        color: #065f46;
+        color: #1e40af;
         line-height: 1.35;
       }
     }

@@ -1085,10 +1085,10 @@ const DEFAULT_LOGS: AuditLog[] = [
 
       th {
         padding: 12px 14px;
-        background: #e6f7ef;
-        color: #047857;
+        background: #eef2ff;
+        color: #031795;
         font-weight: 700;
-        border-bottom: 1px solid #a7f3d0;
+        border-bottom: 1px solid #c7d2fe;
         font-size: 0.75rem;
         text-transform: uppercase;
         letter-spacing: 0.04em;
@@ -1197,7 +1197,7 @@ const DEFAULT_LOGS: AuditLog[] = [
 
       &.active {
         background: #ffffff;
-        color: #047857;
+        color: #031795;
         font-weight: 700;
         box-shadow: 0 1px 3px rgba(0,0,0,0.08);
       }
@@ -1206,8 +1206,8 @@ const DEFAULT_LOGS: AuditLog[] = [
     .download-tpl-btn {
       margin-left: auto;
       background: none;
-      border: 1px dashed #059669;
-      color: #047857;
+      border: 1px dashed #031795;
+      color: #031795;
       padding: 5px 10px;
       border-radius: var(--radius-sm);
       font-size: 0.75rem;
@@ -1216,7 +1216,7 @@ const DEFAULT_LOGS: AuditLog[] = [
       transition: var(--transition-smooth);
 
       &:hover {
-        background: #ecfdf5;
+        background: #eef2ff;
       }
     }
 
@@ -1239,8 +1239,8 @@ const DEFAULT_LOGS: AuditLog[] = [
       transition: var(--transition-smooth);
 
       &:hover {
-        border-color: #059669;
-        background: #f0fdf4;
+        border-color: #031795;
+        background: #eef2ff;
       }
     }
 
@@ -1267,8 +1267,8 @@ const DEFAULT_LOGS: AuditLog[] = [
       box-sizing: border-box;
 
       &:focus {
-        border-color: #059669;
-        box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.15);
+        border-color: #031795;
+        box-shadow: 0 0 0 3px rgba(3, 23, 149, 0.15);
       }
     }
 
@@ -1468,8 +1468,8 @@ const DEFAULT_LOGS: AuditLog[] = [
       outline: none;
 
       &:focus {
-        border-color: #059669;
-        box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.15);
+        border-color: #031795;
+        box-shadow: 0 0 0 2px rgba(3, 23, 149, 0.15);
       }
     }
 
@@ -1505,9 +1505,9 @@ const DEFAULT_LOGS: AuditLog[] = [
       }
 
       &.btn-icon-success:hover {
-        background: #ecfdf5;
-        color: #059669;
-        border-color: #a7f3d0;
+        background: #eef2ff;
+        color: #031795;
+        border-color: #c7d2fe;
       }
 
       &:disabled {
@@ -1556,9 +1556,9 @@ const DEFAULT_LOGS: AuditLog[] = [
     .user-chip {
       font-size: 0.78rem;
       font-weight: 600;
-      color: #047857;
-      background: #ecfdf5;
-      border: 1px solid #a7f3d0;
+      color: #031795;
+      background: #eef2ff;
+      border: 1px solid #c7d2fe;
       padding: 3px 8px;
       border-radius: 12px;
       display: inline-block;
@@ -1636,7 +1636,7 @@ const DEFAULT_LOGS: AuditLog[] = [
       width: 42px;
       height: 42px;
       border-radius: 50%;
-      border: 2px solid #059669;
+      border: 2px solid #031795;
       background: #fff;
     }
 
@@ -1644,13 +1644,13 @@ const DEFAULT_LOGS: AuditLog[] = [
       width: 42px;
       height: 42px;
       border-radius: 50%;
-      background: #ecfdf5;
-      color: #059669;
+      background: #eef2ff;
+      color: #031795;
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 1.3rem;
-      border: 1px solid #a7f3d0;
+      border: 1px solid #c7d2fe;
     }
 
     .user-sub {
@@ -1670,9 +1670,9 @@ const DEFAULT_LOGS: AuditLog[] = [
       box-sizing: border-box;
 
       &:focus {
-        border-color: #059669;
+        border-color: #031795;
         outline: none;
-        box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.15);
+        box-shadow: 0 0 0 2px rgba(3, 23, 149, 0.15);
       }
     }
 

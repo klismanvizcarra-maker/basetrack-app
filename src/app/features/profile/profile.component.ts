@@ -532,19 +532,19 @@ import { ShiftCode } from '../../core/auth/auth.models';
         width: 36px;
         height: 36px;
         border-radius: var(--radius-full);
-        background: #059669;
+        background: #031795;
         color: #ffffff;
         border: 2px solid #ffffff;
         display: flex;
         align-items: center;
         justify-content: center;
         cursor: pointer;
-        box-shadow: 0 2px 8px rgba(5, 150, 105, 0.4);
+        box-shadow: 0 2px 8px rgba(3, 23, 149, 0.4);
         transition: transform 0.2s ease;
 
         &:hover {
           transform: scale(1.1);
-          background: #047857;
+          background: #1e40af;
         }
       }
     }
@@ -614,13 +614,13 @@ import { ShiftCode } from '../../core/auth/auth.models';
         }
 
         &:hover {
-          border-color: #059669;
+          border-color: #031795;
           transform: translateY(-2px);
         }
 
         &.active {
-          border-color: #059669;
-          box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.25);
+          border-color: #031795;
+          box-shadow: 0 0 0 3px rgba(3, 23, 149, 0.25);
         }
       }
     }
@@ -653,18 +653,18 @@ import { ShiftCode } from '../../core/auth/auth.models';
         width: 42px;
         height: 42px;
         border-radius: var(--radius-md);
-        background: #ecfdf5;
-        color: #059669;
-        border: 1px solid #a7f3d0;
+        background: #eef2ff;
+        color: #031795;
+        border: 1px solid #c7d2fe;
         display: flex;
         align-items: center;
         justify-content: center;
       }
 
       .security-icon {
-        background: #f0fdf4;
-        color: #059669;
-        border-color: #a7f3d0;
+        background: #eef2ff;
+        color: #031795;
+        border-color: #c7d2fe;
       }
 
       h3 {
@@ -735,7 +735,7 @@ import { ShiftCode } from '../../core/auth/auth.models';
         right: 8px;
         background: transparent;
         border: none;
-        color: #059669;
+        color: #031795;
         font-size: 0.75rem;
         font-weight: 600;
         cursor: pointer;
@@ -743,7 +743,7 @@ import { ShiftCode } from '../../core/auth/auth.models';
         border-radius: var(--radius-sm);
 
         &:hover {
-          background: #ecfdf5;
+          background: #eef2ff;
         }
       }
     }
@@ -802,9 +802,9 @@ import { ShiftCode } from '../../core/auth/auth.models';
         gap: 5px;
         font-size: 0.74rem;
         font-weight: 700;
-        color: #047857;
-        background: #ecfdf5;
-        border: 1px solid #a7f3d0;
+        color: #031795;
+        background: #eef2ff;
+        border: 1px solid #c7d2fe;
         padding: 4px 10px;
         border-radius: var(--radius-full);
       }
@@ -899,9 +899,9 @@ import { ShiftCode } from '../../core/auth/auth.models';
       .channel-chip {
         font-size: 0.74rem;
         font-weight: 700;
-        color: #047857;
-        background: #ecfdf5;
-        border: 1px solid #a7f3d0;
+        color: #031795;
+        background: #eef2ff;
+        border: 1px solid #c7d2fe;
         padding: 2px 8px;
         border-radius: 12px;
       }

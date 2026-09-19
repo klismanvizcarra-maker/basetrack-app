@@ -191,13 +191,13 @@ export interface DayComparison {
     }
 
     .bar-current {
-      background: linear-gradient(180deg, #059669 0%, #10b981 100%);
-      box-shadow: 0 2px 6px rgba(5, 150, 105, 0.25);
+      background: linear-gradient(180deg, #031795 0%, #2563eb 100%);
+      box-shadow: 0 2px 6px rgba(3, 23, 149, 0.25);
     }
 
     .bar-previous {
-      background: linear-gradient(180deg, #047857 0%, #065f46 100%);
-      box-shadow: 0 2px 6px rgba(4, 120, 87, 0.25);
+      background: linear-gradient(180deg, #02106b 0%, #1e3a8a 100%);
+      box-shadow: 0 2px 6px rgba(2, 16, 107, 0.25);
     }
 
     .day-label {
@@ -227,8 +227,8 @@ export interface DayComparison {
       height: 8px;
       border-radius: var(--radius-full);
 
-      &.purple { background: #059669; }
-      &.pink { background: #047857; }
+      &.purple { background: #031795; }
+      &.pink { background: #1e40af; }
     }
   `]
 })
