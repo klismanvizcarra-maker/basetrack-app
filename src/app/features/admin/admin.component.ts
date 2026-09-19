@@ -260,6 +260,15 @@ const DEFAULT_LOGS: AuditLog[] = [
             </svg>
             Exportar Backup JSON
           </button>
+          <input #restoreFileInput type="file" accept=".json" (change)="onFileSelectedForRestore($event)" style="display: none" />
+          <button class="btn btn-secondary" (click)="restoreFileInput.click()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+            Restaurar Backup JSON
+          </button>
           <button class="btn btn-primary" (click)="isCreateUserModalOpen = true">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
               <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -1315,6 +1324,47 @@ export class AdminComponent implements OnInit {
         setTimeout(() => this.backupSuccessMessage = '', 5000);
       }
     });
+  }
+
+  onFileSelectedForRestore(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (!input.files || input.files.length === 0) return;
+    const file = input.files[0];
+    const reader = new FileReader();
+
+    reader.onload = (e) => {
+      try {
+        const text = e.target?.result as string;
+        const json = JSON.parse(text);
+
+        const confirmed = window.confirm(`¿Confirmas la restauración del respaldo "${file.name}"?\nEsta acción sincronizará y actualizará de forma segura las tablas del sistema.`);
+        if (!confirmed) {
+          input.value = '';
+          return;
+        }
+
+        this.http.post<any>('http://localhost:3001/api/admin/restore', { backup: json.backup || json }).subscribe({
+          next: (res) => {
+            if (res && res.success) {
+              this.backupSuccessMessage = '¡Respaldo restaurado exitosamente! Los datos del sistema han sido sincronizados.';
+              setTimeout(() => this.backupSuccessMessage = '', 6000);
+              this.loadUsers();
+              this.loadLogs();
+            }
+          },
+          error: (err) => {
+            this.backupSuccessMessage = 'Error al restaurar: ' + (err.error?.message || err.message || 'Error de conexión');
+            setTimeout(() => this.backupSuccessMessage = '', 6000);
+          }
+        });
+      } catch (err: any) {
+        alert('El archivo seleccionado no contiene un formato JSON válido: ' + err.message);
+      } finally {
+        input.value = '';
+      }
+    };
+
+    reader.readAsText(file);
   }
 
   openBulkModal(): void {

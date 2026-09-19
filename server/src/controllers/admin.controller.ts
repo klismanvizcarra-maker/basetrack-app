@@ -189,14 +189,19 @@ export function getDatabaseBackup(req: Request, res: Response) {
       return res.status(404).json({ success: false, message: 'Archivo de base de datos no encontrado' });
     }
 
-    // Export comprehensive JSON data backup
+    // Export comprehensive JSON data backup with all operational tables
     const tables = {
       users: db.prepare('SELECT id, username, email, full_name, role, shift, avatar_url, created_at FROM users').all(),
       shift_handovers: db.prepare('SELECT * FROM shift_handovers').all(),
       pump_reports: db.prepare('SELECT * FROM pump_reports').all(),
+      pump_station_sheets: db.prepare('SELECT * FROM pump_station_sheets').all(),
       cyclone_reports: db.prepare('SELECT * FROM cyclone_reports').all(),
+      cyclone_station_samples: db.prepare('SELECT * FROM cyclone_station_samples').all(),
       tailings_reports: db.prepare('SELECT * FROM tailings_reports').all(),
       maintenance_requests: db.prepare('SELECT * FROM maintenance_requests').all(),
+      crew_members: db.prepare('SELECT * FROM crew_members').all(),
+      crew_positions: db.prepare('SELECT * FROM crew_positions').all(),
+      crew_area_assignments: db.prepare('SELECT * FROM crew_area_assignments').all(),
       audit_logs: db.prepare('SELECT * FROM audit_logs').all(),
       exportedAt: new Date().toISOString(),
       system: 'BASETRACK_APP_V1'
@@ -209,5 +214,216 @@ export function getDatabaseBackup(req: Request, res: Response) {
     });
   } catch (error: any) {
     return res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+export function restoreDatabaseBackup(req: AuthenticatedRequest, res: Response) {
+  try {
+    const data = req.body.backup || req.body;
+    if (!data || typeof data !== 'object') {
+      return res.status(400).json({ success: false, message: 'Estructura de respaldo JSON inválida' });
+    }
+
+    const summary: Record<string, number> = {};
+
+    db.exec('BEGIN IMMEDIATE;');
+    try {
+      // 1. Crew members
+      if (Array.isArray(data.crew_members) && data.crew_members.length > 0) {
+        const stmt = db.prepare(`
+          INSERT OR REPLACE INTO crew_members (id, name, document_id, primary_role, shift_code, radio_channel, phone_extension, status, avatar_url, created_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, datetime('now')))
+        `);
+        let count = 0;
+        for (const m of data.crew_members) {
+          if (m.id && m.name && m.document_id) {
+            stmt.run(m.id, m.name, m.document_id, m.primary_role || 'OPERADOR_BOMBAS', m.shift_code || 'GUARDIA_A', m.radio_channel || 'Canal 1 Operaciones', m.phone_extension || null, m.status || 'EN_TURNO', m.avatar_url || null, m.created_at || null);
+            count++;
+          }
+        }
+        summary.crew_members = count;
+      }
+
+      // 2. Crew positions
+      if (Array.isArray(data.crew_positions) && data.crew_positions.length > 0) {
+        const stmt = db.prepare(`
+          INSERT OR REPLACE INTO crew_positions (key, title, default_location, default_radio, badge_class, route_link, route_label, icon_svg, description, is_custom, created_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, datetime('now')))
+        `);
+        let count = 0;
+        for (const p of data.crew_positions) {
+          if (p.key && p.title) {
+            stmt.run(p.key, p.title, p.default_location || null, p.default_radio || null, p.badge_class || null, p.route_link || null, p.route_label || null, p.icon_svg || null, p.description || null, p.is_custom !== undefined ? (p.is_custom ? 1 : 0) : 0, p.created_at || null);
+            count++;
+          }
+        }
+        summary.crew_positions = count;
+      }
+
+      // 3. Crew area assignments
+      if (Array.isArray(data.crew_area_assignments) && data.crew_area_assignments.length > 0) {
+        const stmt = db.prepare(`
+          INSERT OR REPLACE INTO crew_area_assignments (id, shift_code, shift_date, shift_type, position_key, position_title, operator_id, backup_operator_id, epp_verified, safety_talk_completed, radio_channel, station_location, notes, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, datetime('now')))
+        `);
+        let count = 0;
+        for (const a of data.crew_area_assignments) {
+          if (a.id && a.shift_code && a.operator_id) {
+            stmt.run(a.id, a.shift_code, a.shift_date, a.shift_type || 'DIA', a.position_key, a.position_title, a.operator_id, a.backup_operator_id || null, a.epp_verified ? 1 : 0, a.safety_talk_completed ? 1 : 0, a.radio_channel || null, a.station_location || null, a.notes || null, a.updated_at || null);
+            count++;
+          }
+        }
+        summary.crew_area_assignments = count;
+      }
+
+      // 4. Pump station sheets
+      if (Array.isArray(data.pump_station_sheets) && data.pump_station_sheets.length > 0) {
+        const stmt = db.prepare(`
+          INSERT OR REPLACE INTO pump_station_sheets (id, report_date, shift_code, operator_name, sentina_pumps_json, intermedia_pumps_json, torre5_pumps_json, levels_json, main_indicators_json, pozas_sentina_json, additional_obs_json, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, datetime('now')), COALESCE(?, datetime('now')))
+        `);
+        let count = 0;
+        for (const s of data.pump_station_sheets) {
+          if (s.id && s.report_date) {
+            stmt.run(
+              s.id,
+              s.report_date,
+              s.shift_code || 'GUARDIA_A',
+              s.operator_name || 'Operador',
+              typeof s.sentina_pumps_json === 'string' ? s.sentina_pumps_json : JSON.stringify(s.sentina_pumps || []),
+              typeof s.intermedia_pumps_json === 'string' ? s.intermedia_pumps_json : JSON.stringify(s.intermedia_pumps || []),
+              typeof s.torre5_pumps_json === 'string' ? s.torre5_pumps_json : JSON.stringify(s.torre5_pumps || []),
+              typeof s.levels_json === 'string' ? s.levels_json : JSON.stringify(s.levels || {}),
+              typeof s.main_indicators_json === 'string' ? s.main_indicators_json : JSON.stringify(s.main_indicators || {}),
+              typeof s.pozas_sentina_json === 'string' ? s.pozas_sentina_json : JSON.stringify(s.pozas_sentina || []),
+              typeof s.additional_obs_json === 'string' ? s.additional_obs_json : JSON.stringify(s.additional_obs || {}),
+              s.created_at || null,
+              s.updated_at || null
+            );
+            count++;
+          }
+        }
+        summary.pump_station_sheets = count;
+      }
+
+      // 5. Cyclone station samples
+      if (Array.isArray(data.cyclone_station_samples) && data.cyclone_station_samples.length > 0) {
+        const stmt = db.prepare(`
+          INSERT OR REPLACE INTO cyclone_station_samples (id, station, sample_time, battery_tag, solids_feed, solids_of, solids_uf, mesh200_feed, mesh200_of, mesh200_uf, shift_code, date, created_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, datetime('now')))
+        `);
+        let count = 0;
+        for (const cs of data.cyclone_station_samples) {
+          if (cs.id && cs.sample_time) {
+            stmt.run(cs.id, cs.station || '2DA ESTACIÓN CICLONES', cs.sample_time, cs.battery_tag || 'BATERÍA D', cs.solids_feed || 0, cs.solids_of || 0, cs.solids_uf || 0, cs.mesh200_feed || 0, cs.mesh200_of || 0, cs.mesh200_uf || 0, cs.shift_code || 'GUARDIA_A', cs.date || new Date().toISOString().slice(0, 10), cs.created_at || null);
+            count++;
+          }
+        }
+        summary.cyclone_station_samples = count;
+      }
+
+      // 6. Shift handovers
+      if (Array.isArray(data.shift_handovers) && data.shift_handovers.length > 0) {
+        const stmt = db.prepare(`
+          INSERT OR REPLACE INTO shift_handovers (id, shift_code, date, shift_type, outgoing_supervisor, incoming_supervisor, plant_status, tonnage_processed, safety_incidents, operational_highlights, pending_tasks, status, created_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, datetime('now')))
+        `);
+        let count = 0;
+        for (const sh of data.shift_handovers) {
+          if (sh.id && sh.shift_code) {
+            stmt.run(sh.id, sh.shift_code, sh.date, sh.shift_type || 'DIA', sh.outgoing_supervisor || '', sh.incoming_supervisor || '', sh.plant_status || 'Operación Normal', sh.tonnage_processed || 0, sh.safety_incidents || '', sh.operational_highlights || '', sh.pending_tasks || '', sh.status || 'SUBMITTED', sh.created_at || null);
+            count++;
+          }
+        }
+        summary.shift_handovers = count;
+      }
+
+      // 7. Pump reports
+      if (Array.isArray(data.pump_reports) && data.pump_reports.length > 0) {
+        const stmt = db.prepare(`
+          INSERT OR REPLACE INTO pump_reports (id, tag, name, system, status, flow_rate_m3h, pressure_bar, rpm, bearing_temp_c, vibration_mms, current_amps, shift_code, operator_name, notes, created_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, datetime('now')))
+        `);
+        let count = 0;
+        for (const p of data.pump_reports) {
+          if (p.id && p.tag) {
+            stmt.run(p.id, p.tag, p.name || p.tag, p.system || 'Bombeo', p.status || 'OPERATING', p.flow_rate_m3h || 0, p.pressure_bar || 0, p.rpm || 0, p.bearing_temp_c || 0, p.vibration_mms || 0, p.current_amps || 0, p.shift_code || 'GUARDIA_A', p.operator_name || 'Operador', p.notes || null, p.created_at || null);
+            count++;
+          }
+        }
+        summary.pump_reports = count;
+      }
+
+      // 8. Cyclone reports
+      if (Array.isArray(data.cyclone_reports) && data.cyclone_reports.length > 0) {
+        const stmt = db.prepare(`
+          INSERT OR REPLACE INTO cyclone_reports (id, battery_tag, total_cyclones, active_cyclones, feed_pressure_psi, feed_density_kgm3, p80_microns, overflow_density, underflow_density, flocculant_ppm, status, shift_code, notes, created_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, datetime('now')))
+        `);
+        let count = 0;
+        for (const c of data.cyclone_reports) {
+          if (c.id && c.battery_tag) {
+            stmt.run(c.id, c.battery_tag, c.total_cyclones || 12, c.active_cyclones || 10, c.feed_pressure_psi || 0, c.feed_density_kgm3 || 0, c.p80_microns || 0, c.overflow_density || 0, c.underflow_density || 0, c.flocculant_ppm || 0, c.status || 'OPTIMAL', c.shift_code || 'GUARDIA_A', c.notes || null, c.created_at || null);
+            count++;
+          }
+        }
+        summary.cyclone_reports = count;
+      }
+
+      // 9. Tailings reports
+      if (Array.isArray(data.tailings_reports) && data.tailings_reports.length > 0) {
+        const stmt = db.prepare(`
+          INSERT OR REPLACE INTO tailings_reports (id, station_tag, flow_rate_m3h, solids_percentage, dam_level_meters, freeboard_meters, piezometer_kpa, turbidity_ntu, pumping_line_status, operator_name, shift_code, notes, created_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, datetime('now')))
+        `);
+        let count = 0;
+        for (const t of data.tailings_reports) {
+          if (t.id && t.station_tag) {
+            stmt.run(t.id, t.station_tag, t.flow_rate_m3h || 0, t.solids_percentage || 0, t.dam_level_meters || 0, t.freeboard_meters || 0, t.piezometer_kpa || 0, t.turbidity_ntu || 0, t.pumping_line_status || 'NORMAL', t.operator_name || 'Operador', t.shift_code || 'GUARDIA_A', t.notes || null, t.created_at || null);
+            count++;
+          }
+        }
+        summary.tailings_reports = count;
+      }
+
+      // 10. Maintenance requests
+      if (Array.isArray(data.maintenance_requests) && data.maintenance_requests.length > 0) {
+        const stmt = db.prepare(`
+          INSERT OR REPLACE INTO maintenance_requests (id, ticket_number, equipment_tag, title, description, priority, status, requester_name, assigned_to, photo_url, estimated_hours, created_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, datetime('now')))
+        `);
+        let count = 0;
+        for (const m of data.maintenance_requests) {
+          if (m.id && m.ticket_number) {
+            stmt.run(m.id, m.ticket_number, m.equipment_tag || 'EQUIP-01', m.title || 'Mantenimiento', m.description || '', m.priority || 'MEDIUM', m.status || 'PENDING', m.requester_name || 'Operador', m.assigned_to || null, m.photo_url || null, m.estimated_hours || 1, m.created_at || null);
+            count++;
+          }
+        }
+        summary.maintenance_requests = count;
+      }
+
+      db.exec('COMMIT;');
+    } catch (innerErr) {
+      db.exec('ROLLBACK;');
+      throw innerErr;
+    }
+
+    logAudit(
+      req.user?.userId || null,
+      req.user?.username || 'admin',
+      'RESTORE_BACKUP',
+      'DATABASE',
+      null,
+      `Restauración de base de datos completada: ${JSON.stringify(summary)}`,
+      req.ip || '127.0.0.1'
+    );
+
+    return res.json({
+      success: true,
+      message: 'Copia de seguridad restaurada exitosamente',
+      summary
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: 'Error al restaurar respaldo: ' + error.message });
   }
 }

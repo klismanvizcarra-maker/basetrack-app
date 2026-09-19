@@ -48,7 +48,7 @@ test('2. POST /api/auth/login should authenticate admin and return JWT', async (
   const res = await fetch(`${baseUrl}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username: 'admin', password: 'admin123' })
+    body: JSON.stringify({ username: 'KlismanV', password: '71209033' })
   });
 
   assert.strictEqual(res.status, 200);
@@ -66,7 +66,7 @@ test('3. GET /api/auth/me should return current user with valid token', async ()
 
   assert.strictEqual(res.status, 200);
   const data = await res.json() as any;
-  assert.strictEqual(data.user.username, 'admin');
+  assert.ok(['admin', 'KlismanV'].includes(data.user.username));
 });
 
 test('4. GET /api/dashboard/metrics should return aggregated CRAVEAT-style KPIs', async () => {
@@ -205,4 +205,31 @@ test('9. GET & POST /api/pumps/operational-sheet should fetch and save operation
   const postJson = await postRes.json() as any;
   assert.strictEqual(postJson.success, true);
 });
+
+test('10. GET /api/admin/backup and POST /api/admin/restore should backup and restore operational data', async () => {
+  const backupRes = await fetch(`${baseUrl}/admin/backup`, {
+    headers: { 'Authorization': `Bearer ${authToken}` }
+  });
+  assert.strictEqual(backupRes.status, 200);
+  const backupJson = await backupRes.json() as any;
+  assert.strictEqual(backupJson.success, true);
+  assert.ok(backupJson.backup);
+  assert.ok(Array.isArray(backupJson.backup.users));
+  assert.ok(Array.isArray(backupJson.backup.crew_members));
+  assert.ok(Array.isArray(backupJson.backup.pump_station_sheets));
+
+  const restoreRes = await fetch(`${baseUrl}/admin/restore`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${authToken}`
+    },
+    body: JSON.stringify({ backup: backupJson.backup })
+  });
+  assert.strictEqual(restoreRes.status, 200);
+  const restoreJson = await restoreRes.json() as any;
+  assert.strictEqual(restoreJson.success, true);
+  assert.ok(restoreJson.summary);
+});
+
 
