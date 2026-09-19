@@ -28,7 +28,7 @@ export interface WavePoint {
         <div class="svg-stage">
           <svg viewBox="0 0 500 180" preserveAspectRatio="none" class="wave-svg">
             <defs>
-              <linearGradient id="emeraldWaveGradient" x1="0" y1="0" x2="0" y2="1">
+              <linearGradient id="brandWaveGradient" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stop-color="#031795" stop-opacity="0.30" />
                 <stop offset="60%" stop-color="#2563eb" stop-opacity="0.12" />
                 <stop offset="100%" stop-color="#031795" stop-opacity="0.0" />
@@ -51,7 +51,7 @@ export interface WavePoint {
             <!-- Wave area fill -->
             <path
               d="M 0 170 C 50 165, 80 155, 120 120 C 160 85, 200 45, 250 42 C 300 40, 340 140, 390 120 C 440 100, 470 30, 500 20 L 500 180 L 0 180 Z"
-              fill="url(#emeraldWaveGradient)"
+              fill="url(#brandWaveGradient)"
             />
 
             <!-- Top glowing curve stroke -->

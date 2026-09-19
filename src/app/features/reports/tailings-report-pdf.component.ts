@@ -576,9 +576,9 @@ import { PdfExportService } from '../../core/services/pdf-export.service';
       .sig-stamp {
         font-size: 6pt;
         font-weight: 800;
-        color: #047857;
-        background: #ecfdf5;
-        border: 1px solid #a7f3d0;
+        color: #031795;
+        background: #eef2ff;
+        border: 1px solid #c7d2fe;
         padding: 1px 6px;
         border-radius: 9999px;
         margin-top: 2px;

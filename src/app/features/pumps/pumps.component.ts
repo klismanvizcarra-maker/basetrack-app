@@ -798,9 +798,9 @@ export interface PumpReport {
 
           &.active {
             background: #ffffff;
-            border: 1.5px solid #059669;
-            color: #047857;
-            box-shadow: 0 2px 8px rgba(5, 150, 105, 0.15);
+            border: 1.5px solid #031795;
+            color: #031795;
+            box-shadow: 0 2px 8px rgba(3, 23, 149, 0.15);
           }
         }
       }
@@ -871,8 +871,8 @@ export interface PumpReport {
     }
 
     .section-header-banner {
-      background: linear-gradient(135deg, #059669 0%, #047857 100%);
-      border-bottom: 1px solid rgba(5, 150, 105, 0.3);
+      background: linear-gradient(135deg, #031795 0%, #02106b 100%);
+      border-bottom: 1px solid rgba(3, 23, 149, 0.3);
       padding: 12px 20px;
       display: flex;
       align-items: center;
@@ -958,7 +958,7 @@ export interface PumpReport {
         margin: 0;
         font-size: 0.9rem;
         font-weight: 700;
-        color: #059669;
+        color: #031795;
         letter-spacing: 0.04em;
       }
     }
@@ -978,7 +978,7 @@ export interface PumpReport {
       font-size: 0.86rem;
 
       th {
-        background: #047857;
+        background: #031795;
         color: #ffffff;
         font-weight: 800;
         letter-spacing: 0.05em;
@@ -1056,7 +1056,7 @@ export interface PumpReport {
       &.status-mantenimiento {
         background: #fffbeb;
         border-color: #fde68a;
-        color: #d97706;
+        color: #b45309;
 
         &:hover {
           background: #fef3c7;
@@ -1074,29 +1074,29 @@ export interface PumpReport {
       }
     }
 
-    /* SUMMARY CHIPS ROW */
-    .summary-chips-row {
-      padding: 14px 20px;
-      background: var(--bg-card-subtle);
-      border-top: 1px solid var(--border-subtle);
+    /* SUMMARY STATUS BAR */
+    .status-summary-bar {
       display: flex;
       align-items: center;
       justify-content: space-around;
-      flex-wrap: wrap;
+      background: #f8fafc;
+      border-top: 1px solid var(--border-subtle);
+      padding: 10px 16px;
       gap: 12px;
+      flex-wrap: wrap;
 
       .status-summary-chip {
         display: flex;
         align-items: center;
         gap: 8px;
+        padding: 4px 12px;
         background: #ffffff;
-        padding: 8px 16px;
+        border: 1px solid var(--border-subtle);
         border-radius: var(--radius-full);
-        border: 1px solid #cbd5e1;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 
         .chip-label {
-          font-size: 0.82rem;
+          font-size: 0.78rem;
+          font-weight: 600;
           color: var(--text-secondary);
         }
 
@@ -1106,7 +1106,7 @@ export interface PumpReport {
 
           &.emerald { color: #059669; }
           &.cyan { color: #0284c7; }
-          &.purple { color: #047857; }
+          &.purple { color: #031795; }
         }
       }
 
@@ -1159,7 +1159,7 @@ export interface PumpReport {
 
           &.cyan-glow { color: #0284c7; }
           &.emerald-glow { color: #059669; }
-          &.purple-glow { color: #047857; }
+          &.purple-glow { color: #031795; }
         }
       }
     }

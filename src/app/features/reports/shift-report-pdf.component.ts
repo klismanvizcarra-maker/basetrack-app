@@ -544,7 +544,7 @@ import { PdfExportService } from '../../core/services/pdf-export.service';
           small { font-size: 0.8rem; font-weight: 500; }
         }
 
-        .highlight-emerald { color: #059669; }
+        .highlight-emerald { color: #031795; }
         .highlight-blue { color: #0284c7; }
 
         .kpi-sub {
@@ -753,9 +753,9 @@ import { PdfExportService } from '../../core/services/pdf-export.service';
           display: inline-block;
           font-size: 0.65rem;
           font-weight: 700;
-          color: #047857;
-          background: #ecfdf5;
-          border: 1px solid #a7f3d0;
+          color: #031795;
+          background: #eef2ff;
+          border: 1px solid #c7d2fe;
           padding: 0.15rem 0.6rem;
           border-radius: 9999px;
         }

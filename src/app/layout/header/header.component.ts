@@ -131,7 +131,7 @@ import { CloudSyncService } from '../../core/services/cloud-sync.service';
     <div *ngIf="showNotifications" class="notification-dropdown glass-panel animate-fade-in">
       <div class="notif-header">
         <h4>Alertas Recientes del SCADA</h4>
-        <span class="badge badge-emerald">3 Nuevas</span>
+        <span class="badge badge-primary">3 Nuevas</span>
       </div>
       <div class="notif-list">
         <div class="notif-item">
@@ -595,14 +595,14 @@ import { CloudSyncService } from '../../core/services/cloud-sync.service';
       font-size: 0.75rem;
       font-weight: 700;
       cursor: pointer;
-      border: 1px solid #a7f3d0;
-      background: #ecfdf5;
-      color: #047857;
+      border: 1px solid #c7d2fe;
+      background: #eef2ff;
+      color: #031795;
       transition: all 0.2s ease;
 
       &:hover {
-        background: #d1fae5;
-        border-color: #6ee7b7;
+        background: #e0e7ff;
+        border-color: #a5b4fc;
       }
 
       &.offline-pill, &.pending-pill {
@@ -716,8 +716,8 @@ import { CloudSyncService } from '../../core/services/cloud-sync.service';
     .conn-status-banner {
       display: flex;
       gap: 1rem;
-      background: #ecfdf5;
-      border: 1px solid #a7f3d0;
+      background: #eef2ff;
+      border: 1px solid #c7d2fe;
       border-radius: 10px;
       padding: 1rem;
       margin-bottom: 1.25rem;
@@ -730,13 +730,13 @@ import { CloudSyncService } from '../../core/services/cloud-sync.service';
         strong {
           display: block;
           font-size: 0.9rem;
-          color: #065f46;
+          color: #031795;
           margin-bottom: 0.2rem;
         }
         p {
           margin: 0;
           font-size: 0.78rem;
-          color: #047857;
+          color: #1e40af;
           line-height: 1.4;
         }
       }
@@ -913,8 +913,8 @@ import { CloudSyncService } from '../../core/services/cloud-sync.service';
         height: 28px;
         line-height: 28px;
         border-radius: 50%;
-        background: #ecfdf5;
-        color: #059669;
+        background: #eef2ff;
+        color: #031795;
         font-weight: 800;
         margin-bottom: 0.4rem;
       }
@@ -951,9 +951,9 @@ import { CloudSyncService } from '../../core/services/cloud-sync.service';
       }
 
       .btn-primary {
-        background: #059669;
+        background: #031795;
         color: #ffffff;
-        &:hover:not(:disabled) { background: #047857; }
+        &:hover:not(:disabled) { background: #1e40af; }
         &:disabled {
           opacity: 0.5;
           cursor: not-allowed;

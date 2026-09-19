@@ -913,7 +913,7 @@ import { ShiftCode } from '../../core/auth/auth.models';
       gap: 6px;
       font-size: 0.72rem;
       font-weight: 600;
-      color: #059669;
+      color: #031795;
       margin-top: 14px;
       padding-top: 10px;
       border-top: 1px solid #f1f5f9;

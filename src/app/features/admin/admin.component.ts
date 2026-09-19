@@ -674,7 +674,7 @@ const DEFAULT_LOGS: AuditLog[] = [
           <!-- Tab 1: CSV Upload -->
           <div class="bulk-input-section" *ngIf="bulkTab === 'CSV'">
             <div class="upload-dropzone">
-              <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2">
+              <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#031795" stroke-width="2">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                 <polyline points="17 8 12 3 7 8"></polyline>
                 <line x1="12" y1="3" x2="12" y2="15"></line>
@@ -920,9 +920,9 @@ const DEFAULT_LOGS: AuditLog[] = [
       gap: 16px;
       padding: 18px 24px;
       border-radius: var(--radius-lg);
-      background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
-      border: 1px solid #a7f3d0;
-      box-shadow: 0 4px 15px rgba(5, 150, 105, 0.08);
+      background: linear-gradient(135deg, #f8fafc 0%, #eef2ff 100%);
+      border: 1px solid #c7d2fe;
+      box-shadow: 0 4px 15px rgba(3, 23, 149, 0.08);
 
       @media (max-width: 768px) {
         flex-direction: column;
@@ -945,21 +945,21 @@ const DEFAULT_LOGS: AuditLog[] = [
           height: 52px;
           border-radius: 12px;
           background: #ffffff;
-          border: 1px solid #bbf7d0;
-          box-shadow: 0 2px 8px rgba(5, 150, 105, 0.12);
+          border: 1px solid #c7d2fe;
+          box-shadow: 0 2px 8px rgba(3, 23, 149, 0.12);
         }
 
         h4 {
           margin: 0;
           font-size: 1rem;
           font-weight: 700;
-          color: #065f46;
+          color: #031795;
         }
 
         p {
           margin: 3px 0 8px;
           font-size: 0.78rem;
-          color: #047857;
+          color: #1e40af;
         }
 
         .sync-pill-tags {
@@ -969,14 +969,14 @@ const DEFAULT_LOGS: AuditLog[] = [
 
           .tag-item {
             font-size: 0.72rem;
-            color: #0f766e;
+            color: #1e40af;
             background: rgba(255, 255, 255, 0.85);
             padding: 3px 8px;
             border-radius: 6px;
-            border: 1px solid #99f6e4;
+            border: 1px solid #c7d2fe;
 
             strong {
-              color: #065f46;
+              color: #031795;
             }
 
             code {
@@ -1014,14 +1014,14 @@ const DEFAULT_LOGS: AuditLog[] = [
           }
 
           .status-label {
-            color: #065f46;
+            color: #031795;
           }
         }
 
         .btn-emerald-outline {
           background: #ffffff;
-          border: 1.5px solid #059669;
-          color: #059669;
+          border: 1.5px solid #031795;
+          color: #031795;
           padding: 8px 16px;
           font-size: 0.82rem;
           font-weight: 600;
@@ -1030,9 +1030,9 @@ const DEFAULT_LOGS: AuditLog[] = [
           transition: all 0.2s ease;
 
           &:hover:not(:disabled) {
-            background: #059669;
+            background: #031795;
             color: #ffffff;
-            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.25);
+            box-shadow: 0 4px 12px rgba(3, 23, 149, 0.25);
           }
 
           &:disabled {

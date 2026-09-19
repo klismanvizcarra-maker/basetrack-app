@@ -334,9 +334,9 @@ export class DashboardComponent implements OnInit {
   ];
 
   operationGauges = [
-    { label: 'En Standby', percentage: 25, color: '#047857' },
-    { label: 'Bombeo Activo', percentage: 85, color: '#059669' },
-    { label: 'Alertas', percentage: 7, color: '#d97706' }
+    { label: 'En Standby', percentage: 25, color: '#f59e0b' },
+    { label: 'Bombeo Activo', percentage: 85, color: '#031795' },
+    { label: 'Alertas', percentage: 7, color: '#dc2626' }
   ];
 
   shiftDistribution = {

@@ -159,13 +159,15 @@ input::placeholder, textarea::placeholder {
   text-decoration: none;
 }
 
-.btn-primary {
+.btn-primary,
+.btn-brand {
   background: linear-gradient(135deg, #031795 0%, #02106b 100%);
   color: #ffffff;
   box-shadow: 0 3px 12px rgba(3, 23, 149, 0.28);
 }
 
-.btn-primary:hover {
+.btn-primary:hover,
+.btn-brand:hover {
   transform: translateY(-1px);
   box-shadow: 0 5px 16px rgba(3, 23, 149, 0.45);
   background: linear-gradient(135deg, #1e40af 0%, #031795 100%);
@@ -205,6 +207,7 @@ input::placeholder, textarea::placeholder {
 }
 
 .badge-primary,
+.badge-brand,
 .badge-purple {
   background: #eef2ff;
   color: #031795;

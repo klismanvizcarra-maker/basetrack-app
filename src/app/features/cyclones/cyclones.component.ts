@@ -633,13 +633,13 @@ export interface GeneralAverages {
     }
 
     .btn-emerald {
-      background: linear-gradient(135deg, #059669 0%, #047857 100%);
+      background: linear-gradient(135deg, #031795 0%, #02106b 100%);
       color: #ffffff;
-      box-shadow: 0 4px 14px rgba(5, 150, 105, 0.35);
+      box-shadow: 0 4px 14px rgba(3, 23, 149, 0.35);
 
       &:hover {
         transform: translateY(-1px);
-        box-shadow: 0 6px 20px rgba(5, 150, 105, 0.5);
+        box-shadow: 0 6px 20px rgba(3, 23, 149, 0.5);
       }
     }
 
@@ -694,13 +694,13 @@ export interface GeneralAverages {
       }
 
       &.active {
-        background: #ecfdf5;
-        border-color: #059669;
-        color: #047857;
+        background: #eef2ff;
+        border-color: #031795;
+        color: #031795;
 
         .dot-indicator {
-          background: #059669;
-          box-shadow: 0 0 6px rgba(5, 150, 105, 0.4);
+          background: #031795;
+          box-shadow: 0 0 6px rgba(3, 23, 149, 0.4);
         }
       }
 
@@ -895,8 +895,8 @@ export interface GeneralAverages {
     }
 
     .station-banner-header {
-      background: linear-gradient(135deg, #059669 0%, #047857 100%);
-      border-bottom: 1px solid rgba(5, 150, 105, 0.3);
+      background: linear-gradient(135deg, #031795 0%, #02106b 100%);
+      border-bottom: 1px solid rgba(3, 23, 149, 0.3);
       padding: 14px 22px;
       display: flex;
       align-items: center;
@@ -912,7 +912,7 @@ export interface GeneralAverages {
         .banner-badge {
           font-size: 0.68rem;
           font-weight: 700;
-          color: #d1fae5;
+          color: #c7d2fe;
           letter-spacing: 0.08em;
           text-transform: uppercase;
         }
@@ -988,7 +988,7 @@ export interface GeneralAverages {
         position: sticky;
         left: 0;
         z-index: 10;
-        background-color: #047857;
+        background-color: #031795;
         color: #ffffff;
         box-shadow: 2px 0 6px -2px rgba(0, 0, 0, 0.1);
       }
@@ -1026,9 +1026,9 @@ export interface GeneralAverages {
             font-weight: 800;
 
             &.group-solidos {
-              background: #ecfdf5;
-              color: #047857;
-              border-bottom: 1px solid #a7f3d0;
+              background: #eef2ff;
+              color: #031795;
+              border-bottom: 1px solid #c7d2fe;
             }
 
             &.group-malla {
@@ -1048,7 +1048,7 @@ export interface GeneralAverages {
             color: var(--text-muted);
 
             &.uf-col {
-              color: #047857;
+              color: #031795;
               font-weight: 700;
             }
           }
@@ -1098,7 +1098,7 @@ export interface GeneralAverages {
         }
 
         .cell-uf {
-          color: #047857;
+          color: #031795;
           font-weight: 700;
           font-size: 0.92rem;
         }
@@ -1147,12 +1147,12 @@ export interface GeneralAverages {
       /* Footer */
       tfoot {
         .row-promedio-general {
-          background: #047857;
-          border-top: 2px solid #059669;
+          background: #031795;
+          border-top: 2px solid #1e40af;
           color: #ffffff;
 
           td {
-            border: 1px solid #065f46;
+            border: 1px solid #02106b;
             padding: 11px 14px;
             font-size: 0.92rem;
             font-variant-numeric: tabular-nums;
@@ -1545,9 +1545,9 @@ export interface GeneralAverages {
       transition: var(--transition-smooth);
 
       &.active {
-        background: rgba(5, 150, 105, 0.2);
-        border-color: #059669;
-        color: #34d399;
+        background: #eef2ff;
+        border-color: #031795;
+        color: #031795;
       }
     }
 
@@ -1605,13 +1605,13 @@ export interface GeneralAverages {
       }
 
       .label-uf {
-        color: #34d399;
+        color: #031795;
         font-weight: 700;
       }
 
       .input-uf {
-        border-color: rgba(5, 150, 105, 0.4);
-        background: rgba(5, 150, 105, 0.06);
+        border-color: rgba(3, 23, 149, 0.4);
+        background: rgba(3, 23, 149, 0.04);
       }
 
       input, select, textarea {
@@ -1700,12 +1700,12 @@ export interface GeneralAverages {
 
       .battery-pill {
         font-weight: 800;
-        color: #059669;
+        color: #031795;
         font-size: 0.82rem;
-        background: #ecfdf5;
+        background: #eef2ff;
         padding: 3px 8px;
         border-radius: 4px;
-        border: 1px solid #a7f3d0;
+        border: 1px solid #c7d2fe;
       }
 
       .detail-text {

@@ -132,7 +132,7 @@ import { ModalComponent } from '../../shared/ui/modal.component';
 
       <!-- THE OPERATIONAL POSITIONS BOARD (PIZARRA INTERACTIVA) -->
       <div class="section-divider-title">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.2">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#031795" stroke-width="2.2">
           <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
           <line x1="3" y1="9" x2="21" y2="9"></line>
           <line x1="9" y1="21" x2="9" y2="9"></line>
@@ -1423,12 +1423,12 @@ import { ModalComponent } from '../../shared/ui/modal.component';
 
     .role-badge {
       font-weight: 600;
-      color: #047857;
-      background: #ecfdf5;
+      color: #031795;
+      background: #eef2ff;
       padding: 3px 8px;
       border-radius: var(--radius-full);
       font-size: 0.75rem;
-      border: 1px solid #a7f3d0;
+      border: 1px solid #c7d2fe;
     }
 
     .guard-badge {
@@ -1470,15 +1470,20 @@ import { ModalComponent } from '../../shared/ui/modal.component';
     }
 
     .action-icon-btn {
-      background: transparent;
-      border: none;
-      cursor: pointer;
-      padding: 5px;
+      width: 32px;
+      height: 32px;
       border-radius: var(--radius-sm);
+      border: 1px solid var(--border-subtle);
+      background: #ffffff;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       transition: var(--transition-smooth);
 
       &:hover {
-        background: #fee2e2;
+        background: #fef2f2;
+        border-color: #fecaca;
       }
     }
 
@@ -1486,7 +1491,7 @@ import { ModalComponent } from '../../shared/ui/modal.component';
     .modal-form {
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      gap: 16px;
     }
 
     .form-row {
@@ -1507,9 +1512,9 @@ import { ModalComponent } from '../../shared/ui/modal.component';
     }
 
     .form-label {
-      font-size: 0.78rem;
+      font-size: 0.8rem;
       font-weight: 700;
-      color: var(--text-secondary);
+      color: var(--text-primary);
     }
 
     .form-control {
@@ -1522,8 +1527,8 @@ import { ModalComponent } from '../../shared/ui/modal.component';
       transition: var(--transition-smooth);
 
       &:focus {
-        border-color: #059669;
-        box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.15);
+        border-color: #031795;
+        box-shadow: 0 0 0 3px rgba(3, 23, 149, 0.15);
       }
     }
 
@@ -1566,17 +1571,17 @@ import { ModalComponent } from '../../shared/ui/modal.component';
 
       &:hover {
         background: #ffffff;
-        border-color: #059669;
+        border-color: #031795;
         transform: translateY(-1px);
       }
 
       &.selected {
-        background: #ecfdf5;
-        border-color: #059669;
-        box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.2);
+        background: #eef2ff;
+        border-color: #031795;
+        box-shadow: 0 0 0 2px rgba(3, 23, 149, 0.2);
 
         .icon-label {
-          color: #047857;
+          color: #031795;
           font-weight: 700;
         }
       }
@@ -1602,8 +1607,8 @@ import { ModalComponent } from '../../shared/ui/modal.component';
       }
 
       &.selected {
-        border-color: #059669;
-        box-shadow: 0 0 8px rgba(5, 150, 105, 0.4);
+        border-color: #031795;
+        box-shadow: 0 0 8px rgba(3, 23, 149, 0.4);
       }
     }
 

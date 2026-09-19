@@ -202,7 +202,7 @@ import { PwaService } from '../../core/pwa/pwa.service';
           </button>
 
           <div *ngIf="pwa.isInstalled()" class="pwa-active-badge">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#031795" stroke-width="2.5">
               <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
               <polyline points="22 4 12 14.01 9 11.01"></polyline>
             </svg>
@@ -447,9 +447,9 @@ import { PwaService } from '../../core/pwa/pwa.service';
       gap: 6px;
       padding: 6px 10px;
       border-radius: var(--radius-sm);
-      background: #ecfdf5;
-      border: 1px solid #a7f3d0;
-      color: #047857;
+      background: #eef2ff;
+      border: 1px solid #c7d2fe;
+      color: #031795;
       font-size: 0.72rem;
       font-weight: 700;
     }
