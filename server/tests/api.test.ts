@@ -314,5 +314,45 @@ test('12. GET /api/admin/devices and POST /api/admin/devices/:id/revoke should l
   assert.strictEqual(revokeData.success, true);
 });
 
+test('13. PUT /api/auth/profile should update operational profile fields and sync with crew_members', async () => {
+  const updateRes = await fetch(`${baseUrl}/auth/profile`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${authToken}`
+    },
+    body: JSON.stringify({
+      fullName: 'VIZCARRA CORI MANLEY KLISMAN',
+      email: 'klismanvizcarra@basetrack.com',
+      shift: 'GUARDIA_A',
+      document_id: '71209033',
+      radio_channel: 'Canal 2 Ciclones',
+      phone_extension: 'Anexo 405',
+      primary_role: 'SUPERVISOR'
+    })
+  });
+
+  assert.strictEqual(updateRes.status, 200);
+  const updateJson = await updateRes.json() as any;
+  assert.strictEqual(updateJson.success, true);
+  assert.strictEqual(updateJson.user.document_id, '71209033');
+  assert.strictEqual(updateJson.user.radio_channel, 'Canal 2 Ciclones');
+  assert.strictEqual(updateJson.user.phone_extension, 'Anexo 405');
+  assert.strictEqual(updateJson.user.primary_role, 'SUPERVISOR');
+
+  // Verify getMe returns the updated operational fields
+  const meRes = await fetch(`${baseUrl}/auth/me`, {
+    headers: { 'Authorization': `Bearer ${authToken}` }
+  });
+  assert.strictEqual(meRes.status, 200);
+  const meJson = await meRes.json() as any;
+  assert.strictEqual(meJson.success, true);
+  assert.strictEqual(meJson.user.document_id, '71209033');
+  assert.strictEqual(meJson.user.radio_channel, 'Canal 2 Ciclones');
+  assert.strictEqual(meJson.user.phone_extension, 'Anexo 405');
+  assert.strictEqual(meJson.user.primary_role, 'SUPERVISOR');
+});
+
+
 
 

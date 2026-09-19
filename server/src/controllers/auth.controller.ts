@@ -119,7 +119,7 @@ export async function getMe(req: AuthenticatedRequest, res: Response) {
   }
 
   try {
-    const user = db.prepare('SELECT id, username, email, full_name, role, shift, avatar_url, created_at FROM users WHERE id = ?').get(req.user.userId) as any;
+    const user = db.prepare('SELECT id, username, email, full_name, role, shift, avatar_url, document_id, radio_channel, phone_extension, primary_role, created_at FROM users WHERE id = ?').get(req.user.userId) as any;
 
     if (!user) {
       return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
@@ -135,6 +135,10 @@ export async function getMe(req: AuthenticatedRequest, res: Response) {
         role: user.role,
         shift: user.shift,
         avatarUrl: user.avatar_url,
+        document_id: user.document_id,
+        radio_channel: user.radio_channel,
+        phone_extension: user.phone_extension,
+        primary_role: user.primary_role,
         createdAt: user.created_at
       }
     });
@@ -149,7 +153,7 @@ export async function updateProfile(req: AuthenticatedRequest, res: Response) {
   }
 
   try {
-    const { fullName, email, avatarUrl, shift } = req.body;
+    const { fullName, email, avatarUrl, shift, document_id, radio_channel, phone_extension, primary_role } = req.body;
     const userId = req.user.userId;
     const username = req.user.username;
 
@@ -169,29 +173,69 @@ export async function updateProfile(req: AuthenticatedRequest, res: Response) {
     const updatedEmail = email !== undefined ? email : user.email;
     const updatedAvatar = avatarUrl !== undefined ? avatarUrl : user.avatar_url;
     const updatedShift = shift !== undefined ? shift : user.shift;
+    const updatedDocId = document_id !== undefined ? document_id : user.document_id;
+    const updatedRadio = radio_channel !== undefined ? radio_channel : user.radio_channel;
+    const updatedPhone = phone_extension !== undefined ? phone_extension : user.phone_extension;
+    const updatedRole = primary_role !== undefined ? primary_role : user.primary_role;
 
     db.prepare(`
       UPDATE users
-      SET full_name = ?, email = ?, avatar_url = ?, shift = ?
+      SET full_name = ?, email = ?, avatar_url = ?, shift = ?, document_id = ?, radio_channel = ?, phone_extension = ?, primary_role = ?
       WHERE id = ?
-    `).run(updatedFullName, updatedEmail, updatedAvatar, updatedShift, user.id);
+    `).run(updatedFullName, updatedEmail, updatedAvatar, updatedShift, updatedDocId, updatedRadio, updatedPhone, updatedRole, user.id);
 
-    // Also synchronize avatar and name with crew_members table if exists
+    // Also synchronize with crew_members table
     try {
-      db.prepare(`
+      const crewUpdate = db.prepare(`
         UPDATE crew_members
-        SET avatar_url = ?, name = ?
-        WHERE document_id = '71209033' OR name LIKE '%KLISMAN%' OR name = ?
-      `).run(updatedAvatar, updatedFullName, updatedFullName);
-    } catch {
-      // Ignore if table or record doesn't match
+        SET 
+          name = COALESCE(?, name),
+          avatar_url = COALESCE(?, avatar_url),
+          document_id = COALESCE(?, document_id),
+          radio_channel = COALESCE(?, radio_channel),
+          phone_extension = COALESCE(?, phone_extension),
+          primary_role = COALESCE(?, primary_role),
+          shift_code = COALESCE(?, shift_code)
+        WHERE (document_id IS NOT NULL AND document_id = ?) 
+           OR document_id = '71209033' 
+           OR name LIKE '%KLISMAN%' 
+           OR name = ?
+      `).run(
+        updatedFullName, 
+        updatedAvatar, 
+        updatedDocId, 
+        updatedRadio, 
+        updatedPhone, 
+        updatedRole, 
+        updatedShift,
+        updatedDocId || '',
+        updatedFullName
+      );
+
+      if (crewUpdate.changes === 0 && updatedDocId) {
+        db.prepare(`
+          INSERT OR IGNORE INTO crew_members (id, name, document_id, primary_role, shift_code, radio_channel, phone_extension, status, avatar_url)
+          VALUES (?, ?, ?, ?, ?, ?, ?, 'EN_TURNO', ?)
+        `).run(
+          'crew-' + user.id,
+          updatedFullName,
+          updatedDocId,
+          updatedRole || 'OPERADOR_BOMBAS',
+          updatedShift || 'GUARDIA_A',
+          updatedRadio || 'Canal 1 Operaciones',
+          updatedPhone || null,
+          updatedAvatar || null
+        );
+      }
+    } catch (e) {
+      console.warn('[Profile] Error synchronizing with crew_members:', e);
     }
 
-    logAudit(user.id, user.username, 'UPDATE_PROFILE', 'USERS', user.id, `Actualización de perfil (Nombre: ${updatedFullName})`, req.ip || '127.0.0.1');
+    logAudit(user.id, user.username, 'UPDATE_PROFILE', 'USERS', user.id, `Actualización de perfil (Nombre: ${updatedFullName}, DNI: ${updatedDocId || 'N/A'})`, req.ip || '127.0.0.1');
 
     return res.json({
       success: true,
-      message: 'Perfil actualizado exitosamente',
+      message: 'Perfil y ficha operacional actualizados exitosamente',
       user: {
         id: user.id,
         username: user.username,
@@ -199,7 +243,11 @@ export async function updateProfile(req: AuthenticatedRequest, res: Response) {
         fullName: updatedFullName,
         role: user.role,
         shift: updatedShift,
-        avatarUrl: updatedAvatar
+        avatarUrl: updatedAvatar,
+        document_id: updatedDocId,
+        radio_channel: updatedRadio,
+        phone_extension: updatedPhone,
+        primary_role: updatedRole
       }
     });
   } catch (error: any) {

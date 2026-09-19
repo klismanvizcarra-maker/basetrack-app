@@ -11,6 +11,9 @@ const DEFAULT_ADMIN_USER: User = {
   email: 'klismanvizcarra@basetrack.com',
   fullName: 'VIZCARRA CORI MANLEY KLISMAN',
   document_id: '71209033',
+  radio_channel: 'Canal 1 Operaciones',
+  phone_extension: 'Anexo 402',
+  primary_role: 'SUPERVISOR',
   password: 'Password123!',
   role: 'ADMIN',
   shift: 'GUARDIA_A',
@@ -498,13 +501,19 @@ export class AuthService {
           if (
             member.name?.toLowerCase().includes('klisman') ||
             member.name?.toLowerCase() === user.fullName?.toLowerCase() ||
+            (user.document_id && member.document_id === user.document_id) ||
             member.document_id === '71209033'
           ) {
             changed = true;
             return {
               ...member,
-              avatar_url: user.avatarUrl,
-              name: user.fullName || member.name
+              avatar_url: user.avatarUrl || member.avatar_url,
+              name: user.fullName || member.name,
+              document_id: user.document_id || member.document_id,
+              shift_code: user.shift || member.shift_code,
+              radio_channel: user.radio_channel || member.radio_channel,
+              phone_extension: user.phone_extension || member.phone_extension,
+              primary_role: user.primary_role || member.primary_role
             };
           }
           return member;

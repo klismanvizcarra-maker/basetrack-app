@@ -10,6 +10,9 @@ export interface User {
   shift: ShiftCode;
   avatarUrl?: string;
   document_id?: string;
+  radio_channel?: string;
+  phone_extension?: string;
+  primary_role?: string;
   password?: string;
   createdAt?: string;
 }

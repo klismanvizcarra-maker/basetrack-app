@@ -298,8 +298,24 @@ export function initDatabase() {
       db.exec('ALTER TABLE users ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1;');
       console.log('[Database] Added is_active column to users table.');
     }
+    if (!userCols.some((c: any) => c.name === 'document_id')) {
+      db.exec("ALTER TABLE users ADD COLUMN document_id TEXT;");
+      console.log('[Database] Added document_id column to users table.');
+    }
+    if (!userCols.some((c: any) => c.name === 'radio_channel')) {
+      db.exec("ALTER TABLE users ADD COLUMN radio_channel TEXT DEFAULT 'Canal 1 Operaciones';");
+      console.log('[Database] Added radio_channel column to users table.');
+    }
+    if (!userCols.some((c: any) => c.name === 'phone_extension')) {
+      db.exec("ALTER TABLE users ADD COLUMN phone_extension TEXT;");
+      console.log('[Database] Added phone_extension column to users table.');
+    }
+    if (!userCols.some((c: any) => c.name === 'primary_role')) {
+      db.exec("ALTER TABLE users ADD COLUMN primary_role TEXT DEFAULT 'OPERADOR_BOMBAS';");
+      console.log('[Database] Added primary_role column to users table.');
+    }
   } catch (e) {
-    console.warn('[Database] users is_active migration check:', e);
+    console.warn('[Database] users columns migration check:', e);
   }
 
   console.log('[Database] Tables and indexes initialized successfully.');

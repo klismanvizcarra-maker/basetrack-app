@@ -109,6 +109,41 @@ import { ShiftCode } from '../../core/auth/auth.models';
               </div>
             </div>
           </div>
+
+          <!-- Operational Summary Card (Ficha Rápida de Guardia) -->
+          <div class="profile-card operational-badge-card glass-panel">
+            <div class="card-head-compact">
+              <span class="compact-icon">🪪</span>
+              <div>
+                <h4>Ficha Rápida de Guardia</h4>
+                <p class="compact-sub">Datos clave en planta</p>
+              </div>
+            </div>
+
+            <div class="quick-op-list">
+              <div class="quick-op-item">
+                <span class="op-label">DNI / Carnet:</span>
+                <strong class="op-value font-mono">{{ profileForm.document_id || '71209033' }}</strong>
+              </div>
+              <div class="quick-op-item">
+                <span class="op-label">Canal Radial:</span>
+                <span class="channel-chip">📻 {{ profileForm.radio_channel || 'Canal 1 Operaciones' }}</span>
+              </div>
+              <div class="quick-op-item">
+                <span class="op-label">Anexo / Celular:</span>
+                <span class="op-value">{{ profileForm.phone_extension || 'Anexo 402' }}</span>
+              </div>
+              <div class="quick-op-item">
+                <span class="op-label">Puesto Habitual:</span>
+                <span class="badge badge-success">{{ formatPrimaryRole(profileForm.primary_role) }}</span>
+              </div>
+            </div>
+
+            <div class="crew-sync-footer">
+              <span class="sync-dot"></span>
+              <span>Sincronizado con Gestión de Cuadrilla</span>
+            </div>
+          </div>
         </div>
 
         <!-- Right Column: Personal Data & Password Change -->
@@ -176,12 +211,106 @@ import { ShiftCode } from '../../core/auth/auth.models';
                 </div>
               </div>
 
+              <!-- Ficha Operacional de Planta & Cuadrilla Divider -->
+              <div class="operational-sheet-divider">
+                <div class="divider-title">
+                  <span class="sheet-icon">🪪</span>
+                  <div>
+                    <h4>Ficha Operacional de Planta & Cuadrilla</h4>
+                    <p class="sheet-desc">Datos oficiales de comunicación en campo y asignación en guardia</p>
+                  </div>
+                </div>
+                <span class="sync-badge">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                  Sincronizado con Cuadrilla
+                </span>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label>
+                    <span>DNI / Documento de Identidad Minero *</span>
+                    <span class="field-tag">Oficial</span>
+                  </label>
+                  <div class="input-icon-wrap">
+                    <span class="input-icon">🪪</span>
+                    <input
+                      type="text"
+                      [(ngModel)]="profileForm.document_id"
+                      name="documentId"
+                      placeholder="Ej. 71209033"
+                      maxlength="12"
+                      required
+                    />
+                  </div>
+                  <span class="input-hint">Utilizado para tu credencial y asignación en relevos</span>
+                </div>
+
+                <div class="form-group">
+                  <label>
+                    <span>Canal Radial Walkie-Talkie Asignado *</span>
+                    <span class="field-tag">Comunicaciones</span>
+                  </label>
+                  <div class="input-icon-wrap">
+                    <span class="input-icon">📻</span>
+                    <select [(ngModel)]="profileForm.radio_channel" name="radioChannel" class="select-with-icon">
+                      <option value="Canal 1 Operaciones">Canal 1 Operaciones (Frecuencia Principal)</option>
+                      <option value="Canal 2 Ciclones">Canal 2 Ciclones (Baterías & Muestras)</option>
+                      <option value="Canal 3 Bombas">Canal 3 Bombas (Salas & Sentinas)</option>
+                      <option value="Canal 4 Relaves / Presa">Canal 4 Relaves / Presa (Descarga & Líneas)</option>
+                      <option value="Canal 5 Mantenimiento">Canal 5 Mantenimiento & Emergencias</option>
+                    </select>
+                  </div>
+                  <span class="input-hint">Frecuencia por la cual tus compañeros de guardia te contactarán</span>
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label>
+                    <span>Anexo Telefónico o Celular de Emergencia</span>
+                    <span class="field-tag">Contacto</span>
+                  </label>
+                  <div class="input-icon-wrap">
+                    <span class="input-icon">📞</span>
+                    <input
+                      type="text"
+                      [(ngModel)]="profileForm.phone_extension"
+                      name="phoneExtension"
+                      placeholder="Ej. Anexo 402 o +51 984 123 456"
+                    />
+                  </div>
+                  <span class="input-hint">Anexo de cabina de control o número de enlace rápido</span>
+                </div>
+
+                <div class="form-group">
+                  <label>
+                    <span>Puesto / Especialidad Operativa en Planta *</span>
+                    <span class="field-tag">Asignación</span>
+                  </label>
+                  <div class="input-icon-wrap">
+                    <span class="input-icon">⚙️</span>
+                    <select [(ngModel)]="profileForm.primary_role" name="primaryRole" class="select-with-icon">
+                      <option value="OPERADOR_BOMBAS">Operador de Estación de Bombas</option>
+                      <option value="OPERADOR_CICLONES">Operador de Baterías de Ciclones</option>
+                      <option value="OPERADOR_DESCARGA">Operador de Descarga y Relaves</option>
+                      <option value="OPERADOR_MISCELANEOS">Operador de Misceláneos / Reactivos</option>
+                      <option value="OPERADOR_RELEVO">Operador de Relevo General</option>
+                      <option value="SUPERVISOR">Supervisor de Guardia / Jefe de Turno</option>
+                    </select>
+                  </div>
+                  <span class="input-hint">Posición operativa prioritaria en el tablero de cuadrilla</span>
+                </div>
+              </div>
+
               <div class="form-actions">
                 <button type="submit" class="btn btn-primary" [disabled]="isSavingProfile">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="20 6 9 17 4 12"></polyline>
                   </svg>
-                  {{ isSavingProfile ? 'Guardando...' : 'Guardar Cambios de Perfil' }}
+                  {{ isSavingProfile ? 'Guardando...' : 'Guardar Cambios de Perfil & Ficha' }}
                 </button>
               </div>
             </form>
@@ -632,6 +761,172 @@ import { ShiftCode } from '../../core/auth/auth.models';
       border-top: 1px solid var(--border-subtle);
       margin-top: 6px;
     }
+
+    /* Operational Sheet & Card Styles */
+    .operational-sheet-divider {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 10px;
+      padding-top: 18px;
+      border-top: 1px solid var(--border-subtle);
+      flex-wrap: wrap;
+      gap: 10px;
+
+      .divider-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+
+        .sheet-icon {
+          font-size: 1.4rem;
+        }
+
+        h4 {
+          margin: 0;
+          font-size: 0.96rem;
+          font-weight: 700;
+          color: var(--text-primary);
+        }
+
+        .sheet-desc {
+          margin: 2px 0 0 0;
+          font-size: 0.74rem;
+          color: var(--text-muted);
+        }
+      }
+
+      .sync-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 0.74rem;
+        font-weight: 700;
+        color: #047857;
+        background: #ecfdf5;
+        border: 1px solid #a7f3d0;
+        padding: 4px 10px;
+        border-radius: var(--radius-full);
+      }
+    }
+
+    .field-tag {
+      font-size: 0.68rem;
+      background: #f1f5f9;
+      color: #475569;
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-weight: 600;
+      margin-left: 6px;
+    }
+
+    .input-icon-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+
+      .input-icon {
+        position: absolute;
+        left: 12px;
+        font-size: 1.1rem;
+        pointer-events: none;
+        z-index: 1;
+      }
+
+      input, select {
+        width: 100%;
+        padding-left: 38px;
+      }
+
+      .select-with-icon {
+        cursor: pointer;
+      }
+    }
+
+    .operational-badge-card {
+      width: 100%;
+      text-align: left;
+    }
+
+    .card-head-compact {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border-subtle);
+
+      .compact-icon {
+        font-size: 1.3rem;
+      }
+
+      h4 {
+        margin: 0;
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: var(--text-primary);
+      }
+
+      .compact-sub {
+        margin: 1px 0 0 0;
+        font-size: 0.72rem;
+        color: var(--text-muted);
+      }
+    }
+
+    .quick-op-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .quick-op-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.8rem;
+
+      .op-label {
+        color: var(--text-muted);
+        font-weight: 500;
+      }
+
+      .op-value {
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+
+      .channel-chip {
+        font-size: 0.74rem;
+        font-weight: 700;
+        color: #047857;
+        background: #ecfdf5;
+        border: 1px solid #a7f3d0;
+        padding: 2px 8px;
+        border-radius: 12px;
+      }
+    }
+
+    .crew-sync-footer {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: #059669;
+      margin-top: 14px;
+      padding-top: 10px;
+      border-top: 1px solid #f1f5f9;
+
+      .sync-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #10b981;
+        box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+        display: inline-block;
+      }
+    }
   `]
 })
 export class ProfileComponent implements OnInit {
@@ -641,7 +936,11 @@ export class ProfileComponent implements OnInit {
     fullName: '',
     email: '',
     shift: 'GUARDIA_A' as ShiftCode,
-    avatarUrl: ''
+    avatarUrl: '',
+    document_id: '',
+    radio_channel: 'Canal 1 Operaciones',
+    phone_extension: '',
+    primary_role: 'OPERADOR_BOMBAS'
   };
 
   passwordForm = {
@@ -698,8 +997,24 @@ export class ProfileComponent implements OnInit {
         fullName: user.fullName || '',
         email: user.email || '',
         shift: user.shift || 'GUARDIA_A',
-        avatarUrl: user.avatarUrl || this.presetAvatars[0].url
+        avatarUrl: user.avatarUrl || this.presetAvatars[0].url,
+        document_id: user.document_id || '71209033',
+        radio_channel: user.radio_channel || 'Canal 1 Operaciones',
+        phone_extension: user.phone_extension || 'Anexo 402',
+        primary_role: user.primary_role || (user.role === 'ADMIN' || user.role === 'SUPERVISOR' ? 'SUPERVISOR' : 'OPERADOR_BOMBAS')
       };
+    }
+  }
+
+  formatPrimaryRole(role?: string): string {
+    switch (role) {
+      case 'OPERADOR_BOMBAS': return 'Op. Estación de Bombas';
+      case 'OPERADOR_CICLONES': return 'Op. Baterías Ciclones';
+      case 'OPERADOR_DESCARGA': return 'Op. Descarga y Relaves';
+      case 'OPERADOR_MISCELANEOS': return 'Op. Misceláneos / Reactivos';
+      case 'OPERADOR_RELEVO': return 'Op. Relevo General';
+      case 'SUPERVISOR': return 'Supervisor de Guardia';
+      default: return role || 'Operador de Planta';
     }
   }
 
