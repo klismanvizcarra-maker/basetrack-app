@@ -59,6 +59,7 @@
 | `TASK-021` | Generación y Descarga Directa de PDF sin Diálogos del Navegador | Frontend Agent | `TASK-020` | `DONE` | 0/3 | Motor cliente con jsPDF y html2canvas (PdfExportService); auto-descarga directa de archivo .pdf al abrir modal; botón "Descargar PDF Directo" prioritario y supresión de botones |
 | `TASK-022` | Auditoría Integral de Fallas y Mejoras (Test Suite 100%, Auth Robusto, Backup & Restore Total) | Orchestrator & Multi-Agent | `TASK-021` | `DONE` | 0/3 | Resolución de fallas de login y seeds idempotentes, 10/10 tests backend aprobados, build Angular sin advertencias CommonJS, exportación e importación/restauración total de backup JSON |
 | `TASK-023` | Gestión Avanzada de Usuarios (Toolbar, Filtros, Acciones Rápidas) y Monitor de Terminales (Fleet Manager) | Multi-Agent Team | `TASK-022` | `DONE` | 0/3 | Barra de búsqueda reactiva, filtros por guardia y rol, edición modal de rol/guardia con sync cuadrilla, restablecimiento de contraseña, suspensión/activación de cuenta, monitor de flota en tiempo real y revocación remota de sesión con FORCE_LOGOUT |
+| `TASK-024` | Ficha Operacional de Planta en Mi Perfil (DNI, Canal de Radio, Anexo, Especialidad y Sync Cuadrilla) | Multi-Agent Team | `TASK-023` | `DONE` | 0/3 | Ficha de guardia en Mi Perfil, DNI oficial, canal radial walkie-talkie, anexo/celular de emergencia, especialidad en planta, tarjeta lateral "Ficha Rápida", propagación bidireccional a crew_members y prueba unitaria backend #13 aprobada |
 
 ---
 
@@ -83,10 +84,11 @@
 | 2026-09-17 | Frontend Agent | Orchestrator | `TASK-021` | Motor de exportación y descarga directa a archivo PDF mediante jsPDF y html2canvas sin pasar por diálogos de impresión |
 | 2026-09-18 | Orchestrator & QA Agent | Orchestrator | `TASK-022` | Auditoría de fallas y entrega de mejoras: suite de pruebas al 100% (10/10), autenticación tolerante a fallas, restauración de backup en Admin y build optimizado |
 | 2026-09-18 | Multi-Agent Team | Orchestrator | `TASK-023` | Entrega de Puntos 1 y 5 en Admin: Gestión Avanzada de Usuarios (búsqueda, filtros guardia/rol, edición rápida, restablecer clave, suspender/activar) y Monitor de Flota de Terminales con revocación remota de sesión |
+| 2026-09-19 | Multi-Agent Team | Orchestrator | `TASK-024` | Entrega de Ficha Operacional de Planta en Mi Perfil (DNI, Canal Radial, Anexo Telefónico, Especialidad en Planta, Ficha Rápida lateral y sincronización dual con cuadrilla) |
 
 ---
 
 ## 6. Registro de Bloqueos y Alertas de Escalamiento a Humano
 
-_Sin bloqueos activos. Tareas 1 y 5 integradas con éxito. Suite de pruebas backend 100% verde (12/12) y frontend compilando sin errores._
+_Sin bloqueos activos. Ficha Operacional integrada y sincronizada con éxito. Suite de pruebas backend 100% verde (13/13) y frontend compilando sin errores._
 
