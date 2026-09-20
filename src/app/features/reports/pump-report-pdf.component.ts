@@ -61,9 +61,9 @@ import { PdfExportService } from '../../core/services/pdf-export.service';
             </div>
 
             <div class="doc-meta-box">
-              <div class="meta-row"><strong>CÓDIGO:</strong> <span>REP-BMB-{{ sheet?.shift_code || 'G-A' }}</span></div>
+              <div class="meta-row"><strong>CÓDIGO:</strong> <span>REP-BMB-{{ sheet?.shift_code || 'G1' }}</span></div>
               <div class="meta-row"><strong>FECHA:</strong> <span>{{ sheet?.report_date || todayDate }}</span></div>
-              <div class="meta-row"><strong>GUARDIA:</strong> <span>{{ sheet?.shift_code || 'GUARDIA_A' }}</span></div>
+              <div class="meta-row"><strong>GUARDIA:</strong> <span>{{ sheet?.shift_code || 'G1' }}</span></div>
               <div class="meta-row"><strong>OPERADOR:</strong> <span>{{ sheet?.operator_name || 'VIZCARRA CORI MANLEY KLISMAN' }}</span></div>
             </div>
           </div>

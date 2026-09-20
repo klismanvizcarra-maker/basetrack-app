@@ -29,7 +29,7 @@ export function initDatabase() {
       password_hash TEXT NOT NULL,
       full_name TEXT NOT NULL,
       role TEXT NOT NULL CHECK(role IN ('ADMIN', 'SUPERVISOR', 'OPERATOR')),
-      shift TEXT NOT NULL CHECK(shift IN ('GUARDIA_A', 'GUARDIA_B', 'GUARDIA_C')),
+      shift TEXT NOT NULL DEFAULT 'G1',
       avatar_url TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
@@ -173,8 +173,8 @@ export function initDatabase() {
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
       document_id TEXT UNIQUE NOT NULL,
-      primary_role TEXT NOT NULL CHECK(primary_role IN ('OPERADOR_BOMBAS', 'OPERADOR_CICLONES', 'OPERADOR_DESCARGA', 'OPERADOR_MISCELANEOS', 'OPERADOR_RELEVO', 'SUPERVISOR')),
-      shift_code TEXT NOT NULL CHECK(shift_code IN ('GUARDIA_A', 'GUARDIA_B', 'GUARDIA_C')),
+      primary_role TEXT NOT NULL DEFAULT 'OPERADOR_BOMBAS',
+      shift_code TEXT NOT NULL DEFAULT 'G1',
       radio_channel TEXT NOT NULL DEFAULT 'Canal 1 Operaciones',
       phone_extension TEXT,
       status TEXT NOT NULL CHECK(status IN ('EN_TURNO', 'DESCANSO', 'VACACIONES', 'PERMISO', 'CAPACITACION')) DEFAULT 'EN_TURNO',
@@ -316,6 +316,88 @@ export function initDatabase() {
     }
   } catch (e) {
     console.warn('[Database] users columns migration check:', e);
+  }
+
+  // Safe migration: upgrade users table to remove restrictive shift CHECK and map to G1-G4
+  try {
+    const tableInfo = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='users'").get() as { sql: string } | undefined;
+    if (tableInfo && tableInfo.sql && tableInfo.sql.includes('CHECK(shift IN')) {
+      db.exec(`
+        PRAGMA foreign_keys=off;
+        CREATE TABLE IF NOT EXISTS users_v3 (
+          id TEXT PRIMARY KEY,
+          username TEXT UNIQUE NOT NULL,
+          email TEXT UNIQUE NOT NULL,
+          password_hash TEXT NOT NULL,
+          full_name TEXT NOT NULL,
+          role TEXT NOT NULL CHECK(role IN ('ADMIN', 'SUPERVISOR', 'OPERATOR')),
+          shift TEXT NOT NULL DEFAULT 'G1',
+          avatar_url TEXT,
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          is_active INTEGER NOT NULL DEFAULT 1,
+          document_id TEXT,
+          radio_channel TEXT DEFAULT 'Canal 1 Operaciones',
+          phone_extension TEXT,
+          primary_role TEXT DEFAULT 'OPERADOR_BOMBAS'
+        );
+        INSERT OR IGNORE INTO users_v3 SELECT 
+          id, username, email, password_hash, full_name, role,
+          CASE 
+            WHEN shift = 'GUARDIA_A' THEN 'G1'
+            WHEN shift = 'GUARDIA_B' THEN 'G2'
+            WHEN shift = 'GUARDIA_C' THEN 'G3'
+            ELSE shift 
+          END as shift,
+          avatar_url, created_at, 
+          COALESCE(is_active, 1), document_id, radio_channel, phone_extension, primary_role 
+        FROM users;
+        DROP TABLE users;
+        ALTER TABLE users_v3 RENAME TO users;
+        PRAGMA foreign_keys=on;
+      `);
+      console.log('[Database] Migrated users table to support G1-G4 dynamic shifts.');
+    }
+  } catch (e) {
+    console.warn('[Database] users migration check:', e);
+  }
+
+  // Safe migration: upgrade crew_members table to remove restrictive CHECKs and map to G1-G4
+  try {
+    const tableInfo = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='crew_members'").get() as { sql: string } | undefined;
+    if (tableInfo && tableInfo.sql && (tableInfo.sql.includes('CHECK(shift_code IN') || tableInfo.sql.includes('CHECK(primary_role IN'))) {
+      db.exec(`
+        PRAGMA foreign_keys=off;
+        CREATE TABLE IF NOT EXISTS crew_members_v3 (
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          document_id TEXT UNIQUE NOT NULL,
+          primary_role TEXT NOT NULL DEFAULT 'OPERADOR_BOMBAS',
+          shift_code TEXT NOT NULL DEFAULT 'G1',
+          radio_channel TEXT NOT NULL DEFAULT 'Canal 1 Operaciones',
+          phone_extension TEXT,
+          status TEXT NOT NULL CHECK(status IN ('EN_TURNO', 'DESCANSO', 'VACACIONES', 'PERMISO', 'CAPACITACION')) DEFAULT 'EN_TURNO',
+          avatar_url TEXT,
+          created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        INSERT OR IGNORE INTO crew_members_v3 SELECT 
+          id, name, document_id, primary_role,
+          CASE 
+            WHEN shift_code = 'GUARDIA_A' THEN 'G1'
+            WHEN shift_code = 'GUARDIA_B' THEN 'G2'
+            WHEN shift_code = 'GUARDIA_C' THEN 'G3'
+            ELSE shift_code 
+          END as shift_code,
+          radio_channel, phone_extension, status, avatar_url, created_at
+        FROM crew_members;
+        DROP TABLE crew_members;
+        ALTER TABLE crew_members_v3 RENAME TO crew_members;
+        CREATE INDEX IF NOT EXISTS idx_crew_shift ON crew_members(shift_code);
+        PRAGMA foreign_keys=on;
+      `);
+      console.log('[Database] Migrated crew_members table to support 8 official positions and G1-G4.');
+    }
+  } catch (e) {
+    console.warn('[Database] crew_members migration check:', e);
   }
 
   console.log('[Database] Tables and indexes initialized successfully.');

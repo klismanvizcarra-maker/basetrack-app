@@ -452,9 +452,10 @@ const DEFAULT_LOGS: AuditLog[] = [
               <label>Guardia:</label>
               <select [(ngModel)]="userFilterShift" class="toolbar-select">
                 <option value="TODAS">Todas las Guardias</option>
-                <option value="GUARDIA_A">Guardia A</option>
-                <option value="GUARDIA_B">Guardia B</option>
-                <option value="GUARDIA_C">Guardia C</option>
+                <option value="G1">Guardia G1</option>
+                <option value="G2">Guardia G2</option>
+                <option value="G3">Guardia G3</option>
+                <option value="G4">Guardia G4</option>
               </select>
             </div>
 
@@ -617,9 +618,10 @@ const DEFAULT_LOGS: AuditLog[] = [
             <div class="form-group">
               <label>Guardia Asignada</label>
               <select [(ngModel)]="newUser.shift" name="shift">
-                <option value="GUARDIA_A">Guardia A</option>
-                <option value="GUARDIA_B">Guardia B</option>
-                <option value="GUARDIA_C">Guardia C</option>
+                <option value="G1">Guardia G1</option>
+                <option value="G2">Guardia G2</option>
+                <option value="G3">Guardia G3</option>
+                <option value="G4">Guardia G4</option>
               </select>
             </div>
           </div>
@@ -791,9 +793,10 @@ const DEFAULT_LOGS: AuditLog[] = [
             <div class="form-group">
               <label>Guardia Asignada:</label>
               <select [(ngModel)]="editShift" class="modal-select">
-                <option value="GUARDIA_A">Guardia A</option>
-                <option value="GUARDIA_B">Guardia B</option>
-                <option value="GUARDIA_C">Guardia C</option>
+                <option value="G1">Guardia G1</option>
+                <option value="G2">Guardia G2</option>
+                <option value="G3">Guardia G3</option>
+                <option value="G4">Guardia G4</option>
               </select>
             </div>
           </div>
@@ -1718,7 +1721,7 @@ export class AdminComponent implements OnInit {
   isEditUserModalOpen = false;
   selectedUserForEdit: UserItem | null = null;
   editRole: 'ADMIN' | 'SUPERVISOR' | 'OPERATOR' = 'OPERATOR';
-  editShift = 'GUARDIA_A';
+  editShift = 'G1';
   isSavingUser = false;
 
   // Modal: Reset Password (Punto 1)
@@ -1754,7 +1757,7 @@ export class AdminComponent implements OnInit {
     email: '',
     password: '',
     role: 'OPERATOR' as const,
-    shift: 'GUARDIA_A'
+    shift: 'G1'
   };
 
   ngOnInit(): void {
@@ -1895,7 +1898,7 @@ export class AdminComponent implements OnInit {
       email: '',
       password: '',
       role: 'OPERATOR',
-      shift: 'GUARDIA_A'
+      shift: 'G1'
     };
   }
 
@@ -1993,11 +1996,11 @@ export class AdminComponent implements OnInit {
   downloadTemplateCsv(): void {
     const headers = 'username,full_name,email,password,role,shift,document_id,radio_channel,phone_extension\n';
     const rows = [
-      'cbarrios,Carlos Barrios Huamán,carlos.barrios@mina.com,Basetrack2026!,OPERATOR,GUARDIA_B,72190458,Canal 3 Bombas,Ext. 4102',
-      'fmorales,Fabián Morales Arce,fabian.morales@mina.com,Basetrack2026!,OPERATOR,GUARDIA_B,45819203,Canal 2 Ciclones,Ext. 4105',
-      'arios,Álvaro Rios Gutiérrez,alvaro.rios@mina.com,Basetrack2026!,OPERATOR,GUARDIA_B,46820194,Canal 4 Presa,Ext. 4109',
-      'smedina,Santiago Medina Solís,santiago.medina@mina.com,Basetrack2026!,OPERATOR,GUARDIA_B,74910283,Canal 1 Operaciones,Ext. 4112',
-      'respinoza,Raúl Espinoza Pinto,raul.espinoza@mina.com,Basetrack2026!,OPERATOR,GUARDIA_B,72839102,Canal 5 Relevo/Móvil,Ext. 4115'
+      'cbarrios,Carlos Barrios Huamán,carlos.barrios@mina.com,Basetrack2026!,OPERATOR,G1,72190458,Canal 3 Bombas,Ext. 4102',
+      'fmorales,Fabián Morales Arce,fabian.morales@mina.com,Basetrack2026!,OPERATOR,G1,45819203,Canal 2 Ciclones,Ext. 4105',
+      'arios,Álvaro Rios Gutiérrez,alvaro.rios@mina.com,Basetrack2026!,OPERATOR,G2,46820194,Canal 4 Presa,Ext. 4109',
+      'smedina,Santiago Medina Solís,santiago.medina@mina.com,Basetrack2026!,OPERATOR,G3,74910283,Canal 1 Operaciones,Ext. 4112',
+      'respinoza,Raúl Espinoza Pinto,raul.espinoza@mina.com,Basetrack2026!,OPERATOR,G4,72839102,Canal 5 Relevo/Móvil,Ext. 4115'
     ].join('\n');
 
     const blob = new Blob([headers + rows], { type: 'text/csv;charset=utf-8;' });
@@ -2061,8 +2064,10 @@ export class AdminComponent implements OnInit {
       const password = parts[3] || 'Basetrack2026!';
       const rawRole = (parts[4] || 'OPERATOR').toUpperCase();
       const role = ['ADMIN', 'SUPERVISOR', 'OPERATOR'].includes(rawRole) ? rawRole : 'OPERATOR';
-      const rawShift = (parts[5] || 'GUARDIA_A').toUpperCase();
-      const shift = ['GUARDIA_A', 'GUARDIA_B', 'GUARDIA_C'].includes(rawShift) ? rawShift : 'GUARDIA_A';
+      const rawShift = (parts[5] || 'G1').toUpperCase();
+      const shift = ['G1', 'G2', 'G3', 'G4', 'GUARDIA_A', 'GUARDIA_B', 'GUARDIA_C'].includes(rawShift)
+        ? (rawShift.startsWith('GUARDIA_') ? rawShift.replace('GUARDIA_A', 'G1').replace('GUARDIA_B', 'G2').replace('GUARDIA_C', 'G3') : rawShift)
+        : 'G1';
       const document_id = parts[6] || '';
       const radio_channel = parts[7] || 'Canal 1 Operaciones';
       const phone_extension = parts[8] || '';
@@ -2131,10 +2136,15 @@ export class AdminComponent implements OnInit {
             if (r.role === 'OPERATOR' || r.role === 'SUPERVISOR') {
               let primaryRole = 'OPERADOR_BOMBAS';
               const nameLower = (r.full_name || '').toLowerCase();
-              if (nameLower.includes('ciclon')) primaryRole = 'OPERADOR_CICLONES';
-              else if (nameLower.includes('descarga') || nameLower.includes('relave') || nameLower.includes('presa')) primaryRole = 'OPERADOR_DESCARGA';
+              if (nameLower.includes('ciclon 1') || nameLower.includes('ciclones 1')) primaryRole = 'OPERADOR_CICLONES_1';
+              else if (nameLower.includes('ciclon 2') || nameLower.includes('ciclones 2')) primaryRole = 'OPERADOR_CICLONES_2';
+              else if (nameLower.includes('ciclon')) primaryRole = 'OPERADOR_CICLONES_1';
+              else if (nameLower.includes('distribuidor')) primaryRole = 'OPERADOR_DISTRIBUIDOR';
+              else if (nameLower.includes('descarga 1')) primaryRole = 'OPERADOR_DESCARGA_1';
+              else if (nameLower.includes('descarga 2')) primaryRole = 'OPERADOR_DESCARGA_2';
+              else if (nameLower.includes('descarga') || nameLower.includes('relave') || nameLower.includes('presa')) primaryRole = 'OPERADOR_DESCARGA_1';
               else if (nameLower.includes('misc') || nameLower.includes('reactivo')) primaryRole = 'OPERADOR_MISCELANEOS';
-              else if (nameLower.includes('relevo')) primaryRole = 'OPERADOR_RELEVO';
+              else if (nameLower.includes('bomba')) primaryRole = 'OPERADOR_BOMBAS';
               else if (r.role === 'SUPERVISOR') primaryRole = 'SUPERVISOR';
 
               crewList.push({
@@ -2142,7 +2152,7 @@ export class AdminComponent implements OnInit {
                 name: r.full_name,
                 document_id: r.document_id || ('DNI-' + Math.floor(10000000 + Math.random() * 90000000)),
                 primary_role: primaryRole,
-                shift_code: r.shift || 'GUARDIA_A',
+                shift_code: r.shift || 'G1',
                 radio_channel: r.radio_channel || 'Canal 1 Operaciones',
                 phone_extension: r.phone_extension || '',
                 status: 'EN_TURNO',

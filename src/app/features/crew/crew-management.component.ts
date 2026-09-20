@@ -62,26 +62,34 @@ import { ModalComponent } from '../../shared/ui/modal.component';
             <button
               type="button"
               class="guard-tab-btn"
-              [class.active]="selectedShift === 'GUARDIA_A'"
-              (click)="selectShift('GUARDIA_A')"
+              [class.active]="selectedShift === 'G1'"
+              (click)="selectShift('G1')"
             >
-              Guardia A
+              Guardia 1 (G1)
             </button>
             <button
               type="button"
               class="guard-tab-btn"
-              [class.active]="selectedShift === 'GUARDIA_B'"
-              (click)="selectShift('GUARDIA_B')"
+              [class.active]="selectedShift === 'G2'"
+              (click)="selectShift('G2')"
             >
-              Guardia B
+              Guardia 2 (G2)
             </button>
             <button
               type="button"
               class="guard-tab-btn"
-              [class.active]="selectedShift === 'GUARDIA_C'"
-              (click)="selectShift('GUARDIA_C')"
+              [class.active]="selectedShift === 'G3'"
+              (click)="selectShift('G3')"
             >
-              Guardia C
+              Guardia 3 (G3)
+            </button>
+            <button
+              type="button"
+              class="guard-tab-btn"
+              [class.active]="selectedShift === 'G4'"
+              (click)="selectShift('G4')"
+            >
+              Guardia 4 (G4)
             </button>
           </div>
         </div>
@@ -467,12 +475,14 @@ import { ModalComponent } from '../../shared/ui/modal.component';
               name="primary_role"
               required
             >
-              <option value="OPERADOR_BOMBAS">Operador de Bombas</option>
-              <option value="OPERADOR_CICLONES">Operador de Ciclones</option>
-              <option value="OPERADOR_DESCARGA">Operador de descarga</option>
-              <option value="OPERADOR_MISCELANEOS">Operador Misceláneos</option>
-              <option value="OPERADOR_RELEVO">Operador de Relevo</option>
-              <option value="SUPERVISOR">Supervisor de Planta</option>
+              <option value="SUPERVISOR">Supervisor de Guardia</option>
+              <option value="OPERADOR_BOMBAS">Operador de bombas</option>
+              <option value="OPERADOR_CICLONES_1">Operador de ciclones 1</option>
+              <option value="OPERADOR_CICLONES_2">Operador de ciclones 2</option>
+              <option value="OPERADOR_DISTRIBUIDOR">Operador de distribuidor</option>
+              <option value="OPERADOR_DESCARGA_1">Operador de descarga 1</option>
+              <option value="OPERADOR_DESCARGA_2">Operador de descarga 2</option>
+              <option value="OPERADOR_MISCELANEOS">Operador de misceláneos</option>
               <option *ngFor="let p of customPositionsList" [value]="p.key">
                 {{ p.title }}
               </option>
@@ -486,9 +496,10 @@ import { ModalComponent } from '../../shared/ui/modal.component';
               name="shift_code"
               required
             >
-              <option value="GUARDIA_A">Guardia A</option>
-              <option value="GUARDIA_B">Guardia B</option>
-              <option value="GUARDIA_C">Guardia C</option>
+              <option value="G1">Guardia 1 (G1)</option>
+              <option value="G2">Guardia 2 (G2)</option>
+              <option value="G3">Guardia 3 (G3)</option>
+              <option value="G4">Guardia 4 (G4)</option>
             </select>
           </div>
         </div>
@@ -1622,7 +1633,7 @@ import { ModalComponent } from '../../shared/ui/modal.component';
 export class CrewManagementComponent implements OnInit {
   crewService = inject(CrewService);
 
-  selectedShift: 'GUARDIA_A' | 'GUARDIA_B' | 'GUARDIA_C' = 'GUARDIA_A';
+  selectedShift: 'G1' | 'G2' | 'G3' | 'G4' | string = 'G1';
   selectedShiftType: 'DIA' | 'NOCHE' = 'DIA';
   selectedDate: string = new Date().toISOString().split('T')[0];
   rosterFilter: 'ALL' | 'EN_TURNO' | 'DESCANSO' = 'ALL';
@@ -1667,7 +1678,7 @@ export class CrewManagementComponent implements OnInit {
     name: '',
     document_id: '',
     primary_role: 'OPERADOR_BOMBAS',
-    shift_code: 'GUARDIA_A',
+    shift_code: 'G1',
     radio_channel: 'Canal 3 Bombas',
     phone_extension: '',
     status: 'EN_TURNO',
@@ -1710,7 +1721,7 @@ export class CrewManagementComponent implements OnInit {
     this.crewService.loadAssignments(this.selectedDate, this.selectedShift, this.selectedShiftType).subscribe();
   }
 
-  selectShift(shift: 'GUARDIA_A' | 'GUARDIA_B' | 'GUARDIA_C'): void {
+  selectShift(shift: 'G1' | 'G2' | 'G3' | 'G4' | string): void {
     this.selectedShift = shift;
     this.loadData();
   }

@@ -43,7 +43,7 @@ import { CloudSyncService } from '../../core/services/cloud-sync.service';
 
         <div class="shift-indicator">
           <span class="shift-tag">Turno:</span>
-          <span class="shift-name">{{ authService.currentUser()?.shift || 'GUARDIA_A' }}</span>
+          <span class="shift-name">{{ authService.currentUser()?.shift || 'G1' }}</span>
         </div>
       </div>
 

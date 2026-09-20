@@ -475,7 +475,7 @@ export class ShiftHandoverComponent implements OnInit {
   selectedHandoverForPdf: ShiftHandover | null = null;
 
   newHandover = {
-    shift_code: 'GUARDIA_A_DIA_' + new Date().toISOString().slice(5, 10).replace('-', ''),
+    shift_code: 'G1_DIA_' + new Date().toISOString().slice(5, 10).replace('-', ''),
     shift_type: 'DIA' as 'DIA' | 'NOCHE',
     outgoing_supervisor: '',
     incoming_supervisor: '',
@@ -519,7 +519,7 @@ export class ShiftHandoverComponent implements OnInit {
     this.handovers = [
       {
         id: 'sh-1',
-        shift_code: 'GUARDIA_A_DIA_01',
+        shift_code: 'G1_DIA_01',
         date: new Date().toISOString().split('T')[0],
         shift_type: 'DIA',
         outgoing_supervisor: 'VIZCARRA CORI MANLEY KLISMAN',

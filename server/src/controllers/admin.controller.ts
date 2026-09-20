@@ -106,7 +106,7 @@ export function createUsersBulk(req: AuthenticatedRequest, res: Response) {
           hash,
           fullName,
           ['ADMIN', 'SUPERVISOR', 'OPERATOR'].includes(role) ? role : 'OPERATOR',
-          ['GUARDIA_A', 'GUARDIA_B', 'GUARDIA_C'].includes(shift) ? shift : 'GUARDIA_A',
+          ['G1', 'G2', 'G3', 'G4', 'GUARDIA_A', 'GUARDIA_B', 'GUARDIA_C'].includes(shift) ? shift : 'G1',
           avatar
         );
 
@@ -120,10 +120,12 @@ export function createUsersBulk(req: AuthenticatedRequest, res: Response) {
             primaryRole = 'SUPERVISOR';
           } else {
             const lowerName = fullName.toLowerCase() + ' ' + (item.area || '').toLowerCase();
-            if (lowerName.includes('ciclon')) primaryRole = 'OPERADOR_CICLONES';
-            else if (lowerName.includes('descarga') || lowerName.includes('relave') || lowerName.includes('presa')) primaryRole = 'OPERADOR_DESCARGA';
+            if (lowerName.includes('ciclon') && lowerName.includes('2')) primaryRole = 'OPERADOR_CICLONES_2';
+            else if (lowerName.includes('ciclon')) primaryRole = 'OPERADOR_CICLONES_1';
+            else if (lowerName.includes('distribuidor')) primaryRole = 'OPERADOR_DISTRIBUIDOR';
+            else if (lowerName.includes('descarga') && lowerName.includes('2')) primaryRole = 'OPERADOR_DESCARGA_2';
+            else if (lowerName.includes('descarga') || lowerName.includes('relave') || lowerName.includes('presa')) primaryRole = 'OPERADOR_DESCARGA_1';
             else if (lowerName.includes('misc') || lowerName.includes('reactivo')) primaryRole = 'OPERADOR_MISCELANEOS';
-            else if (lowerName.includes('relevo')) primaryRole = 'OPERADOR_RELEVO';
             else primaryRole = 'OPERADOR_BOMBAS';
           }
 
@@ -132,7 +134,7 @@ export function createUsersBulk(req: AuthenticatedRequest, res: Response) {
             fullName,
             documentId,
             primaryRole,
-            ['GUARDIA_A', 'GUARDIA_B', 'GUARDIA_C'].includes(shift) ? shift : 'GUARDIA_A',
+            ['G1', 'G2', 'G3', 'G4', 'GUARDIA_A', 'GUARDIA_B', 'GUARDIA_C'].includes(shift) ? shift : 'G1',
             radio,
             phone,
             'EN_TURNO',
@@ -443,7 +445,8 @@ export function updateUserRoleShift(req: AuthenticatedRequest, res: Response) {
     }
 
     const newRole = role && ['ADMIN', 'SUPERVISOR', 'OPERATOR'].includes(role) ? String(role) : user.role;
-    const newShift = shift && ['GUARDIA_A', 'GUARDIA_B', 'GUARDIA_C'].includes(shift) ? String(shift) : user.shift;
+    const validShifts = ['G1', 'G2', 'G3', 'G4', 'GUARDIA_A', 'GUARDIA_B', 'GUARDIA_C'];
+    const newShift = shift && validShifts.includes(shift) ? String(shift) : (shift ? String(shift) : user.shift);
 
     db.prepare('UPDATE users SET role = ?, shift = ? WHERE id = ?').run(newRole, newShift, id);
 

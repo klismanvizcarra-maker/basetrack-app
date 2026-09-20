@@ -850,7 +850,7 @@ export class ShiftReportPdfComponent implements OnInit {
 
   reportData: ShiftHandover = {
     id: 'DEMO-1',
-    shift_code: 'G-A-01',
+    shift_code: 'G1-01',
     date: new Date().toISOString().split('T')[0],
     shift_type: 'DIA',
     outgoing_supervisor: 'VIZCARRA CORI MANLEY KLISMAN',

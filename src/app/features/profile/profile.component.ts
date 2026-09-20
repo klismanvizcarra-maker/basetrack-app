@@ -204,9 +204,10 @@ import { ShiftCode } from '../../core/auth/auth.models';
                 <div class="form-group">
                   <label>Guardia Asignada</label>
                   <select [(ngModel)]="profileForm.shift" name="shift">
-                    <option value="GUARDIA_A">Guardia A (Turno Principal)</option>
-                    <option value="GUARDIA_B">Guardia B (Turno Secundario)</option>
-                    <option value="GUARDIA_C">Guardia C (Turno Especial)</option>
+                    <option value="G1">Guardia G1 (Turno 1)</option>
+                    <option value="G2">Guardia G2 (Turno 2)</option>
+                    <option value="G3">Guardia G3 (Turno 3)</option>
+                    <option value="G4">Guardia G4 (Turno 4)</option>
                   </select>
                 </div>
               </div>
@@ -293,12 +294,14 @@ import { ShiftCode } from '../../core/auth/auth.models';
                   <div class="input-icon-wrap">
                     <span class="input-icon">⚙️</span>
                     <select [(ngModel)]="profileForm.primary_role" name="primaryRole" class="select-with-icon">
-                      <option value="OPERADOR_BOMBAS">Operador de Estación de Bombas</option>
-                      <option value="OPERADOR_CICLONES">Operador de Baterías de Ciclones</option>
-                      <option value="OPERADOR_DESCARGA">Operador de Descarga y Relaves</option>
-                      <option value="OPERADOR_MISCELANEOS">Operador de Misceláneos / Reactivos</option>
-                      <option value="OPERADOR_RELEVO">Operador de Relevo General</option>
-                      <option value="SUPERVISOR">Supervisor de Guardia / Jefe de Turno</option>
+                      <option value="OPERADOR_BOMBAS">Operador de Bombas</option>
+                      <option value="OPERADOR_CICLONES_1">Operador de Ciclones 1</option>
+                      <option value="OPERADOR_CICLONES_2">Operador de Ciclones 2</option>
+                      <option value="OPERADOR_DISTRIBUIDOR">Operador de Distribuidor</option>
+                      <option value="OPERADOR_DESCARGA_1">Operador de Descarga 1</option>
+                      <option value="OPERADOR_DESCARGA_2">Operador de Descarga 2</option>
+                      <option value="OPERADOR_MISCELANEOS">Operador de Misceláneos</option>
+                      <option value="SUPERVISOR">Supervisor de Guardia</option>
                     </select>
                   </div>
                   <span class="input-hint">Posición operativa prioritaria en el tablero de cuadrilla</span>
@@ -935,7 +938,7 @@ export class ProfileComponent implements OnInit {
   profileForm = {
     fullName: '',
     email: '',
-    shift: 'GUARDIA_A' as ShiftCode,
+    shift: 'G1' as ShiftCode,
     avatarUrl: '',
     document_id: '',
     radio_channel: 'Canal 1 Operaciones',
@@ -996,7 +999,7 @@ export class ProfileComponent implements OnInit {
       this.profileForm = {
         fullName: user.fullName || '',
         email: user.email || '',
-        shift: user.shift || 'GUARDIA_A',
+        shift: user.shift || 'G1',
         avatarUrl: user.avatarUrl || this.presetAvatars[0].url,
         document_id: user.document_id || '71209033',
         radio_channel: user.radio_channel || 'Canal 1 Operaciones',
@@ -1008,12 +1011,16 @@ export class ProfileComponent implements OnInit {
 
   formatPrimaryRole(role?: string): string {
     switch (role) {
-      case 'OPERADOR_BOMBAS': return 'Op. Estación de Bombas';
-      case 'OPERADOR_CICLONES': return 'Op. Baterías Ciclones';
-      case 'OPERADOR_DESCARGA': return 'Op. Descarga y Relaves';
-      case 'OPERADOR_MISCELANEOS': return 'Op. Misceláneos / Reactivos';
-      case 'OPERADOR_RELEVO': return 'Op. Relevo General';
+      case 'OPERADOR_BOMBAS': return 'Operador de Bombas';
+      case 'OPERADOR_CICLONES_1': return 'Operador de Ciclones 1';
+      case 'OPERADOR_CICLONES_2': return 'Operador de Ciclones 2';
+      case 'OPERADOR_DISTRIBUIDOR': return 'Operador de Distribuidor';
+      case 'OPERADOR_DESCARGA_1': return 'Operador de Descarga 1';
+      case 'OPERADOR_DESCARGA_2': return 'Operador de Descarga 2';
+      case 'OPERADOR_MISCELANEOS': return 'Operador de Misceláneos';
       case 'SUPERVISOR': return 'Supervisor de Guardia';
+      case 'OPERADOR_CICLONES': return 'Operador de Ciclones';
+      case 'OPERADOR_DESCARGA': return 'Operador de Descarga';
       default: return role || 'Operador de Planta';
     }
   }

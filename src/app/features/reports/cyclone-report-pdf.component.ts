@@ -61,10 +61,10 @@ import { PdfExportService } from '../../core/services/pdf-export.service';
             </div>
 
             <div class="doc-meta-box">
-              <div class="meta-row"><strong>CÓDIGO:</strong> <span>REP-CYC-{{ shiftCode || 'G-A' }}</span></div>
+              <div class="meta-row"><strong>CÓDIGO:</strong> <span>REP-CYC-{{ shiftCode || 'G1' }}</span></div>
               <div class="meta-row"><strong>FECHA:</strong> <span>{{ reportDate }}</span></div>
               <div class="meta-row"><strong>ESTACIÓN:</strong> <span>{{ station || '2DA ESTACIÓN CICLONES' }}</span></div>
-              <div class="meta-row"><strong>GUARDIA:</strong> <span>{{ shiftCode || 'GUARDIA_A' }}</span></div>
+              <div class="meta-row"><strong>GUARDIA:</strong> <span>{{ shiftCode || 'G1' }}</span></div>
             </div>
           </div>
 

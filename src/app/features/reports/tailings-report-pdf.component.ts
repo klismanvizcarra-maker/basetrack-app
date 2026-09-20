@@ -61,7 +61,7 @@ import { PdfExportService } from '../../core/services/pdf-export.service';
             </div>
 
             <div class="doc-meta-box">
-              <div class="meta-row"><strong>CÓDIGO:</strong> <span>REP-DES-G-A</span></div>
+              <div class="meta-row"><strong>CÓDIGO:</strong> <span>REP-DES-G1</span></div>
               <div class="meta-row"><strong>FECHA:</strong> <span>{{ todayDate }}</span></div>
               <div class="meta-row"><strong>SISTEMA:</strong> <span>LÍNEA HDPE & PRESA PRINCIPAL</span></div>
               <div class="meta-row"><strong>OPERADOR:</strong> <span>VILCAMIZA PEVE JORGE RICARDO</span></div>
