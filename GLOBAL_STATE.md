@@ -94,7 +94,39 @@
 | 2026-09-19 | Multi-Agent Team | Orchestrator | `TASK-027` | Auditoría de fallas y robustez: API dinámico, CORS multi-IP para red de planta y manejo resiliente de colas offline |
 | 2026-09-19 | Frontend Agent | Orchestrator | `TASK-028` | Despliegue global del isotipo oficial BASETRACK (piocha, montaña y flecha naranja) en favicon, PWA, sidebar, login, modal de instalación y encabezados de reportes PDF |
 | 2026-09-20 | Multi-Agent Team | Orchestrator | `TASK-029` | Reestructuración operacional completa a 4 guardias (G1-G4) de 8 personas cada una (1 Supervisor + 7 Operadores específicos: Bombas, Ciclones 1, Ciclones 2, Distribuidor, Descarga 1, Descarga 2, Misceláneos), 32 trabajadores oficiales en plantilla, migraciones SQLite v3 automáticas y compatibilidad total en Cuadrilla, Admin, Relevos, Perfil y Reportes PDF |
+| `TASK-030` | Auditoría integral de seguridad y resiliencia lógica | Multi-Agent Team | `TASK-029` | `DONE` | 0/3 | Blindaje de auth, validación en changePassword, compresión canvas y 15/15 tests backend |
+| `TASK-031` | Depuración Total de Guardia Activa y Migración Completa a G1–G4 | Multi-Agent Team | `TASK-030` | `DONE` | 0/3 | Purga absoluta de 'Guardia A/B/C' en DB SQLite, controladores, servicios frontend, persistencia local y reportes PDF; normalización automática de caché; 15/15 tests backend y build Angular impecables |
+
+---
+
+## 5. Historial de Hand-offs Recientes
+
+| Timestamp | De Agente | A Agente | Tarea ID | Resumen de Entrega |
+| :--- | :--- | :--- | :--- | :--- |
+| 2026-09-14 | Setup | Orchestrator | `TASK-000` | Inicialización de reglas y definición del equipo |
+| 2026-09-16 | Orchestrator | Backend Agent | `TASK-001` | Asignación de diseño de base de datos, migraciones y APIs REST |
+| 2026-09-16 | Backend Agent | Frontend Agent | `TASK-001` | Entrega de APIs REST, SQLite nativo, JWT RBAC y datos de prueba |
+| 2026-09-16 | Frontend Agent | QA & Security Agent | `TASK-002/003` | Entrega de UI Angular, diseño CRAVEAT y módulos funcionales |
+| 2026-09-16 | Orchestrator / Multi-Agent | QA & Security Agent | `TASK-006` | Entrega de tabla operativa 2da Estación Ciclones, endpoints, tests y UI de alta fidelidad |
+| 2026-09-16 | Frontend Agent | Orchestrator | `TASK-007` | Transformación global a tema blanco puro (#ffffff, #f8fafc), contraste WCAG y componentes unificados |
+| 2026-09-16 | Frontend & QA Agent | Orchestrator | `TASK-011` | Implementación y verificación de PWA standalone, Service Worker con fallback offline, e instalación en dispositivos móviles y PC |
+| 2026-09-16 | Multi-Agent Team | Orchestrator | `TASK-012` | Generador formal de Reportes en PDF A4 de cierre de guardia y motor IndexedDB con cola de sincronización |
+| 2026-09-17 | Multi-Agent Team | Orchestrator | `TASK-013` | Módulo operacional de Gestión de Cuadrilla con asignación en tiempo real para las 5 posiciones críticas y control de EPP/charla de seguridad |
+| 2026-09-17 | Multi-Agent Team | Orchestrator | `TASK-014` | Carga de personal por lote desde Administración con CSV/Excel, validación interactiva, sincronización dual users+cuadrilla y transacción SQLite |
+| 2026-09-17 | Multi-Agent Team | Orchestrator | `TASK-015` | Persistencia en tiempo real unificada, compresión de fotos y retención en registro permanente |
+| 2026-09-17 | QA & Security Agent | Orchestrator | `TASK-016` | Blindaje de seguridad: login obligatorio sin bypass, purga de backdoors, validación estricta de credenciales y tests de seguridad aprobados |
+| 2026-09-17 | Multi-Agent Team | Orchestrator | `TASK-017` | Sincronización multi-dispositivo en la nube: BroadcastChannel instantáneo, cola offline y replicación central SQLite |
+| 2026-09-17 | Frontend Agent | Orchestrator | `TASK-020` | Integración de botón de exportación PDF (1 hoja) en Bombas, Ciclones y Descarga con maquetación A4 de página única garantizada |
+| 2026-09-17 | Frontend Agent | Orchestrator | `TASK-021` | Motor de exportación y descarga directa a archivo PDF mediante jsPDF y html2canvas sin pasar por diálogos de impresión |
+| 2026-09-18 | Orchestrator & QA Agent | Orchestrator | `TASK-022` | Auditoría de fallas y entrega de mejoras: suite de pruebas al 100% (10/10), autenticación tolerante a fallas, restauración de backup en Admin y build optimizado |
+| 2026-09-18 | Multi-Agent Team | Orchestrator | `TASK-023` | Entrega de Puntos 1 y 5 en Admin: Gestión Avanzada de Usuarios (búsqueda, filtros guardia/rol, edición rápida, restablecer clave, suspender/activar) y Monitor de Flota de Terminales con revocación remota de sesión |
+| 2026-09-19 | Multi-Agent Team | Orchestrator | `TASK-024` | Entrega de Ficha Operacional de Planta en Mi Perfil (DNI, Canal Radial, Anexo Telefónico, Especialidad en Planta, Ficha Rápida lateral y sincronización dual con cuadrilla) |
+| 2026-09-19 | Frontend Agent | Orchestrator | `TASK-025` | Unificación de identidad de marca al azul cobalto #031795 en layout, auth, dashboard, administración, reportes A4 y componentes UI con preservación de semáforos operacionales |
+| 2026-09-19 | Multi-Agent Team | Orchestrator | `TASK-027` | Auditoría de fallas y robustez: API dinámico, CORS multi-IP para red de planta y manejo resiliente de colas offline |
+| 2026-09-19 | Frontend Agent | Orchestrator | `TASK-028` | Despliegue global del isotipo oficial BASETRACK (piocha, montaña y flecha naranja) en favicon, PWA, sidebar, login, modal de instalación y encabezados de reportes PDF |
+| 2026-09-20 | Multi-Agent Team | Orchestrator | `TASK-029` | Reestructuración operacional completa a 4 guardias (G1-G4) de 8 personas cada una (1 Supervisor + 7 Operadores específicos: Bombas, Ciclones 1, Ciclones 2, Distribuidor, Descarga 1, Descarga 2, Misceláneos), 32 trabajadores oficiales en plantilla, migraciones SQLite v3 automáticas y compatibilidad total en Cuadrilla, Admin, Relevos, Perfil y Reportes PDF |
 | 2026-09-23 | QA, Backend & Frontend | Orchestrator | `TASK-030` | Auditoría integral de seguridad y resiliencia lógica: eliminación de bypass de clave en login/offline auth, verificación estricta de contraseña actual en changePassword, saneamiento de fallbacks de guardia y fecha a G1 e ISO dinámico, unificación de telemetría viva para G1-G4 (32 operadores) en Dashboard, compresión cliente Canvas de fotos de mantenimiento, 15/15 tests automatizados y build de producción exitoso |
+| 2026-09-23 | Multi-Agent Team | Orchestrator | `TASK-031` | Saneamiento y purga definitiva de nomenclaturas antiguas (Guardia A, B, C) en DB SQLite, controladores API, servicios Angular, modales de gestión de cuadrilla, reportes PDF y migración de memoria caché de cliente |
 
 ---
 
