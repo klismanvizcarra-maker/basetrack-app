@@ -39,7 +39,7 @@ export function createPumpReport(req: AuthenticatedRequest, res: Response) {
 
     const id = crypto.randomUUID();
     const operatorName = req.user?.fullName || req.body.operator_name || 'Operador Central';
-    const shiftCode = req.user?.shift || req.body.shift_code || 'GUARDIA_A';
+    const shiftCode = req.user?.shift || req.body.shift_code || 'G1';
 
     db.prepare(`
       INSERT INTO pump_reports (
@@ -89,8 +89,8 @@ export function updatePumpStatus(req: AuthenticatedRequest, res: Response) {
 
 export function getPumpOperationalSheet(req: Request, res: Response) {
   try {
-    const reportDate = (req.query.date as string) || '2026-08-27';
-    const shiftCode = (req.query.shift as string) || 'GUARDIA_A';
+    const reportDate = (req.query.date as string) || new Date().toISOString().slice(0, 10);
+    const shiftCode = (req.query.shift as string) || 'G1';
 
     let sheet = db.prepare(`
       SELECT * FROM pump_station_sheets 
@@ -174,7 +174,7 @@ export function savePumpOperationalSheet(req: AuthenticatedRequest, res: Respons
       return res.status(400).json({ success: false, message: 'La fecha del reporte es requerida' });
     }
 
-    const shift = shift_code || 'GUARDIA_A';
+    const shift = shift_code || req.user?.shift || 'G1';
     const operator = req.user?.fullName || operator_name || 'Operador Central';
 
     const existing = db.prepare(`

@@ -331,7 +331,7 @@ export class DashboardComponent implements OnInit {
     { title: 'Tonelaje Procesado', value: '48.2 kTon', trend: '+2.8%', isPositive: true },
     { title: 'Disponibilidad Planta', value: '94.5 %', trend: '+1.2%', isPositive: true },
     { title: 'Bombas en Servicio', value: '5 / 6', trend: 'Normal', isPositive: true },
-    { title: 'Personal en Turno', value: '24 Oper.', trend: 'Turno A', isPositive: true }
+    { title: 'Personal en Turno', value: '32 Oper.', trend: 'G1-G4 Activas', isPositive: true }
   ];
 
   operationGauges = [
@@ -341,11 +341,12 @@ export class DashboardComponent implements OnInit {
   ];
 
   shiftDistribution = {
-    heroPercentage: 52,
+    heroPercentage: 25,
     slices: [
-      { name: 'Guardia A (Día)', percentage: 52, color: '#031795' },
-      { name: 'Guardia B (Noche)', percentage: 33, color: '#2563eb' },
-      { name: 'Guardia C (Relevo)', percentage: 15, color: '#60a5fa' }
+      { name: 'Guardia 1 (G1)', percentage: 25, color: '#031795' },
+      { name: 'Guardia 2 (G2)', percentage: 25, color: '#1d4ed8' },
+      { name: 'Guardia 3 (G3)', percentage: 25, color: '#3b82f6' },
+      { name: 'Guardia 4 (G4)', percentage: 25, color: '#93c5fd' }
     ]
   };
 

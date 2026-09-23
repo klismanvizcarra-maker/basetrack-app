@@ -1,5 +1,5 @@
 export type UserRole = 'ADMIN' | 'SUPERVISOR' | 'OPERATOR';
-export type ShiftCode = 'GUARDIA_A' | 'GUARDIA_B' | 'GUARDIA_C';
+export type ShiftCode = 'G1' | 'G2' | 'G3' | 'G4' | 'GUARDIA_A' | 'GUARDIA_B' | 'GUARDIA_C';
 
 export interface User {
   id: string;

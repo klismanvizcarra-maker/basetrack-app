@@ -131,7 +131,7 @@ export function deleteCrewMember(req: AuthenticatedRequest, res: Response) {
 export function getAreaAssignments(req: Request, res: Response) {
   try {
     const shiftDate = (req.query.date as string) || new Date().toISOString().split('T')[0];
-    const shiftCode = (req.query.shift_code as string) || 'GUARDIA_A';
+    const shiftCode = (req.query.shift_code as string) || 'G1';
     const shiftType = (req.query.shift_type as string) || 'DIA';
 
     const query = `
@@ -151,12 +151,18 @@ export function getAreaAssignments(req: Request, res: Response) {
       WHERE a.shift_date = ? AND a.shift_code = ? AND a.shift_type = ?
       ORDER BY
         CASE a.position_key
-          WHEN 'BOMBAS' THEN 1
-          WHEN 'CICLONES' THEN 2
-          WHEN 'DESCARGA' THEN 3
-          WHEN 'MISCELANEOS' THEN 4
-          WHEN 'RELEVO' THEN 5
-          ELSE 6
+          WHEN 'SUPERVISOR' THEN 1
+          WHEN 'BOMBAS' THEN 2
+          WHEN 'CICLONES_1' THEN 3
+          WHEN 'CICLONES_2' THEN 4
+          WHEN 'DISTRIBUIDOR' THEN 5
+          WHEN 'DESCARGA_1' THEN 6
+          WHEN 'DESCARGA_2' THEN 7
+          WHEN 'MISCELANEOS' THEN 8
+          WHEN 'CICLONES' THEN 9
+          WHEN 'DESCARGA' THEN 10
+          WHEN 'RELEVO' THEN 11
+          ELSE 12
         END ASC
     `;
 

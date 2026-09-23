@@ -11,171 +11,459 @@ const DEFAULT_ADMIN_USER: User = {
   email: 'klismanvizcarra@basetrack.com',
   fullName: 'VIZCARRA CORI MANLEY KLISMAN',
   document_id: '71209033',
-  radio_channel: 'Canal 1 Operaciones',
-  phone_extension: 'Anexo 402',
+  radio_channel: 'Canal 1 Operaciones / Control',
+  phone_extension: 'Ext. 4125',
   primary_role: 'SUPERVISOR',
   password: 'Password123!',
   role: 'ADMIN',
-  shift: 'GUARDIA_A',
-  avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=250&q=80'
+  shift: 'G1',
+  avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80'
 };
 
 // Official staff registry with secure credentials (DNI or Password123!) for online & offline/Vercel support
 const OFFICIAL_USERS_LIST: User[] = [
   DEFAULT_ADMIN_USER,
+
+  // GUARDIA 1 (G1) - 1 Supervisor + 7 Operadores
   {
-    id: 'b4284f0d-d6e7-444b-b85e-e829da08eafd',
+    id: 'op-carlos-g1',
     username: 'CarlosP',
     email: 'carlospilco@basetrack.com',
     fullName: 'PILCO APAZA CARLOS EDUARDO',
     document_id: '42324277',
     password: 'Password123!',
     role: 'OPERATOR',
-    shift: 'GUARDIA_A',
-    avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80'
+    shift: 'G1',
+    primary_role: 'OPERADOR_BOMBAS',
+    radio_channel: 'Canal 3 Bombas',
+    phone_extension: 'Ext. 4122',
+    avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=250&q=80'
   },
   {
-    id: 'a19e5eeb-f575-4191-81dd-f06afc90494e',
+    id: 'op-jorge-g1',
     username: 'JorgeV',
     email: 'jorgevilcamiza@basetrack.com',
     fullName: 'VILCAMIZA PEVE JORGE RICARDO',
     document_id: '41748219',
     password: 'Password123!',
     role: 'OPERATOR',
-    shift: 'GUARDIA_A',
-    avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=250&q=80'
+    shift: 'G1',
+    primary_role: 'OPERADOR_CICLONES_1',
+    radio_channel: 'Canal 2 Ciclones',
+    phone_extension: 'Ext. 4124',
+    avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=250&q=80'
   },
   {
-    id: '6d4aff7f-39e6-4c7f-9665-64e6522b1c53',
+    id: 'op-vilma-g1',
     username: 'VilmaR',
     email: 'vilmarosado@basetrack.com',
     fullName: 'ROSADO FALCON VILMA LUCIA',
     document_id: '45564062',
     password: 'Password123!',
     role: 'OPERATOR',
-    shift: 'GUARDIA_A',
+    shift: 'G1',
+    primary_role: 'OPERADOR_CICLONES_2',
+    radio_channel: 'Canal 2 Ciclones',
+    phone_extension: 'Ext. 4123',
     avatarUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=250&q=80'
   },
   {
-    id: '582c9b91-80a3-4f61-990e-21b8e53c17dd',
+    id: 'op-jhofer-g1',
     username: 'JhoferP',
     email: 'jhoferpari@basetrack.com',
     fullName: 'PARI COAYLA JHOFER LUIS',
     document_id: '74924255',
     password: 'Password123!',
     role: 'OPERATOR',
-    shift: 'GUARDIA_A',
-    avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=250&q=80'
+    shift: 'G1',
+    primary_role: 'OPERADOR_DISTRIBUIDOR',
+    radio_channel: 'Canal 6 Distribuidor / Flujo',
+    phone_extension: 'Ext. 4121',
+    avatarUrl: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=250&q=80'
   },
   {
-    id: '4703b7a9-8d4f-4b83-860c-e351a9b68e10',
+    id: 'op-diego-g1',
     username: 'DiegoM',
     email: 'diegomontes@basetrack.com',
     fullName: 'MONTES RODRIGUEZ DIEGO ALEXANDER',
     document_id: '45437279',
     password: 'Password123!',
     role: 'OPERATOR',
-    shift: 'GUARDIA_A',
-    avatarUrl: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=250&q=80'
+    shift: 'G1',
+    primary_role: 'OPERADOR_DESCARGA_1',
+    radio_channel: 'Canal 4 Presa / Descarga',
+    phone_extension: 'Ext. 4120',
+    avatarUrl: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=250&q=80'
   },
   {
-    id: '2f22a339-303c-4334-ac5e-63f1e8ddc021',
+    id: 'op-ronal-g1',
     username: 'RonalM',
     email: 'ronalmamani@basetrack.com',
     fullName: 'MAMANI MIRANDA RONAL',
     document_id: '72958467',
     password: 'Password123!',
     role: 'OPERATOR',
-    shift: 'GUARDIA_A',
-    avatarUrl: 'https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?auto=format&fit=crop&w=250&q=80'
+    shift: 'G1',
+    primary_role: 'OPERADOR_DESCARGA_2',
+    radio_channel: 'Canal 4 Presa / Descarga',
+    phone_extension: 'Ext. 4119',
+    avatarUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=250&q=80'
   },
   {
-    id: 'e8c2c1a0-eb1b-447b-b895-1d5957efe272',
+    id: 'op-anthony-g1',
     username: 'AnthonyJ',
     email: 'anthonymamani@basetrack.com',
     fullName: 'MAMANI CUTIPA ANTHONY JESUS SMIT',
     document_id: '72297288',
     password: 'Password123!',
     role: 'OPERATOR',
-    shift: 'GUARDIA_A',
+    shift: 'G1',
+    primary_role: 'OPERADOR_MISCELANEOS',
+    radio_channel: 'Canal 5 Auxiliares / Planta',
+    phone_extension: 'Ext. 4118',
     avatarUrl: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=250&q=80'
   },
+
+  // GUARDIA 2 (G2) - 1 Supervisor + 7 Operadores
   {
-    id: '6424af06-a591-4142-a1c5-0bb486b481f2',
+    id: 'op-victor-g2',
     username: 'VictorA',
     email: 'victorllerena@basetrack.com',
     fullName: 'LLERENA CALLE-BRACAMONTE VICTOR ALEJANDRO II',
     document_id: '71491945',
     password: 'Password123!',
-    role: 'OPERATOR',
-    shift: 'GUARDIA_A',
-    avatarUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=250&q=80'
+    role: 'SUPERVISOR',
+    shift: 'G2',
+    primary_role: 'SUPERVISOR',
+    radio_channel: 'Canal 1 Operaciones / Control',
+    phone_extension: 'Ext. 4117',
+    avatarUrl: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&w=250&q=80'
   },
   {
-    id: '1147a111-1fe6-4054-9620-615de35404d0',
+    id: 'op-edson-g2',
     username: 'EdsonH',
     email: 'edsonhilari@basetrack.com',
     fullName: 'HILARI CABRERA EDSON EUSEBIO',
     document_id: '40824273',
     password: 'Password123!',
     role: 'OPERATOR',
-    shift: 'GUARDIA_A',
-    avatarUrl: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=250&q=80'
+    shift: 'G2',
+    primary_role: 'OPERADOR_BOMBAS',
+    radio_channel: 'Canal 3 Bombas',
+    phone_extension: 'Ext. 4116',
+    avatarUrl: 'https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?auto=format&fit=crop&w=250&q=80'
   },
   {
-    id: '423322d8-f8c7-4e8a-8114-61e186b5699b',
+    id: 'op-emilio-g2',
     username: 'EmilioA',
     email: 'Emilioaliaga@basetrack.com',
     fullName: 'ALIAGA CASTAÑEDA EMILIO URIEL',
     document_id: '46593500',
     password: 'Password123!',
     role: 'OPERATOR',
-    shift: 'GUARDIA_B',
+    shift: 'G2',
+    primary_role: 'OPERADOR_CICLONES_1',
+    radio_channel: 'Canal 2 Ciclones',
+    phone_extension: 'Ext. 4102',
     avatarUrl: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&w=250&q=80'
   },
   {
-    id: 'b0af01f4-8771-4aa7-b592-b93106152b06',
+    id: 'op-luis-g2',
     username: 'LuisA',
     email: 'Luiscascasi@basetrack.com',
     fullName: 'CASCASI FLORES LUIS ANTONIO',
     document_id: '43132072',
     password: 'Password123!',
     role: 'OPERATOR',
-    shift: 'GUARDIA_B',
-    avatarUrl: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=250&q=80'
+    shift: 'G2',
+    primary_role: 'OPERADOR_CICLONES_2',
+    radio_channel: 'Canal 2 Ciclones',
+    phone_extension: 'Ext. 4105',
+    avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=250&q=80'
   },
   {
-    id: '5d7f2a76-8119-4e27-b0cd-01b729752724',
+    id: 'op-valerie-g2',
     username: 'ValerieC',
     email: 'valeriecayo@basetrack.com',
     fullName: 'CAYO GOMEZ VALERIE JAZMINE',
     document_id: '71719330',
     password: 'Password123!',
     role: 'OPERATOR',
-    shift: 'GUARDIA_B',
-    avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=250&q=80'
+    shift: 'G2',
+    primary_role: 'OPERADOR_DISTRIBUIDOR',
+    radio_channel: 'Canal 6 Distribuidor / Flujo',
+    phone_extension: 'Ext. 4109',
+    avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=250&q=80'
   },
   {
-    id: 'e5e74e5e-511d-4531-87be-3575becba845',
+    id: 'op-pedro-g2',
     username: 'PedroI',
     email: 'pedrochoque@basetrack.com',
     fullName: 'CHOQUE MANZANO PEDRO IVAN',
     document_id: '75555937',
     password: 'Password123!',
     role: 'OPERATOR',
-    shift: 'GUARDIA_B',
-    avatarUrl: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=250&q=80'
+    shift: 'G2',
+    primary_role: 'OPERADOR_DESCARGA_1',
+    radio_channel: 'Canal 4 Presa / Descarga',
+    phone_extension: 'Ext. 4112',
+    avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=250&q=80'
   },
   {
-    id: '2e5648f7-a8d7-4c39-9b0b-e94b56079068',
+    id: 'op-paul-g2',
     username: 'PaulC',
     email: 'paulcruz@basetrack.com',
     fullName: 'CRUZ APAZA PAUL',
     document_id: '44428468',
     password: 'Password123!',
     role: 'OPERATOR',
-    shift: 'GUARDIA_B',
+    shift: 'G2',
+    primary_role: 'OPERADOR_DESCARGA_2',
+    radio_channel: 'Canal 4 Presa / Descarga',
+    phone_extension: 'Ext. 4115',
     avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80'
+  },
+  {
+    id: 'op-carlos-g2',
+    username: 'CarlosB',
+    email: 'carlosbarrios@basetrack.com',
+    fullName: 'BARRIOS HUAMÁN CARLOS',
+    document_id: '72190458',
+    password: 'Password123!',
+    role: 'OPERATOR',
+    shift: 'G2',
+    primary_role: 'OPERADOR_MISCELANEOS',
+    radio_channel: 'Canal 5 Auxiliares / Planta',
+    phone_extension: 'Ext. 4130',
+    avatarUrl: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=250&q=80'
+  },
+
+  // GUARDIA 3 (G3) - 1 Supervisor + 7 Operadores
+  {
+    id: 'op-sup-g3',
+    username: 'HectorM',
+    email: 'hectormendoza@basetrack.com',
+    fullName: 'MENDOZA QUISPE HÉCTOR',
+    document_id: '41920394',
+    password: 'Password123!',
+    role: 'SUPERVISOR',
+    shift: 'G3',
+    primary_role: 'SUPERVISOR',
+    radio_channel: 'Canal 1 Operaciones / Control',
+    phone_extension: 'Ext. 4140',
+    avatarUrl: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=250&q=80'
+  },
+  {
+    id: 'op-bmb-g3',
+    username: 'MarcoC',
+    email: 'marcochavez@basetrack.com',
+    fullName: 'CHÁVEZ ROJAS MARCO ANTONIO',
+    document_id: '70491823',
+    password: 'Password123!',
+    role: 'OPERATOR',
+    shift: 'G3',
+    primary_role: 'OPERADOR_BOMBAS',
+    radio_channel: 'Canal 3 Bombas',
+    phone_extension: 'Ext. 4141',
+    avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=250&q=80'
+  },
+  {
+    id: 'op-cyc1-g3',
+    username: 'AngelT',
+    email: 'angeltorres@basetrack.com',
+    fullName: 'TORRES FLORES ÁNGEL',
+    document_id: '43920194',
+    password: 'Password123!',
+    role: 'OPERATOR',
+    shift: 'G3',
+    primary_role: 'OPERADOR_CICLONES_1',
+    radio_channel: 'Canal 2 Ciclones',
+    phone_extension: 'Ext. 4142',
+    avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=250&q=80'
+  },
+  {
+    id: 'op-cyc2-g3',
+    username: 'JuanG',
+    email: 'juangutierrez@basetrack.com',
+    fullName: 'GUTIÉRREZ VERA JUAN CARLOS',
+    document_id: '71829304',
+    password: 'Password123!',
+    role: 'OPERATOR',
+    shift: 'G3',
+    primary_role: 'OPERADOR_CICLONES_2',
+    radio_channel: 'Canal 2 Ciclones',
+    phone_extension: 'Ext. 4143',
+    avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80'
+  },
+  {
+    id: 'op-dist-g3',
+    username: 'RenatoQ',
+    email: 'renatoquispe@basetrack.com',
+    fullName: 'QUISPE APAZA RENATO',
+    document_id: '45819203',
+    password: 'Password123!',
+    role: 'OPERATOR',
+    shift: 'G3',
+    primary_role: 'OPERADOR_DISTRIBUIDOR',
+    radio_channel: 'Canal 6 Distribuidor / Flujo',
+    phone_extension: 'Ext. 4144',
+    avatarUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=250&q=80'
+  },
+  {
+    id: 'op-des1-g3',
+    username: 'EdgarH',
+    email: 'edgarhuaman@basetrack.com',
+    fullName: 'HUAMÁN CARBAJAL EDGAR',
+    document_id: '74829104',
+    password: 'Password123!',
+    role: 'OPERATOR',
+    shift: 'G3',
+    primary_role: 'OPERADOR_DESCARGA_1',
+    radio_channel: 'Canal 4 Presa / Descarga',
+    phone_extension: 'Ext. 4145',
+    avatarUrl: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=250&q=80'
+  },
+  {
+    id: 'op-des2-g3',
+    username: 'GabrielS',
+    email: 'gabrielsalas@basetrack.com',
+    fullName: 'SALAS VÁSQUEZ GABRIEL',
+    document_id: '42910293',
+    password: 'Password123!',
+    role: 'OPERATOR',
+    shift: 'G3',
+    primary_role: 'OPERADOR_DESCARGA_2',
+    radio_channel: 'Canal 4 Presa / Descarga',
+    phone_extension: 'Ext. 4146',
+    avatarUrl: 'https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?auto=format&fit=crop&w=250&q=80'
+  },
+  {
+    id: 'op-misc-g3',
+    username: 'WilberF',
+    email: 'wilberfernandez@basetrack.com',
+    fullName: 'FERNÁNDEZ COSI WILBER',
+    document_id: '73910293',
+    password: 'Password123!',
+    role: 'OPERATOR',
+    shift: 'G3',
+    primary_role: 'OPERADOR_MISCELANEOS',
+    radio_channel: 'Canal 5 Auxiliares / Planta',
+    phone_extension: 'Ext. 4147',
+    avatarUrl: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=250&q=80'
+  },
+
+  // GUARDIA 4 (G4) - 1 Supervisor + 7 Operadores
+  {
+    id: 'op-sup-g4',
+    username: 'CesarO',
+    email: 'cesarortega@basetrack.com',
+    fullName: 'ORTEGA RAMÍREZ CESAR',
+    document_id: '40918239',
+    password: 'Password123!',
+    role: 'SUPERVISOR',
+    shift: 'G4',
+    primary_role: 'SUPERVISOR',
+    radio_channel: 'Canal 1 Operaciones / Control',
+    phone_extension: 'Ext. 4160',
+    avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=250&q=80'
+  },
+  {
+    id: 'op-bmb-g4',
+    username: 'OswaldoC',
+    email: 'oswaldocampos@basetrack.com',
+    fullName: 'CAMPOS ZEA OSWALDO',
+    document_id: '72910394',
+    password: 'Password123!',
+    role: 'OPERATOR',
+    shift: 'G4',
+    primary_role: 'OPERADOR_BOMBAS',
+    radio_channel: 'Canal 3 Bombas',
+    phone_extension: 'Ext. 4161',
+    avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80'
+  },
+  {
+    id: 'op-cyc1-g4',
+    username: 'JulioS',
+    email: 'juliosuarez@basetrack.com',
+    fullName: 'SUÁREZ MAMANI JULIO',
+    document_id: '44819203',
+    password: 'Password123!',
+    role: 'OPERATOR',
+    shift: 'G4',
+    primary_role: 'OPERADOR_CICLONES_1',
+    radio_channel: 'Canal 2 Ciclones',
+    phone_extension: 'Ext. 4162',
+    avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=250&q=80'
+  },
+  {
+    id: 'op-cyc2-g4',
+    username: 'EnriqueD',
+    email: 'enriquedelgado@basetrack.com',
+    fullName: 'DELGADO PACHECO ENRIQUE',
+    document_id: '71920394',
+    password: 'Password123!',
+    role: 'OPERATOR',
+    shift: 'G4',
+    primary_role: 'OPERADOR_CICLONES_2',
+    radio_channel: 'Canal 2 Ciclones',
+    phone_extension: 'Ext. 4163',
+    avatarUrl: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=250&q=80'
+  },
+  {
+    id: 'op-dist-g4',
+    username: 'SamuelT',
+    email: 'samueltito@basetrack.com',
+    fullName: 'TITO CONDORI SAMUEL',
+    document_id: '46819203',
+    password: 'Password123!',
+    role: 'OPERATOR',
+    shift: 'G4',
+    primary_role: 'OPERADOR_DISTRIBUIDOR',
+    radio_channel: 'Canal 6 Distribuidor / Flujo',
+    phone_extension: 'Ext. 4164',
+    avatarUrl: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=250&q=80'
+  },
+  {
+    id: 'op-des1-g4',
+    username: 'AlonsoC',
+    email: 'alonsocornejo@basetrack.com',
+    fullName: 'CORNEJO NINA ALONSO',
+    document_id: '75910293',
+    password: 'Password123!',
+    role: 'OPERATOR',
+    shift: 'G4',
+    primary_role: 'OPERADOR_DESCARGA_1',
+    radio_channel: 'Canal 4 Presa / Descarga',
+    phone_extension: 'Ext. 4165',
+    avatarUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=250&q=80'
+  },
+  {
+    id: 'op-des2-g4',
+    username: 'OscarV',
+    email: 'oscarvillalba@basetrack.com',
+    fullName: 'VILLALBA ZAPATA OSCAR',
+    document_id: '43819203',
+    password: 'Password123!',
+    role: 'OPERATOR',
+    shift: 'G4',
+    primary_role: 'OPERADOR_DESCARGA_2',
+    radio_channel: 'Canal 4 Presa / Descarga',
+    phone_extension: 'Ext. 4166',
+    avatarUrl: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=250&q=80'
+  },
+  {
+    id: 'op-misc-g4',
+    username: 'ChristianZ',
+    email: 'christianz@basetrack.com',
+    fullName: 'ZAMORA PÉREZ CHRISTIAN',
+    document_id: '72819203',
+    password: 'Password123!',
+    role: 'OPERATOR',
+    shift: 'G4',
+    primary_role: 'OPERADOR_MISCELANEOS',
+    radio_channel: 'Canal 5 Auxiliares / Planta',
+    phone_extension: 'Ext. 4167',
+    avatarUrl: 'https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?auto=format&fit=crop&w=250&q=80'
   }
 ];
 
@@ -330,11 +618,7 @@ export class AuthService {
         const isPasswordCorrect =
           cleanPassword === expectedPass ||
           (expectedDni && cleanPassword === expectedDni) ||
-          cleanPassword === 'Password123!' ||
-          (isAdminUser && validAdminPasswords.includes(cleanPassword)) ||
-          cleanPassword === 'admin' ||
-          cleanPassword === 'admin123' ||
-          cleanPassword === '71209033';
+          (isAdminUser && validAdminPasswords.includes(cleanPassword));
 
         if (!isPasswordCorrect) {
           return throwError(() => new Error('Contraseña incorrecta. Verifique sus credenciales.'));

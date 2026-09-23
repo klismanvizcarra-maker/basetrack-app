@@ -353,6 +353,48 @@ test('13. PUT /api/auth/profile should update operational profile fields and syn
   assert.strictEqual(meJson.user.primary_role, 'SUPERVISOR');
 });
 
+test('14. Security: Login should reject unauthorized bypass attempts on standard operators', async () => {
+  const badLogin = await fetch(`${baseUrl}/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username: 'CarlosP', password: 'WrongPassword999!' })
+  });
+
+  assert.strictEqual(badLogin.status, 401);
+  const badJson = await badLogin.json() as any;
+  assert.strictEqual(badJson.success, false);
+});
+
+test('15. Security: changePassword must strictly require valid currentPassword', async () => {
+  // Attempt change without currentPassword
+  const resNoCurrent = await fetch(`${baseUrl}/auth/change-password`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${authToken}`
+    },
+    body: JSON.stringify({ newPassword: 'NewSecurePass2026!' })
+  });
+
+  assert.strictEqual(resNoCurrent.status, 400);
+  const jsonNoCurrent = await resNoCurrent.json() as any;
+  assert.strictEqual(jsonNoCurrent.success, false);
+
+  // Attempt change with wrong currentPassword
+  const resWrongCurrent = await fetch(`${baseUrl}/auth/change-password`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${authToken}`
+    },
+    body: JSON.stringify({ currentPassword: 'WrongOldPassword!', newPassword: 'NewSecurePass2026!' })
+  });
+
+  assert.strictEqual(resWrongCurrent.status, 400);
+  const jsonWrongCurrent = await resWrongCurrent.json() as any;
+  assert.strictEqual(jsonWrongCurrent.success, false);
+});
+
 
 
 

@@ -26,7 +26,7 @@ export function createCycloneReport(req: AuthenticatedRequest, res: Response) {
     }
 
     const id = crypto.randomUUID();
-    const shiftCode = req.user?.shift || req.body.shift_code || 'GUARDIA_A';
+    const shiftCode = req.user?.shift || req.body.shift_code || 'G1';
 
     db.prepare(`
       INSERT INTO cyclone_reports (
@@ -139,7 +139,7 @@ export function createStationSample(req: AuthenticatedRequest, res: Response) {
     }
 
     const id = crypto.randomUUID();
-    const finalShift = req.user?.shift || shift_code || 'GUARDIA_A';
+    const finalShift = req.user?.shift || shift_code || 'G1';
     const finalDate = date || new Date().toISOString().split('T')[0];
 
     db.prepare(`

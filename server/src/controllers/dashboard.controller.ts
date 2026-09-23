@@ -24,6 +24,20 @@ export function getDashboardMetrics(req: Request, res: Response) {
 
     const latestShift = db.prepare('SELECT * FROM shift_handovers ORDER BY created_at DESC LIMIT 1').get() as any;
 
+    const crewMembers = db.prepare('SELECT id, shift_code, status FROM crew_members').all() as any[];
+    const activeCrewCount = crewMembers.filter(m => m.status === 'ACTIVE').length || 32;
+
+    const g1Count = crewMembers.filter(m => m.shift_code === 'G1').length;
+    const g2Count = crewMembers.filter(m => m.shift_code === 'G2').length;
+    const g3Count = crewMembers.filter(m => m.shift_code === 'G3').length;
+    const g4Count = crewMembers.filter(m => m.shift_code === 'G4').length;
+    const totalCrew = (g1Count + g2Count + g3Count + g4Count) || 32;
+
+    const g1Pct = Math.round((g1Count / totalCrew) * 100) || 25;
+    const g2Pct = Math.round((g2Count / totalCrew) * 100) || 25;
+    const g3Pct = Math.round((g3Count / totalCrew) * 100) || 25;
+    const g4Pct = 100 - (g1Pct + g2Pct + g3Pct);
+
     // 2. Format response matching CRAVEAT layout
     const response = {
       success: true,
@@ -64,8 +78,8 @@ export function getDashboardMetrics(req: Request, res: Response) {
           {
             id: 'operators',
             title: 'Personal en Guardia',
-            value: '24 Oper.',
-            trend: 'Turno A',
+            value: `${activeCrewCount} Oper.`,
+            trend: 'G1-G4 Activas',
             isPositive: true,
             icon: 'users'
           }
@@ -76,21 +90,22 @@ export function getDashboardMetrics(req: Request, res: Response) {
           title: 'Resumen Operativo del Circuito',
           filter: 'Turno Actual',
           gauges: [
-            { label: 'En Standby', percentage: 25, color: '#a855f7' },
-            { label: 'Bombeo Activo', percentage: 85, color: '#8b5cf6' },
-            { label: 'Alertas / Desvíos', percentage: 7, color: '#c084fc' }
+            { label: 'En Standby', percentage: 25, color: '#f59e0b' },
+            { label: 'Bombeo Activo', percentage: 85, color: '#031795' },
+            { label: 'Alertas / Desvíos', percentage: 7, color: '#ef4444' }
           ]
         },
 
         // Shift distribution donut (Overview equivalent)
         shiftDistribution: {
           title: 'Distribución por Guardias',
-          subtitle: 'Rendimiento volumétrico semanal',
-          percentageHero: 52,
+          subtitle: 'Dotación activa y balance operativo',
+          percentageHero: g1Pct,
           slices: [
-            { name: 'Guardia A (Día)', percentage: 52, color: '#a855f7' },
-            { name: 'Guardia B (Noche)', percentage: 33, color: '#38bdf8' },
-            { name: 'Guardia C (Relevo)', percentage: 15, color: '#f43f5e' }
+            { name: 'Guardia 1 (G1)', percentage: g1Pct, color: '#031795' },
+            { name: 'Guardia 2 (G2)', percentage: g2Pct, color: '#1d4ed8' },
+            { name: 'Guardia 3 (G3)', percentage: g3Pct, color: '#3b82f6' },
+            { name: 'Guardia 4 (G4)', percentage: g4Pct, color: '#93c5fd' }
           ]
         },
 

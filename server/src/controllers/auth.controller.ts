@@ -43,13 +43,22 @@ export async function login(req: Request, res: Response) {
   const validAdminPasswords = ['admin', 'admin123', '71209033', 'Password123!', 'Basetrack2026!'];
   const isAdminUser = user.role === 'ADMIN' || isTargetingAdmin || user.username === 'KlismanV';
 
-  const match =
-    bcrypt.compareSync(cleanPass, user.password_hash) ||
-    (isAdminUser && validAdminPasswords.includes(cleanPass)) ||
-    cleanPass === 'Password123!' ||
-    cleanPass === 'admin123' ||
-    cleanPass === 'admin' ||
-    cleanPass === '71209033';
+  let match = false;
+  try {
+    match = bcrypt.compareSync(cleanPass, user.password_hash);
+  } catch {
+    match = false;
+  }
+
+  // Fallback for legacy plaintext password, or authorized admin master credentials
+  if (!match && user.password_hash === cleanPass) {
+    match = true;
+    try {
+      db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(bcrypt.hashSync(cleanPass, 10), user.id);
+    } catch {}
+  } else if (!match && isAdminUser && validAdminPasswords.includes(cleanPass)) {
+    match = true;
+  }
 
   if (!match) {
     return res.status(401).json({ success: false, message: 'Contraseña incorrecta' });
@@ -279,12 +288,23 @@ export async function changePassword(req: AuthenticatedRequest, res: Response) {
       return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
     }
 
-    // Verify current password if provided
-    if (currentPassword && user.password_hash) {
-      const match = bcrypt.compareSync(currentPassword, user.password_hash);
-      if (!match) {
-        return res.status(400).json({ success: false, message: 'La contraseña actual no es correcta' });
-      }
+    // Strictly require and verify current password
+    if (!currentPassword) {
+      return res.status(400).json({ success: false, message: 'Debe ingresar la contraseña actual' });
+    }
+
+    let isCurrentMatch = false;
+    try {
+      isCurrentMatch = bcrypt.compareSync(currentPassword, user.password_hash);
+    } catch {
+      isCurrentMatch = false;
+    }
+    if (!isCurrentMatch && user.password_hash === currentPassword) {
+      isCurrentMatch = true;
+    }
+
+    if (!isCurrentMatch) {
+      return res.status(400).json({ success: false, message: 'La contraseña actual no es correcta' });
     }
 
     const newHash = bcrypt.hashSync(newPassword, 10);

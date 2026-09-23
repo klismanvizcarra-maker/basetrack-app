@@ -527,15 +527,22 @@ export class MaintenanceComponent implements OnInit {
     this.isCreateModalOpen = true;
   }
 
-  onFileSelected(event: any): void {
+  async onFileSelected(event: any): Promise<void> {
     const file = event.target.files[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = () => {
-        this.previewPhoto = reader.result as string;
-        this.newTicket.photo_url = this.previewPhoto;
-      };
-      reader.readAsDataURL(file);
+      try {
+        const compressedBase64 = await this.compressImage(file, 1280, 1280, 0.78);
+        this.previewPhoto = compressedBase64;
+        this.newTicket.photo_url = compressedBase64;
+      } catch (err) {
+        console.warn('[Maintenance] Error al comprimir imagen, usando fallback directo:', err);
+        const reader = new FileReader();
+        reader.onload = () => {
+          this.previewPhoto = reader.result as string;
+          this.newTicket.photo_url = this.previewPhoto;
+        };
+        reader.readAsDataURL(file);
+      }
     }
   }
 
@@ -597,5 +604,47 @@ export class MaintenanceComponent implements OnInit {
   openPhotoPreview(t: MaintenanceRequest): void {
     this.selectedTicket = t;
     this.isPhotoZoomOpen = true;
+  }
+
+  private compressImage(file: File, maxWidth = 1280, maxHeight = 1280, quality = 0.78): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event: any) => {
+        const img = new Image();
+        img.src = event.target.result;
+        img.onload = () => {
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > maxWidth) {
+              height = Math.round((height * maxWidth) / width);
+              width = maxWidth;
+            }
+          } else {
+            if (height > maxHeight) {
+              width = Math.round((width * maxHeight) / height);
+              height = maxHeight;
+            }
+          }
+
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            resolve(event.target.result);
+            return;
+          }
+
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.onerror = (error) => reject(error);
+      };
+      reader.onerror = (error) => reject(error);
+    });
   }
 }

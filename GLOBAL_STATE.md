@@ -94,6 +94,7 @@
 | 2026-09-19 | Multi-Agent Team | Orchestrator | `TASK-027` | Auditoría de fallas y robustez: API dinámico, CORS multi-IP para red de planta y manejo resiliente de colas offline |
 | 2026-09-19 | Frontend Agent | Orchestrator | `TASK-028` | Despliegue global del isotipo oficial BASETRACK (piocha, montaña y flecha naranja) en favicon, PWA, sidebar, login, modal de instalación y encabezados de reportes PDF |
 | 2026-09-20 | Multi-Agent Team | Orchestrator | `TASK-029` | Reestructuración operacional completa a 4 guardias (G1-G4) de 8 personas cada una (1 Supervisor + 7 Operadores específicos: Bombas, Ciclones 1, Ciclones 2, Distribuidor, Descarga 1, Descarga 2, Misceláneos), 32 trabajadores oficiales en plantilla, migraciones SQLite v3 automáticas y compatibilidad total en Cuadrilla, Admin, Relevos, Perfil y Reportes PDF |
+| 2026-09-23 | QA, Backend & Frontend | Orchestrator | `TASK-030` | Auditoría integral de seguridad y resiliencia lógica: eliminación de bypass de clave en login/offline auth, verificación estricta de contraseña actual en changePassword, saneamiento de fallbacks de guardia y fecha a G1 e ISO dinámico, unificación de telemetría viva para G1-G4 (32 operadores) en Dashboard, compresión cliente Canvas de fotos de mantenimiento, 15/15 tests automatizados y build de producción exitoso |
 
 ---
 

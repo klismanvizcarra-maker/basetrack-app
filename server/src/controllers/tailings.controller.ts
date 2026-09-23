@@ -26,7 +26,7 @@ export function createTailingsReport(req: AuthenticatedRequest, res: Response) {
 
     const id = crypto.randomUUID();
     const operatorName = req.user?.fullName || req.body.operator_name || 'Operador de Presa';
-    const shiftCode = req.user?.shift || req.body.shift_code || 'GUARDIA_A';
+    const shiftCode = req.user?.shift || req.body.shift_code || 'G1';
 
     db.prepare(`
       INSERT INTO tailings_reports (

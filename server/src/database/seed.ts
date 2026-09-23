@@ -27,7 +27,28 @@ export function seed() {
     { username: 'LuisA', fullName: 'CASCASI FLORES LUIS ANTONIO', dni: '43132072', role: 'OPERATOR', shift: 'G2', email: 'Luiscascasi@basetrack.com', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=250&q=80' },
     { username: 'ValerieC', fullName: 'CAYO GOMEZ VALERIE JAZMINE', dni: '71719330', role: 'OPERATOR', shift: 'G2', email: 'valeriecayo@basetrack.com', avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=250&q=80' },
     { username: 'PedroI', fullName: 'CHOQUE MANZANO PEDRO IVAN', dni: '75555937', role: 'OPERATOR', shift: 'G2', email: 'pedrochoque@basetrack.com', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=250&q=80' },
-    { username: 'PaulC', fullName: 'CRUZ APAZA PAUL', dni: '44428468', role: 'OPERATOR', shift: 'G2', email: 'paulcruz@basetrack.com', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80' }
+    { username: 'PaulC', fullName: 'CRUZ APAZA PAUL', dni: '44428468', role: 'OPERATOR', shift: 'G2', email: 'paulcruz@basetrack.com', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80' },
+    { username: 'CarlosB', fullName: 'BARRIOS HUAMÁN CARLOS', dni: '72190458', role: 'OPERATOR', shift: 'G2', email: 'carlosbarrios@basetrack.com', avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=250&q=80' },
+
+    // GUARDIA 3 (G3) - 1 Supervisor + 7 Operadores
+    { username: 'HectorM', fullName: 'MENDOZA QUISPE HÉCTOR', dni: '41920394', role: 'SUPERVISOR', shift: 'G3', email: 'hectormendoza@basetrack.com', avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=250&q=80' },
+    { username: 'MarcoC', fullName: 'CHÁVEZ ROJAS MARCO ANTONIO', dni: '70491823', role: 'OPERATOR', shift: 'G3', email: 'marcochavez@basetrack.com', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=250&q=80' },
+    { username: 'AngelT', fullName: 'TORRES FLORES ÁNGEL', dni: '43920194', role: 'OPERATOR', shift: 'G3', email: 'angeltorres@basetrack.com', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=250&q=80' },
+    { username: 'JuanG', fullName: 'GUTIÉRREZ VERA JUAN CARLOS', dni: '71829304', role: 'OPERATOR', shift: 'G3', email: 'juangutierrez@basetrack.com', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80' },
+    { username: 'RenatoQ', fullName: 'QUISPE APAZA RENATO', dni: '45819203', role: 'OPERATOR', shift: 'G3', email: 'renatoquispe@basetrack.com', avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=250&q=80' },
+    { username: 'EdgarH', fullName: 'HUAMÁN CARBAJAL EDGAR', dni: '74829104', role: 'OPERATOR', shift: 'G3', email: 'edgarhuaman@basetrack.com', avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=250&q=80' },
+    { username: 'GabrielS', fullName: 'SALAS VÁSQUEZ GABRIEL', dni: '42910293', role: 'OPERATOR', shift: 'G3', email: 'gabrielsalas@basetrack.com', avatar: 'https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?auto=format&fit=crop&w=250&q=80' },
+    { username: 'WilberF', fullName: 'FERNÁNDEZ COSI WILBER', dni: '73910293', role: 'OPERATOR', shift: 'G3', email: 'wilberfernandez@basetrack.com', avatar: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=250&q=80' },
+
+    // GUARDIA 4 (G4) - 1 Supervisor + 7 Operadores
+    { username: 'CesarO', fullName: 'ORTEGA RAMÍREZ CESAR', dni: '40918239', role: 'SUPERVISOR', shift: 'G4', email: 'cesarortega@basetrack.com', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=250&q=80' },
+    { username: 'OswaldoC', fullName: 'CAMPOS ZEA OSWALDO', dni: '72910394', role: 'OPERATOR', shift: 'G4', email: 'oswaldocampos@basetrack.com', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80' },
+    { username: 'JulioS', fullName: 'SUÁREZ MAMANI JULIO', dni: '44819203', role: 'OPERATOR', shift: 'G4', email: 'juliosuarez@basetrack.com', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=250&q=80' },
+    { username: 'EnriqueD', fullName: 'DELGADO PACHECO ENRIQUE', dni: '71920394', role: 'OPERATOR', shift: 'G4', email: 'enriquedelgado@basetrack.com', avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=250&q=80' },
+    { username: 'SamuelT', fullName: 'TITO CONDORI SAMUEL', dni: '46819203', role: 'OPERATOR', shift: 'G4', email: 'samueltito@basetrack.com', avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=250&q=80' },
+    { username: 'AlonsoC', fullName: 'CORNEJO NINA ALONSO', dni: '75910293', role: 'OPERATOR', shift: 'G4', email: 'alonsocornejo@basetrack.com', avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=250&q=80' },
+    { username: 'OscarV', fullName: 'VILLALBA ZAPATA OSCAR', dni: '43819203', role: 'OPERATOR', shift: 'G4', email: 'oscarvillalba@basetrack.com', avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=250&q=80' },
+    { username: 'ChristianZ', fullName: 'ZAMORA PÉREZ CHRISTIAN', dni: '72819203', role: 'OPERATOR', shift: 'G4', email: 'christianz@basetrack.com', avatar: 'https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?auto=format&fit=crop&w=250&q=80' }
   ];
 
   for (const u of staffUsers) {

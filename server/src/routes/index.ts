@@ -41,6 +41,7 @@ apiRouter.post('/auth/register', register);
 apiRouter.get('/auth/me', authenticateToken, getMe);
 apiRouter.put('/auth/profile', authenticateToken, updateProfile);
 apiRouter.put('/auth/change-password', authenticateToken, changePassword);
+apiRouter.post('/auth/change-password', authenticateToken, changePassword);
 
 // 3. Dashboard Routes
 apiRouter.get('/dashboard/metrics', getDashboardMetrics);
