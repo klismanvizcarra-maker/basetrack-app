@@ -773,7 +773,7 @@ export class PumpReportPdfComponent implements OnInit {
 
   copyExecutiveSummary(): void {
     const summary = `📋 *BASETRACK - REPORTE OFICIAL DE SALA DE BOMBAS (1 HOJA)*
-📅 Fecha: ${this.todayDate} | Guardia: ${this.sheet?.shift_code || 'GUARDIA_A'}
+📅 Fecha: ${this.todayDate} | Guardia: ${this.sheet?.shift_code || 'G1'}
 👤 Operador: ${this.sheet?.operator_name || 'VIZCARRA CORI MANLEY KLISMAN'}
 🌊 Bombas Operando: ${this.operatingCount} de ${this.totalPumpsCount}
 💧 Nivel Sentina: ${this.sheet?.main_indicators?.nivel_sentina || '45%'} | Bombeo Intermedia: ${this.sheet?.main_indicators?.bombeo_turno_intermedia || '1,850 m³'}

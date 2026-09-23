@@ -129,9 +129,10 @@ export interface GeneralAverages {
               <label>Turno:</label>
               <select [(ngModel)]="selectedShift" (change)="filterSamples()">
                 <option value="ALL">Todos los turnos</option>
-                <option value="GUARDIA_A">Guardia A (Noche)</option>
-                <option value="GUARDIA_B">Guardia B (Día)</option>
-                <option value="GUARDIA_C">Guardia C</option>
+                <option value="G1">Guardia 1 (G1)</option>
+                <option value="G2">Guardia 2 (G2)</option>
+                <option value="G3">Guardia 3 (G3)</option>
+                <option value="G4">Guardia 4 (G4)</option>
               </select>
             </div>
             <div class="filter-item">
@@ -400,9 +401,10 @@ export interface GeneralAverages {
             <div class="form-group">
               <label>Guardia / Turno</label>
               <select [(ngModel)]="newSample.shift_code" name="shift_code">
-                <option value="GUARDIA_A">Guardia A (Noche)</option>
-                <option value="GUARDIA_B">Guardia B (Día)</option>
-                <option value="GUARDIA_C">Guardia C</option>
+                <option value="G1">Guardia 1 (G1)</option>
+                <option value="G2">Guardia 2 (G2)</option>
+                <option value="G3">Guardia 3 (G3)</option>
+                <option value="G4">Guardia 4 (G4)</option>
               </select>
             </div>
             <div class="form-group">
@@ -1782,7 +1784,7 @@ export class CyclonesComponent implements OnInit {
     station: '2DA ESTACIÓN CICLONES',
     sample_time: '20:00',
     battery_tag: 'CY3',
-    shift_code: 'GUARDIA_A',
+    shift_code: 'G1',
     solids_feed: 45.30,
     solids_of: 28.60,
     solids_uf: 69.40,
@@ -1833,31 +1835,31 @@ export class CyclonesComponent implements OnInit {
   useFallbackData(): void {
     const today = new Date().toISOString().split('T')[0];
 
-    // Datos completos para 2DA ESTACION (Guardia A noche y Guardia B día) y 1RA ESTACION
+    // Datos completos para 2DA ESTACION (G1 noche y G2 día) y 1RA ESTACION
     this.rawStationSamples = [
-      // 2DA ESTACION - GUARDIA A (Valores exactos de la planilla metalúrgica)
-      { id: 's-1', station: '2DA ESTACIÓN CICLONES', sample_time: '20:00', battery_tag: 'CY3', solids_feed: 45.30, solids_of: 28.60, solids_uf: 69.40, mesh200_feed: 54.60, mesh200_of: 22.40, mesh200_uf: 23.40, shift_code: 'GUARDIA_A', date: today },
-      { id: 's-2', station: '2DA ESTACIÓN CICLONES', sample_time: '20:00', battery_tag: 'CY4', solids_feed: 43.20, solids_of: 30.10, solids_uf: 68.60, mesh200_feed: 54.10, mesh200_of: 19.80, mesh200_uf: 23.60, shift_code: 'GUARDIA_A', date: today },
-      { id: 's-3', station: '2DA ESTACIÓN CICLONES', sample_time: '23:00', battery_tag: 'CY3', solids_feed: 48.60, solids_of: 32.40, solids_uf: 72.10, mesh200_feed: 58.20, mesh200_of: 24.10, mesh200_uf: 25.80, shift_code: 'GUARDIA_A', date: today },
-      { id: 's-4', station: '2DA ESTACIÓN CICLONES', sample_time: '23:00', battery_tag: 'CY4', solids_feed: 47.10, solids_of: 31.80, solids_uf: 71.50, mesh200_feed: 57.40, mesh200_of: 23.50, mesh200_uf: 25.20, shift_code: 'GUARDIA_A', date: today },
-      { id: 's-5', station: '2DA ESTACIÓN CICLONES', sample_time: '02:00', battery_tag: 'CY3', solids_feed: 42.10, solids_of: 27.20, solids_uf: 67.80, mesh200_feed: 51.50, mesh200_of: 20.80, mesh200_uf: 22.10, shift_code: 'GUARDIA_A', date: today },
-      { id: 's-6', station: '2DA ESTACIÓN CICLONES', sample_time: '02:00', battery_tag: 'CY4', solids_feed: 41.50, solids_of: 26.80, solids_uf: 67.20, mesh200_feed: 50.90, mesh200_of: 20.10, mesh200_uf: 21.80, shift_code: 'GUARDIA_A', date: today },
-      { id: 's-7', station: '2DA ESTACIÓN CICLONES', sample_time: '05:00', battery_tag: 'CY3', solids_feed: 46.80, solids_of: 29.80, solids_uf: 70.80, mesh200_feed: 56.10, mesh200_of: 22.90, mesh200_uf: 24.30, shift_code: 'GUARDIA_A', date: today },
-      { id: 's-8', station: '2DA ESTACIÓN CICLONES', sample_time: '05:00', battery_tag: 'CY4', solids_feed: 45.90, solids_of: 29.20, solids_uf: 70.10, mesh200_feed: 55.40, mesh200_of: 22.20, mesh200_uf: 23.90, shift_code: 'GUARDIA_A', date: today },
+      // 2DA ESTACION - GUARDIA 1 (G1)
+      { id: 's-1', station: '2DA ESTACIÓN CICLONES', sample_time: '20:00', battery_tag: 'CY3', solids_feed: 45.30, solids_of: 28.60, solids_uf: 69.40, mesh200_feed: 54.60, mesh200_of: 22.40, mesh200_uf: 23.40, shift_code: 'G1', date: today },
+      { id: 's-2', station: '2DA ESTACIÓN CICLONES', sample_time: '20:00', battery_tag: 'CY4', solids_feed: 43.20, solids_of: 30.10, solids_uf: 68.60, mesh200_feed: 54.10, mesh200_of: 19.80, mesh200_uf: 23.60, shift_code: 'G1', date: today },
+      { id: 's-3', station: '2DA ESTACIÓN CICLONES', sample_time: '23:00', battery_tag: 'CY3', solids_feed: 48.60, solids_of: 32.40, solids_uf: 72.10, mesh200_feed: 58.20, mesh200_of: 24.10, mesh200_uf: 25.80, shift_code: 'G1', date: today },
+      { id: 's-4', station: '2DA ESTACIÓN CICLONES', sample_time: '23:00', battery_tag: 'CY4', solids_feed: 47.10, solids_of: 31.80, solids_uf: 71.50, mesh200_feed: 57.40, mesh200_of: 23.50, mesh200_uf: 25.20, shift_code: 'G1', date: today },
+      { id: 's-5', station: '2DA ESTACIÓN CICLONES', sample_time: '02:00', battery_tag: 'CY3', solids_feed: 42.10, solids_of: 27.20, solids_uf: 67.80, mesh200_feed: 51.50, mesh200_of: 20.80, mesh200_uf: 22.10, shift_code: 'G1', date: today },
+      { id: 's-6', station: '2DA ESTACIÓN CICLONES', sample_time: '02:00', battery_tag: 'CY4', solids_feed: 41.50, solids_of: 26.80, solids_uf: 67.20, mesh200_feed: 50.90, mesh200_of: 20.10, mesh200_uf: 21.80, shift_code: 'G1', date: today },
+      { id: 's-7', station: '2DA ESTACIÓN CICLONES', sample_time: '05:00', battery_tag: 'CY3', solids_feed: 46.80, solids_of: 29.80, solids_uf: 70.80, mesh200_feed: 56.10, mesh200_of: 22.90, mesh200_uf: 24.30, shift_code: 'G1', date: today },
+      { id: 's-8', station: '2DA ESTACIÓN CICLONES', sample_time: '05:00', battery_tag: 'CY4', solids_feed: 45.90, solids_of: 29.20, solids_uf: 70.10, mesh200_feed: 55.40, mesh200_of: 22.20, mesh200_uf: 23.90, shift_code: 'G1', date: today },
 
-      // 2DA ESTACION - GUARDIA B (Turno Día)
-      { id: 's-9', station: '2DA ESTACIÓN CICLONES', sample_time: '08:00', battery_tag: 'CY3', solids_feed: 46.10, solids_of: 29.10, solids_uf: 70.20, mesh200_feed: 55.20, mesh200_of: 22.80, mesh200_uf: 24.10, shift_code: 'GUARDIA_B', date: today },
-      { id: 's-10', station: '2DA ESTACIÓN CICLONES', sample_time: '08:00', battery_tag: 'CY4', solids_feed: 44.50, solids_of: 28.90, solids_uf: 69.80, mesh200_feed: 54.80, mesh200_of: 21.50, mesh200_uf: 23.90, shift_code: 'GUARDIA_B', date: today },
-      { id: 's-11', station: '2DA ESTACIÓN CICLONES', sample_time: '11:00', battery_tag: 'CY3', solids_feed: 47.30, solids_of: 30.50, solids_uf: 71.40, mesh200_feed: 56.70, mesh200_of: 23.20, mesh200_uf: 24.80, shift_code: 'GUARDIA_B', date: today },
-      { id: 's-12', station: '2DA ESTACIÓN CICLONES', sample_time: '11:00', battery_tag: 'CY4', solids_feed: 46.80, solids_of: 30.10, solids_uf: 70.90, mesh200_feed: 55.90, mesh200_of: 22.70, mesh200_uf: 24.40, shift_code: 'GUARDIA_B', date: today },
+      // 2DA ESTACION - GUARDIA 2 (G2)
+      { id: 's-9', station: '2DA ESTACIÓN CICLONES', sample_time: '08:00', battery_tag: 'CY3', solids_feed: 46.10, solids_of: 29.10, solids_uf: 70.20, mesh200_feed: 55.20, mesh200_of: 22.80, mesh200_uf: 24.10, shift_code: 'G2', date: today },
+      { id: 's-10', station: '2DA ESTACIÓN CICLONES', sample_time: '08:00', battery_tag: 'CY4', solids_feed: 44.50, solids_of: 28.90, solids_uf: 69.80, mesh200_feed: 54.80, mesh200_of: 21.50, mesh200_uf: 23.90, shift_code: 'G2', date: today },
+      { id: 's-11', station: '2DA ESTACIÓN CICLONES', sample_time: '11:00', battery_tag: 'CY3', solids_feed: 47.30, solids_of: 30.50, solids_uf: 71.40, mesh200_feed: 56.70, mesh200_of: 23.20, mesh200_uf: 24.80, shift_code: 'G2', date: today },
+      { id: 's-12', station: '2DA ESTACIÓN CICLONES', sample_time: '11:00', battery_tag: 'CY4', solids_feed: 46.80, solids_of: 30.10, solids_uf: 70.90, mesh200_feed: 55.90, mesh200_of: 22.70, mesh200_uf: 24.40, shift_code: 'G2', date: today },
 
       // 1RA ESTACION - CY1 / CY2
-      { id: 's-13', station: '1RA ESTACIÓN CICLONES', sample_time: '20:00', battery_tag: 'CY1', solids_feed: 44.80, solids_of: 27.90, solids_uf: 68.90, mesh200_feed: 53.80, mesh200_of: 21.90, mesh200_uf: 23.10, shift_code: 'GUARDIA_A', date: today },
-      { id: 's-14', station: '1RA ESTACIÓN CICLONES', sample_time: '20:00', battery_tag: 'CY2', solids_feed: 43.90, solids_of: 28.50, solids_uf: 68.20, mesh200_feed: 53.20, mesh200_of: 20.40, mesh200_uf: 23.00, shift_code: 'GUARDIA_A', date: today },
-      { id: 's-15', station: '1RA ESTACIÓN CICLONES', sample_time: '23:00', battery_tag: 'CY1', solids_feed: 47.50, solids_of: 31.00, solids_uf: 71.20, mesh200_feed: 57.00, mesh200_of: 23.50, mesh200_uf: 25.10, shift_code: 'GUARDIA_A', date: today },
-      { id: 's-16', station: '1RA ESTACIÓN CICLONES', sample_time: '23:00', battery_tag: 'CY2', solids_feed: 46.20, solids_of: 30.80, solids_uf: 70.80, mesh200_feed: 56.40, mesh200_of: 22.90, mesh200_uf: 24.70, shift_code: 'GUARDIA_A', date: today },
-      { id: 's-17', station: '1RA ESTACIÓN CICLONES', sample_time: '02:00', battery_tag: 'CY1', solids_feed: 41.80, solids_of: 26.50, solids_uf: 67.20, mesh200_feed: 50.80, mesh200_of: 20.20, mesh200_uf: 21.90, shift_code: 'GUARDIA_A', date: today },
-      { id: 's-18', station: '1RA ESTACIÓN CICLONES', sample_time: '02:00', battery_tag: 'CY2', solids_feed: 41.00, solids_of: 26.10, solids_uf: 66.80, mesh200_feed: 50.10, mesh200_of: 19.80, mesh200_uf: 21.50, shift_code: 'GUARDIA_A', date: today }
+      { id: 's-13', station: '1RA ESTACIÓN CICLONES', sample_time: '20:00', battery_tag: 'CY1', solids_feed: 44.80, solids_of: 27.90, solids_uf: 68.90, mesh200_feed: 53.80, mesh200_of: 21.90, mesh200_uf: 23.10, shift_code: 'G1', date: today },
+      { id: 's-14', station: '1RA ESTACIÓN CICLONES', sample_time: '20:00', battery_tag: 'CY2', solids_feed: 43.90, solids_of: 28.50, solids_uf: 68.20, mesh200_feed: 53.20, mesh200_of: 20.40, mesh200_uf: 23.00, shift_code: 'G1', date: today },
+      { id: 's-15', station: '1RA ESTACIÓN CICLONES', sample_time: '23:00', battery_tag: 'CY1', solids_feed: 47.50, solids_of: 31.00, solids_uf: 71.20, mesh200_feed: 57.00, mesh200_of: 23.50, mesh200_uf: 25.10, shift_code: 'G1', date: today },
+      { id: 's-16', station: '1RA ESTACIÓN CICLONES', sample_time: '23:00', battery_tag: 'CY2', solids_feed: 46.20, solids_of: 30.80, solids_uf: 70.80, mesh200_feed: 56.40, mesh200_of: 22.90, mesh200_uf: 24.70, shift_code: 'G1', date: today },
+      { id: 's-17', station: '1RA ESTACIÓN CICLONES', sample_time: '02:00', battery_tag: 'CY1', solids_feed: 41.80, solids_of: 26.50, solids_uf: 67.20, mesh200_feed: 50.80, mesh200_of: 20.20, mesh200_uf: 21.90, shift_code: 'G1', date: today },
+      { id: 's-18', station: '1RA ESTACIÓN CICLONES', sample_time: '02:00', battery_tag: 'CY2', solids_feed: 41.00, solids_of: 26.10, solids_uf: 66.80, mesh200_feed: 50.10, mesh200_of: 19.80, mesh200_uf: 21.50, shift_code: 'G1', date: today }
     ];
 
     this.filterSamples();
@@ -2115,7 +2117,7 @@ export class CyclonesComponent implements OnInit {
             id: 'c-1', battery_tag: 'CYCLOPAC-BATERIA-01', total_cyclones: 12,
             active_cyclones: 10, feed_pressure_psi: 18.5, feed_density_kgm3: 1650,
             p80_microns: 148, overflow_density: 1280, underflow_density: 1980,
-            flocculant_ppm: 14.2, status: 'OPTIMAL', shift_code: 'GUARDIA_A',
+            flocculant_ppm: 14.2, status: 'OPTIMAL', shift_code: 'G1',
             notes: 'Ciclones 03 y 07 en standby. P80 en 148 µm en rango óptimo de flotación.',
             created_at: new Date().toISOString()
           },
@@ -2123,7 +2125,7 @@ export class CyclonesComponent implements OnInit {
             id: 'c-2', battery_tag: 'CYCLOPAC-BATERIA-02', total_cyclones: 12,
             active_cyclones: 9, feed_pressure_psi: 17.2, feed_density_kgm3: 1640,
             p80_microns: 155, overflow_density: 1295, underflow_density: 1960,
-            flocculant_ppm: 13.8, status: 'ATTENTION', shift_code: 'GUARDIA_A',
+            flocculant_ppm: 13.8, status: 'ATTENTION', shift_code: 'G1',
             notes: 'Ciclón 11 cerrado por arenado en ápice (Apex).',
             created_at: new Date().toISOString()
           }

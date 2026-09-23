@@ -78,7 +78,7 @@ export function seed() {
 
     insertShift.run(
       crypto.randomUUID(),
-      'GUARDIA_A_DIA_01',
+      'G1_DIA_01',
       new Date().toISOString().split('T')[0],
       'DIA',
       'Ing. Roberto Quispe',
@@ -123,7 +123,7 @@ export function seed() {
         p.temp,
         p.vib,
         p.amps,
-        'GUARDIA_A',
+        'G1',
         'Juan Pérez',
         p.notes
       );
@@ -151,7 +151,7 @@ export function seed() {
       1980,
       14.2,
       'OPTIMAL',
-      'GUARDIA_A',
+      'G1',
       'Ciclones 03 y 07 en standby. Granulometría P80 en 148 µm cumpliendo objetivo de flotación.'
     );
 
@@ -167,7 +167,7 @@ export function seed() {
       1960,
       13.8,
       'ATTENTION',
-      'GUARDIA_A',
+      'G1',
       'Ligera pérdida de presión en manifold. Ciclón 11 cerrado por arenado en ápice (Apex).'
     );
   }
@@ -228,13 +228,13 @@ export function seed() {
     }
 
     for (const s of samples2daA) {
-      insertSample.run(crypto.randomUUID(), '2DA ESTACIÓN CICLONES', s.time, s.battery, s.s_feed, s.s_of, s.s_uf, s.m_feed, s.m_of, s.m_uf, 'GUARDIA_A', today);
+      insertSample.run(crypto.randomUUID(), '2DA ESTACIÓN CICLONES', s.time, s.battery, s.s_feed, s.s_of, s.s_uf, s.m_feed, s.m_of, s.m_uf, 'G1', today);
     }
     for (const s of samples2daB) {
-      insertSample.run(crypto.randomUUID(), '2DA ESTACIÓN CICLONES', s.time, s.battery, s.s_feed, s.s_of, s.s_uf, s.m_feed, s.m_of, s.m_uf, 'GUARDIA_B', today);
+      insertSample.run(crypto.randomUUID(), '2DA ESTACIÓN CICLONES', s.time, s.battery, s.s_feed, s.s_of, s.s_uf, s.m_feed, s.m_of, s.m_uf, 'G2', today);
     }
     for (const s of samples1ra) {
-      insertSample.run(crypto.randomUUID(), '1RA ESTACIÓN CICLONES', s.time, s.battery, s.s_feed, s.s_of, s.s_uf, s.m_feed, s.m_of, s.m_uf, 'GUARDIA_A', today);
+      insertSample.run(crypto.randomUUID(), '1RA ESTACIÓN CICLONES', s.time, s.battery, s.s_feed, s.s_of, s.s_uf, s.m_feed, s.m_of, s.m_uf, 'G1', today);
     }
   }
 
@@ -258,7 +258,7 @@ export function seed() {
       12.4,
       'NORMAL',
       'Marcos Alanya',
-      'GUARDIA_A',
+      'G1',
       'Espesador de relaves con torque al 48%. Nivel freático en muro dentro de rango seguro.'
     );
 
@@ -273,7 +273,7 @@ export function seed() {
       10.1,
       'NORMAL',
       'Marcos Alanya',
-      'GUARDIA_A',
+      'G1',
       'Dosificación de floculante aniónico optimizada. Sobrenadante clarificado.'
     );
   }
@@ -362,7 +362,7 @@ export function seed() {
     insertSheet.run(
       crypto.randomUUID(),
       '2026-08-27',
-      'GUARDIA_A',
+      'G1',
       'Operador Central',
       JSON.stringify(sentina),
       JSON.stringify(intermedia),

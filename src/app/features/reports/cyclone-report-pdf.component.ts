@@ -665,7 +665,7 @@ export class CycloneReportPdfComponent implements OnInit {
 
   @Input() samples: StationSample[] = [];
   @Input() station: string = '2DA ESTACIÓN CICLONES';
-  @Input() shiftCode: string = 'GUARDIA_A';
+  @Input() shiftCode: string = 'G1';
   @Input() averages: GeneralAverages | null = null;
   
   private _isOpen = false;

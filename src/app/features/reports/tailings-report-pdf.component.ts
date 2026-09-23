@@ -731,7 +731,7 @@ export class TailingsReportPdfComponent implements OnInit {
 
   copyExecutiveSummary(): void {
     const summary = `📋 *BASETRACK - REPORTE OFICIAL DE PRESA DE RELAVES (1 HOJA)*
-📅 Fecha: ${this.todayDate} | Guardia: GUARDIA_A
+📅 Fecha: ${this.todayDate} | Guardia: G1
 👤 Operador: VILCAMIZA PEVE JORGE RICARDO
 🌊 Borde Libre: 3.8m (Margen Seguro > 2.5m) | Cota Espejo: 4,120.4 msnm
 📉 Presión Piezométrica: 142.6 kPa (Línea Freática Conforme)

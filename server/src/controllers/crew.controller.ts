@@ -6,7 +6,11 @@ import { logAudit } from '../middlewares/error.middleware.js';
 
 export function getCrewMembers(req: Request, res: Response) {
   try {
-    const shift = req.query.shift as string;
+    let shift = req.query.shift as string;
+    if (shift === 'GUARDIA_A') shift = 'G1';
+    else if (shift === 'GUARDIA_B') shift = 'G2';
+    else if (shift === 'GUARDIA_C') shift = 'G3';
+    else if (shift === 'GUARDIA_D') shift = 'G4';
     const status = req.query.status as string;
 
     let query = 'SELECT * FROM crew_members WHERE 1=1';
@@ -131,7 +135,11 @@ export function deleteCrewMember(req: AuthenticatedRequest, res: Response) {
 export function getAreaAssignments(req: Request, res: Response) {
   try {
     const shiftDate = (req.query.date as string) || new Date().toISOString().split('T')[0];
-    const shiftCode = (req.query.shift_code as string) || 'G1';
+    const rawShift = (req.query.shift_code as string) || 'G1';
+    const shiftCode = rawShift === 'GUARDIA_A' ? 'G1' :
+                      rawShift === 'GUARDIA_B' ? 'G2' :
+                      rawShift === 'GUARDIA_C' ? 'G3' :
+                      rawShift === 'GUARDIA_D' ? 'G4' : rawShift;
     const shiftType = (req.query.shift_type as string) || 'DIA';
 
     const query = `
@@ -184,10 +192,15 @@ export function getAreaAssignments(req: Request, res: Response) {
 export function saveAreaAssignment(req: AuthenticatedRequest, res: Response) {
   try {
     const {
-      shift_code, shift_date, shift_type, position_key, position_title,
+      shift_code: rawShiftCode, shift_date, shift_type, position_key, position_title,
       operator_id, backup_operator_id, epp_verified, safety_talk_completed,
       radio_channel, station_location, notes
     } = req.body;
+
+    const shift_code = rawShiftCode === 'GUARDIA_A' ? 'G1' :
+                       rawShiftCode === 'GUARDIA_B' ? 'G2' :
+                       rawShiftCode === 'GUARDIA_C' ? 'G3' :
+                       rawShiftCode === 'GUARDIA_D' ? 'G4' : (rawShiftCode || 'G1');
 
     if (!shift_code || !shift_date || !position_key || !operator_id) {
       return res.status(400).json({ success: false, message: 'Guardia, fecha, posición y operador titular son requeridos.' });

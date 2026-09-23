@@ -120,11 +120,12 @@ export interface DonutSlice {
   `]
 })
 export class DistributionDonutComponent {
-  @Input() heroPercentage: number = 52;
+  @Input() heroPercentage: number = 25;
   @Input() slices: DonutSlice[] = [
-    { name: 'Guardia A', percentage: 52, color: '#031795' },
-    { name: 'Guardia B', percentage: 33, color: '#2563eb' },
-    { name: 'Guardia C', percentage: 15, color: '#60a5fa' }
+    { name: 'Guardia 1 (G1)', percentage: 25, color: '#031795' },
+    { name: 'Guardia 2 (G2)', percentage: 25, color: '#1d4ed8' },
+    { name: 'Guardia 3 (G3)', percentage: 25, color: '#3b82f6' },
+    { name: 'Guardia 4 (G4)', percentage: 25, color: '#93c5fd' }
   ];
 
   get calculatedSlices() {

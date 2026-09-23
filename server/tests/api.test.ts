@@ -169,7 +169,7 @@ test('8. POST & DELETE /api/cyclones/station-samples should register and delete 
 });
 
 test('9. GET & POST /api/pumps/operational-sheet should fetch and save operational report', async () => {
-  const getRes = await fetch(`${baseUrl}/pumps/operational-sheet?date=2026-08-27&shift=GUARDIA_A`);
+  const getRes = await fetch(`${baseUrl}/pumps/operational-sheet?date=2026-08-27&shift=G1`);
   assert.strictEqual(getRes.status, 200);
   const getJson = await getRes.json() as any;
   assert.strictEqual(getJson.success, true);
@@ -189,7 +189,7 @@ test('9. GET & POST /api/pumps/operational-sheet should fetch and save operation
     },
     body: JSON.stringify({
       report_date: '2026-08-27',
-      shift_code: 'GUARDIA_A',
+      shift_code: 'G1',
       operator_name: 'Supervisor Turno Test',
       sentina_pumps: updatedSentina,
       intermedia_pumps: getJson.data.intermedia_pumps,
@@ -248,13 +248,13 @@ test('11. PATCH /api/admin/users/:id/role-shift and reset-password should update
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${authToken}`
     },
-    body: JSON.stringify({ role: 'SUPERVISOR', shift: 'GUARDIA_B' })
+    body: JSON.stringify({ role: 'SUPERVISOR', shift: 'G2' })
   });
   assert.strictEqual(patchRes.status, 200);
   const patchJson = await patchRes.json() as any;
   assert.strictEqual(patchJson.success, true);
   assert.strictEqual(patchJson.user.role, 'SUPERVISOR');
-  assert.strictEqual(patchJson.user.shift, 'GUARDIA_B');
+  assert.strictEqual(patchJson.user.shift, 'G2');
 
   // Reset password
   const resetRes = await fetch(`${baseUrl}/admin/users/${targetUser.id}/reset-password`, {
@@ -324,7 +324,7 @@ test('13. PUT /api/auth/profile should update operational profile fields and syn
     body: JSON.stringify({
       fullName: 'VIZCARRA CORI MANLEY KLISMAN',
       email: 'klismanvizcarra@basetrack.com',
-      shift: 'GUARDIA_A',
+      shift: 'G1',
       document_id: '71209033',
       radio_channel: 'Canal 2 Ciclones',
       phone_extension: 'Anexo 405',

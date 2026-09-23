@@ -645,7 +645,7 @@ export class AuthService {
       email: payload.email,
       fullName: payload.fullName,
       role: (payload.role as any) || 'OPERATOR',
-      shift: (payload.shift as any) || 'GUARDIA_A',
+      shift: (payload.shift as any) || 'G1',
       avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${payload.username}`
     };
     this.saveUserToRegistry(newUser);
@@ -777,7 +777,16 @@ export class AuthService {
 
     const registry = getRealtimeData<Record<string, User>>('users_registry', INITIAL_USERS_REGISTRY);
     const regUser = registry[stored.username.toLowerCase()];
-    return regUser ? { ...stored, ...regUser } : stored;
+    let user = regUser ? { ...stored, ...regUser } : stored;
+    if (user && user.shift) {
+      const s = user.shift as string;
+      if (s === 'GUARDIA_A') user.shift = 'G1';
+      else if (s === 'GUARDIA_B') user.shift = 'G2';
+      else if (s === 'GUARDIA_C') user.shift = 'G3';
+      else if (s === 'GUARDIA_D') user.shift = 'G4';
+      saveRealtimeData('user', user);
+    }
+    return user;
   }
 
   private syncWithCrewCache(user: User): void {
@@ -793,12 +802,18 @@ export class AuthService {
             member.document_id === '71209033'
           ) {
             changed = true;
+            let sCode = (user.shift || member.shift_code) as string;
+            if (sCode === 'GUARDIA_A') sCode = 'G1';
+            else if (sCode === 'GUARDIA_B') sCode = 'G2';
+            else if (sCode === 'GUARDIA_C') sCode = 'G3';
+            else if (sCode === 'GUARDIA_D') sCode = 'G4';
+
             return {
               ...member,
               avatar_url: user.avatarUrl || member.avatar_url,
               name: user.fullName || member.name,
               document_id: user.document_id || member.document_id,
-              shift_code: user.shift || member.shift_code,
+              shift_code: sCode,
               radio_channel: user.radio_channel || member.radio_channel,
               phone_extension: user.phone_extension || member.phone_extension,
               primary_role: user.primary_role || member.primary_role

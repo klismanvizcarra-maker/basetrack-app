@@ -1551,7 +1551,7 @@ export class PumpsComponent implements OnInit {
 
   sheet: PumpStationSheet = {
     report_date: '27/08/2026',
-    shift_code: 'GUARDIA_A',
+    shift_code: 'G1',
     operator_name: 'Operador Central',
     sentina_pumps: [
       { tag: 'PU001', status: 'Operativo' },
@@ -1659,6 +1659,7 @@ export class PumpsComponent implements OnInit {
     const cached = getRealtimeData<any>('pump_sheet_' + this.sheet.report_date, null) || getRealtimeData<any>('pump_sheet_latest', null);
     if (cached) {
       this.sheet = { ...this.sheet, ...cached };
+      if (this.sheet.shift_code === 'GUARDIA_A') this.sheet.shift_code = 'G1';
     }
 
     this.http.get<any>(`${getApiBaseUrl()}/pumps/operational-sheet?date=${this.sheet.report_date}`).subscribe({
@@ -1669,6 +1670,7 @@ export class PumpsComponent implements OnInit {
             ...res.data,
             report_date: res.data.report_date || this.sheet.report_date
           };
+          if (this.sheet.shift_code === 'GUARDIA_A') this.sheet.shift_code = 'G1';
           saveRealtimeData('pump_sheet_' + this.sheet.report_date, this.sheet);
           saveRealtimeData('pump_sheet_latest', this.sheet);
         }
@@ -1699,21 +1701,21 @@ export class PumpsComponent implements OnInit {
               id: 'p-1', tag: 'PP-101', name: 'Bomba Slurry Alimentación Ciclones 01',
               system: 'ALIMENTACION_CICLONES', status: 'OPERATING', flow_rate_m3h: 1850,
               pressure_bar: 4.8, rpm: 580, bearing_temp_c: 62.4, vibration_mms: 2.3,
-              current_amps: 310, shift_code: 'GUARDIA_A', operator_name: 'Juan Pérez',
+              current_amps: 310, shift_code: 'G1', operator_name: 'Juan Pérez',
               created_at: new Date().toISOString()
             },
             {
               id: 'p-2', tag: 'PP-102', name: 'Bomba Slurry Alimentación Ciclones 02',
               system: 'ALIMENTACION_CICLONES', status: 'STANDBY', flow_rate_m3h: 0,
               pressure_bar: 0.1, rpm: 0, bearing_temp_c: 34.0, vibration_mms: 0.2,
-              current_amps: 0, shift_code: 'GUARDIA_A', operator_name: 'Juan Pérez',
+              current_amps: 0, shift_code: 'G1', operator_name: 'Juan Pérez',
               created_at: new Date().toISOString()
             },
             {
               id: 'p-3', tag: 'TL-201', name: 'Bomba de Pulpa Relaves Espesados',
               system: 'TRANSPORTE_RELAVES', status: 'OPERATING', flow_rate_m3h: 2150,
               pressure_bar: 6.2, rpm: 720, bearing_temp_c: 68.1, vibration_mms: 3.1,
-              current_amps: 420, shift_code: 'GUARDIA_A', operator_name: 'Marcos Alanya',
+              current_amps: 420, shift_code: 'G1', operator_name: 'Marcos Alanya',
               created_at: new Date().toISOString()
             }
           ];
@@ -1805,7 +1807,7 @@ export class PumpsComponent implements OnInit {
       bearing_temp_c: this.newPump.bearing_temp_c,
       vibration_mms: this.newPump.vibration_mms,
       current_amps: this.newPump.current_amps,
-      shift_code: 'GUARDIA_A',
+      shift_code: 'G1',
       operator_name: 'VIZCARRA CORI MANLEY KLISMAN',
       notes: this.newPump.notes,
       created_at: new Date().toISOString()

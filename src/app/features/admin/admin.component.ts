@@ -52,7 +52,7 @@ const DEFAULT_USERS: UserItem[] = [
     email: 'klismanvizcarra@basetrack.com',
     full_name: 'VIZCARRA CORI MANLEY KLISMAN',
     role: 'ADMIN',
-    shift: 'GUARDIA_A',
+    shift: 'G1',
     avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80',
     created_at: '2026-09-17T08:00:00.000Z'
   },
@@ -62,7 +62,7 @@ const DEFAULT_USERS: UserItem[] = [
     email: 'carlosp@basetrack.mining.com',
     full_name: 'PILCO APAZA CARLOS EDUARDO',
     role: 'OPERATOR',
-    shift: 'GUARDIA_A',
+    shift: 'G1',
     avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=120&q=80',
     created_at: '2026-09-17T08:00:00.000Z'
   },
@@ -72,7 +72,7 @@ const DEFAULT_USERS: UserItem[] = [
     email: 'jorgev@basetrack.mining.com',
     full_name: 'VILCAMIZA PEVE JORGE RICARDO',
     role: 'OPERATOR',
-    shift: 'GUARDIA_A',
+    shift: 'G1',
     avatar_url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=120&q=80',
     created_at: '2026-09-17T08:00:00.000Z'
   },
@@ -82,7 +82,7 @@ const DEFAULT_USERS: UserItem[] = [
     email: 'vilmar@basetrack.mining.com',
     full_name: 'ROSADO FALCON VILMA LUCIA',
     role: 'OPERATOR',
-    shift: 'GUARDIA_A',
+    shift: 'G1',
     avatar_url: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=120&q=80',
     created_at: '2026-09-17T08:00:00.000Z'
   },
@@ -92,7 +92,7 @@ const DEFAULT_USERS: UserItem[] = [
     email: 'jhoferp@basetrack.mining.com',
     full_name: 'PARI COAYLA JHOFER LUIS',
     role: 'OPERATOR',
-    shift: 'GUARDIA_A',
+    shift: 'G1',
     avatar_url: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=120&q=80',
     created_at: '2026-09-17T08:00:00.000Z'
   },
@@ -102,7 +102,7 @@ const DEFAULT_USERS: UserItem[] = [
     email: 'diegom@basetrack.mining.com',
     full_name: 'MONTES RODRIGUEZ DIEGO ALEXANDER',
     role: 'OPERATOR',
-    shift: 'GUARDIA_A',
+    shift: 'G1',
     avatar_url: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=120&q=80',
     created_at: '2026-09-17T08:00:00.000Z'
   },
@@ -112,7 +112,7 @@ const DEFAULT_USERS: UserItem[] = [
     email: 'ronalm@basetrack.mining.com',
     full_name: 'MAMANI MIRANDA RONAL',
     role: 'OPERATOR',
-    shift: 'GUARDIA_A',
+    shift: 'G1',
     avatar_url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=120&q=80',
     created_at: '2026-09-17T08:00:00.000Z'
   },
@@ -122,7 +122,7 @@ const DEFAULT_USERS: UserItem[] = [
     email: 'anthonyj@basetrack.mining.com',
     full_name: 'MAMANI CUTIPA ANTHONY JESUS SMIT',
     role: 'OPERATOR',
-    shift: 'GUARDIA_A',
+    shift: 'G1',
     avatar_url: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=120&q=80',
     created_at: '2026-09-17T08:00:00.000Z'
   },
@@ -132,7 +132,7 @@ const DEFAULT_USERS: UserItem[] = [
     email: 'victora@basetrack.mining.com',
     full_name: 'LLERENA CALLE-BRACAMONTE VICTOR ALEJANDRO II',
     role: 'OPERATOR',
-    shift: 'GUARDIA_A',
+    shift: 'G2',
     avatar_url: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&w=120&q=80',
     created_at: '2026-09-17T08:00:00.000Z'
   },
@@ -142,7 +142,7 @@ const DEFAULT_USERS: UserItem[] = [
     email: 'edsonh@basetrack.mining.com',
     full_name: 'HILARI CABRERA EDSON EUSEBIO',
     role: 'OPERATOR',
-    shift: 'GUARDIA_A',
+    shift: 'G2',
     avatar_url: 'https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?auto=format&fit=crop&w=120&q=80',
     created_at: '2026-09-17T08:00:00.000Z'
   },
@@ -152,7 +152,7 @@ const DEFAULT_USERS: UserItem[] = [
     email: 'emilioa@basetrack.mining.com',
     full_name: 'ALIAGA CASTAÑEDA EMILIO URIEL',
     role: 'OPERATOR',
-    shift: 'GUARDIA_B',
+    shift: 'G2',
     avatar_url: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=120&q=80',
     created_at: '2026-09-17T08:00:00.000Z'
   },
@@ -162,7 +162,7 @@ const DEFAULT_USERS: UserItem[] = [
     email: 'luisa@basetrack.mining.com',
     full_name: 'CASCASI FLORES LUIS ANTONIO',
     role: 'OPERATOR',
-    shift: 'GUARDIA_B',
+    shift: 'G2',
     avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=120&q=80',
     created_at: '2026-09-17T08:00:00.000Z'
   },
@@ -172,7 +172,7 @@ const DEFAULT_USERS: UserItem[] = [
     email: 'valeriec@basetrack.mining.com',
     full_name: 'CAYO GOMEZ VALERIE JAZMINE',
     role: 'OPERATOR',
-    shift: 'GUARDIA_B',
+    shift: 'G2',
     avatar_url: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=120&q=80',
     created_at: '2026-09-17T08:00:00.000Z'
   },
@@ -182,7 +182,7 @@ const DEFAULT_USERS: UserItem[] = [
     email: 'pedroi@basetrack.mining.com',
     full_name: 'CHOQUE MANZANO PEDRO IVAN',
     role: 'OPERATOR',
-    shift: 'GUARDIA_B',
+    shift: 'G2',
     avatar_url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=120&q=80',
     created_at: '2026-09-17T08:00:00.000Z'
   },
@@ -192,7 +192,7 @@ const DEFAULT_USERS: UserItem[] = [
     email: 'paulc@basetrack.mining.com',
     full_name: 'CRUZ APAZA PAUL',
     role: 'OPERATOR',
-    shift: 'GUARDIA_B',
+    shift: 'G2',
     avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80',
     created_at: '2026-09-17T08:00:00.000Z'
   }
@@ -704,7 +704,7 @@ const DEFAULT_LOGS: AuditLog[] = [
               rows="5"
               [(ngModel)]="pastedText"
               (ngModelChange)="parsePastedText()"
-              placeholder="Ejemplo:&#10;jperez&#9;Juan Pérez Huamán&#9;juan.perez@mina.com&#9;OPERATOR&#9;GUARDIA_A&#9;70412893&#9;Canal 3 Bombas&#10;mcondori&#9;Manuel Condori Ramos&#9;manuel.condori@mina.com&#9;OPERATOR&#9;GUARDIA_A&#9;42819304&#9;Canal 2 Ciclones"
+              placeholder="Ejemplo:&#10;jperez&#9;Juan Pérez Huamán&#9;juan.perez@mina.com&#9;OPERATOR&#9;G1&#9;70412893&#9;Canal 3 Bombas&#10;mcondori&#9;Manuel Condori Ramos&#9;manuel.condori@mina.com&#9;OPERATOR&#9;G1&#9;42819304&#9;Canal 2 Ciclones"
             ></textarea>
             <span class="textarea-hint">El sistema detecta automáticamente tabulaciones (Excel) o comas (CSV). Contraseña por defecto: <code>Basetrack2026!</code></span>
           </div>

@@ -332,47 +332,69 @@ export class CrewService {
   // 2. CREW MEMBERS DIRECTORY
   // ==========================================
   loadCrew(shift?: string): Observable<any> {
+    const normShift = shift === 'GUARDIA_A' ? 'G1' :
+                      shift === 'GUARDIA_B' ? 'G2' :
+                      shift === 'GUARDIA_C' ? 'G3' :
+                      shift === 'GUARDIA_D' ? 'G4' : shift;
     this.isLoading.set(true);
 
     return this.http.get<{ success: boolean; count: number; data: CrewMember[] }>(`${this.apiUrl}/members`).pipe(
       tap((res) => {
         this.isLoading.set(false);
         if (res?.success && res.data?.length > 0) {
-          this.allMembers.set(res.data);
-          const filtered = shift ? res.data.filter(m => m.shift_code === shift) : res.data;
+          const clean = res.data.map(m => ({
+            ...m,
+            shift_code: m.shift_code === 'GUARDIA_A' ? 'G1' :
+                        m.shift_code === 'GUARDIA_B' ? 'G2' :
+                        m.shift_code === 'GUARDIA_C' ? 'G3' :
+                        m.shift_code === 'GUARDIA_D' ? 'G4' : (m.shift_code || 'G1')
+          }));
+          this.allMembers.set(clean);
+          const filtered = normShift ? clean.filter(m => m.shift_code === normShift) : clean;
           this.crewMembers.set(filtered);
-          this.saveCache('basetrack_crew_members', res.data);
+          this.saveCache('basetrack_crew_members', clean);
         } else {
-          this.loadCachedMembers(shift);
+          this.loadCachedMembers(normShift);
         }
       }),
       catchError((err) => {
         this.isLoading.set(false);
         console.warn('[CrewService] Error conectando a API backend, cargando caché local:', err);
-        this.loadCachedMembers(shift);
+        this.loadCachedMembers(normShift);
         return of({ success: true, data: this.crewMembers() });
       })
     );
   }
 
   loadAssignments(date: string, shiftCode: string, shiftType: 'DIA' | 'NOCHE'): Observable<any> {
+    const normShift = shiftCode === 'GUARDIA_A' ? 'G1' :
+                      shiftCode === 'GUARDIA_B' ? 'G2' :
+                      shiftCode === 'GUARDIA_C' ? 'G3' :
+                      shiftCode === 'GUARDIA_D' ? 'G4' : (shiftCode || 'G1');
     this.isLoading.set(true);
-    const url = `${this.apiUrl}/assignments?date=${date}&shift_code=${shiftCode}&shift_type=${shiftType}`;
+    const url = `${this.apiUrl}/assignments?date=${date}&shift_code=${normShift}&shift_type=${shiftType}`;
 
     return this.http.get<{ success: boolean; data: CrewAreaAssignment[] }>(url).pipe(
       tap((res) => {
         this.isLoading.set(false);
         if (res?.success && res.data && res.data.length > 0) {
-          this.activeAssignments.set(res.data);
-          this.saveCache(`basetrack_assignments_${date}_${shiftCode}_${shiftType}`, res.data);
+          const clean = res.data.map(a => ({
+            ...a,
+            shift_code: a.shift_code === 'GUARDIA_A' ? 'G1' :
+                        a.shift_code === 'GUARDIA_B' ? 'G2' :
+                        a.shift_code === 'GUARDIA_C' ? 'G3' :
+                        a.shift_code === 'GUARDIA_D' ? 'G4' : (a.shift_code || 'G1')
+          }));
+          this.activeAssignments.set(clean);
+          this.saveCache(`basetrack_assignments_${date}_${normShift}_${shiftType}`, clean);
         } else {
-          this.loadCachedAssignments(date, shiftCode, shiftType);
+          this.loadCachedAssignments(date, normShift, shiftType);
         }
       }),
       catchError((err) => {
         this.isLoading.set(false);
         console.warn('[CrewService] Error cargando asignaciones, usando respaldo local:', err);
-        this.loadCachedAssignments(date, shiftCode, shiftType);
+        this.loadCachedAssignments(date, normShift, shiftType);
         return of({ success: true, data: this.activeAssignments() });
       })
     );
@@ -541,6 +563,10 @@ export class CrewService {
   }
 
   private loadCachedMembers(shift?: string): void {
+    const normShift = shift === 'GUARDIA_A' ? 'G1' :
+                      shift === 'GUARDIA_B' ? 'G2' :
+                      shift === 'GUARDIA_C' ? 'G3' :
+                      shift === 'GUARDIA_D' ? 'G4' : shift;
     try {
       const cached = localStorage.getItem('basetrack_crew_members');
       let list = this.defaultMembers;
@@ -548,32 +574,50 @@ export class CrewService {
         const parsed = JSON.parse(cached);
         const hasOldMocks = Array.isArray(parsed) && parsed.some((m: any) => m.name === 'Juan Pérez Huamán' || m.document_id === '70412893');
         if (Array.isArray(parsed) && parsed.length >= 15 && !hasOldMocks) {
-          list = parsed;
+          list = parsed.map((m: any) => ({
+            ...m,
+            shift_code: m.shift_code === 'GUARDIA_A' ? 'G1' :
+                        m.shift_code === 'GUARDIA_B' ? 'G2' :
+                        m.shift_code === 'GUARDIA_C' ? 'G3' :
+                        m.shift_code === 'GUARDIA_D' ? 'G4' : (m.shift_code || 'G1')
+          }));
+          this.saveCache('basetrack_crew_members', list);
         }
       }
       this.allMembers.set(list);
-      this.crewMembers.set(shift ? list.filter(m => m.shift_code === shift) : list);
+      this.crewMembers.set(normShift ? list.filter(m => m.shift_code === normShift) : list);
     } catch {
       this.allMembers.set(this.defaultMembers);
-      this.crewMembers.set(shift ? this.defaultMembers.filter(m => m.shift_code === shift) : this.defaultMembers);
+      this.crewMembers.set(normShift ? this.defaultMembers.filter(m => m.shift_code === normShift) : this.defaultMembers);
     }
   }
 
   private loadCachedAssignments(date: string, shiftCode: string, shiftType: string): void {
+    const normShift = shiftCode === 'GUARDIA_A' ? 'G1' :
+                      shiftCode === 'GUARDIA_B' ? 'G2' :
+                      shiftCode === 'GUARDIA_C' ? 'G3' :
+                      shiftCode === 'GUARDIA_D' ? 'G4' : (shiftCode || 'G1');
     try {
-      const key = `basetrack_assignments_${date}_${shiftCode}_${shiftType}`;
+      const key = `basetrack_assignments_${date}_${normShift}_${shiftType}`;
       const cached = localStorage.getItem(key);
       if (cached) {
         const parsed = JSON.parse(cached);
         const hasOldMocks = Array.isArray(parsed) && parsed.some((a: any) => a.operator_name === 'Juan Pérez Huamán' || a.operator_name === 'Manuel Condori Ramos');
         if (Array.isArray(parsed) && parsed.length > 0 && !hasOldMocks) {
-          this.activeAssignments.set(parsed);
+          const clean = parsed.map((a: any) => ({
+            ...a,
+            shift_code: a.shift_code === 'GUARDIA_A' ? 'G1' :
+                        a.shift_code === 'GUARDIA_B' ? 'G2' :
+                        a.shift_code === 'GUARDIA_C' ? 'G3' :
+                        a.shift_code === 'GUARDIA_D' ? 'G4' : (a.shift_code || 'G1')
+          }));
+          this.activeAssignments.set(clean);
           return;
         }
       }
-      this.synthesizeDefaultAssignments(date, shiftCode, shiftType as 'DIA' | 'NOCHE');
+      this.synthesizeDefaultAssignments(date, normShift, shiftType as 'DIA' | 'NOCHE');
     } catch {
-      this.synthesizeDefaultAssignments(date, shiftCode, shiftType as 'DIA' | 'NOCHE');
+      this.synthesizeDefaultAssignments(date, normShift, shiftType as 'DIA' | 'NOCHE');
     }
   }
 

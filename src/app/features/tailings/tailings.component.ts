@@ -424,7 +424,7 @@ export class TailingsComponent implements OnInit {
         id: 't-1', station_tag: 'PRESA-SECTOR-NORTE', flow_rate_m3h: 2150,
         solids_percentage: 64.8, dam_level_meters: 4120.4, freeboard_meters: 3.8,
         piezometer_kpa: 142.6, turbidity_ntu: 12.4, pumping_line_status: 'NORMAL',
-        operator_name: 'VIZCARRA CORI MANLEY KLISMAN', shift_code: 'GUARDIA_A',
+        operator_name: 'VIZCARRA CORI MANLEY KLISMAN', shift_code: 'G1',
         notes: 'Espesador de relaves con torque al 48%. Nivel freático en muro dentro de rango seguro.',
         created_at: new Date().toISOString()
       },
@@ -432,7 +432,7 @@ export class TailingsComponent implements OnInit {
         id: 't-2', station_tag: 'ESP-RELAVES-01', flow_rate_m3h: 1980,
         solids_percentage: 63.5, dam_level_meters: 4119.8, freeboard_meters: 4.2,
         piezometer_kpa: 138.0, turbidity_ntu: 10.1, pumping_line_status: 'NORMAL',
-        operator_name: 'PILCO APAZA CARLOS EDUARDO', shift_code: 'GUARDIA_A',
+        operator_name: 'PILCO APAZA CARLOS EDUARDO', shift_code: 'G1',
         notes: 'Dosificación de floculante aniónico optimizada. Sobrenadante clarificado.',
         created_at: new Date().toISOString()
       }
@@ -452,7 +452,7 @@ export class TailingsComponent implements OnInit {
       turbidity_ntu: this.newTailings.turbidity_ntu,
       pumping_line_status: this.newTailings.pumping_line_status as any,
       operator_name: 'VIZCARRA CORI MANLEY KLISMAN',
-      shift_code: 'GUARDIA_A',
+      shift_code: 'G1',
       notes: this.newTailings.notes,
       created_at: new Date().toISOString()
     };

@@ -74,7 +74,7 @@ export function initDatabase() {
     CREATE TABLE IF NOT EXISTS pump_station_sheets (
       id TEXT PRIMARY KEY,
       report_date TEXT NOT NULL,
-      shift_code TEXT NOT NULL DEFAULT 'GUARDIA_A',
+      shift_code TEXT NOT NULL DEFAULT 'G1',
       operator_name TEXT NOT NULL DEFAULT 'Operador Central',
       sentina_pumps_json TEXT NOT NULL,
       intermedia_pumps_json TEXT NOT NULL,
@@ -117,7 +117,7 @@ export function initDatabase() {
       mesh200_feed REAL NOT NULL DEFAULT 0,
       mesh200_of REAL NOT NULL DEFAULT 0,
       mesh200_uf REAL NOT NULL DEFAULT 0,
-      shift_code TEXT NOT NULL DEFAULT 'GUARDIA_A',
+      shift_code TEXT NOT NULL DEFAULT 'G1',
       date TEXT NOT NULL DEFAULT (date('now')),
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
@@ -398,6 +398,52 @@ export function initDatabase() {
     }
   } catch (e) {
     console.warn('[Database] crew_members migration check:', e);
+  }
+
+  // Global Migration: convert all historical GUARDIA_A/B/C/D to G1/G2/G3/G4 across all tables
+  try {
+    db.exec(`
+      UPDATE users SET shift = 'G1' WHERE shift = 'GUARDIA_A';
+      UPDATE users SET shift = 'G2' WHERE shift = 'GUARDIA_B';
+      UPDATE users SET shift = 'G3' WHERE shift = 'GUARDIA_C';
+      UPDATE users SET shift = 'G4' WHERE shift = 'GUARDIA_D';
+
+      UPDATE crew_members SET shift_code = 'G1' WHERE shift_code = 'GUARDIA_A';
+      UPDATE crew_members SET shift_code = 'G2' WHERE shift_code = 'GUARDIA_B';
+      UPDATE crew_members SET shift_code = 'G3' WHERE shift_code = 'GUARDIA_C';
+      UPDATE crew_members SET shift_code = 'G4' WHERE shift_code = 'GUARDIA_D';
+
+      UPDATE crew_area_assignments SET shift_code = 'G1' WHERE shift_code = 'GUARDIA_A';
+      UPDATE crew_area_assignments SET shift_code = 'G2' WHERE shift_code = 'GUARDIA_B';
+      UPDATE crew_area_assignments SET shift_code = 'G3' WHERE shift_code = 'GUARDIA_C';
+      UPDATE crew_area_assignments SET shift_code = 'G4' WHERE shift_code = 'GUARDIA_D';
+
+      UPDATE shift_handovers SET shift_code = 'G1_DIA_01' WHERE shift_code LIKE 'GUARDIA_A%';
+      UPDATE shift_handovers SET shift_code = 'G2_DIA_01' WHERE shift_code LIKE 'GUARDIA_B%';
+      UPDATE shift_handovers SET shift_code = 'G3_DIA_01' WHERE shift_code LIKE 'GUARDIA_C%';
+
+      UPDATE pump_reports SET shift_code = 'G1' WHERE shift_code = 'GUARDIA_A';
+      UPDATE pump_reports SET shift_code = 'G2' WHERE shift_code = 'GUARDIA_B';
+      UPDATE pump_reports SET shift_code = 'G3' WHERE shift_code = 'GUARDIA_C';
+
+      UPDATE pump_station_sheets SET shift_code = 'G1' WHERE shift_code = 'GUARDIA_A';
+      UPDATE pump_station_sheets SET shift_code = 'G2' WHERE shift_code = 'GUARDIA_B';
+      UPDATE pump_station_sheets SET shift_code = 'G3' WHERE shift_code = 'GUARDIA_C';
+
+      UPDATE cyclone_reports SET shift_code = 'G1' WHERE shift_code = 'GUARDIA_A';
+      UPDATE cyclone_reports SET shift_code = 'G2' WHERE shift_code = 'GUARDIA_B';
+      UPDATE cyclone_reports SET shift_code = 'G3' WHERE shift_code = 'GUARDIA_C';
+
+      UPDATE cyclone_station_samples SET shift_code = 'G1' WHERE shift_code = 'GUARDIA_A';
+      UPDATE cyclone_station_samples SET shift_code = 'G2' WHERE shift_code = 'GUARDIA_B';
+      UPDATE cyclone_station_samples SET shift_code = 'G3' WHERE shift_code = 'GUARDIA_C';
+
+      UPDATE tailings_reports SET shift_code = 'G1' WHERE shift_code = 'GUARDIA_A';
+      UPDATE tailings_reports SET shift_code = 'G2' WHERE shift_code = 'GUARDIA_B';
+      UPDATE tailings_reports SET shift_code = 'G3' WHERE shift_code = 'GUARDIA_C';
+    `);
+  } catch (e) {
+    console.warn('[Database] Global shift update migration:', e);
   }
 
   console.log('[Database] Tables and indexes initialized successfully.');
