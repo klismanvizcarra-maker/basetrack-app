@@ -133,6 +133,7 @@
 | 2026-09-24 | Frontend Agent | Orchestrator | `TASK-032` | Módulo de Calculadora Metalúrgica y de Terreno (/calculators) integrado en Sidebar, con 4 herramientas de planta: Balanza Marcy, Floculante en L/min y L/h, Dilución de Pulpa y Aforador Parshall |
 | 2026-09-24 | Frontend Agent | Orchestrator | `TASK-033` | Modo Oscuro / Nocturno industrial con ThemeService reactivo, persistencia en localStorage, conmutador rápido en Header, interruptor en Sidebar, selector en Mi Perfil y diseño adaptativo sin romper reportes PDF A4 |
 | 2026-09-24 | Frontend Agent | Orchestrator | `TASK-034` | Adaptación móvil integral: eliminación absoluta de zoom (meta viewport, pinch-to-zoom y double-tap bloqueados), modales como bottom-sheets, safe-area insets y prevención de auto-zoom en inputs |
+| 2026-09-24 | Multi-Agent Team | Orchestrator | `TASK-035` | Diagnóstico y resolución de sincronización multi-dispositivo y persistencia de usuarios en Vercel |
 
 ---
 
