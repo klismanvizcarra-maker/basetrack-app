@@ -691,23 +691,22 @@ interface MineralPreset {
       transition: var(--transition-smooth);
 
       &.btn-secondary {
-        background: #f1f5f9;
-        color: #334155;
+        background: var(--bg-card-subtle);
+        color: var(--text-primary);
         border: 1px solid var(--border-subtle);
 
         &:hover {
-          background: #e2e8f0;
-          color: #0f172a;
+          background: var(--bg-card-hover);
         }
       }
 
       &.btn-primary {
-        background: #031795;
+        background: var(--primary-purple);
         color: #ffffff;
-        box-shadow: 0 2px 6px rgba(3, 23, 149, 0.25);
+        box-shadow: 0 2px 6px var(--primary-glow);
 
         &:hover {
-          background: #021069;
+          background: var(--primary-violet);
           transform: translateY(-1px);
         }
       }
@@ -739,7 +738,7 @@ interface MineralPreset {
       padding: 12px 14px;
       border-radius: var(--radius-md);
       border: 1.5px solid transparent;
-      background: #f8fafc;
+      background: var(--bg-card-subtle);
       cursor: pointer;
       text-align: left;
       transition: var(--transition-smooth);
@@ -766,17 +765,17 @@ interface MineralPreset {
       }
 
       &:hover {
-        background: #f1f5f9;
-        border-color: #cbd5e1;
+        background: var(--bg-card-hover);
+        border-color: var(--border-subtle);
       }
 
       &.active {
-        background: #eef2ff;
-        border-color: #031795;
-        box-shadow: 0 2px 8px rgba(3, 23, 149, 0.12);
+        background: var(--primary-bg-subtle);
+        border-color: var(--primary-purple);
+        box-shadow: 0 2px 8px var(--primary-glow);
 
         .tab-title {
-          color: #031795;
+          color: var(--primary-purple);
         }
       }
     }
@@ -820,10 +819,10 @@ interface MineralPreset {
       font-weight: 700;
       padding: 4px 10px;
       border-radius: var(--radius-full);
-      background: #f1f5f9;
-      color: #475569;
+      background: var(--bg-card-subtle);
+      color: var(--text-secondary);
       white-space: nowrap;
-      border: 1px solid #e2e8f0;
+      border: 1px solid var(--border-subtle);
     }
 
     /* Presets Row */
@@ -832,7 +831,7 @@ interface MineralPreset {
       align-items: center;
       gap: 12px;
       flex-wrap: wrap;
-      background: #f8fafc;
+      background: var(--bg-card-subtle);
       padding: 10px 14px;
       border-radius: var(--radius-md);
       border: 1px solid var(--border-subtle);
@@ -851,9 +850,9 @@ interface MineralPreset {
     }
 
     .preset-btn {
-      border: 1px solid #cbd5e1;
-      background: #ffffff;
-      color: #334155;
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-card);
+      color: var(--text-primary);
       font-size: 0.75rem;
       font-weight: 600;
       padding: 4px 10px;
@@ -862,14 +861,14 @@ interface MineralPreset {
       transition: var(--transition-smooth);
 
       &:hover {
-        border-color: #031795;
-        color: #031795;
+        border-color: var(--primary-purple);
+        color: var(--primary-purple);
       }
 
       &.selected {
-        background: #031795;
+        background: var(--primary-purple);
         color: #ffffff;
-        border-color: #031795;
+        border-color: var(--primary-purple);
       }
     }
 
@@ -922,7 +921,7 @@ interface MineralPreset {
     .value-highlight {
       font-size: 0.88rem;
       font-weight: 800;
-      color: #031795;
+      color: var(--primary-purple);
       font-family: monospace;
     }
 
@@ -930,7 +929,7 @@ interface MineralPreset {
       width: 100%;
       height: 6px;
       border-radius: var(--radius-full);
-      accent-color: #031795;
+      accent-color: var(--primary-purple);
       cursor: pointer;
     }
 
@@ -944,6 +943,7 @@ interface MineralPreset {
       padding: 9px 12px;
       border-radius: var(--radius-md);
       border: 1px solid var(--border-subtle);
+      background: var(--bg-input);
       font-size: 0.88rem;
       color: var(--text-primary);
       outline: none;
@@ -951,8 +951,8 @@ interface MineralPreset {
       width: 100%;
 
       &:focus {
-        border-color: #031795;
-        box-shadow: 0 0 0 3px rgba(3, 23, 149, 0.15);
+        border-color: var(--border-focus);
+        box-shadow: 0 0 0 3px var(--primary-glow);
       }
     }
 
@@ -980,7 +980,7 @@ interface MineralPreset {
     }
 
     .kpi-card {
-      background: #f8fafc;
+      background: var(--bg-card-subtle);
       border: 1px solid var(--border-subtle);
       padding: 14px;
       border-radius: var(--radius-md);
@@ -989,28 +989,28 @@ interface MineralPreset {
       gap: 4px;
 
       &.highlight-cobalt {
-        background: #eef2ff;
-        border-color: #c7d2fe;
+        background: var(--primary-bg-subtle);
+        border-color: var(--primary-border);
 
         .kpi-title {
-          color: #031795;
+          color: var(--primary-lavender);
         }
 
         .kpi-number {
-          color: #031795;
+          color: var(--primary-purple);
         }
       }
 
       &.highlight-emerald {
-        background: #ecfdf5;
-        border-color: #a7f3d0;
+        background: var(--success-bg);
+        border-color: rgba(16, 185, 129, 0.3);
 
         .kpi-title {
-          color: #047857;
+          color: var(--success);
         }
 
         .kpi-number {
-          color: #047857;
+          color: var(--success);
         }
       }
     }
@@ -1044,7 +1044,7 @@ interface MineralPreset {
     .progress-bar-wrap {
       width: 100%;
       height: 6px;
-      background: #e2e8f0;
+      background: var(--gauge-track);
       border-radius: var(--radius-full);
       overflow: hidden;
       margin-top: 4px;
@@ -1052,39 +1052,40 @@ interface MineralPreset {
 
     .progress-fill {
       height: 100%;
-      background: #059669;
+      background: var(--success);
       border-radius: var(--radius-full);
       transition: width 0.3s ease;
     }
 
     .formula-box {
-      background: #f1f5f9;
+      background: var(--bg-card-subtle);
+      border: 1px solid var(--border-subtle);
       border-radius: var(--radius-md);
       padding: 10px 14px;
       font-size: 0.78rem;
-      color: #334155;
+      color: var(--text-primary);
       display: flex;
       flex-direction: column;
       gap: 4px;
 
       code {
         font-family: monospace;
-        color: #031795;
+        color: var(--primary-lavender);
         font-weight: 700;
         font-size: 0.82rem;
       }
     }
 
     .operational-advice-card {
-      background: #eff6ff;
-      border: 1px solid #bfdbfe;
+      background: var(--primary-bg-subtle);
+      border: 1px solid var(--primary-border);
       border-radius: var(--radius-md);
       padding: 12px 14px;
       display: flex;
       align-items: flex-start;
       gap: 10px;
       font-size: 0.82rem;
-      color: #1e3a8a;
+      color: var(--text-primary);
       line-height: 1.45;
 
       .advice-icon {
@@ -1093,9 +1094,9 @@ interface MineralPreset {
     }
 
     .alert-box {
-      background: #fffbeb;
-      border: 1px solid #fef3c7;
-      color: #92400e;
+      background: var(--warning-bg);
+      border: 1px solid var(--warning);
+      color: var(--warning);
       padding: 10px 14px;
       border-radius: var(--radius-md);
       font-size: 0.82rem;

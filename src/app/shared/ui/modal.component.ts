@@ -61,7 +61,7 @@ import { CommonModule } from '@angular/common';
     }
 
     .modal-card {
-      background: #ffffff;
+      background: var(--bg-card);
       border: 1px solid var(--border-subtle);
       box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25), 0 0 1px rgba(0, 0, 0, 0.1);
       border-radius: 16px;

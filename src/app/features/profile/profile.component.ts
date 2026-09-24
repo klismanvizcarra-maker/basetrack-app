@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../core/auth/auth.service';
 import { ShiftCode } from '../../core/auth/auth.models';
+import { ThemeService } from '../../core/theme/theme.service';
 
 @Component({
   selector: 'app-profile',
@@ -401,6 +402,65 @@ import { ShiftCode } from '../../core/auth/auth.models';
                 </button>
               </div>
             </form>
+          </div>
+
+          <!-- Theme & Appearance Settings Card -->
+          <div class="profile-card glass-panel theme-settings-card">
+            <div class="card-head-title">
+              <div class="title-icon theme-icon-badge">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                </svg>
+              </div>
+              <div>
+                <h3>Tema y Apariencia Visual</h3>
+                <p class="card-desc">Personaliza el entorno visual para luz diurna o guardias nocturnas en planta</p>
+              </div>
+            </div>
+
+            <div class="theme-options-grid">
+              <!-- Light Mode Option -->
+              <div
+                class="theme-option-box"
+                [class.active]="themeService.themeMode() === 'light'"
+                (click)="themeService.setThemeMode('light')"
+              >
+                <div class="theme-box-icon sun-icon-box">☀️</div>
+                <div class="theme-box-text">
+                  <strong>Modo Claro</strong>
+                  <span>Fondo blanco slate y contraste nítido diurno</span>
+                </div>
+                <span class="theme-active-check" *ngIf="themeService.themeMode() === 'light'">✓</span>
+              </div>
+
+              <!-- Dark Mode Option -->
+              <div
+                class="theme-option-box"
+                [class.active]="themeService.themeMode() === 'dark'"
+                (click)="themeService.setThemeMode('dark')"
+              >
+                <div class="theme-box-icon moon-icon-box">🌙</div>
+                <div class="theme-box-text">
+                  <strong>Modo Oscuro</strong>
+                  <span>Gama obsidiana y azul cobalto para guardia nocturna</span>
+                </div>
+                <span class="theme-active-check" *ngIf="themeService.themeMode() === 'dark'">✓</span>
+              </div>
+
+              <!-- Auto System Mode Option -->
+              <div
+                class="theme-option-box"
+                [class.active]="themeService.themeMode() === 'auto'"
+                (click)="themeService.setThemeMode('auto')"
+              >
+                <div class="theme-box-icon auto-icon-box">💻</div>
+                <div class="theme-box-text">
+                  <strong>Automático</strong>
+                  <span>Sincronizar con el tema del sistema operativo</span>
+                </div>
+                <span class="theme-active-check" *ngIf="themeService.themeMode() === 'auto'">✓</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -930,10 +990,93 @@ import { ShiftCode } from '../../core/auth/auth.models';
         display: inline-block;
       }
     }
+
+    .theme-settings-card {
+      margin-top: 20px;
+    }
+
+    .theme-icon-badge {
+      background: rgba(59, 130, 246, 0.15);
+      color: #3b82f6;
+    }
+
+    .theme-options-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-top: 18px;
+
+      @media (max-width: 768px) {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .theme-option-box {
+      border: 2px solid var(--border-subtle);
+      background: var(--bg-card-subtle);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      cursor: pointer;
+      position: relative;
+      transition: var(--transition-smooth);
+
+      &:hover {
+        border-color: var(--primary-border);
+        background: var(--bg-card-hover);
+        transform: translateY(-2px);
+      }
+
+      &.active {
+        border-color: var(--primary-purple);
+        background: var(--primary-bg-subtle);
+        box-shadow: 0 4px 14px var(--primary-glow);
+      }
+    }
+
+    .theme-box-icon {
+      font-size: 1.5rem;
+    }
+
+    .theme-box-text {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+
+      strong {
+        font-size: 0.95rem;
+        color: var(--text-primary);
+      }
+
+      span {
+        font-size: 0.78rem;
+        color: var(--text-muted);
+        line-height: 1.35;
+      }
+    }
+
+    .theme-active-check {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--primary-purple);
+      color: #ffffff;
+      font-size: 0.75rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
   `]
 })
 export class ProfileComponent implements OnInit {
   authService = inject(AuthService);
+  themeService = inject(ThemeService);
 
   profileForm = {
     fullName: '',

@@ -5,6 +5,7 @@ import { AuthService } from '../../core/auth/auth.service';
 import { OfflineSyncService } from '../../core/offline/offline-sync.service';
 import { LayoutService } from '../../core/layout/layout.service';
 import { PwaService } from '../../core/pwa/pwa.service';
+import { ThemeService } from '../../core/theme/theme.service';
 
 @Component({
   selector: 'app-sidebar',
@@ -223,6 +224,17 @@ import { PwaService } from '../../core/pwa/pwa.service';
               <polyline points="22 4 12 14.01 9 11.01"></polyline>
             </svg>
             <span>Modo App Nativa PWA</span>
+          </div>
+        </div>
+
+        <!-- Theme Mode Switch in Sidebar -->
+        <div class="sidebar-theme-row" (click)="themeService.toggleTheme()" [title]="themeService.isDarkMode() ? 'Modo Oscuro Activo - Clic para cambiar a Modo Claro' : 'Modo Claro Activo - Clic para cambiar a Modo Oscuro'">
+          <div class="theme-row-label">
+            <span class="theme-row-icon">{{ themeService.isDarkMode() ? '🌙' : '☀️' }}</span>
+            <span class="theme-row-text">{{ themeService.isDarkMode() ? 'Modo Oscuro' : 'Modo Claro' }}</span>
+          </div>
+          <div class="theme-switch-pill" [class.dark-active]="themeService.isDarkMode()">
+            <span class="switch-thumb"></span>
           </div>
         </div>
 
@@ -511,6 +523,67 @@ import { PwaService } from '../../core/pwa/pwa.service';
       color: var(--accent-pink);
       padding: 2px 10px;
     }
+
+    .sidebar-theme-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 12px;
+      margin-bottom: 8px;
+      background: var(--bg-card-subtle);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      user-select: none;
+      transition: var(--transition-smooth);
+
+      &:hover {
+        background: var(--bg-card-hover);
+        border-color: var(--primary-border);
+      }
+    }
+
+    .theme-row-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .theme-row-icon {
+      font-size: 0.95rem;
+    }
+
+    .theme-switch-pill {
+      width: 36px;
+      height: 20px;
+      background: #cbd5e1;
+      border-radius: var(--radius-full);
+      padding: 2px;
+      display: flex;
+      align-items: center;
+      transition: all 0.25s ease;
+
+      .switch-thumb {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: #ffffff;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      &.dark-active {
+        background: #3b82f6;
+
+        .switch-thumb {
+          transform: translateX(16px);
+          background: #ffffff;
+        }
+      }
+    }
   `]
 })
 export class SidebarComponent {
@@ -518,6 +591,7 @@ export class SidebarComponent {
   offlineSync = inject(OfflineSyncService);
   layoutService = inject(LayoutService);
   pwa = inject(PwaService);
+  themeService = inject(ThemeService);
 
   onNavClick(): void {
     if (window.innerWidth <= 900) {

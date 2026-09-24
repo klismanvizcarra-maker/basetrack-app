@@ -6,6 +6,7 @@ import { LayoutService } from '../../core/layout/layout.service';
 import { PwaService } from '../../core/pwa/pwa.service';
 import { OfflineSyncService } from '../../core/offline/offline-sync.service';
 import { CloudSyncService } from '../../core/services/cloud-sync.service';
+import { ThemeService } from '../../core/theme/theme.service';
 
 @Component({
   selector: 'app-header',
@@ -106,6 +107,32 @@ import { CloudSyncService } from '../../core/services/cloud-sync.service';
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="3"></circle>
             <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+        </button>
+
+        <!-- Theme Toggle (Dark / Light) -->
+        <button
+          type="button"
+          class="header-action-btn theme-toggle-btn"
+          (click)="themeService.toggleTheme()"
+          [title]="themeService.isDarkMode() ? 'Modo Oscuro Activo - Cambiar a Modo Claro' : 'Modo Claro Activo - Cambiar a Modo Oscuro'"
+          aria-label="Cambiar tema de la interfaz"
+        >
+          <!-- Sun Icon (shown when dark to switch to light) -->
+          <svg *ngIf="themeService.isDarkMode()" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="sun-icon">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+          </svg>
+          <!-- Moon Icon (shown when light to switch to dark) -->
+          <svg *ngIf="!themeService.isDarkMode()" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="moon-icon">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
           </svg>
         </button>
 
@@ -364,8 +391,8 @@ import { CloudSyncService } from '../../core/services/cloud-sync.service';
       width: 40px;
       height: 40px;
       border-radius: var(--radius-md);
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
+      background: var(--bg-card-hover);
+      border: 1px solid var(--border-subtle);
       color: var(--text-secondary);
       display: flex;
       align-items: center;
@@ -380,9 +407,25 @@ import { CloudSyncService } from '../../core/services/cloud-sync.service';
       }
 
       &:hover {
-        background: #f1f5f9;
+        background: var(--bg-input);
         color: var(--text-primary);
-        border-color: #cbd5e1;
+        border-color: var(--primary-border);
+      }
+    }
+
+    .theme-toggle-btn {
+      .sun-icon {
+        color: #f59e0b;
+        filter: drop-shadow(0 0 5px rgba(245, 158, 11, 0.6));
+      }
+
+      .moon-icon {
+        color: #2563eb;
+        filter: drop-shadow(0 0 4px rgba(37, 99, 235, 0.4));
+      }
+
+      &:hover {
+        transform: rotate(12deg) scale(1.05);
       }
     }
 
@@ -1004,15 +1047,18 @@ export class HeaderComponent {
   pwa = inject(PwaService);
   offlineSync = inject(OfflineSyncService);
   cloudSync = inject(CloudSyncService);
+  themeService = inject(ThemeService);
   private router = inject(Router);
   showNotifications = false;
 
   getPageTitle(): string {
     const url = this.router.url;
     if (url.includes('shift-handover')) return 'Cambio de Guardia';
+    if (url.includes('crew')) return 'Gestión de Cuadrilla';
     if (url.includes('pumps')) return 'Reporte de bombas';
     if (url.includes('cyclones')) return 'Reporte de ciclones';
     if (url.includes('tailings')) return 'Reporte de descarga';
+    if (url.includes('calculators')) return 'Calculadora Planta';
     if (url.includes('maintenance')) return 'Mantenimiento & Evidencias';
     if (url.includes('admin')) return 'Administración de Planta';
     if (url.includes('profile')) return 'Mi Cuenta & Perfil';

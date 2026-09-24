@@ -170,11 +170,11 @@ import { LayoutService } from '../../core/layout/layout.service';
       right: 0;
       height: var(--mobile-bottom-bar-height, 62px);
       padding: 4px 6px max(6px, env(safe-area-inset-bottom, 6px));
-      background: rgba(255, 255, 255, 0.94);
+      background: var(--bg-glass);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
-      border-top: 1px solid rgba(226, 232, 240, 0.9);
-      box-shadow: 0 -4px 18px rgba(15, 23, 42, 0.05);
+      border-top: 1px solid var(--border-subtle);
+      box-shadow: 0 -4px 18px rgba(0, 0, 0, 0.05);
       z-index: 900;
       justify-content: space-around;
       align-items: center;
@@ -207,15 +207,15 @@ import { LayoutService } from '../../core/layout/layout.service';
       }
 
       &.active {
-        color: #031795;
+        color: var(--primary-purple);
 
         .bottom-nav-icon-wrap svg {
-          stroke: #031795;
-          filter: drop-shadow(0 1px 4px rgba(3, 23, 149, 0.35));
+          stroke: var(--primary-purple);
+          filter: drop-shadow(0 1px 4px var(--primary-glow));
         }
 
         .bottom-nav-label {
-          color: #031795;
+          color: var(--primary-purple);
           font-weight: 800;
         }
 
@@ -255,7 +255,7 @@ import { LayoutService } from '../../core/layout/layout.service';
       width: 4px;
       height: 4px;
       border-radius: 50%;
-      background: #031795;
+      background: var(--primary-purple);
       opacity: 0;
       transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
@@ -287,8 +287,8 @@ import { LayoutService } from '../../core/layout/layout.service';
       align-items: center;
       gap: 16px;
       padding: 14px 16px;
-      background: #eef2ff;
-      border: 1px solid #c7d2fe;
+      background: var(--bg-card-subtle);
+      border: 1px solid var(--border-subtle);
       border-radius: var(--radius-md);
 
       .hero-icon-img {
@@ -322,7 +322,7 @@ import { LayoutService } from '../../core/layout/layout.service';
       padding: 12px 14px;
       border: 1px solid var(--border-subtle);
       border-radius: var(--radius-md);
-      background: #f8fafc;
+      background: var(--bg-card-subtle);
       font-size: 0.82rem;
       line-height: 1.45;
       color: var(--text-secondary);
