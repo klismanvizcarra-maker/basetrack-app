@@ -96,6 +96,7 @@
 | 2026-09-20 | Multi-Agent Team | Orchestrator | `TASK-029` | Reestructuración operacional completa a 4 guardias (G1-G4) de 8 personas cada una (1 Supervisor + 7 Operadores específicos: Bombas, Ciclones 1, Ciclones 2, Distribuidor, Descarga 1, Descarga 2, Misceláneos), 32 trabajadores oficiales en plantilla, migraciones SQLite v3 automáticas y compatibilidad total en Cuadrilla, Admin, Relevos, Perfil y Reportes PDF |
 | `TASK-030` | Auditoría integral de seguridad y resiliencia lógica | Multi-Agent Team | `TASK-029` | `DONE` | 0/3 | Blindaje de auth, validación en changePassword, compresión canvas y 15/15 tests backend |
 | `TASK-031` | Depuración Total de Guardia Activa y Migración Completa a G1–G4 | Multi-Agent Team | `TASK-030` | `DONE` | 0/3 | Purga absoluta de 'Guardia A/B/C' en DB SQLite, controladores, servicios frontend, persistencia local y reportes PDF; normalización automática de caché; 15/15 tests backend y build Angular impecables |
+| `TASK-032` | Módulo de Calculadora Metalúrgica y de Operaciones en Terreno | Frontend Agent | `TASK-031` | `DONE` | 0/3 | Módulo con 4 calculadoras de campo (Balanza Marcy, Dosificación de Floculante en L/min y L/h, Dilución de Pulpa y Aforador Parshall), presets de minerales, slider interactivo, guardado local y copia rápida |
 
 ---
 
@@ -127,6 +128,7 @@
 | 2026-09-20 | Multi-Agent Team | Orchestrator | `TASK-029` | Reestructuración operacional completa a 4 guardias (G1-G4) de 8 personas cada una (1 Supervisor + 7 Operadores específicos: Bombas, Ciclones 1, Ciclones 2, Distribuidor, Descarga 1, Descarga 2, Misceláneos), 32 trabajadores oficiales en plantilla, migraciones SQLite v3 automáticas y compatibilidad total en Cuadrilla, Admin, Relevos, Perfil y Reportes PDF |
 | 2026-09-23 | QA, Backend & Frontend | Orchestrator | `TASK-030` | Auditoría integral de seguridad y resiliencia lógica: eliminación de bypass de clave en login/offline auth, verificación estricta de contraseña actual en changePassword, saneamiento de fallbacks de guardia y fecha a G1 e ISO dinámico, unificación de telemetría viva para G1-G4 (32 operadores) en Dashboard, compresión cliente Canvas de fotos de mantenimiento, 15/15 tests automatizados y build de producción exitoso |
 | 2026-09-23 | Multi-Agent Team | Orchestrator | `TASK-031` | Saneamiento y purga definitiva de nomenclaturas antiguas (Guardia A, B, C) en DB SQLite, controladores API, servicios Angular, modales de gestión de cuadrilla, reportes PDF y migración de memoria caché de cliente |
+| 2026-09-24 | Frontend Agent | Orchestrator | `TASK-032` | Módulo de Calculadora Metalúrgica y de Terreno (/calculators) integrado en Sidebar, con 4 herramientas de planta: Balanza Marcy, Floculante en L/min y L/h, Dilución de Pulpa y Aforador Parshall |
 
 ---
 
