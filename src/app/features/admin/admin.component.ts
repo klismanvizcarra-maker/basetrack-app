@@ -2,7 +2,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
-import { getApiBaseUrl } from '../../core/constants/api.config';
+import { getApiBaseUrl, getCustomApiUrl, setCustomApiUrl } from '../../core/constants/api.config';
 import { timeout } from 'rxjs';
 import { ModalComponent } from '../../shared/ui/modal.component';
 import { AuthService } from '../../core/auth/auth.service';
@@ -315,6 +315,7 @@ const DEFAULT_LOGS: AuditLog[] = [
               <span class="tag-item">ID Dispositivo: <code>{{ cloudSync.deviceId }}</code></span>
               <span class="tag-item">Terminales en Red: <strong>{{ cloudSync.activeDevicesCount() }} activas</strong></span>
               <span class="tag-item">Última Réplica: <strong>{{ (cloudSync.lastSyncTime() | date:'HH:mm:ss') || 'En vivo' }}</strong></span>
+              <span class="tag-item">Servidor API: <code>{{ currentApiUrl }}</code></span>
             </div>
           </div>
         </div>
@@ -323,11 +324,34 @@ const DEFAULT_LOGS: AuditLog[] = [
             <span class="pulse-dot" [class.dot-green]="cloudSync.isOnline()" [class.dot-orange]="!cloudSync.isOnline()"></span>
             <span class="status-label">{{ cloudSync.isSyncing() ? 'Sincronizando...' : (cloudSync.isOnline() ? 'En Línea • Conectado' : 'Modo Mina • Offline') }}</span>
           </div>
-          <button class="btn btn-emerald-outline" (click)="cloudSync.forceSync()" [disabled]="cloudSync.isSyncing()">
-            <span *ngIf="!cloudSync.isSyncing()">🔄 Forzar Réplica Inmediata</span>
-            <span *ngIf="cloudSync.isSyncing()">Sincronizando...</span>
-          </button>
+          <div class="sync-btns-group">
+            <button class="btn btn-secondary btn-sm" (click)="openBackendConfigModal()" title="Configurar URL de Servidor Central / Render / Railway">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+              </svg>
+              Servidor Cloud
+            </button>
+            <button class="btn btn-emerald-outline btn-sm" (click)="cloudSync.forceSync()" [disabled]="cloudSync.isSyncing()">
+              <span *ngIf="!cloudSync.isSyncing()">🔄 Forzar Réplica</span>
+              <span *ngIf="cloudSync.isSyncing()">Sincronizando...</span>
+            </button>
+          </div>
         </div>
+      </div>
+
+      <!-- Vercel Offline / Unlinked Backend Warning Banner -->
+      <div class="vercel-backend-warning glass-panel animate-fade-in" *ngIf="isVercelDeployment && !hasCustomCloudBackend">
+        <div class="warning-content">
+          <span class="warning-badge">⚠️ MODO ALMACENAMIENTO LOCAL (VERCEL)</span>
+          <div class="warning-body">
+            <strong>Los usuarios y cambios se guardan localmente en la memoria de este navegador.</strong>
+            <p>Al estar desplegado en Vercel sin servidor central vinculado, otros dispositivos (celulares, tablets, computadoras) no pueden ver los usuarios creados aquí ni iniciar sesión con ellos. Conecta la URL de tu backend cloud (Render, Railway o túnel HTTPS) para sincronizar todos tus dispositivos en tiempo real.</p>
+          </div>
+        </div>
+        <button class="btn btn-warning-action" (click)="openBackendConfigModal()">
+          🔗 Conectar Servidor Central
+        </button>
       </div>
 
       <!-- Fleet & Session Manager (Dispositivos Conectados) -->
@@ -847,6 +871,71 @@ const DEFAULT_LOGS: AuditLog[] = [
           </button>
         </div>
       </app-modal>
+
+      <!-- Cloud Backend API Server Config Modal -->
+      <app-modal
+        [isOpen]="isBackendConfigModalOpen"
+        [title]="'Configuración de Servidor Central / Cloud Backend'"
+        (close)="isBackendConfigModalOpen = false"
+      >
+        <div class="cloud-backend-modal">
+          <p class="modal-description">
+            BASETRACK requiere una URL de servidor central HTTPS para sincronizar usuarios, reportes de guardia y parámetros operativos en tiempo real entre múltiples dispositivos (celulares, computadoras y tablets).
+          </p>
+
+          <div class="form-group" style="margin-top: 16px;">
+            <label style="font-weight: 600; display: block; margin-bottom: 6px;">URL del Servidor Backend (API URL):</label>
+            <div class="input-with-action">
+              <input
+                type="url"
+                [(ngModel)]="customApiUrlInput"
+                placeholder="Ej: https://basetrack-api.onrender.com/api"
+                class="modal-input"
+              />
+              <button
+                type="button"
+                class="btn btn-secondary btn-sm"
+                (click)="testBackendConnection()"
+                [disabled]="isTestingApiConnection"
+              >
+                {{ isTestingApiConnection ? 'Probando...' : 'Probar Conexión' }}
+              </button>
+            </div>
+            <span class="input-hint">Debe incluir <code>https://</code> y terminar en <code>/api</code> si está en producción.</span>
+          </div>
+
+          <!-- Connection Test Feedback -->
+          <div *ngIf="apiConnectionTestStatus !== 'idle'" 
+               class="conn-test-box" 
+               [class.conn-success]="apiConnectionTestStatus === 'success'"
+               [class.conn-error]="apiConnectionTestStatus === 'error'">
+            <div class="conn-test-icon">{{ apiConnectionTestStatus === 'success' ? '✅' : '❌' }}</div>
+            <div class="conn-test-text">{{ apiConnectionTestMessage }}</div>
+          </div>
+
+          <!-- Step-by-step deploy instructions for Render.com -->
+          <div class="cloud-guide-card">
+            <h5>🚀 ¿Cómo tener tu servidor cloud 100% gratuito en Render.com?</h5>
+            <ol class="guide-steps">
+              <li>Crea una cuenta gratuita en <a href="https://render.com" target="_blank" rel="noopener">Render.com</a>.</li>
+              <li>Haz clic en <strong>New +</strong> &rarr; <strong>Web Service</strong> y conecta este repositorio de GitHub.</li>
+              <li>Configura las opciones del servicio:
+                <ul>
+                  <li><strong>Root Directory:</strong> <code>server</code></li>
+                  <li><strong>Build Command:</strong> <code>npm install && npm run build</code></li>
+                  <li><strong>Start Command:</strong> <code>npm start</code></li>
+                </ul>
+              </li>
+              <li>Copia la URL HTTPS generada (ej: <code>https://tu-servicio.onrender.com/api</code>) y pégala aquí.</li>
+            </ol>
+          </div>
+        </div>
+
+        <div footer class="modal-footer-actions">
+          <button type="button" class="btn btn-secondary" (click)="resetBackendToDefault()">Restaurar Local</button>
+          <button type="button" class="btn btn-primary" (click)="saveBackendConfig()">Guardar y Conectar</button>
+        </div>
+      </app-modal>
   `,
   styles: [`
     .admin-page {
@@ -1042,6 +1131,205 @@ const DEFAULT_LOGS: AuditLog[] = [
           &:disabled {
             opacity: 0.6;
             cursor: not-allowed;
+          }
+        }
+
+        .sync-btns-group {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex-wrap: wrap;
+
+          @media (max-width: 768px) {
+            width: 100%;
+            button {
+              flex: 1;
+              justify-content: center;
+            }
+          }
+        }
+      }
+    }
+
+    .vercel-backend-warning {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 14px 20px;
+      border-radius: var(--radius-md);
+      background: #fffbeb;
+      border: 1.5px solid #f59e0b;
+      color: #92400e;
+
+      @media (max-width: 768px) {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 14px;
+        gap: 12px;
+      }
+
+      .warning-content {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+
+        .warning-badge {
+          background: #f59e0b;
+          color: #ffffff;
+          font-size: 0.72rem;
+          font-weight: 800;
+          padding: 3px 8px;
+          border-radius: 4px;
+          white-space: nowrap;
+          letter-spacing: 0.5px;
+        }
+
+        .warning-body {
+          font-size: 0.82rem;
+          line-height: 1.45;
+
+          strong {
+            color: #78350f;
+            display: block;
+            margin-bottom: 2px;
+          }
+
+          p {
+            margin: 0;
+            color: #92400e;
+          }
+        }
+      }
+
+      .btn-warning-action {
+        background: #f59e0b;
+        color: #ffffff;
+        font-weight: 700;
+        font-size: 0.82rem;
+        padding: 8px 16px;
+        border-radius: 8px;
+        border: none;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: all 0.2s ease;
+
+        &:hover {
+          background: #d97706;
+          box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+        }
+
+        @media (max-width: 768px) {
+          width: 100%;
+          text-align: center;
+        }
+      }
+    }
+
+    .cloud-backend-modal {
+      .modal-description {
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+        line-height: 1.5;
+        margin-bottom: 12px;
+      }
+
+      .input-with-action {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+
+        .modal-input {
+          flex: 1;
+        }
+      }
+
+      .input-hint {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        margin-top: 4px;
+        display: block;
+
+        code {
+          color: var(--color-primary);
+          font-weight: 600;
+        }
+      }
+
+      .conn-test-box {
+        margin-top: 14px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 14px;
+        border-radius: 8px;
+        font-size: 0.82rem;
+
+        &.conn-success {
+          background: #ecfdf5;
+          border: 1px solid #10b981;
+          color: #065f46;
+        }
+
+        &.conn-error {
+          background: #fef2f2;
+          border: 1px solid #ef4444;
+          color: #991b1b;
+        }
+
+        .conn-test-icon {
+          font-size: 1.1rem;
+        }
+
+        .conn-test-text {
+          flex: 1;
+          line-height: 1.4;
+        }
+      }
+
+      .cloud-guide-card {
+        margin-top: 18px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 14px 16px;
+
+        h5 {
+          margin: 0 0 10px;
+          font-size: 0.88rem;
+          color: #1e293b;
+          font-weight: 700;
+        }
+
+        .guide-steps {
+          margin: 0;
+          padding-left: 20px;
+          font-size: 0.8rem;
+          color: #475569;
+          line-height: 1.6;
+
+          li {
+            margin-bottom: 6px;
+          }
+
+          a {
+            color: #2563eb;
+            font-weight: 600;
+            text-decoration: underline;
+          }
+
+          ul {
+            margin: 4px 0 6px;
+            padding-left: 18px;
+          }
+
+          code {
+            background: #e2e8f0;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.78rem;
+            color: #0f172a;
           }
         }
       }
@@ -1729,6 +2017,70 @@ export class AdminComponent implements OnInit {
   selectedUserForReset: UserItem | null = null;
   resetNewPassword = '';
 
+  // Cloud Backend Configuration
+  isBackendConfigModalOpen = false;
+  customApiUrlInput = '';
+  isTestingApiConnection = false;
+  apiConnectionTestStatus: 'idle' | 'success' | 'error' = 'idle';
+  apiConnectionTestMessage = '';
+  isVercelDeployment = typeof window !== 'undefined' && window.location.hostname.includes('vercel.app');
+  currentApiUrl = getApiBaseUrl();
+
+  get hasCustomCloudBackend(): boolean {
+    return !!getCustomApiUrl();
+  }
+
+  openBackendConfigModal(): void {
+    this.customApiUrlInput = getCustomApiUrl();
+    this.apiConnectionTestStatus = 'idle';
+    this.apiConnectionTestMessage = '';
+    this.isBackendConfigModalOpen = true;
+  }
+
+  testBackendConnection(): void {
+    const raw = this.customApiUrlInput.trim() || getApiBaseUrl();
+    let cleanUrl = raw.replace(/\/+$/, '');
+    if (!cleanUrl.endsWith('/api')) {
+      cleanUrl += '/api';
+    }
+
+    this.isTestingApiConnection = true;
+    this.apiConnectionTestStatus = 'idle';
+    this.apiConnectionTestMessage = 'Probando conexión con el servidor cloud...';
+
+    this.http.get<any>(`${cleanUrl}/sync/status`).pipe(timeout(7000)).subscribe({
+      next: (res) => {
+        this.isTestingApiConnection = false;
+        this.apiConnectionTestStatus = 'success';
+        this.apiConnectionTestMessage = `¡Conexión Exitosa! Servidor en línea (Estado: ${res?.status || 'OK'}, Hora: ${res?.server_time || 'OK'}).`;
+      },
+      error: (err) => {
+        this.isTestingApiConnection = false;
+        this.apiConnectionTestStatus = 'error';
+        this.apiConnectionTestMessage = `No se pudo conectar a ${cleanUrl} (${err.status ? 'Error HTTP ' + err.status : 'Timeout o Error de Red'}). Asegúrate de usar HTTPS en la nube y que el backend esté en ejecución.`;
+      }
+    });
+  }
+
+  saveBackendConfig(): void {
+    setCustomApiUrl(this.customApiUrlInput.trim());
+    this.currentApiUrl = getApiBaseUrl();
+    this.isBackendConfigModalOpen = false;
+    this.backupSuccessMessage = 'URL de servidor central actualizada. Sincronizando con la nube...';
+    setTimeout(() => this.backupSuccessMessage = '', 6000);
+    this.cloudSync.forceSync();
+    this.loadUsers();
+    this.loadLogs();
+  }
+
+  resetBackendToDefault(): void {
+    setCustomApiUrl('');
+    this.customApiUrlInput = '';
+    this.currentApiUrl = getApiBaseUrl();
+    this.apiConnectionTestStatus = 'idle';
+    this.apiConnectionTestMessage = 'Restablecido al endpoint por defecto.';
+  }
+
   get filteredUsers(): UserItem[] {
     return this.users.filter(u => {
       // Shift filter
@@ -1776,7 +2128,7 @@ export class AdminComponent implements OnInit {
           // Si contiene usuarios obsoletos o 'admin' / Carlos Mendoza, refrescar con la lista real de 15 operadores
           const hasOldMockUsers = Array.isArray(parsed) && parsed.some((u: any) => u.username === 'admin' || u.username === 'supervisor_a' || u.username === 'operador_bombas' || u.id === 'u-admin');
           const klismanIsAdmin = Array.isArray(parsed) && parsed.some((u: any) => u.username === 'KlismanV' && u.role === 'ADMIN');
-          if (Array.isArray(parsed) && parsed.length === 15 && !hasOldMockUsers && klismanIsAdmin) {
+          if (Array.isArray(parsed) && parsed.length >= 15 && !hasOldMockUsers && klismanIsAdmin) {
             this.users = parsed;
           } else {
             this.users = [...DEFAULT_USERS];
@@ -1864,6 +2216,7 @@ export class AdminComponent implements OnInit {
 
     this.users.unshift(createdUser);
     saveRealtimeData('admin_users', this.users);
+    this.saveUsersToStorage();
 
     // Save to users registry so the new user can authenticate
     const registry = getRealtimeData<Record<string, any>>('users_registry', {});
@@ -1874,7 +2227,8 @@ export class AdminComponent implements OnInit {
       fullName: createdUser.full_name,
       role: createdUser.role,
       shift: createdUser.shift,
-      avatarUrl: createdUser.avatar_url
+      avatarUrl: createdUser.avatar_url,
+      password: this.newUser.password || 'Password123!'
     };
     saveRealtimeData('users_registry', registry);
 
@@ -1885,6 +2239,7 @@ export class AdminComponent implements OnInit {
         if (res && res.id) {
           createdUser.id = res.id;
           saveRealtimeData('admin_users', this.users);
+          this.saveUsersToStorage();
         }
       },
       error: () => {
@@ -2378,6 +2733,16 @@ export class AdminComponent implements OnInit {
         this.isSavingUser = false;
         this.isResetPasswordModalOpen = false;
         console.warn('[Admin] Error restableciendo contraseña en servidor:', err);
+
+        // Actualizar registro seguro local de contingencia
+        const newPass = this.resetNewPassword.trim() || 'Password123!';
+        const registry = getRealtimeData<Record<string, any>>('users_registry', {});
+        const key = user.username.toLowerCase();
+        if (registry[key]) {
+          registry[key].password = newPass;
+          saveRealtimeData('users_registry', registry);
+        }
+
         this.backupSuccessMessage = `Contraseña restablecida exitosamente para ${user.username}.`;
         setTimeout(() => this.backupSuccessMessage = '', 6000);
       }

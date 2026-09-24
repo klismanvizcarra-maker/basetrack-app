@@ -646,7 +646,8 @@ export class AuthService {
       fullName: payload.fullName,
       role: (payload.role as any) || 'OPERATOR',
       shift: (payload.shift as any) || 'G1',
-      avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${payload.username}`
+      avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${payload.username}`,
+      password: payload.password
     };
     this.saveUserToRegistry(newUser);
 
