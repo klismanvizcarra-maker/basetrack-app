@@ -1200,29 +1200,38 @@ export class MetallurgicalCalculatorsComponent implements OnInit {
   dilGs = 2.70;
 
   get dilInitialDensity(): number {
-    const cw = this.dilInitialSolidsPct / 100;
-    return 1 / (cw / this.dilGs + (1 - cw));
+    const gs = Math.max(1.05, this.dilGs || 2.70);
+    const cw = Math.max(0, Math.min(0.99, (this.dilInitialSolidsPct || 0) / 100));
+    return 1 / (cw / gs + (1 - cw));
   }
 
   get dilFinalDensity(): number {
-    const cw = this.dilTargetSolidsPct / 100;
-    return 1 / (cw / this.dilGs + (1 - cw));
+    const gs = Math.max(1.05, this.dilGs || 2.70);
+    const cw = Math.max(0, Math.min(0.99, (this.dilTargetSolidsPct || 0) / 100));
+    return 1 / (cw / gs + (1 - cw));
   }
 
   get dilDryTonnageTmh(): number {
-    return this.dilInitialPulpFlowM3h * this.dilInitialDensity * (this.dilInitialSolidsPct / 100);
+    const flow = Math.max(0, this.dilInitialPulpFlowM3h || 0);
+    const cwFrac = Math.max(0, (this.dilInitialSolidsPct || 0) / 100);
+    return flow * this.dilInitialDensity * cwFrac;
   }
 
   get dilFinalPulpFlowM3h(): number {
-    if (this.dilTargetSolidsPct <= 0) return 0;
-    const finalWetTmh = this.dilDryTonnageTmh / (this.dilTargetSolidsPct / 100);
-    return finalWetTmh / this.dilFinalDensity;
+    if (!this.dilTargetSolidsPct || this.dilTargetSolidsPct <= 0) return 0;
+    const cwFrac = this.dilTargetSolidsPct / 100;
+    const finalWetTmh = this.dilDryTonnageTmh / cwFrac;
+    return this.dilFinalDensity > 0 ? (finalWetTmh / this.dilFinalDensity) : 0;
   }
 
   get dilWaterAdditionM3h(): number {
+    if (!this.dilInitialSolidsPct || !this.dilTargetSolidsPct) return 0;
     if (this.dilTargetSolidsPct >= this.dilInitialSolidsPct) return 0;
-    const initialWaterTmh = (this.dilDryTonnageTmh / (this.dilInitialSolidsPct / 100)) - this.dilDryTonnageTmh;
-    const targetWaterTmh = (this.dilDryTonnageTmh / (this.dilTargetSolidsPct / 100)) - this.dilDryTonnageTmh;
+    const initialCw = this.dilInitialSolidsPct / 100;
+    const targetCw = this.dilTargetSolidsPct / 100;
+    if (initialCw <= 0 || targetCw <= 0) return 0;
+    const initialWaterTmh = (this.dilDryTonnageTmh / initialCw) - this.dilDryTonnageTmh;
+    const targetWaterTmh = (this.dilDryTonnageTmh / targetCw) - this.dilDryTonnageTmh;
     return Math.max(0, targetWaterTmh - initialWaterTmh);
   }
 
