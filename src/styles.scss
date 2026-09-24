@@ -131,6 +131,7 @@
 
 html, body {
   height: 100%;
+  min-height: 100dvh;
   background-color: var(--bg-canvas);
   color: var(--text-primary);
   font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
@@ -138,12 +139,29 @@ html, body {
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
   -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  overscroll-behavior-y: none;
+  user-select: none;
 }
 
-/* Eliminate 300ms touch delay on mobile browsers */
-button, a, input, select, textarea, [role="button"] {
+/* Eliminate 300ms touch delay & accidental gestures on interactive elements */
+button, a, input, select, textarea, [role="button"], .nav-link, .btn, .pill-btn, .pill-tab-item, .bottom-nav-item {
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+
+input, select, textarea {
+  user-select: auto;
+}
+
+/* Force minimum 16px font-size on all mobile inputs to prevent iOS Safari auto-zoom */
+@media (max-width: 768px) {
+  input, select, textarea, .form-control {
+    font-size: 16px !important;
+  }
 }
 
 /* Custom Clean Scrollbar */

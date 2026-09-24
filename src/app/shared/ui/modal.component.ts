@@ -55,8 +55,8 @@ import { CommonModule } from '@angular/common';
       box-sizing: border-box;
 
       @media (max-width: 640px) {
-        align-items: center;
-        padding: 16px;
+        align-items: flex-end;
+        padding: 0;
       }
     }
 
@@ -76,13 +76,30 @@ import { CommonModule } from '@angular/common';
 
       @media (max-width: 640px) {
         max-width: 100%;
-        border-radius: 16px;
-        max-height: calc(100vh - 32px);
+        border-radius: 22px 22px 0 0;
+        max-height: 90dvh;
+        margin: 0;
+        border-bottom: none;
+        animation: modalInMobile 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
       }
     }
 
     .mobile-drag-pill {
       display: none;
+
+      @media (max-width: 640px) {
+        display: block;
+        width: 38px;
+        height: 5px;
+        background: #cbd5e1;
+        border-radius: var(--radius-full);
+        margin: 10px auto 0;
+      }
+    }
+
+    @keyframes modalInMobile {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
     }
 
     @keyframes modalIn {

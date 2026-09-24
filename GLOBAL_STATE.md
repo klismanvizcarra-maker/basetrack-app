@@ -98,6 +98,7 @@
 | `TASK-031` | Depuración Total de Guardia Activa y Migración Completa a G1–G4 | Multi-Agent Team | `TASK-030` | `DONE` | 0/3 | Purga absoluta de 'Guardia A/B/C' en DB SQLite, controladores, servicios frontend, persistencia local y reportes PDF; normalización automática de caché; 15/15 tests backend y build Angular impecables |
 | `TASK-032` | Módulo de Calculadora Metalúrgica y de Operaciones en Terreno | Frontend Agent | `TASK-031` | `DONE` | 0/3 | Módulo con 4 calculadoras de campo (Balanza Marcy, Dosificación de Floculante en L/min y L/h, Dilución de Pulpa y Aforador Parshall), presets de minerales, slider interactivo, guardado local y copia rápida |
 | `TASK-033` | Sistema Integral de Modo Oscuro y Diseño Industrial Nocturno | Frontend Agent | `TASK-032` | `DONE` | 0/3 | Arquitectura ThemeService con señales y persistencia; conmutador en Header, Sidebar y Mi Perfil; paleta obsidiana/azul cobalto adaptativa en todo el sistema sin alterar la impresión PDF A4 |
+| `TASK-034` | Optimización Móvil Nativa, Bloqueo Total de Zoom y Safe Areas | Frontend Agent | `TASK-033` | `DONE` | 0/3 | Viewport locked (user-scalable=no, viewport-fit=cover), interceptores de gestos multi-touch y doble toque, font-size 16px anti auto-zoom en inputs, bottom-sheet en modales y soporte de notch/home-bar |
 
 ---
 
@@ -131,6 +132,7 @@
 | 2026-09-23 | Multi-Agent Team | Orchestrator | `TASK-031` | Saneamiento y purga definitiva de nomenclaturas antiguas (Guardia A, B, C) en DB SQLite, controladores API, servicios Angular, modales de gestión de cuadrilla, reportes PDF y migración de memoria caché de cliente |
 | 2026-09-24 | Frontend Agent | Orchestrator | `TASK-032` | Módulo de Calculadora Metalúrgica y de Terreno (/calculators) integrado en Sidebar, con 4 herramientas de planta: Balanza Marcy, Floculante en L/min y L/h, Dilución de Pulpa y Aforador Parshall |
 | 2026-09-24 | Frontend Agent | Orchestrator | `TASK-033` | Modo Oscuro / Nocturno industrial con ThemeService reactivo, persistencia en localStorage, conmutador rápido en Header, interruptor en Sidebar, selector en Mi Perfil y diseño adaptativo sin romper reportes PDF A4 |
+| 2026-09-24 | Frontend Agent | Orchestrator | `TASK-034` | Adaptación móvil integral: eliminación absoluta de zoom (meta viewport, pinch-to-zoom y double-tap bloqueados), modales como bottom-sheets, safe-area insets y prevención de auto-zoom en inputs |
 
 ---
 

@@ -279,17 +279,19 @@ import { ThemeService } from '../../core/theme/theme.service';
       align-items: center;
       justify-content: space-between;
       padding: 0 32px;
-      background: rgba(255, 255, 255, 0.88);
+      background: var(--bg-glass);
       border-bottom: 1px solid var(--border-subtle);
       position: sticky;
       top: 0;
       z-index: 50;
-      backdrop-filter: blur(8px);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
       transition: height 0.2s ease, padding 0.2s ease;
 
       @media (max-width: 768px) {
-        height: 58px;
-        padding: 0 12px;
+        height: auto;
+        min-height: 56px;
+        padding: max(6px, env(safe-area-inset-top, 0px)) 12px 6px 12px;
       }
     }
 
