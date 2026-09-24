@@ -136,6 +136,26 @@ import { PwaService } from '../../core/pwa/pwa.service';
             </a>
           </li>
 
+          <li class="nav-item">
+            <a routerLink="/calculators" routerLinkActive="active" class="nav-link" (click)="onNavClick()">
+              <span class="nav-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="4" y="2" width="16" height="20" rx="2"></rect>
+                  <line x1="8" y1="6" x2="16" y2="6"></line>
+                  <line x1="16" y1="14" x2="16" y2="18"></line>
+                  <path d="M16 10h.01"></path>
+                  <path d="M12 10h.01"></path>
+                  <path d="M8 10h.01"></path>
+                  <path d="M12 14h.01"></path>
+                  <path d="M8 14h.01"></path>
+                  <path d="M12 18h.01"></path>
+                  <path d="M8 18h.01"></path>
+                </svg>
+              </span>
+              <span class="nav-label">Calculadora Planta</span>
+            </a>
+          </li>
+
           <div class="nav-section-title" *ngIf="authService.isAdmin()">GESTIÓN</div>
 
           <li class="nav-item" *ngIf="authService.isAdmin()">
