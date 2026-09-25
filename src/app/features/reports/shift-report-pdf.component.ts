@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { ShiftHandover } from '../shift-handover/shift-handover.component';
 import { PdfExportService } from '../../core/services/pdf-export.service';
+import { copyToClipboard } from '../../core/utils/clipboard.util';
 
 @Component({
   selector: 'app-shift-report-pdf',
@@ -911,11 +912,13 @@ export class ShiftReportPdfComponent implements OnInit {
 ⚠️ Pendientes Críticos: ${this.reportData.pending_tasks || 'Ninguno'}
 ✅ Estado: ACEPTADO Y CONFORME`;
 
-    navigator.clipboard.writeText(summary).then(() => {
-      this.copiedText = true;
-      setTimeout(() => {
-        this.copiedText = false;
-      }, 3000);
+    copyToClipboard(summary).then((success) => {
+      if (success) {
+        this.copiedText = true;
+        setTimeout(() => {
+          this.copiedText = false;
+        }, 3000);
+      }
     });
   }
 }

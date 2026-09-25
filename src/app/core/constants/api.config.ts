@@ -37,11 +37,15 @@ export function getApiBaseUrl(): string {
 }
 
 export function setCustomApiUrl(url: string): void {
-  if (typeof localStorage !== 'undefined') {
-    if (url && url.trim()) {
-      localStorage.setItem('basetrack_api_url', url.trim());
-    } else {
-      localStorage.removeItem('basetrack_api_url');
+  if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+    try {
+      if (url && url.trim()) {
+        localStorage.setItem('basetrack_api_url', url.trim());
+      } else {
+        localStorage.removeItem('basetrack_api_url');
+      }
+    } catch (e) {
+      console.warn('[ApiConfig] Error writing custom api url to storage:', e);
     }
   }
 }

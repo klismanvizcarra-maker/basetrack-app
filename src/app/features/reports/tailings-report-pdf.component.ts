@@ -2,6 +2,7 @@ import { Component, Input, Output, EventEmitter, OnInit, inject } from '@angular
 import { CommonModule } from '@angular/common';
 import { TailingsReport } from '../tailings/tailings.component';
 import { PdfExportService } from '../../core/services/pdf-export.service';
+import { copyToClipboard } from '../../core/utils/clipboard.util';
 
 @Component({
   selector: 'app-tailings-report-pdf',
@@ -739,11 +740,13 @@ export class TailingsReportPdfComponent implements OnInit {
 📌 Operación y descarga de relaves estable
 ✅ Documento Oficial Validado`;
 
-    navigator.clipboard.writeText(summary).then(() => {
-      this.copiedText = true;
-      setTimeout(() => {
-        this.copiedText = false;
-      }, 3000);
+    copyToClipboard(summary).then((success) => {
+      if (success) {
+        this.copiedText = true;
+        setTimeout(() => {
+          this.copiedText = false;
+        }, 3000);
+      }
     });
   }
 }

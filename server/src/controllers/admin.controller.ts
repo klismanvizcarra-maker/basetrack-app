@@ -7,6 +7,17 @@ import { db } from '../database/db.js';
 import { AuthenticatedRequest } from '../middlewares/auth.middleware.js';
 import { logAudit } from '../middlewares/error.middleware.js';
 
+function normalizeShift(shift?: any): string {
+  if (!shift) return 'G1';
+  const upper = String(shift).toUpperCase().trim();
+  if (upper === 'GUARDIA_A') return 'G1';
+  if (upper === 'GUARDIA_B') return 'G2';
+  if (upper === 'GUARDIA_C') return 'G3';
+  if (upper === 'GUARDIA_D') return 'G4';
+  if (['G1', 'G2', 'G3', 'G4'].includes(upper)) return upper;
+  return 'G1';
+}
+
 export function getAllUsers(req: Request, res: Response) {
   try {
     const users = db.prepare('SELECT id, username, email, full_name, role, shift, avatar_url, COALESCE(is_active, 1) as is_active, created_at FROM users ORDER BY created_at DESC').all();
@@ -33,10 +44,17 @@ export function createUserByAdmin(req: AuthenticatedRequest, res: Response) {
     const hash = bcrypt.hashSync(password, 10);
     const avatarUrl = `https://api.dicebear.com/7.x/bottts/svg?seed=${username}`;
 
+    let cleanShift = (shift || 'G1').toString().toUpperCase();
+    if (cleanShift === 'GUARDIA_A') cleanShift = 'G1';
+    else if (cleanShift === 'GUARDIA_B') cleanShift = 'G2';
+    else if (cleanShift === 'GUARDIA_C') cleanShift = 'G3';
+    else if (cleanShift === 'GUARDIA_D') cleanShift = 'G4';
+    if (!['G1', 'G2', 'G3', 'G4'].includes(cleanShift)) cleanShift = 'G1';
+
     db.prepare(`
       INSERT INTO users (id, username, email, password_hash, full_name, role, shift, avatar_url)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(id, username, email, hash, full_name, role || 'OPERATOR', shift || 'GUARDIA_A', avatarUrl);
+    `).run(id, username, email, hash, full_name, role || 'OPERATOR', cleanShift, avatarUrl);
 
     logAudit(req.user?.userId || null, req.user?.username || 'admin', 'CREATE_USER', 'USERS', id, `Creación de usuario ${username} (${role})`, req.ip || '127.0.0.1');
 
@@ -77,7 +95,12 @@ export function createUsersBulk(req: AuthenticatedRequest, res: Response) {
         const email = item.email?.toString().trim();
         const fullName = (item.full_name || item.name || username)?.toString().trim();
         const role = (item.role || 'OPERATOR').toString().toUpperCase();
-        const shift = (item.shift || 'GUARDIA_A').toString().toUpperCase();
+        let shift = (item.shift || 'G1').toString().toUpperCase();
+        if (shift === 'GUARDIA_A') shift = 'G1';
+        else if (shift === 'GUARDIA_B') shift = 'G2';
+        else if (shift === 'GUARDIA_C') shift = 'G3';
+        else if (shift === 'GUARDIA_D') shift = 'G4';
+        if (!['G1', 'G2', 'G3', 'G4'].includes(shift)) shift = 'G1';
         const password = item.password || 'Basetrack2026!';
         const documentId = (item.document_id || item.dni || item.doc || ('DNI-' + Math.floor(10000000 + Math.random() * 90000000))).toString().trim();
         const radio = item.radio_channel || 'Canal 1 Operaciones';
@@ -106,7 +129,7 @@ export function createUsersBulk(req: AuthenticatedRequest, res: Response) {
           hash,
           fullName,
           ['ADMIN', 'SUPERVISOR', 'OPERATOR'].includes(role) ? role : 'OPERATOR',
-          ['G1', 'G2', 'G3', 'G4', 'GUARDIA_A', 'GUARDIA_B', 'GUARDIA_C'].includes(shift) ? shift : 'G1',
+          shift,
           avatar
         );
 
@@ -134,7 +157,7 @@ export function createUsersBulk(req: AuthenticatedRequest, res: Response) {
             fullName,
             documentId,
             primaryRole,
-            ['G1', 'G2', 'G3', 'G4', 'GUARDIA_A', 'GUARDIA_B', 'GUARDIA_C'].includes(shift) ? shift : 'G1',
+            shift,
             radio,
             phone,
             'EN_TURNO',
@@ -239,7 +262,7 @@ export function restoreDatabaseBackup(req: AuthenticatedRequest, res: Response) 
         let count = 0;
         for (const m of data.crew_members) {
           if (m.id && m.name && m.document_id) {
-            stmt.run(m.id, m.name, m.document_id, m.primary_role || 'OPERADOR_BOMBAS', m.shift_code || 'GUARDIA_A', m.radio_channel || 'Canal 1 Operaciones', m.phone_extension || null, m.status || 'EN_TURNO', m.avatar_url || null, m.created_at || null);
+            stmt.run(m.id, m.name, m.document_id, m.primary_role || 'OPERADOR_BOMBAS', normalizeShift(m.shift_code), m.radio_channel || 'Canal 1 Operaciones', m.phone_extension || null, m.status || 'EN_TURNO', m.avatar_url || null, m.created_at || null);
             count++;
           }
         }
@@ -271,7 +294,7 @@ export function restoreDatabaseBackup(req: AuthenticatedRequest, res: Response) 
         let count = 0;
         for (const a of data.crew_area_assignments) {
           if (a.id && a.shift_code && a.operator_id) {
-            stmt.run(a.id, a.shift_code, a.shift_date, a.shift_type || 'DIA', a.position_key, a.position_title, a.operator_id, a.backup_operator_id || null, a.epp_verified ? 1 : 0, a.safety_talk_completed ? 1 : 0, a.radio_channel || null, a.station_location || null, a.notes || null, a.updated_at || null);
+            stmt.run(a.id, normalizeShift(a.shift_code), a.shift_date, a.shift_type || 'DIA', a.position_key, a.position_title, a.operator_id, a.backup_operator_id || null, a.epp_verified ? 1 : 0, a.safety_talk_completed ? 1 : 0, a.radio_channel || null, a.station_location || null, a.notes || null, a.updated_at || null);
             count++;
           }
         }
@@ -290,7 +313,7 @@ export function restoreDatabaseBackup(req: AuthenticatedRequest, res: Response) 
             stmt.run(
               s.id,
               s.report_date,
-              s.shift_code || 'GUARDIA_A',
+              normalizeShift(s.shift_code),
               s.operator_name || 'Operador',
               typeof s.sentina_pumps_json === 'string' ? s.sentina_pumps_json : JSON.stringify(s.sentina_pumps || []),
               typeof s.intermedia_pumps_json === 'string' ? s.intermedia_pumps_json : JSON.stringify(s.intermedia_pumps || []),
@@ -317,7 +340,7 @@ export function restoreDatabaseBackup(req: AuthenticatedRequest, res: Response) 
         let count = 0;
         for (const cs of data.cyclone_station_samples) {
           if (cs.id && cs.sample_time) {
-            stmt.run(cs.id, cs.station || '2DA ESTACIÓN CICLONES', cs.sample_time, cs.battery_tag || 'BATERÍA D', cs.solids_feed || 0, cs.solids_of || 0, cs.solids_uf || 0, cs.mesh200_feed || 0, cs.mesh200_of || 0, cs.mesh200_uf || 0, cs.shift_code || 'GUARDIA_A', cs.date || new Date().toISOString().slice(0, 10), cs.created_at || null);
+            stmt.run(cs.id, cs.station || '2DA ESTACIÓN CICLONES', cs.sample_time, cs.battery_tag || 'BATERÍA D', cs.solids_feed || 0, cs.solids_of || 0, cs.solids_uf || 0, cs.mesh200_feed || 0, cs.mesh200_of || 0, cs.mesh200_uf || 0, normalizeShift(cs.shift_code), cs.date || new Date().toISOString().slice(0, 10), cs.created_at || null);
             count++;
           }
         }
@@ -349,7 +372,7 @@ export function restoreDatabaseBackup(req: AuthenticatedRequest, res: Response) 
         let count = 0;
         for (const p of data.pump_reports) {
           if (p.id && p.tag) {
-            stmt.run(p.id, p.tag, p.name || p.tag, p.system || 'Bombeo', p.status || 'OPERATING', p.flow_rate_m3h || 0, p.pressure_bar || 0, p.rpm || 0, p.bearing_temp_c || 0, p.vibration_mms || 0, p.current_amps || 0, p.shift_code || 'GUARDIA_A', p.operator_name || 'Operador', p.notes || null, p.created_at || null);
+            stmt.run(p.id, p.tag, p.name || p.tag, p.system || 'Bombeo', p.status || 'OPERATING', p.flow_rate_m3h || 0, p.pressure_bar || 0, p.rpm || 0, p.bearing_temp_c || 0, p.vibration_mms || 0, p.current_amps || 0, normalizeShift(p.shift_code), p.operator_name || 'Operador', p.notes || null, p.created_at || null);
             count++;
           }
         }
@@ -365,7 +388,7 @@ export function restoreDatabaseBackup(req: AuthenticatedRequest, res: Response) 
         let count = 0;
         for (const c of data.cyclone_reports) {
           if (c.id && c.battery_tag) {
-            stmt.run(c.id, c.battery_tag, c.total_cyclones || 12, c.active_cyclones || 10, c.feed_pressure_psi || 0, c.feed_density_kgm3 || 0, c.p80_microns || 0, c.overflow_density || 0, c.underflow_density || 0, c.flocculant_ppm || 0, c.status || 'OPTIMAL', c.shift_code || 'GUARDIA_A', c.notes || null, c.created_at || null);
+            stmt.run(c.id, c.battery_tag, c.total_cyclones || 12, c.active_cyclones || 10, c.feed_pressure_psi || 0, c.feed_density_kgm3 || 0, c.p80_microns || 0, c.overflow_density || 0, c.underflow_density || 0, c.flocculant_ppm || 0, c.status || 'OPTIMAL', normalizeShift(c.shift_code), c.notes || null, c.created_at || null);
             count++;
           }
         }
@@ -381,7 +404,7 @@ export function restoreDatabaseBackup(req: AuthenticatedRequest, res: Response) 
         let count = 0;
         for (const t of data.tailings_reports) {
           if (t.id && t.station_tag) {
-            stmt.run(t.id, t.station_tag, t.flow_rate_m3h || 0, t.solids_percentage || 0, t.dam_level_meters || 0, t.freeboard_meters || 0, t.piezometer_kpa || 0, t.turbidity_ntu || 0, t.pumping_line_status || 'NORMAL', t.operator_name || 'Operador', t.shift_code || 'GUARDIA_A', t.notes || null, t.created_at || null);
+            stmt.run(t.id, t.station_tag, t.flow_rate_m3h || 0, t.solids_percentage || 0, t.dam_level_meters || 0, t.freeboard_meters || 0, t.piezometer_kpa || 0, t.turbidity_ntu || 0, t.pumping_line_status || 'NORMAL', t.operator_name || 'Operador', normalizeShift(t.shift_code), t.notes || null, t.created_at || null);
             count++;
           }
         }
@@ -445,8 +468,7 @@ export function updateUserRoleShift(req: AuthenticatedRequest, res: Response) {
     }
 
     const newRole = role && ['ADMIN', 'SUPERVISOR', 'OPERATOR'].includes(role) ? String(role) : user.role;
-    const validShifts = ['G1', 'G2', 'G3', 'G4', 'GUARDIA_A', 'GUARDIA_B', 'GUARDIA_C'];
-    const newShift = shift && validShifts.includes(shift) ? String(shift) : (shift ? String(shift) : user.shift);
+    const newShift = shift ? normalizeShift(shift) : user.shift;
 
     db.prepare('UPDATE users SET role = ?, shift = ? WHERE id = ?').run(newRole, newShift, id);
 

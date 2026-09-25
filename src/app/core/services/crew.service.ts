@@ -316,6 +316,7 @@ export class CrewService {
   }
 
   private loadCachedCustomPositions(): CrewPositionMeta[] {
+    if (typeof window === 'undefined' || typeof localStorage === 'undefined') return [];
     try {
       const cached = localStorage.getItem('basetrack_custom_positions');
       if (cached) {
@@ -567,6 +568,11 @@ export class CrewService {
                       shift === 'GUARDIA_B' ? 'G2' :
                       shift === 'GUARDIA_C' ? 'G3' :
                       shift === 'GUARDIA_D' ? 'G4' : shift;
+    if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+      this.allMembers.set(this.defaultMembers);
+      this.crewMembers.set(normShift ? this.defaultMembers.filter(m => m.shift_code === normShift) : this.defaultMembers);
+      return;
+    }
     try {
       const cached = localStorage.getItem('basetrack_crew_members');
       let list = this.defaultMembers;
@@ -597,6 +603,10 @@ export class CrewService {
                       shiftCode === 'GUARDIA_B' ? 'G2' :
                       shiftCode === 'GUARDIA_C' ? 'G3' :
                       shiftCode === 'GUARDIA_D' ? 'G4' : (shiftCode || 'G1');
+    if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+      this.synthesizeDefaultAssignments(date, normShift, shiftType as 'DIA' | 'NOCHE');
+      return;
+    }
     try {
       const key = `basetrack_assignments_${date}_${normShift}_${shiftType}`;
       const cached = localStorage.getItem(key);
@@ -809,6 +819,7 @@ export class CrewService {
   }
 
   private saveCache(key: string, data: any): void {
+    if (typeof window === 'undefined' || typeof localStorage === 'undefined') return;
     try {
       localStorage.setItem(key, JSON.stringify(data));
     } catch (e) {

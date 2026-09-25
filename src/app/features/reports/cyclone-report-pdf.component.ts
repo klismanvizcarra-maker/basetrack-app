@@ -2,6 +2,7 @@ import { Component, Input, Output, EventEmitter, OnInit, inject } from '@angular
 import { CommonModule } from '@angular/common';
 import { StationSample, GeneralAverages } from '../cyclones/cyclones.component';
 import { PdfExportService } from '../../core/services/pdf-export.service';
+import { copyToClipboard } from '../../core/utils/clipboard.util';
 
 @Component({
   selector: 'app-cyclone-report-pdf',
@@ -781,11 +782,13 @@ export class CycloneReportPdfComponent implements OnInit {
 🎛️ Presión Manifold: 12.5 PSI (Estable) | Descarga: Paraguas (Spray)
 ✅ Documento Oficial Validado`;
 
-    navigator.clipboard.writeText(summary).then(() => {
-      this.copiedText = true;
-      setTimeout(() => {
-        this.copiedText = false;
-      }, 3000);
+    copyToClipboard(summary).then((success) => {
+      if (success) {
+        this.copiedText = true;
+        setTimeout(() => {
+          this.copiedText = false;
+        }, 3000);
+      }
     });
   }
 }

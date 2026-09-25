@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { copyToClipboard } from '../../core/utils/clipboard.util';
 
 export type CalculatorTab = 'MARCY' | 'FLOCCULANT' | 'DILUTION' | 'PARSHALL';
 
@@ -1332,9 +1333,11 @@ export class MetallurgicalCalculatorsComponent implements OnInit {
         `• Proyección Turno 12h: ${(this.parshallFlowM3h * 12).toFixed(0)} m³`;
     }
 
-    navigator.clipboard.writeText(summary).then(() => {
-      this.copied = true;
-      setTimeout(() => (this.copied = false), 2500);
+    copyToClipboard(summary).then((success) => {
+      if (success) {
+        this.copied = true;
+        setTimeout(() => (this.copied = false), 2500);
+      }
     });
   }
 

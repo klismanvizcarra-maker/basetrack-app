@@ -2,6 +2,7 @@ import { Component, Input, Output, EventEmitter, OnInit, inject } from '@angular
 import { CommonModule } from '@angular/common';
 import { PumpStationSheet, PumpReport } from '../pumps/pumps.component';
 import { PdfExportService } from '../../core/services/pdf-export.service';
+import { copyToClipboard } from '../../core/utils/clipboard.util';
 
 @Component({
   selector: 'app-pump-report-pdf',
@@ -781,11 +782,13 @@ export class PumpReportPdfComponent implements OnInit {
 📌 Novedad: ${this.sheet?.additional_obs?.notas || 'Operación normal conforme'}
 ✅ Documento Oficial Validado`;
 
-    navigator.clipboard.writeText(summary).then(() => {
-      this.copiedText = true;
-      setTimeout(() => {
-        this.copiedText = false;
-      }, 3000);
+    copyToClipboard(summary).then((success) => {
+      if (success) {
+        this.copiedText = true;
+        setTimeout(() => {
+          this.copiedText = false;
+        }, 3000);
+      }
     });
   }
 }

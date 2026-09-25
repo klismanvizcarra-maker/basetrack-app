@@ -104,8 +104,14 @@ export async function register(req: Request, res: Response) {
 
   const id = crypto.randomUUID();
   const passwordHash = bcrypt.hashSync(password, 10);
-  const userRole = role || 'OPERATOR';
-  const userShift = shift || 'GUARDIA_A';
+  const userRole = (role === 'admin' || role === 'supervisor' || role === 'operator' || role === 'viewer') ? role : 'operator';
+  let userShift = (shift || 'G1').toString().toUpperCase().trim();
+  if (userShift === 'GUARDIA_A') userShift = 'G1';
+  else if (userShift === 'GUARDIA_B') userShift = 'G2';
+  else if (userShift === 'GUARDIA_C') userShift = 'G3';
+  else if (userShift === 'GUARDIA_D') userShift = 'G4';
+  if (!['G1', 'G2', 'G3', 'G4'].includes(userShift)) userShift = 'G1';
+
   const avatarUrl = `https://api.dicebear.com/7.x/bottts/svg?seed=${username}`;
 
   db.prepare(`
@@ -181,7 +187,15 @@ export async function updateProfile(req: AuthenticatedRequest, res: Response) {
     const updatedFullName = fullName !== undefined ? fullName : user.full_name;
     const updatedEmail = email !== undefined ? email : user.email;
     const updatedAvatar = avatarUrl !== undefined ? avatarUrl : user.avatar_url;
-    const updatedShift = shift !== undefined ? shift : user.shift;
+    let updatedShift = shift !== undefined ? shift : user.shift;
+    if (updatedShift) {
+      const upper = String(updatedShift).toUpperCase().trim();
+      if (upper === 'GUARDIA_A') updatedShift = 'G1';
+      else if (upper === 'GUARDIA_B') updatedShift = 'G2';
+      else if (upper === 'GUARDIA_C') updatedShift = 'G3';
+      else if (upper === 'GUARDIA_D') updatedShift = 'G4';
+      else if (['G1', 'G2', 'G3', 'G4'].includes(upper)) updatedShift = upper;
+    }
     const updatedDocId = document_id !== undefined ? document_id : user.document_id;
     const updatedRadio = radio_channel !== undefined ? radio_channel : user.radio_channel;
     const updatedPhone = phone_extension !== undefined ? phone_extension : user.phone_extension;
@@ -230,7 +244,7 @@ export async function updateProfile(req: AuthenticatedRequest, res: Response) {
           updatedFullName,
           updatedDocId,
           updatedRole || 'OPERADOR_BOMBAS',
-          updatedShift || 'GUARDIA_A',
+          updatedShift || 'G1',
           updatedRadio || 'Canal 1 Operaciones',
           updatedPhone || null,
           updatedAvatar || null
