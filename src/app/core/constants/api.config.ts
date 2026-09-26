@@ -19,10 +19,14 @@ export function getApiBaseUrl(): string {
       const customUrl = localStorage.getItem('basetrack_api_url');
       if (customUrl && customUrl.trim()) {
         let clean = customUrl.trim().replace(/\/+$/, '');
-        if (!clean.endsWith('/api')) {
-          clean += '/api';
+        if (clean.includes('vercel.app')) {
+          localStorage.removeItem('basetrack_api_url');
+        } else {
+          if (!clean.endsWith('/api')) {
+            clean += '/api';
+          }
+          return clean;
         }
-        return clean;
       }
     } catch (e) {
       // In private browsing or restricted environments
