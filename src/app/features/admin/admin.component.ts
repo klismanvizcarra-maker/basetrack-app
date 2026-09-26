@@ -614,6 +614,12 @@ const DEFAULT_LOGS: AuditLog[] = [
     <!-- Modal Create User -->
       <app-modal [isOpen]="isCreateUserModalOpen" [title]="'Crear Nuevo Usuario Operacional'" (close)="isCreateUserModalOpen = false">
         <form (ngSubmit)="saveUser()" class="modal-form">
+          <div *ngIf="isVercelDeployment && !hasCustomCloudBackend" class="modal-notice-box">
+            <span class="notice-icon">⚠️</span>
+            <div class="notice-text">
+              <strong>Modo Vercel Local:</strong> Sin un Servidor Cloud conectado, este usuario sólo se guardará en la memoria de este navegador. Para que otros celulares o computadoras puedan ingresar, conecta tu backend cloud en <em>Administración &gt; Servidor Cloud</em>.
+            </div>
+          </div>
           <div class="form-row">
             <div class="form-group">
               <label>Nombre de Usuario</label>
@@ -1974,6 +1980,25 @@ const DEFAULT_LOGS: AuditLog[] = [
       margin-top: 10px;
       line-height: 1.4;
     }
+
+    .modal-notice-box {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      background: rgba(245, 158, 11, 0.1);
+      border: 1px solid rgba(245, 158, 11, 0.35);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 0.8rem;
+      color: #b45309;
+      line-height: 1.4;
+      margin-bottom: 16px;
+
+      .notice-icon {
+        font-size: 1.1rem;
+        flex-shrink: 0;
+      }
+    }
   `]
 })
 export class AdminComponent implements OnInit {
@@ -2240,10 +2265,18 @@ export class AdminComponent implements OnInit {
           createdUser.id = res.id;
           saveRealtimeData('admin_users', this.users);
           this.saveUsersToStorage();
+          this.backupSuccessMessage = `✅ Usuario @${createdUser.username} creado exitosamente y sincronizado en la nube.`;
+          setTimeout(() => this.backupSuccessMessage = '', 6000);
         }
       },
       error: () => {
         console.log('[Admin] Usuario creado localmente en modo contingencia.');
+        if (this.isVercelDeployment && !this.hasCustomCloudBackend) {
+          this.backupSuccessMessage = `⚠️ Usuario @${createdUser.username} guardado en este navegador. Para que otros celulares/dispositivos puedan ingresar, conecta tu Servidor Cloud en 'Servidor Cloud'.`;
+        } else {
+          this.backupSuccessMessage = `⚠️ Usuario @${createdUser.username} guardado en modo local (servidor no disponible).`;
+        }
+        setTimeout(() => this.backupSuccessMessage = '', 8000);
       }
     });
 

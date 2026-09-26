@@ -25,8 +25,12 @@ export function createMaintenanceRequest(req: AuthenticatedRequest, res: Respons
 
     const id = crypto.randomUUID();
     const currentYear = new Date().getFullYear();
-    const count = (db.prepare('SELECT COUNT(*) as count FROM maintenance_requests').get() as { count: number }).count + 1;
-    const ticketNumber = `OT-${currentYear}-${String(count).padStart(4, '0')}`;
+    let nextNum = ((db.prepare('SELECT COUNT(*) as count FROM maintenance_requests').get() as { count: number }).count || 0) + 1;
+    let ticketNumber = `OT-${currentYear}-${String(nextNum).padStart(4, '0')}`;
+    while (db.prepare('SELECT id FROM maintenance_requests WHERE ticket_number = ?').get(ticketNumber)) {
+      nextNum++;
+      ticketNumber = `OT-${currentYear}-${String(nextNum).padStart(4, '0')}`;
+    }
     const requesterName = req.user?.fullName || req.body.requester_name || 'Operador de Guardia';
 
     // Default sample photo if not provided
@@ -52,6 +56,7 @@ export function createMaintenanceRequest(req: AuthenticatedRequest, res: Respons
       id
     });
   } catch (error: any) {
+    console.error('[MaintenanceController] Error creating request:', error);
     return res.status(500).json({ success: false, message: error.message });
   }
 }
