@@ -267,17 +267,18 @@
         <table class="items-table">
           <thead>
             <tr>
-              <th style="width: 45%;">Ítem de Inspección Minera</th>
-              <th style="width: 25%;">Categoría</th>
-              <th style="width: 30%; text-align: center;">Estado (B / M / N/A)</th>
+              <th class="col-item-header">Ítem de Inspección</th>
+              <th class="col-category-header">Categoría</th>
+              <th class="col-status-header" style="text-align: center;">Estado (B / M / N/A)</th>
             </tr>
           </thead>
           <tbody>
             <tr *ngFor="let item of getFilteredItems()" [class.row-bad]="item.status === 'M'">
               <td class="item-name-cell">
                 <span class="item-name-text">{{ item.name }}</span>
+                <span class="item-cat-mobile-pill">{{ item.category }}</span>
               </td>
-              <td>
+              <td class="col-category-cell">
                 <span class="item-cat-badge">{{ item.category }}</span>
               </td>
               <td class="item-actions-cell">
@@ -342,8 +343,8 @@
             </label>
             
             <div *ngIf="!formPhotoUrl" class="upload-dropzone">
-              <input type="file" accept="image/*" capture="environment" (change)="onPhotoSelected($event)" id="photoInput" style="display: none;" />
-              <button type="button" class="btn btn-secondary" onclick="document.getElementById('photoInput').click()">
+              <input #photoFileInput type="file" accept="image/*" capture="environment" (change)="onPhotoSelected($event)" style="display: none;" />
+              <button type="button" class="btn btn-secondary btn-upload-photo" (click)="photoFileInput.click()">
                 📷 Tomar Foto con Cámara / Subir Imagen
               </button>
               <span class="upload-hint">Se comprime automáticamente para no saturar memoria (< 60 KB).</span>
@@ -364,7 +365,7 @@
       <div class="operational-dictamen-card">
         <label class="dictamen-title">Dictamen Final de Operatividad:</label>
         <div class="dictamen-options">
-          <label class="dictamen-option opt-apto" [class.selected]="formOperationalStatus === 'APTO'">
+          <label class="dictamen-option opt-apto" [class.selected]="formOperationalStatus === 'APTO'" (click)="formOperationalStatus = 'APTO'">
             <input type="radio" name="opStatus" value="APTO" [(ngModel)]="formOperationalStatus" />
             <div class="opt-body">
               <span class="opt-indicator">🟢</span>
@@ -375,7 +376,7 @@
             </div>
           </label>
 
-          <label class="dictamen-option opt-observado" [class.selected]="formOperationalStatus === 'OBSERVADO'">
+          <label class="dictamen-option opt-observado" [class.selected]="formOperationalStatus === 'OBSERVADO'" (click)="formOperationalStatus = 'OBSERVADO'">
             <input type="radio" name="opStatus" value="OBSERVADO" [(ngModel)]="formOperationalStatus" />
             <div class="opt-body">
               <span class="opt-indicator">🟡</span>
@@ -386,7 +387,7 @@
             </div>
           </label>
 
-          <label class="dictamen-option opt-noapto" [class.selected]="formOperationalStatus === 'NO_APTO'">
+          <label class="dictamen-option opt-noapto" [class.selected]="formOperationalStatus === 'NO_APTO'" (click)="formOperationalStatus = 'NO_APTO'">
             <input type="radio" name="opStatus" value="NO_APTO" [(ngModel)]="formOperationalStatus" />
             <div class="opt-body">
               <span class="opt-indicator">🔴</span>

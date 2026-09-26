@@ -847,14 +847,18 @@ import { ModalComponent } from '../../shared/ui/modal.component';
           align-items: flex-start;
           gap: 6px;
 
-          .guard-tabs, .shift-type-tabs {
+          .guard-tabs {
             width: 100%;
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(2, 1fr);
+            gap: 6px;
           }
 
           .shift-type-tabs {
+            width: 100%;
+            display: grid;
             grid-template-columns: 1fr 1fr;
+            gap: 6px;
           }
         }
       }
@@ -1215,6 +1219,7 @@ import { ModalComponent } from '../../shared/ui/modal.component';
       border: 1.5px solid var(--border-subtle);
       background: var(--bg-input);
       padding: 8px 10px;
+      min-height: 40px;
       border-radius: var(--radius-md);
       display: flex;
       align-items: center;
@@ -1224,6 +1229,8 @@ import { ModalComponent } from '../../shared/ui/modal.component';
       font-weight: 700;
       color: var(--text-secondary);
       cursor: pointer;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
       transition: var(--transition-smooth);
 
       &:hover {

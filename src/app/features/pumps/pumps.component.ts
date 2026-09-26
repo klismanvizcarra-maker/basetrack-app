@@ -171,6 +171,11 @@ export interface PumpReport {
             </div>
           </div>
 
+          <!-- Mobile Scroll Hint -->
+          <div class="mobile-table-scroll-hint no-print">
+            <span>↔ Desliza la tabla horizontalmente para ver Intermedia y Torre 5</span>
+          </div>
+
           <!-- 3-Column Pump Grid (Sentina, Intermedia, Torre 5) -->
           <div class="pumps-table-wrapper">
             <table class="pumps-report-table">
@@ -1025,16 +1030,36 @@ export interface PumpReport {
       }
     }
 
+    .mobile-table-scroll-hint {
+      display: none;
+      padding: 6px 14px;
+      background: var(--primary-bg-subtle, rgba(3, 23, 149, 0.08));
+      color: var(--primary-purple);
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-align: center;
+      border-bottom: 1px solid var(--border-subtle);
+
+      @media (max-width: 768px) {
+        display: block;
+      }
+    }
+
     /* STATUS BADGE BUTTONS */
     .status-badge-btn {
       border: 1px solid transparent;
-      padding: 3px 12px;
+      padding: 6px 12px;
       border-radius: var(--radius-full);
-      font-size: 0.78rem;
+      font-size: 0.8rem;
       font-weight: 700;
       cursor: pointer;
-      display: inline-block;
-      min-width: 90px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 92px;
+      min-height: 36px;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
       transition: var(--transition-smooth);
 
       &.status-operativo {

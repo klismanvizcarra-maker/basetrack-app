@@ -19,33 +19,13 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="BASETRACK">
 
-  <!-- Native Mobile Anti-Zoom & Touch Gesture Lockdown -->
-  <script>
-    // Block iOS Safari gesture zooming
-    document.addEventListener('gesturestart', function(e) { e.preventDefault(); }, { passive: false });
-    document.addEventListener('gesturechange', function(e) { e.preventDefault(); }, { passive: false });
-    document.addEventListener('gestureend', function(e) { e.preventDefault(); }, { passive: false });
-
-    // Block multi-touch pinch zooming
-    document.addEventListener('touchmove', function(e) {
-      if (e.touches && e.touches.length > 1) {
-        e.preventDefault();
-      }
-    }, { passive: false });
-
-    // Block double-tap to zoom on mobile browsers
-    var lastTouchEnd = 0;
-    document.addEventListener('touchend', function(e) {
-      var now = Date.now();
-      if (now - lastTouchEnd <= 300) {
-        // Only prevent default on non-interactive elements to allow button taps
-        if (!['INPUT', 'SELECT', 'TEXTAREA', 'BUTTON', 'A'].includes(e.target.tagName)) {
-          e.preventDefault();
-        }
-      }
-      lastTouchEnd = now;
-    }, { passive: false });
-  </script>
+  <!-- Native Mobile Performance & Manipulation Styling -->
+  <style>
+    * {
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+  </style>
 
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">

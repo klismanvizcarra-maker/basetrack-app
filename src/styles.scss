@@ -146,11 +146,19 @@ html, body {
   user-select: none;
 }
 
-/* Eliminate 300ms touch delay & accidental gestures on interactive elements */
-button, a, input, select, textarea, [role="button"], .nav-link, .btn, .pill-btn, .pill-tab-item, .bottom-nav-item {
+/* Eliminate 300ms touch delay, accidental gestures & ensure instant feedback */
+button, a, input, select, textarea, [role="button"], label, .nav-link, .btn, .pill-btn, .pill-tab-item, .bottom-nav-item, .check-pill, .status-badge-btn, .toggle-btn {
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
   -webkit-touch-callout: none;
+}
+
+/* Tactile feedback on touch devices */
+@media (hover: none) and (pointer: coarse) {
+  button:active, .btn:active, .pill-btn:active, .check-pill:active, .status-badge-btn:active, .toggle-btn:active {
+    transform: scale(0.96) !important;
+    transition: transform 0.08s ease !important;
+  }
 }
 
 input, select, textarea {
@@ -161,6 +169,33 @@ input, select, textarea {
 @media (max-width: 768px) {
   input, select, textarea, .form-control {
     font-size: 16px !important;
+  }
+}
+
+/* Global Mobile Form Checkbox & Radio Accessibility (prevents hidden input tap swallow on iOS/Android) */
+.custom-checkbox input[type="checkbox"],
+.custom-radio input[type="radio"],
+.dictamen-option input[type="radio"] {
+  position: absolute !important;
+  opacity: 0 !important;
+  width: 1px !important;
+  height: 1px !important;
+  pointer-events: none !important;
+  margin: -1px !important;
+  clip: rect(0, 0, 0, 0) !important;
+}
+
+/* Global Mobile Safe Area Bottom Padding for Content Pages */
+@media (max-width: 768px) {
+  .page-body,
+  .pumps-page,
+  .cyclones-page,
+  .vehicle-page,
+  .crew-page,
+  .dashboard-page,
+  .tailings-page,
+  .maintenance-page {
+    padding-bottom: calc(85px + env(safe-area-inset-bottom, 16px)) !important;
   }
 }
 

@@ -96,14 +96,14 @@ import { ThemeService } from '../../core/theme/theme.service';
         </button>
 
         <!-- Messages / Chat -->
-        <button type="button" class="header-action-btn" title="Canal Radial de Guardia">
+        <button type="button" class="header-action-btn btn-chat-header" title="Canal Radial de Guardia">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
           </svg>
         </button>
 
         <!-- Settings / Profile -->
-        <button type="button" class="header-action-btn" title="Configuración de Cuenta & Perfil" (click)="goToProfile()">
+        <button type="button" class="header-action-btn btn-settings-header" title="Configuración de Cuenta & Perfil" (click)="goToProfile()">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="3"></circle>
             <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
@@ -387,6 +387,16 @@ import { ThemeService } from '../../core/theme/theme.service';
       @media (max-width: 768px) {
         gap: 6px;
       }
+
+      @media (max-width: 600px) {
+        gap: 5px;
+
+        .btn-chat-header,
+        .btn-settings-header,
+        .btn-install-header {
+          display: none !important;
+        }
+      }
     }
 
     .header-action-btn {
@@ -648,6 +658,16 @@ import { ThemeService } from '../../core/theme/theme.service';
       &:hover {
         background: #e0e7ff;
         border-color: #a5b4fc;
+      }
+
+      @media (max-width: 580px) {
+        padding: 4px 8px;
+        font-size: 0.68rem;
+        gap: 4px;
+        max-width: 130px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
 
       &.offline-pill, &.pending-pill {

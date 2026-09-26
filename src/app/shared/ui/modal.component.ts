@@ -155,9 +155,11 @@ import { CommonModule } from '@angular/common';
       padding: 20px 24px;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
 
       @media (max-width: 640px) {
-        padding: 16px 18px 20px;
+        padding: 16px 18px 24px;
+        max-height: calc(88dvh - 130px);
       }
     }
 
@@ -171,12 +173,14 @@ import { CommonModule } from '@angular/common';
       background: var(--bg-card-subtle);
 
       @media (max-width: 640px) {
-        padding: 12px 18px;
+        padding: 12px 18px calc(14px + env(safe-area-inset-bottom, 12px));
         flex-direction: column-reverse;
         gap: 8px;
 
-        ::ng-deep button {
+        ::ng-deep button,
+        ::ng-deep .btn {
           width: 100%;
+          min-height: 44px;
         }
       }
     }

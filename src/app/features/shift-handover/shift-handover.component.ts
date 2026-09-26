@@ -318,6 +318,12 @@ export interface ShiftHandover {
       @media (max-width: 900px) {
         grid-template-columns: 1fr 1fr;
       }
+
+      @media (max-width: 520px) {
+        grid-template-columns: 1fr;
+        padding: 10px 12px;
+        gap: 10px;
+      }
     }
 
     .banner-cell {
@@ -370,6 +376,19 @@ export interface ShiftHandover {
       display: flex;
       justify-content: flex-end;
       padding-top: 10px;
+      gap: 10px;
+      flex-wrap: wrap;
+
+      @media (max-width: 640px) {
+        flex-direction: column;
+        width: 100%;
+
+        .btn {
+          width: 100%;
+          justify-content: center;
+          min-height: 42px;
+        }
+      }
     }
 
     /* Table */
