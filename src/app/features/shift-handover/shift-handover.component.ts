@@ -241,13 +241,13 @@ export interface ShiftHandover {
     }
 
     .action-btn-pdf {
-      background: #ffffff;
-      border: 1px solid #cbd5e1;
-      color: #0f172a;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-primary);
       font-weight: 600;
       &:hover {
-        background: #f8fafc;
-        border-color: #94a3b8;
+        background: var(--bg-card-hover);
+        border-color: var(--border-focus);
       }
     }
 
@@ -286,7 +286,7 @@ export interface ShiftHandover {
     .current-handover-banner {
       padding: 24px;
       border-radius: var(--radius-xl);
-      background: #ffffff;
+      background: var(--bg-card);
       border: 1px solid var(--border-subtle);
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 8px 24px -4px rgba(15, 23, 42, 0.06);
       display: flex;

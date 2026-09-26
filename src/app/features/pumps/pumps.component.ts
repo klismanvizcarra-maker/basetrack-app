@@ -959,7 +959,7 @@ export interface PumpReport {
         margin: 0;
         font-size: 0.9rem;
         font-weight: 700;
-        color: #031795;
+        color: var(--primary-lavender, #60a5fa);
         letter-spacing: 0.04em;
       }
     }
@@ -969,6 +969,7 @@ export interface PumpReport {
       width: 100%;
       overflow-x: auto;
       -webkit-overflow-scrolling: touch;
+      background: var(--bg-card);
     }
 
     .pumps-report-table {
@@ -984,7 +985,7 @@ export interface PumpReport {
         font-weight: 800;
         letter-spacing: 0.05em;
         padding: 10px 12px;
-        border: 1px solid #e2e8f0;
+        border: 1px solid var(--border-subtle);
         font-size: 0.82rem;
 
         &.th-station { width: 14%; }
@@ -993,28 +994,30 @@ export interface PumpReport {
 
       td {
         padding: 7px 12px;
-        border: 1px solid #e2e8f0;
+        border: 1px solid var(--border-subtle);
         vertical-align: middle;
+        background: var(--bg-card);
+        color: var(--text-primary);
       }
 
       tbody tr {
         transition: background-color 0.15s ease;
 
-        &:nth-child(even) {
-          background: #f8fafc;
+        &:nth-child(even) td {
+          background: var(--bg-card-subtle);
         }
 
-        &:hover {
+        &:hover td {
           background: var(--bg-card-hover);
         }
       }
 
       .cell-tag {
-        color: #0284c7;
+        color: var(--accent-cyan, #38bdf8);
         font-weight: 700;
         font-size: 0.88rem;
         letter-spacing: 0.03em;
-        background: #f0f9ff;
+        background: rgba(56, 189, 248, 0.08) !important;
       }
 
       .cell-status {
@@ -1035,52 +1038,53 @@ export interface PumpReport {
       transition: var(--transition-smooth);
 
       &.status-operativo {
-        background: #ecfdf5;
-        border-color: #a7f3d0;
-        color: #059669;
+        background: rgba(16, 185, 129, 0.16);
+        border-color: rgba(16, 185, 129, 0.35);
+        color: #10b981;
 
         &:hover {
-          background: #d1fae5;
+          background: rgba(16, 185, 129, 0.28);
         }
       }
 
       &.status-standby {
-        background: #e0f2fe;
-        border-color: #bae6fd;
-        color: #0284c7;
+        background: rgba(56, 189, 248, 0.16);
+        border-color: rgba(56, 189, 248, 0.35);
+        color: #38bdf8;
 
         &:hover {
-          background: #bae6fd;
+          background: rgba(56, 189, 248, 0.28);
         }
       }
 
       &.status-mantenimiento {
-        background: #fffbeb;
-        border-color: #fde68a;
-        color: #b45309;
+        background: rgba(245, 158, 11, 0.16);
+        border-color: rgba(245, 158, 11, 0.35);
+        color: #f59e0b;
 
         &:hover {
-          background: #fef3c7;
+          background: rgba(245, 158, 11, 0.28);
         }
       }
 
       &.status-falla {
-        background: #fef2f2;
-        border-color: #fecaca;
-        color: #dc2626;
+        background: rgba(239, 68, 68, 0.16);
+        border-color: rgba(239, 68, 68, 0.35);
+        color: #ef4444;
 
         &:hover {
-          background: #fee2e2;
+          background: rgba(239, 68, 68, 0.28);
         }
       }
     }
 
-    /* SUMMARY STATUS BAR */
+    /* SUMMARY STATUS BAR & CHIPS */
+    .summary-chips-row,
     .status-summary-bar {
       display: flex;
       align-items: center;
       justify-content: space-around;
-      background: #f8fafc;
+      background: var(--bg-card-subtle);
       border-top: 1px solid var(--border-subtle);
       padding: 10px 16px;
       gap: 12px;
@@ -1090,8 +1094,8 @@ export interface PumpReport {
         display: flex;
         align-items: center;
         gap: 8px;
-        padding: 4px 12px;
-        background: #ffffff;
+        padding: 5px 14px;
+        background: var(--bg-input);
         border: 1px solid var(--border-subtle);
         border-radius: var(--radius-full);
 
@@ -1105,9 +1109,9 @@ export interface PumpReport {
           font-size: 0.88rem;
           font-weight: 800;
 
-          &.emerald { color: #059669; }
-          &.cyan { color: #0284c7; }
-          &.purple { color: #031795; }
+          &.emerald { color: #10b981; }
+          &.cyan { color: #38bdf8; }
+          &.purple { color: #60a5fa; }
         }
       }
 

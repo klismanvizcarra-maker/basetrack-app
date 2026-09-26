@@ -960,7 +960,7 @@ export interface GeneralAverages {
       text-align: center;
 
       th, td {
-        border: 1px solid #e2e8f0;
+        border: 1px solid var(--border-subtle);
         padding: 10px 14px;
         vertical-align: middle;
 
@@ -975,16 +975,18 @@ export interface GeneralAverages {
         position: sticky;
         left: 0;
         z-index: 10;
-        background-color: #ffffff;
-        box-shadow: 2px 0 6px -2px rgba(0, 0, 0, 0.08);
+        background-color: var(--bg-card);
+        color: var(--text-primary);
+        box-shadow: 2px 0 6px -2px rgba(0, 0, 0, 0.25);
       }
 
       .sticky-col-2 {
         position: sticky;
         left: 68px;
         z-index: 10;
-        background-color: #ffffff;
-        box-shadow: 2px 0 6px -2px rgba(0, 0, 0, 0.08);
+        background-color: var(--bg-card);
+        color: var(--text-primary);
+        box-shadow: 2px 0 6px -2px rgba(0, 0, 0, 0.25);
       }
 
       .sticky-col-combo {
@@ -993,7 +995,7 @@ export interface GeneralAverages {
         z-index: 10;
         background-color: #031795;
         color: #ffffff;
-        box-shadow: 2px 0 6px -2px rgba(0, 0, 0, 0.1);
+        box-shadow: 2px 0 6px -2px rgba(0, 0, 0, 0.3);
       }
 
       /* Headers */
@@ -1029,21 +1031,21 @@ export interface GeneralAverages {
             font-weight: 800;
 
             &.group-solidos {
-              background: #eef2ff;
-              color: #031795;
-              border-bottom: 1px solid #c7d2fe;
+              background: rgba(59, 130, 246, 0.16);
+              color: var(--primary-lavender, #60a5fa);
+              border-bottom: 1px solid rgba(59, 130, 246, 0.35);
             }
 
             &.group-malla {
-              background: #e0f2fe;
-              color: #0284c7;
-              border-bottom: 1px solid #bae6fd;
+              background: rgba(56, 189, 248, 0.16);
+              color: var(--accent-cyan, #38bdf8);
+              border-bottom: 1px solid rgba(56, 189, 248, 0.35);
             }
           }
         }
 
         .th-sub-row {
-          background-color: #f8fafc;
+          background-color: var(--bg-sidebar);
 
           .sub-col {
             font-size: 0.76rem;
@@ -1051,7 +1053,7 @@ export interface GeneralAverages {
             color: var(--text-muted);
 
             &.uf-col {
-              color: #031795;
+              color: var(--primary-lavender, #60a5fa);
               font-weight: 700;
             }
           }
@@ -1060,15 +1062,15 @@ export interface GeneralAverages {
 
       /* Body */
       tbody {
-        background-color: #ffffff;
+        background-color: var(--bg-card);
 
         .data-row {
           transition: background-color 0.15s ease;
 
           &:nth-child(even) {
-            background-color: #f8fafc;
+            background-color: var(--bg-card-subtle);
             .sticky-col-1, .sticky-col-2 {
-              background-color: #f8fafc;
+              background-color: var(--bg-card-subtle);
             }
           }
 
@@ -1089,7 +1091,7 @@ export interface GeneralAverages {
         }
 
         .cell-battery {
-          color: #0284c7;
+          color: var(--accent-cyan, #38bdf8);
           font-weight: 600;
           font-size: 0.9rem;
           background-color: inherit;
@@ -1101,8 +1103,8 @@ export interface GeneralAverages {
         }
 
         .cell-uf {
-          color: #031795;
-          font-weight: 700;
+          color: var(--primary-lavender, #60a5fa);
+          font-weight: 800;
           font-size: 0.92rem;
         }
 
@@ -1119,16 +1121,16 @@ export interface GeneralAverages {
           width: 36px;
           height: 36px;
           border-radius: 8px;
-          border: 1px solid #e2e8f0;
-          background: #ffffff;
-          color: #94a3b8;
+          border: 1px solid var(--border-subtle);
+          background: var(--bg-input);
+          color: var(--text-muted);
           cursor: pointer;
           transition: all 0.2s ease;
 
           &:hover {
             color: #ef4444;
-            background: #fef2f2;
-            border-color: #fca5a5;
+            background: rgba(239, 68, 68, 0.16);
+            border-color: rgba(239, 68, 68, 0.4);
             transform: scale(1.08);
           }
         }

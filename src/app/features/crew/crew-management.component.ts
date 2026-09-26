@@ -1122,20 +1122,25 @@ import { ModalComponent } from '../../shared/ui/modal.component';
       font-size: 0.85rem;
       font-weight: 600;
       color: var(--text-primary);
-      background: #ffffff;
+      background: var(--bg-input);
       outline: none;
       transition: var(--transition-smooth);
 
+      option, optgroup {
+        background: var(--bg-card);
+        color: var(--text-primary);
+      }
+
       &:focus {
-        border-color: #031795;
-        box-shadow: 0 0 0 3px rgba(3, 23, 149, 0.15);
+        border-color: var(--border-focus, #3b82f6);
+        box-shadow: 0 0 0 3px var(--primary-glow, rgba(59, 130, 246, 0.2));
       }
     }
 
     .operator-select-sm {
       padding: 6px 10px;
       font-size: 0.8rem;
-      background: #f8fafc;
+      background: var(--bg-input);
     }
 
     .operator-snapshot {
@@ -1143,7 +1148,7 @@ import { ModalComponent } from '../../shared/ui/modal.component';
       align-items: center;
       gap: 12px;
       padding: 8px 12px;
-      background: #f8fafc;
+      background: var(--bg-card-subtle);
       border: 1px solid var(--border-subtle);
       border-radius: var(--radius-md);
       margin-top: 4px;
@@ -1154,8 +1159,8 @@ import { ModalComponent } from '../../shared/ui/modal.component';
       height: 38px;
       border-radius: var(--radius-full);
       object-fit: cover;
-      border: 2px solid #ffffff;
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      border: 2px solid var(--border-subtle);
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
       flex-shrink: 0;
     }
 
@@ -1184,16 +1189,17 @@ import { ModalComponent } from '../../shared/ui/modal.component';
     .op-status-badge {
       font-size: 0.68rem;
       font-weight: 700;
-      padding: 2px 7px;
+      padding: 3px 8px;
       border-radius: var(--radius-full);
-      background: #f1f5f9;
-      color: #64748b;
+      background: var(--bg-input);
+      color: var(--text-muted);
       white-space: nowrap;
+      border: 1px solid var(--border-subtle);
 
       &.en-turno {
-        background: #ecfdf5;
-        color: #047857;
-        border: 1px solid #a7f3d0;
+        background: rgba(16, 185, 129, 0.16);
+        color: #10b981;
+        border: 1px solid rgba(16, 185, 129, 0.35);
       }
     }
 
@@ -1206,8 +1212,8 @@ import { ModalComponent } from '../../shared/ui/modal.component';
     }
 
     .check-pill {
-      border: 1.5px solid #e2e8f0;
-      background: #ffffff;
+      border: 1.5px solid var(--border-subtle);
+      background: var(--bg-input);
       padding: 8px 10px;
       border-radius: var(--radius-md);
       display: flex;
@@ -1216,20 +1222,20 @@ import { ModalComponent } from '../../shared/ui/modal.component';
       gap: 6px;
       font-size: 0.76rem;
       font-weight: 700;
-      color: #64748b;
+      color: var(--text-secondary);
       cursor: pointer;
       transition: var(--transition-smooth);
 
       &:hover {
-        background: #f8fafc;
-        border-color: #cbd5e1;
+        background: var(--bg-card-hover);
+        border-color: var(--border-focus);
       }
 
       &.checked {
-        background: #ecfdf5;
-        border-color: #059669;
-        color: #047857;
-        box-shadow: 0 1px 4px rgba(5, 150, 105, 0.15);
+        background: rgba(16, 185, 129, 0.16);
+        border-color: #10b981;
+        color: #10b981;
+        box-shadow: 0 1px 4px rgba(16, 185, 129, 0.25);
       }
     }
 
@@ -1276,15 +1282,15 @@ import { ModalComponent } from '../../shared/ui/modal.component';
       transition: var(--transition-smooth);
 
       &:hover {
-        background: #f1f5f9;
+        background: var(--bg-card-hover);
         color: var(--text-primary);
       }
     }
 
     .btn-delete-pos {
       background: none;
-      border: 1px solid #fee2e2;
-      color: #dc2626;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #ef4444;
       font-size: 0.74rem;
       font-weight: 700;
       padding: 5px 9px;
@@ -1296,8 +1302,8 @@ import { ModalComponent } from '../../shared/ui/modal.component';
       transition: var(--transition-smooth);
 
       &:hover {
-        background: #fef2f2;
-        border-color: #fca5a5;
+        background: rgba(239, 68, 68, 0.15);
+        border-color: #ef4444;
       }
     }
 
@@ -1308,12 +1314,12 @@ import { ModalComponent } from '../../shared/ui/modal.component';
       gap: 4px;
       font-size: 0.76rem;
       font-weight: 700;
-      color: #031795;
+      color: var(--primary-lavender, #60a5fa);
       text-decoration: none;
       transition: var(--transition-smooth);
 
       &:hover {
-        color: #1e40af;
+        color: var(--primary-purple);
         text-decoration: underline;
       }
     }
@@ -1352,7 +1358,8 @@ import { ModalComponent } from '../../shared/ui/modal.component';
 
     .roster-filter-tabs {
       display: flex;
-      background: #f1f5f9;
+      background: var(--bg-input);
+      border: 1px solid var(--border-subtle);
       border-radius: var(--radius-md);
       padding: 3px;
       gap: 3px;
@@ -1365,15 +1372,15 @@ import { ModalComponent } from '../../shared/ui/modal.component';
       border-radius: var(--radius-sm);
       font-size: 0.78rem;
       font-weight: 600;
-      color: var(--text-secondary);
+      color: var(--text-muted);
       cursor: pointer;
       transition: var(--transition-smooth);
 
       &.active {
-        background: #ffffff;
-        color: #031795;
+        background: var(--bg-card);
+        color: var(--primary-lavender, #60a5fa);
         font-weight: 700;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
       }
     }
 
@@ -1385,8 +1392,8 @@ import { ModalComponent } from '../../shared/ui/modal.component';
       th {
         text-align: left;
         padding: 10px 12px;
-        background: #f8fafc;
-        color: var(--text-secondary);
+        background: var(--bg-sidebar);
+        color: var(--text-muted);
         font-size: 0.72rem;
         font-weight: 700;
         text-transform: uppercase;
@@ -1398,10 +1405,11 @@ import { ModalComponent } from '../../shared/ui/modal.component';
         padding: 10px 12px;
         border-bottom: 1px solid var(--border-subtle);
         vertical-align: middle;
+        color: var(--text-primary);
       }
 
       tbody tr:hover {
-        background: #f8fafc;
+        background: var(--bg-card-hover);
       }
     }
 

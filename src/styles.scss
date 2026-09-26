@@ -637,6 +637,82 @@ input::placeholder, textarea::placeholder {
     }
   }
 
+  select,
+  input,
+  textarea {
+    background-color: var(--bg-input) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border-subtle) !important;
+
+    option,
+    optgroup {
+      background-color: #0e1628 !important;
+      color: #f8fafc !important;
+    }
+  }
+
+  .operator-select,
+  .operator-select-sm {
+    background: var(--bg-input) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border-subtle) !important;
+  }
+
+  .operator-snapshot {
+    background: var(--bg-card-subtle) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border-subtle) !important;
+  }
+
+  .module-direct-link {
+    color: #60a5fa !important;
+  }
+
+  /* Table zebra striping & sticky columns in dark mode */
+  .pumps-report-table,
+  .metallurgical-table {
+    border-color: var(--border-subtle) !important;
+
+    td {
+      background: var(--bg-card) !important;
+      color: var(--text-primary) !important;
+      border-color: var(--border-subtle) !important;
+    }
+
+    tbody tr:nth-child(even) td {
+      background: var(--bg-card-subtle) !important;
+    }
+
+    tbody tr:hover td {
+      background: var(--bg-card-hover) !important;
+    }
+
+    .sticky-col-1,
+    .sticky-col-2 {
+      background-color: var(--bg-card) !important;
+      color: var(--text-primary) !important;
+    }
+
+    tbody tr:nth-child(even) .sticky-col-1,
+    tbody tr:nth-child(even) .sticky-col-2 {
+      background-color: var(--bg-card-subtle) !important;
+    }
+
+    tbody tr:hover .sticky-col-1,
+    tbody tr:hover .sticky-col-2 {
+      background-color: var(--bg-card-hover) !important;
+    }
+
+    .cell-tag {
+      background: rgba(56, 189, 248, 0.12) !important;
+      color: #38bdf8 !important;
+    }
+  }
+
+  .section-bar-title h4 {
+    color: #60a5fa !important;
+  }
+
   .grid-line {
     background: #1e293b !important;
   }
