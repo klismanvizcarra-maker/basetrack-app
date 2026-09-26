@@ -1,34 +1,40 @@
-const CACHE_NAME = 'basetrack-cache-v2';
+const CACHE_NAME = 'basetrack-cache-v4';
 const PRECACHE_ASSETS = [
   '/',
   '/index.html',
   '/manifest.webmanifest',
   '/favicon.ico',
+  '/icons/favicon-16x16.png',
+  '/icons/favicon-32x32.png',
+  '/icons/favicon-48x48.png',
+  '/icons/apple-touch-icon.png',
   '/icons/icon.svg',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
   '/icons/icon-maskable-192.png',
-  '/icons/icon-maskable-512.png'
+  '/icons/icon-maskable-512.png',
+  '/images/basetrack-icon-transparent.png',
+  '/images/basetrack-logo-transparent.png'
 ];
 
 // Install Event: Cache Core Shell
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[ServiceWorker] Precaching app shell assets');
+      console.log('[ServiceWorker] Precaching fresh app shell assets');
       return cache.addAll(PRECACHE_ASSETS);
     }).then(() => self.skipWaiting())
   );
 });
 
-// Activate Event: Clean up outdated caches
+// Activate Event: Clean up all outdated caches (v1, v2, v3)
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keyList) => {
       return Promise.all(
         keyList.map((key) => {
           if (key !== CACHE_NAME) {
-            console.log('[ServiceWorker] Removing old cache version:', key);
+            console.log('[ServiceWorker] Removing stale cache version:', key);
             return caches.delete(key);
           }
         })
@@ -37,7 +43,7 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch Event: Offline-first for shell & navigation, network-first for APIs
+// Fetch Event: Offline-first for shell & navigation, network-first for APIs and Icons
 self.addEventListener('fetch', (event) => {
   const request = event.request;
   const url = new URL(request.url);
@@ -83,7 +89,23 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 3. Static assets: Stale-While-Revalidate
+  // 3. Icons, Favicon, and Manifest: Network-first to ensure brand updates immediately
+  if (url.pathname.includes('favicon') || url.pathname.includes('/icons/') || url.pathname.includes('manifest')) {
+    event.respondWith(
+      fetch(request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const responseClone = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, responseClone));
+          }
+          return networkResponse;
+        })
+        .catch(() => caches.match(request))
+    );
+    return;
+  }
+
+  // 4. Static assets: Stale-While-Revalidate
   event.respondWith(
     caches.match(request).then((cachedResponse) => {
       const fetchPromise = fetch(request)
