@@ -21,6 +21,7 @@ import {
 } from '../controllers/admin.controller.js';
 import { getCrewMembers, createCrewMember, updateCrewMember, deleteCrewMember, getAreaAssignments, saveAreaAssignment, checkinAreaAssignment, getCrewPositions, createCrewPosition, deleteCrewPosition } from '../controllers/crew.controller.js';
 import { pushEvents, pullEvents, getSyncStatus } from '../controllers/sync.controller.js';
+import { getVehiclesSummary, getVehicleChecklists, createVehicleChecklist } from '../controllers/vehicle.controller.js';
 import { authenticateToken, requireRoles } from '../middlewares/auth.middleware.js';
 
 export const apiRouter = Router();
@@ -104,3 +105,9 @@ apiRouter.delete('/crew/positions/:key', authenticateToken, deleteCrewPosition);
 apiRouter.post('/sync/push', pushEvents);
 apiRouter.get('/sync/pull', pullEvents);
 apiRouter.get('/sync/status', getSyncStatus);
+
+// 12. Vehicle Pre-Use Checklists (Checklists Pre-Uso de Camionetas)
+apiRouter.get('/vehicles/summary', getVehiclesSummary);
+apiRouter.get('/vehicles/checklists', getVehicleChecklists);
+apiRouter.post('/vehicles/checklists', authenticateToken, createVehicleChecklist);
+

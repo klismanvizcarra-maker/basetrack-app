@@ -157,6 +157,21 @@ import { ThemeService } from '../../core/theme/theme.service';
             </a>
           </li>
 
+          <li class="nav-item">
+            <a routerLink="/vehicle-checklist" routerLinkActive="active" class="nav-link" (click)="onNavClick()">
+              <span class="nav-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M5 18H3c-.6 0-1-.4-1-1V9c0-.6.4-1 1-1h10c.6 0 1 .4 1 1v1"></path>
+                  <path d="M14 9h4l4 4v4c0 .6-.4 1-1 1h-2"></path>
+                  <circle cx="7" cy="18" r="2"></circle>
+                  <path d="M9 18h6"></path>
+                  <circle cx="17" cy="18" r="2"></circle>
+                </svg>
+              </span>
+              <span class="nav-label">Checklist Camionetas</span>
+            </a>
+          </li>
+
           <div class="nav-section-title" *ngIf="authService.isAdmin()">GESTIÓN</div>
 
           <li class="nav-item" *ngIf="authService.isAdmin()">

@@ -241,6 +241,26 @@ export function initDatabase() {
       is_revoked INTEGER NOT NULL DEFAULT 0
     );
 
+    -- Vehicle Pre-Use Checklists (Camionetas Mineras 4x4)
+    CREATE TABLE IF NOT EXISTS vehicle_checklists (
+      id TEXT PRIMARY KEY,
+      vehicle_plate TEXT NOT NULL CHECK(vehicle_plate IN ('BMC715', 'BKS921', 'BKS913', 'BPS747')),
+      date TEXT NOT NULL,
+      time TEXT NOT NULL,
+      shift TEXT NOT NULL CHECK(shift IN ('G1', 'G2', 'G3', 'G4')),
+      shift_type TEXT NOT NULL CHECK(shift_type IN ('DIA', 'NOCHE')),
+      driver_name TEXT NOT NULL,
+      driver_dni TEXT NOT NULL,
+      driver_license TEXT,
+      odometer INTEGER NOT NULL,
+      items_json TEXT NOT NULL,
+      has_observations INTEGER NOT NULL DEFAULT 0,
+      observation_notes TEXT,
+      photo_url TEXT,
+      operational_status TEXT NOT NULL CHECK(operational_status IN ('APTO', 'OBSERVADO', 'NO_APTO')),
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
     -- Indexes for performance
     CREATE INDEX IF NOT EXISTS idx_pumps_tag ON pump_reports(tag);
     CREATE INDEX IF NOT EXISTS idx_pumps_created ON pump_reports(created_at);
@@ -253,6 +273,7 @@ export function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_sync_events_timestamp ON sync_events(timestamp);
     CREATE INDEX IF NOT EXISTS idx_sync_events_device ON sync_events(device_id);
     CREATE INDEX IF NOT EXISTS idx_devices_last_seen ON connected_devices(last_seen);
+    CREATE INDEX IF NOT EXISTS idx_vehicle_checklists_plate ON vehicle_checklists(vehicle_plate, date DESC);
   `);
 
   // Safe migration: remove CHECK constraint from existing crew_area_assignments if present

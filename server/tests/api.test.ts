@@ -395,6 +395,73 @@ test('15. Security: changePassword must strictly require valid currentPassword',
   assert.strictEqual(jsonWrongCurrent.success, false);
 });
 
+test('16. GET /api/vehicles/summary should return exactly the 4 official mining trucks', async () => {
+  const res = await fetch(`${baseUrl}/vehicles/summary`);
+  assert.strictEqual(res.status, 200);
+  const json = await res.json() as any;
+  assert.strictEqual(json.success, true);
+  assert.strictEqual(json.data.length, 4);
 
+  const plates = json.data.map((v: any) => v.plate).sort();
+  assert.deepStrictEqual(plates, ['BKS913', 'BKS921', 'BMC715', 'BPS747']);
+});
 
+test('17. POST & GET /api/vehicles/checklists: create checklist, reject unauthorized plates and filter by plate', async () => {
+  // 1. Reject invalid plate
+  const badPlateRes = await fetch(`${baseUrl}/vehicles/checklists`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${authToken}`
+    },
+    body: JSON.stringify({
+      vehicle_plate: 'XYZ999',
+      driver_name: 'Conductor Invalido',
+      driver_dni: '12345678',
+      odometer: 10000
+    })
+  });
+  assert.strictEqual(badPlateRes.status, 400);
 
+  // 2. Create valid checklist for BMC715
+  const createRes = await fetch(`${baseUrl}/vehicles/checklists`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${authToken}`
+    },
+    body: JSON.stringify({
+      vehicle_plate: 'BMC715',
+      date: '2026-09-26',
+      time: '07:15',
+      shift: 'G1',
+      shift_type: 'DIA',
+      driver_name: 'VIZCARRA CORI MANLEY KLISMAN',
+      driver_dni: '71209033',
+      driver_license: 'Q71209033',
+      odometer: 48310,
+      items: [
+        { code: 'LUCES', name: 'Luces altas, bajas y neblineros', status: 'B' },
+        { code: 'FRENOS', name: 'Freno de servicio y parqueo', status: 'B' },
+        { code: 'EXTINTOR', name: 'Extintor PQS 6kg con manómetro en verde', status: 'B' }
+      ],
+      has_observations: 1,
+      observation_notes: 'Leve raspón superficial en parachoque delantero izquierdo',
+      photo_url: 'data:image/webp;base64,UklGRkAAAABXRUJQVlA4IDQAAADwAQCdASoBAAEAAkA4JaQAA3AA/vuUAAA=',
+      operational_status: 'OBSERVADO'
+    })
+  });
+  assert.strictEqual(createRes.status, 201);
+  const createJson = await createRes.json() as any;
+  assert.strictEqual(createJson.success, true);
+  assert.ok(createJson.id);
+
+  // 3. Query history filtered by plate BMC715
+  const historyRes = await fetch(`${baseUrl}/vehicles/checklists?plate=BMC715`);
+  assert.strictEqual(historyRes.status, 200);
+  const historyJson = await historyRes.json() as any;
+  assert.strictEqual(historyJson.success, true);
+  assert.ok(historyJson.count >= 1);
+  assert.strictEqual(historyJson.data[0].vehicle_plate, 'BMC715');
+  assert.strictEqual(historyJson.data[0].operational_status, 'OBSERVADO');
+});

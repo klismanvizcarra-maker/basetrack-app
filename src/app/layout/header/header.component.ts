@@ -1061,6 +1061,7 @@ export class HeaderComponent {
     if (url.includes('cyclones')) return 'Reporte de ciclones';
     if (url.includes('tailings')) return 'Reporte de descarga';
     if (url.includes('calculators')) return 'Calculadora Planta';
+    if (url.includes('vehicle-checklist')) return 'Checklist Camionetas';
     if (url.includes('maintenance')) return 'Mantenimiento & Evidencias';
     if (url.includes('admin')) return 'Administración de Planta';
     if (url.includes('profile')) return 'Mi Cuenta & Perfil';

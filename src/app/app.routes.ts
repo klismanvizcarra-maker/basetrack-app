@@ -50,6 +50,10 @@ export const routes: Routes = [
         loadComponent: () => import('./features/calculators/metallurgical-calculators.component').then(m => m.MetallurgicalCalculatorsComponent)
       },
       {
+        path: 'vehicle-checklist',
+        loadComponent: () => import('./features/vehicle-checklist/vehicle-checklist.component').then(m => m.VehicleChecklistComponent)
+      },
+      {
         path: 'admin',
         canActivate: [authGuard],
         data: { roles: ['ADMIN'] },

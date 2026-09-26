@@ -1,0 +1,479 @@
+<div class="vehicle-page">
+  <!-- Top Header Bar -->
+  <div class="page-top-bar">
+    <div class="top-title-area">
+      <div class="title-with-badge">
+        <h2>Checklists Pre-Uso de Camionetas (4x4)</h2>
+        <span class="fleet-badge">Flota de 4 Unidades</span>
+      </div>
+      <p class="section-sub">Inspección diaria vehicular y control de operatividad en mina (DS-024-2016-EM)</p>
+    </div>
+    <div class="top-actions">
+      <button class="btn btn-primary" (click)="openCreateModal()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        + Nuevo Checklist Pre-Uso
+      </button>
+    </div>
+  </div>
+
+  <!-- Notification Banner -->
+  <div *ngIf="successMessage" class="feedback-banner glass-panel animate-fade-in">
+    <div class="feedback-icon">✅</div>
+    <div class="feedback-text">{{ successMessage }}</div>
+  </div>
+
+  <!-- Section 1: Official Fleet Selector (Only 4 Authorized Vehicles) -->
+  <div class="fleet-section">
+    <div class="section-header-compact">
+      <div class="section-title-sm">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M5 18H3c-.6 0-1-.4-1-1V9c0-.6.4-1 1-1h10c.6 0 1 .4 1 1v1"></path>
+          <path d="M14 9h4l4 4v4c0 .6-.4 1-1 1h-2"></path>
+          <circle cx="7" cy="18" r="2"></circle>
+          <path d="M9 18h6"></path>
+          <circle cx="17" cy="18" r="2"></circle>
+        </svg>
+        <span>Seleccionar Camioneta Oficial de Operaciones</span>
+      </div>
+      <span class="section-hint">Haz clic en una unidad para ver exclusivamente su historial de días anteriores</span>
+    </div>
+
+    <div class="vehicles-grid">
+      <div 
+        *ngFor="let veh of vehicles" 
+        class="vehicle-card glass-panel"
+        [class.active-card]="veh.plate === selectedPlate"
+        (click)="selectVehicle(veh.plate)"
+      >
+        <div class="card-top-row">
+          <div class="plate-box">
+            <span class="plate-code">{{ veh.plate }}</span>
+            <span class="unit-tag">{{ veh.tag }}</span>
+          </div>
+          <div class="status-pill" [class]="'pill-' + veh.lastOperationalStatus.toLowerCase()">
+            <span class="status-dot"></span>
+            <span>{{ veh.lastOperationalStatus }}</span>
+          </div>
+        </div>
+
+        <div class="model-info">
+          <h4>{{ veh.model }}</h4>
+          <span class="area-badge">{{ veh.area }}</span>
+        </div>
+
+        <div class="card-metrics-grid">
+          <div class="metric-item">
+            <span class="metric-label">Odómetro Actual:</span>
+            <span class="metric-value">{{ veh.currentOdometer | number }} km</span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">Checklists:</span>
+            <span class="metric-value">{{ veh.totalChecklists }} reg.</span>
+          </div>
+        </div>
+
+        <div class="card-footer-info">
+          <div *ngIf="veh.lastChecklistDate; else noHistory">
+            <span class="sub-label">Último:</span>
+            <span class="sub-val">{{ veh.lastChecklistDate }} ({{ veh.lastDriverName || 'Operador' }})</span>
+          </div>
+          <ng-template #noHistory>
+            <span class="sub-empty">Sin checklist registrado hoy</span>
+          </ng-template>
+        </div>
+
+        <div class="active-indicator" *ngIf="veh.plate === selectedPlate">
+          <span>Camioneta Seleccionada</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 2: Selected Vehicle History (Days of this vehicle only) -->
+  <div class="history-section glass-panel">
+    <div class="history-header">
+      <div class="header-left">
+        <div class="selected-plate-badge">{{ selectedPlate }}</div>
+        <div>
+          <h3>Historial de Checklists: Camioneta {{ selectedPlate }}</h3>
+          <p class="history-sub">
+            Mostrando todos los registros de inspección anteriores exclusivamente para la unidad <strong>{{ selectedPlate }}</strong> ({{ currentVehicle.area }})
+          </p>
+        </div>
+      </div>
+      <div class="header-right">
+        <button class="btn btn-secondary btn-sm" (click)="openCreateModal()">
+          + Inspección Pre-Uso {{ selectedPlate }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Loading State -->
+    <div *ngIf="isLoading" class="loading-state">
+      <div class="spinner"></div>
+      <span>Cargando historial de la camioneta {{ selectedPlate }}...</span>
+    </div>
+
+    <!-- Empty State -->
+    <div *ngIf="!isLoading && checklists.length === 0" class="empty-history">
+      <div class="empty-icon">📋</div>
+      <h4>No hay checklists registrados para la camioneta {{ selectedPlate }}</h4>
+      <p>Aún no se han guardado inspecciones de días anteriores para esta unidad. Sé el primero en registrar la inspección de inicio de guardia.</p>
+      <button class="btn btn-primary" (click)="openCreateModal()">
+        Llenar Checklist Pre-Uso de {{ selectedPlate }}
+      </button>
+    </div>
+
+    <!-- History Cards Grid -->
+    <div *ngIf="!isLoading && checklists.length > 0" class="history-cards-list">
+      <div *ngFor="let chk of checklists" class="history-item-card glass-panel animate-fade-in">
+        <div class="item-header-row">
+          <div class="date-driver-info">
+            <div class="date-badge">
+              <span class="date-day">{{ chk.date }}</span>
+              <span class="date-time">{{ chk.time }} • Guardia {{ chk.shift }} ({{ chk.shift_type }})</span>
+            </div>
+            <div class="driver-name-box">
+              <span class="driver-title">Conductor:</span>
+              <strong class="driver-name">{{ chk.driver_name }}</strong>
+              <span class="driver-doc">DNI: {{ chk.driver_dni }}</span>
+            </div>
+          </div>
+          <div class="item-status-wrapper">
+            <div class="status-pill" [class]="'pill-' + chk.operational_status.toLowerCase()">
+              <span class="status-dot"></span>
+              <span>{{ chk.operational_status }}</span>
+            </div>
+            <span class="odometer-badge">🏁 {{ chk.odometer | number }} km</span>
+          </div>
+        </div>
+
+        <!-- Observation Alert inside History Card -->
+        <div *ngIf="chk.has_observations || chk.observation_notes" class="history-observation-box">
+          <div class="obs-header">
+            <span class="obs-tag">⚠️ OBSERVACIÓN REGISTRADA:</span>
+            <span class="obs-text">{{ chk.observation_notes || 'Detalle no especificado' }}</span>
+          </div>
+          <div *ngIf="chk.photo_url" class="obs-thumbnail-wrapper" (click)="openPhotoPreview(chk.photo_url)">
+            <img [src]="chk.photo_url" alt="Foto observación" class="obs-thumbnail" />
+            <span class="photo-hint">🔍 Clic para ampliar fotografía</span>
+          </div>
+        </div>
+
+        <div class="item-footer-row">
+          <div class="quick-summary">
+            <span class="summary-pill">✅ 26 Ítems Evaluados</span>
+            <span *ngIf="chk.driver_license" class="summary-pill">Licencia: {{ chk.driver_license }}</span>
+          </div>
+          <button class="btn btn-secondary btn-sm" (click)="openDetailModal(chk)">
+            Ver Detalle Completo &rarr;
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Crear Nuevo Checklist Pre-Uso -->
+  <app-modal [isOpen]="isCreateModalOpen" [title]="'Checklist Pre-Uso: Camioneta ' + formVehiclePlate" (close)="isCreateModalOpen = false">
+    <div class="create-checklist-container">
+      
+      <!-- Driver & Vehicle Overview Banner -->
+      <div class="driver-banner-card">
+        <div class="banner-vehicle-info">
+          <div class="big-plate">{{ formVehiclePlate }}</div>
+          <div>
+            <h4>{{ currentVehicle.model }}</h4>
+            <span class="sub-area">{{ currentVehicle.area }}</span>
+          </div>
+        </div>
+        <div class="banner-driver-info">
+          <span class="driver-badge-title">Conductor Autenticado:</span>
+          <strong>{{ formDriverName }}</strong>
+          <span>DNI: {{ formDriverDni || 'No registrado' }} • Guardia {{ formShift }}</span>
+        </div>
+      </div>
+
+      <!-- Quick Fill Helper Buttons -->
+      <div class="form-helper-bar">
+        <div class="helper-text">
+          <span>Completa la inspección técnica antes de arrancar la unidad en terreno.</span>
+        </div>
+        <button type="button" class="btn btn-emerald-outline btn-sm" (click)="markAllItemsGood()">
+          ✓ Marcar Todo en Buen Estado (B)
+        </button>
+      </div>
+
+      <!-- Form General Details Grid -->
+      <div class="form-grid-3">
+        <div class="form-group">
+          <label>Kilometraje Odómetro (km) *</label>
+          <input type="number" [(ngModel)]="formOdometer" required placeholder="Ej: 48260" class="input-focus" />
+          <span class="input-note">Último registrado: {{ currentVehicle.currentOdometer | number }} km</span>
+        </div>
+        <div class="form-group">
+          <label>Fecha de Inspección *</label>
+          <input type="date" [(ngModel)]="formDate" required />
+        </div>
+        <div class="form-group">
+          <label>Hora de Salida *</label>
+          <input type="time" [(ngModel)]="formTime" required />
+        </div>
+      </div>
+
+      <div class="form-grid-3">
+        <div class="form-group">
+          <label>Guardia Operacional</label>
+          <select [(ngModel)]="formShift">
+            <option value="G1">Guardia G1</option>
+            <option value="G2">Guardia G2</option>
+            <option value="G3">Guardia G3</option>
+            <option value="G4">Guardia G4</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Turno</label>
+          <select [(ngModel)]="formShiftType">
+            <option value="DIA">Turno Día (07:00 - 19:00)</option>
+            <option value="NOCHE">Turno Noche (19:00 - 07:00)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Licencia de Conducir</label>
+          <input type="text" [(ngModel)]="formDriverLicense" placeholder="Ej: Q71209033" />
+        </div>
+      </div>
+
+      <!-- Category Filter Tabs -->
+      <div class="category-tabs-container">
+        <span class="tabs-label">Secciones:</span>
+        <div class="category-tabs">
+          <button 
+            type="button" 
+            *ngFor="let cat of getCategories()" 
+            class="tab-btn" 
+            [class.active]="activeCategory === cat"
+            (click)="activeCategory = cat"
+          >
+            {{ cat }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Inspection Items Table -->
+      <div class="items-table-wrapper">
+        <table class="items-table">
+          <thead>
+            <tr>
+              <th style="width: 45%;">Ítem de Inspección Minera</th>
+              <th style="width: 25%;">Categoría</th>
+              <th style="width: 30%; text-align: center;">Estado (B / M / N/A)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of getFilteredItems()" [class.row-bad]="item.status === 'M'">
+              <td class="item-name-cell">
+                <span class="item-name-text">{{ item.name }}</span>
+              </td>
+              <td>
+                <span class="item-cat-badge">{{ item.category }}</span>
+              </td>
+              <td class="item-actions-cell">
+                <div class="status-toggle-group">
+                  <button 
+                    type="button" 
+                    class="toggle-btn btn-b" 
+                    [class.active]="item.status === 'B'"
+                    (click)="item.status = 'B'; onItemStatusChange()"
+                    title="Buen Estado"
+                  >
+                    B
+                  </button>
+                  <button 
+                    type="button" 
+                    class="toggle-btn btn-m" 
+                    [class.active]="item.status === 'M'"
+                    (click)="item.status = 'M'; onItemStatusChange()"
+                    title="Malo / Con Daño"
+                  >
+                    M
+                  </button>
+                  <button 
+                    type="button" 
+                    class="toggle-btn btn-na" 
+                    [class.active]="item.status === 'NA'"
+                    (click)="item.status = 'NA'; onItemStatusChange()"
+                    title="No Aplica"
+                  >
+                    N/A
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Observation & Photo Upload Section -->
+      <div class="observation-section-card">
+        <div class="obs-toggle-row">
+          <label class="custom-checkbox">
+            <input type="checkbox" [(ngModel)]="formHasObservations" />
+            <span class="checkbox-box"></span>
+            <span class="checkbox-label">¿El vehículo presenta alguna observación, daño o desperfecto?</span>
+          </label>
+        </div>
+
+        <div *ngIf="formHasObservations" class="obs-details-box animate-fade-in">
+          <div class="form-group">
+            <label>Detalle de la Observación / Falla Detectada:</label>
+            <textarea 
+              [(ngModel)]="formObservationNotes" 
+              rows="3" 
+              placeholder="Describa el desperfecto (ej: raspón en parachoque, luz neblinera derecha inoperativa, llanta baja...)"
+            ></textarea>
+          </div>
+
+          <div class="photo-upload-group">
+            <label style="font-weight: 600; display: block; margin-bottom: 6px;">
+              📸 Evidencia Fotográfica (Opcional):
+            </label>
+            
+            <div *ngIf="!formPhotoUrl" class="upload-dropzone">
+              <input type="file" accept="image/*" capture="environment" (change)="onPhotoSelected($event)" id="photoInput" style="display: none;" />
+              <button type="button" class="btn btn-secondary" onclick="document.getElementById('photoInput').click()">
+                📷 Tomar Foto con Cámara / Subir Imagen
+              </button>
+              <span class="upload-hint">Se comprime automáticamente para no saturar memoria (< 60 KB).</span>
+            </div>
+
+            <div *ngIf="formPhotoUrl" class="photo-preview-wrapper animate-fade-in">
+              <img [src]="formPhotoUrl" alt="Vista previa" class="photo-preview-img" />
+              <div class="preview-actions">
+                <span class="preview-success-tag">✅ Fotografía Adjunta</span>
+                <button type="button" class="btn btn-danger-sm" (click)="removePhoto()">Quitar Foto</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Final Operational Dictamen -->
+      <div class="operational-dictamen-card">
+        <label class="dictamen-title">Dictamen Final de Operatividad:</label>
+        <div class="dictamen-options">
+          <label class="dictamen-option opt-apto" [class.selected]="formOperationalStatus === 'APTO'">
+            <input type="radio" name="opStatus" value="APTO" [(ngModel)]="formOperationalStatus" />
+            <div class="opt-body">
+              <span class="opt-indicator">🟢</span>
+              <div class="opt-texts">
+                <strong>APTO PARA OPERAR</strong>
+                <span>Camioneta en condiciones óptimas de seguridad.</span>
+              </div>
+            </div>
+          </label>
+
+          <label class="dictamen-option opt-observado" [class.selected]="formOperationalStatus === 'OBSERVADO'">
+            <input type="radio" name="opStatus" value="OBSERVADO" [(ngModel)]="formOperationalStatus" />
+            <div class="opt-body">
+              <span class="opt-indicator">🟡</span>
+              <div class="opt-texts">
+                <strong>APTO CON OBSERVACIONES</strong>
+                <span>Daño estético o menor que no impide traslado seguro.</span>
+              </div>
+            </div>
+          </label>
+
+          <label class="dictamen-option opt-noapto" [class.selected]="formOperationalStatus === 'NO_APTO'">
+            <input type="radio" name="opStatus" value="NO_APTO" [(ngModel)]="formOperationalStatus" />
+            <div class="opt-body">
+              <span class="opt-indicator">🔴</span>
+              <div class="opt-texts">
+                <strong>NO APTO / INOPERATIVO</strong>
+                <span>Falla crítica (frenos, dirección o luces). Prohibido mover.</span>
+              </div>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <!-- Legal Declaration Checkbox -->
+      <div class="declaration-row">
+        <label class="custom-checkbox">
+          <input type="checkbox" [(ngModel)]="formSignatureAgreed" required />
+          <span class="checkbox-box"></span>
+          <span class="checkbox-label">
+            Declaro bajo juramento que he inspeccionado físicamente la camioneta <strong>{{ formVehiclePlate }}</strong> y la información reportada es verídica.
+          </span>
+        </label>
+      </div>
+
+    </div>
+
+    <!-- Modal Footer Actions -->
+    <div footer class="modal-footer-btns">
+      <button type="button" class="btn btn-secondary" (click)="isCreateModalOpen = false" [disabled]="isSubmitting">
+        Cancelar
+      </button>
+      <button type="button" class="btn btn-primary" (click)="submitChecklist()" [disabled]="isSubmitting">
+        {{ isSubmitting ? 'Guardando...' : 'Registrar y Firmar Checklist' }}
+      </button>
+    </div>
+  </app-modal>
+
+  <!-- MODAL: Detalle Completo de Checklist Previo -->
+  <app-modal [isOpen]="isDetailModalOpen" [title]="'Detalle de Checklist: ' + selectedChecklistDetail?.vehicle_plate + ' (' + selectedChecklistDetail?.date + ')'" (close)="isDetailModalOpen = false">
+    <div *ngIf="selectedChecklistDetail" class="detail-modal-body">
+      
+      <div class="detail-header-card">
+        <div class="detail-plate">{{ selectedChecklistDetail.vehicle_plate }}</div>
+        <div class="detail-meta">
+          <strong>Conductor: {{ selectedChecklistDetail.driver_name }}</strong>
+          <span>DNI: {{ selectedChecklistDetail.driver_dni }} • Guardia {{ selectedChecklistDetail.shift }} ({{ selectedChecklistDetail.shift_type }})</span>
+          <span>Fecha/Hora: {{ selectedChecklistDetail.date }} {{ selectedChecklistDetail.time }} • Odómetro: {{ selectedChecklistDetail.odometer | number }} km</span>
+        </div>
+        <div class="status-pill" [class]="'pill-' + selectedChecklistDetail.operational_status.toLowerCase()">
+          <span class="status-dot"></span>
+          <span>{{ selectedChecklistDetail.operational_status }}</span>
+        </div>
+      </div>
+
+      <!-- Observation Details in Modal -->
+      <div *ngIf="selectedChecklistDetail.has_observations || selectedChecklistDetail.observation_notes" class="detail-obs-box">
+        <strong>⚠️ Observaciones Reportadas:</strong>
+        <p>{{ selectedChecklistDetail.observation_notes || 'Sin nota detallada' }}</p>
+        <div *ngIf="selectedChecklistDetail.photo_url" class="detail-photo-wrapper">
+          <img [src]="selectedChecklistDetail.photo_url" alt="Foto observación" class="detail-photo-img" (click)="openPhotoPreview(selectedChecklistDetail.photo_url)" />
+          <span class="photo-hint">🔍 Haz clic en la foto para verla en pantalla completa</span>
+        </div>
+      </div>
+
+      <!-- Items Checklist Detail Grid -->
+      <div class="detail-items-section">
+        <h4>Inspección de 26 Puntos:</h4>
+        <div class="detail-items-grid">
+          <div *ngFor="let item of selectedChecklistDetail.items" class="detail-item-pill" [class.item-bad]="item.status === 'M'">
+            <span class="detail-status-indicator">{{ item.status === 'B' ? '✅' : (item.status === 'M' ? '❌' : '⚪') }}</span>
+            <span class="detail-name">{{ item.name }}</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <div footer class="modal-footer-btns">
+      <button type="button" class="btn btn-secondary" (click)="isDetailModalOpen = false">Cerrar</button>
+    </div>
+  </app-modal>
+
+  <!-- Photo Fullscreen Lightbox Preview -->
+  <div *ngIf="previewPhotoUrl" class="photo-lightbox-backdrop" (click)="closePhotoPreview()">
+    <div class="lightbox-content" (click)="$event.stopPropagation()">
+      <button class="lightbox-close-btn" (click)="closePhotoPreview()">&times;</button>
+      <img [src]="previewPhotoUrl" alt="Foto ampliada" class="lightbox-img" />
+      <span class="lightbox-caption">Evidencia Fotográfica de la Inspección Pre-Uso</span>
+    </div>
+  </div>
+
+</div>
