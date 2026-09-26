@@ -2,7 +2,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
-import { getApiBaseUrl, getCustomApiUrl, setCustomApiUrl } from '../../core/constants/api.config';
+import { getApiBaseUrl, getCustomApiUrl, setCustomApiUrl, DEFAULT_CLOUD_BACKEND_URL } from '../../core/constants/api.config';
 import { timeout } from 'rxjs';
 import { ModalComponent } from '../../shared/ui/modal.component';
 import { AuthService } from '../../core/auth/auth.service';
@@ -2052,7 +2052,7 @@ export class AdminComponent implements OnInit {
   currentApiUrl = getApiBaseUrl();
 
   get hasCustomCloudBackend(): boolean {
-    return !!getCustomApiUrl();
+    return !!getCustomApiUrl() || !!DEFAULT_CLOUD_BACKEND_URL;
   }
 
   openBackendConfigModal(): void {

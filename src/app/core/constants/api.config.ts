@@ -10,7 +10,7 @@
  * los dispositivos (celulares, tablets y computadoras) se conecten automáticamente.
  * Ejemplo: 'https://basetrack-backend.onrender.com/api'
  */
-export const DEFAULT_CLOUD_BACKEND_URL: string = '';
+export const DEFAULT_CLOUD_BACKEND_URL: string = 'https://basetrack-app.onrender.com/api';
 
 export function getApiBaseUrl(): string {
   if (typeof window !== 'undefined' && window.location) {
@@ -28,7 +28,15 @@ export function getApiBaseUrl(): string {
       // In private browsing or restricted environments
     }
 
-    // 2. Check if a default cloud backend is set for global multi-device usage
+    const hostname = window.location.hostname;
+    const protocol = window.location.protocol;
+
+    // 2. If running locally on localhost/127.0.0.1, prioritize local dev server
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return 'http://localhost:3001/api';
+    }
+
+    // 3. Global Cloud Backend URL (used by Vercel, mobile phones, tablets and cloud production)
     if (DEFAULT_CLOUD_BACKEND_URL && DEFAULT_CLOUD_BACKEND_URL.trim()) {
       let clean = DEFAULT_CLOUD_BACKEND_URL.trim().replace(/\/+$/, '');
       if (!clean.endsWith('/api')) {
@@ -37,16 +45,8 @@ export function getApiBaseUrl(): string {
       return clean;
     }
 
-    const hostname = window.location.hostname;
-    const protocol = window.location.protocol;
-
-    // 3. If running on Vercel or any HTTPS domain, avoid calling insecure http://hostname:3001/api (Mixed Content)
-    if (protocol === 'https:' && hostname.includes('vercel.app')) {
-      return `https://${hostname}/api`;
-    }
-
-    // 4. Local area network (LAN IP: 192.168.x.x) or non-localhost HTTP
-    if (hostname && hostname !== 'localhost' && hostname !== '127.0.0.1') {
+    // 4. Fallback for Local Area Network (LAN IP: 192.168.x.x) or non-localhost HTTP
+    if (hostname && protocol !== 'https:') {
       return `http://${hostname}:3001/api`;
     }
   }
