@@ -590,7 +590,12 @@ input::placeholder, textarea::placeholder {
   .calc-card,
   .tool-panel,
   .quick-stat-pill,
-  .formula-box {
+  .formula-box,
+  .vehicle-card,
+  .history-section,
+  .history-item-card,
+  .driver-banner-card,
+  .items-table-wrapper {
     background: var(--bg-card) !important;
     border-color: var(--border-subtle) !important;
   }

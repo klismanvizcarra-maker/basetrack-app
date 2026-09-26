@@ -149,6 +149,140 @@ export const DEFAULT_INSPECTION_ITEMS: InspectionCheckItem[] = [
   { id: 'tarjeta_propiedad', category: 'Documentación', name: 'Tarjeta de identificación vehicular en guantera', status: 'B' }
 ];
 
+export const SAMPLE_INITIAL_CHECKLISTS: Record<string, VehicleChecklist[]> = {
+  'BMC715': [
+    {
+      id: 'chk-init-bmc-1',
+      vehicle_plate: 'BMC715',
+      date: new Date(Date.now() - 86400000).toISOString().slice(0, 10),
+      time: '06:45',
+      shift: 'G1',
+      shift_type: 'DIA',
+      driver_name: 'VIZCARRA CORI MANLEY KLISMAN',
+      driver_dni: '71209033',
+      driver_license: 'Q71209033',
+      odometer: 48250,
+      items: DEFAULT_INSPECTION_ITEMS,
+      has_observations: false,
+      operational_status: 'APTO'
+    },
+    {
+      id: 'chk-init-bmc-2',
+      vehicle_plate: 'BMC715',
+      date: new Date(Date.now() - 172800000).toISOString().slice(0, 10),
+      time: '18:50',
+      shift: 'G4',
+      shift_type: 'NOCHE',
+      driver: 'ORTEGA RAMÍREZ CESAR',
+      driver_name: 'ORTEGA RAMÍREZ CESAR',
+      driver_dni: '40918239',
+      driver_license: 'Q40918239',
+      odometer: 48190,
+      items: DEFAULT_INSPECTION_ITEMS,
+      has_observations: false,
+      operational_status: 'APTO'
+    } as any
+  ],
+  'BKS921': [
+    {
+      id: 'chk-init-bks-1',
+      vehicle_plate: 'BKS921',
+      date: new Date(Date.now() - 86400000).toISOString().slice(0, 10),
+      time: '07:05',
+      shift: 'G1',
+      shift_type: 'DIA',
+      driver_name: 'PILCO APAZA CARLOS EDUARDO',
+      driver_dni: '42324277',
+      driver_license: 'Q42324277',
+      odometer: 53120,
+      items: DEFAULT_INSPECTION_ITEMS,
+      has_observations: true,
+      observation_notes: 'Leve desgaste en plumilla limpiaparabrisas derecha. Unidad 100% operativa.',
+      operational_status: 'OBSERVADO'
+    },
+    {
+      id: 'chk-init-bks-2',
+      vehicle_plate: 'BKS921',
+      date: new Date(Date.now() - 172800000).toISOString().slice(0, 10),
+      time: '06:50',
+      shift: 'G4',
+      shift_type: 'DIA',
+      driver_name: 'CAMPOS ZEA OSWALDO',
+      driver_dni: '72910394',
+      driver_license: 'Q72910394',
+      odometer: 53040,
+      items: DEFAULT_INSPECTION_ITEMS,
+      has_observations: false,
+      operational_status: 'APTO'
+    }
+  ],
+  'BKS913': [
+    {
+      id: 'chk-init-bks3-1',
+      vehicle_plate: 'BKS913',
+      date: new Date(Date.now() - 86400000).toISOString().slice(0, 10),
+      time: '06:55',
+      shift: 'G1',
+      shift_type: 'DIA',
+      driver_name: 'VILCAMIZA PEVE JORGE RICARDO',
+      driver_dni: '41748219',
+      driver_license: 'Q41748219',
+      odometer: 39800,
+      items: DEFAULT_INSPECTION_ITEMS,
+      has_observations: false,
+      operational_status: 'APTO'
+    },
+    {
+      id: 'chk-init-bks3-2',
+      vehicle_plate: 'BKS913',
+      date: new Date(Date.now() - 172800000).toISOString().slice(0, 10),
+      time: '19:10',
+      shift: 'G4',
+      shift_type: 'NOCHE',
+      driver_name: 'SUÁREZ MAMANI JULIO',
+      driver_dni: '44819203',
+      driver_license: 'Q44819203',
+      odometer: 39710,
+      items: DEFAULT_INSPECTION_ITEMS,
+      has_observations: false,
+      operational_status: 'APTO'
+    }
+  ],
+  'BPS747': [
+    {
+      id: 'chk-init-bps-1',
+      vehicle_plate: 'BPS747',
+      date: new Date(Date.now() - 86400000).toISOString().slice(0, 10),
+      time: '07:15',
+      shift: 'G1',
+      shift_type: 'DIA',
+      driver_name: 'MONTES RODRIGUEZ DIEGO ALEXANDER',
+      driver_dni: '45437279',
+      driver_license: 'Q45437279',
+      odometer: 61400,
+      items: DEFAULT_INSPECTION_ITEMS,
+      has_observations: false,
+      operational_status: 'APTO'
+    },
+    {
+      id: 'chk-init-bps-2',
+      vehicle_plate: 'BPS747',
+      date: new Date(Date.now() - 172800000).toISOString().slice(0, 10),
+      time: '07:00',
+      shift: 'G4',
+      shift_type: 'DIA',
+      driver_name: 'CORNEJO NINA ALONSO',
+      driver_dni: '75910293',
+      driver_license: 'Q75910293',
+      odometer: 61310,
+      items: DEFAULT_INSPECTION_ITEMS,
+      has_observations: true,
+      observation_notes: 'Presión neumático calibrada de 28 a 35 PSI.',
+      operational_status: 'OBSERVADO'
+    }
+  ]
+};
+
 @Injectable({
   providedIn: 'root'
 })
@@ -203,8 +337,13 @@ export class VehicleChecklistService {
   public loadChecklistsForPlate(plate: 'BMC715' | 'BKS921' | 'BKS913' | 'BPS747'): void {
     this.isLoadingSignal.set(true);
 
-    // 1. Immediately display cached checklists for this plate (Offline First)
-    const cached = getRealtimeData<VehicleChecklist[]>(`basetrack_checklists_${plate}`, []);
+    // 1. Immediately display cached checklists for this plate with fallback to sample history
+    const initialSamples = SAMPLE_INITIAL_CHECKLISTS[plate] || [];
+    let cached = getRealtimeData<VehicleChecklist[]>(`basetrack_checklists_${plate}`, []);
+    if (!Array.isArray(cached) || cached.length === 0) {
+      cached = [...initialSamples];
+      saveRealtimeData(`basetrack_checklists_${plate}`, cached);
+    }
     this.checklistsSignal.set(cached);
 
     // 2. Fetch remote update from Render / Cloud
@@ -212,7 +351,7 @@ export class VehicleChecklistService {
       tap(res => {
         this.isLoadingSignal.set(false);
         if (res && res.success && Array.isArray(res.data)) {
-          const mapped: VehicleChecklist[] = res.data.map(item => ({
+          const remoteMapped: VehicleChecklist[] = res.data.map(item => ({
             id: item.id,
             vehicle_plate: item.vehicle_plate,
             date: item.date,
@@ -231,8 +370,21 @@ export class VehicleChecklistService {
             created_at: item.created_at
           }));
 
-          this.checklistsSignal.set(mapped);
-          saveRealtimeData(`basetrack_checklists_${plate}`, mapped);
+          // Merge remote + local cached + initialSamples without losing any records
+          const map = new Map<string, VehicleChecklist>();
+          for (const r of remoteMapped) map.set(r.id, r);
+          for (const c of cached) {
+            if (!map.has(c.id)) map.set(c.id, c);
+          }
+          for (const s of initialSamples) {
+            if (!map.has(s.id)) map.set(s.id, s);
+          }
+          const merged = Array.from(map.values()).sort((a, b) => (b.date + ' ' + b.time).localeCompare(a.date + ' ' + a.time));
+
+          if (this.selectedPlateSignal() === plate) {
+            this.checklistsSignal.set(merged);
+          }
+          saveRealtimeData(`basetrack_checklists_${plate}`, merged);
         }
       }),
       catchError(err => {
@@ -251,16 +403,26 @@ export class VehicleChecklistService {
       created_at: new Date().toISOString()
     };
 
-    // Update local signal and cache immediately for selected plate
-    const currentList = this.checklistsSignal();
-    const updatedList = [completeChecklist, ...currentList];
-    this.checklistsSignal.set(updatedList);
-    saveRealtimeData(`basetrack_checklists_${checklist.vehicle_plate}`, updatedList);
+    const targetPlate = checklist.vehicle_plate as 'BMC715' | 'BKS921' | 'BKS913' | 'BPS747';
+    const initialSamples = SAMPLE_INITIAL_CHECKLISTS[targetPlate] || [];
+    let currentList = getRealtimeData<VehicleChecklist[]>(`basetrack_checklists_${targetPlate}`, initialSamples);
+    if (!Array.isArray(currentList) || currentList.length === 0) {
+      currentList = [...initialSamples];
+    }
+
+    // Prepend new checklist and deduplicate
+    const updatedList = [completeChecklist, ...currentList.filter(item => item.id !== newId)];
+    saveRealtimeData(`basetrack_checklists_${targetPlate}`, updatedList);
+
+    // If currently selected plate matches, update signal immediately
+    if (this.selectedPlateSignal() === targetPlate) {
+      this.checklistsSignal.set(updatedList);
+    }
 
     // Update vehicle summary locally
     const currentVehicles = this.vehiclesSignal();
     const updatedVehicles = currentVehicles.map(v => {
-      if (v.plate === checklist.vehicle_plate) {
+      if (v.plate === targetPlate) {
         return {
           ...v,
           currentOdometer: checklist.odometer,
@@ -268,7 +430,7 @@ export class VehicleChecklistService {
           lastChecklistTime: checklist.time,
           lastDriverName: checklist.driver_name,
           lastOperationalStatus: checklist.operational_status,
-          totalChecklists: v.totalChecklists + 1
+          totalChecklists: (v.totalChecklists || 0) + 1
         };
       }
       return v;
@@ -277,7 +439,7 @@ export class VehicleChecklistService {
     saveRealtimeData('basetrack_vehicles_summary', updatedVehicles);
 
     // Queue for sync and broadcast across tabs/devices
-    this.cloudSync.broadcastChange('vehicle_checklists', 'CREATE', completeChecklist, `basetrack_checklists_${checklist.vehicle_plate}`);
+    this.cloudSync.broadcastChange('vehicle_checklists', 'CREATE', completeChecklist, `basetrack_checklists_${targetPlate}`);
 
     // Send to central Render Cloud backend
     const payload = {

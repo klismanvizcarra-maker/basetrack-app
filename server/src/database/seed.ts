@@ -547,6 +547,60 @@ export function seed() {
       }
     }
 
+    // 7. Vehicle Checklists - Idempotent Seeding for previous days
+    const checkVehicleChecklist = db.prepare('SELECT id FROM vehicle_checklists WHERE vehicle_plate = ? AND date = ?');
+    const insertVehicleChecklist = db.prepare(`
+      INSERT INTO vehicle_checklists (
+        id, vehicle_plate, date, time, shift, shift_type,
+        driver_name, driver_dni, driver_license, odometer, items_json,
+        has_observations, observation_notes, photo_url, operational_status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    const twoDaysAgo = new Date(Date.now() - 172800000).toISOString().slice(0, 10);
+
+    const initialChecklists = [
+      { plate: 'BMC715', date: yesterday, time: '06:45', shift: 'G1', shift_type: 'DIA', driver: 'VIZCARRA CORI MANLEY KLISMAN', dni: '71209033', lic: 'Q71209033', odo: 48250, hasObs: 0, notes: null, photo: null, status: 'APTO' },
+      { plate: 'BMC715', date: twoDaysAgo, time: '18:50', shift: 'G4', shift_type: 'NOCHE', driver: 'ORTEGA RAMÍREZ CESAR', dni: '40918239', lic: 'Q40918239', odo: 48190, hasObs: 0, notes: null, photo: null, status: 'APTO' },
+      { plate: 'BKS921', date: yesterday, time: '07:05', shift: 'G1', shift_type: 'DIA', driver: 'PILCO APAZA CARLOS EDUARDO', dni: '42324277', lic: 'Q42324277', odo: 53120, hasObs: 1, notes: 'Leve desgaste en plumilla limpiaparabrisas derecha. Operativo.', photo: null, status: 'OBSERVADO' },
+      { plate: 'BKS921', date: twoDaysAgo, time: '06:50', shift: 'G4', shift_type: 'DIA', driver: 'CAMPOS ZEA OSWALDO', dni: '72910394', lic: 'Q72910394', odo: 53040, hasObs: 0, notes: null, photo: null, status: 'APTO' },
+      { plate: 'BKS913', date: yesterday, time: '06:55', shift: 'G1', shift_type: 'DIA', driver: 'VILCAMIZA PEVE JORGE RICARDO', dni: '41748219', lic: 'Q41748219', odo: 39800, hasObs: 0, notes: null, photo: null, status: 'APTO' },
+      { plate: 'BKS913', date: twoDaysAgo, time: '19:10', shift: 'G4', shift_type: 'NOCHE', driver: 'SUÁREZ MAMANI JULIO', dni: '44819203', lic: 'Q44819203', odo: 39710, hasObs: 0, notes: null, photo: null, status: 'APTO' },
+      { plate: 'BPS747', date: yesterday, time: '07:15', shift: 'G1', shift_type: 'DIA', driver: 'MONTES RODRIGUEZ DIEGO ALEXANDER', dni: '45437279', lic: 'Q45437279', odo: 61400, hasObs: 0, notes: null, photo: null, status: 'APTO' },
+      { plate: 'BPS747', date: twoDaysAgo, time: '07:00', shift: 'G4', shift_type: 'DIA', driver: 'CORNEJO NINA ALONSO', dni: '75910293', lic: 'Q75910293', odo: 61310, hasObs: 1, notes: 'Presión de neumático calibrada de 28 a 35 PSI.', photo: null, status: 'OBSERVADO' }
+    ];
+
+    const standardItemsJson = JSON.stringify([
+      { id: 'luces_principales', category: 'Luces y Eléctrico', name: 'Luces altas, bajas y de posición', status: 'B' },
+      { id: 'luces_freno_retro', category: 'Luces y Eléctrico', name: 'Luces de freno y marcha atrás (retro)', status: 'B' },
+      { id: 'freno_servicio', category: 'Cabina y Frenos', name: 'Eficacia del freno de servicio', status: 'B' },
+      { id: 'extintor_pqs', category: 'Equipo Emergencia', name: 'Extintor PQS 6kg vigente en verde', status: 'B' },
+      { id: 'tacos_seguridad', category: 'Equipo Emergencia', name: '2 cuñas o tacos de seguridad', status: 'B' }
+    ]);
+
+    for (const c of initialChecklists) {
+      if (!checkVehicleChecklist.get(c.plate, c.date)) {
+        insertVehicleChecklist.run(
+          crypto.randomUUID(),
+          c.plate,
+          c.date,
+          c.time,
+          c.shift,
+          c.shift_type,
+          c.driver,
+          c.dni,
+          c.lic,
+          c.odo,
+          standardItemsJson,
+          c.hasObs,
+          c.notes,
+          c.photo,
+          c.status
+        );
+      }
+    }
+
   console.log('[Seed] Database seeded successfully.');
 }
 

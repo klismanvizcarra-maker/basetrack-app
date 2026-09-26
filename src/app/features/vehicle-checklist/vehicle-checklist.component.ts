@@ -223,13 +223,17 @@ export class VehicleChecklistComponent implements OnInit {
       next: () => {
         this.isSubmitting = false;
         this.isCreateModalOpen = false;
-        this.successMessage = `Checklist pre-uso para camioneta ${this.formVehiclePlate} guardado exitosamente.`;
+        const savedPlate = this.formVehiclePlate;
+        this.selectVehicle(savedPlate);
+        this.successMessage = `Checklist pre-uso para camioneta ${savedPlate} guardado exitosamente.`;
         setTimeout(() => this.successMessage = '', 6000);
       },
       error: () => {
         this.isSubmitting = false;
         this.isCreateModalOpen = false;
-        this.successMessage = `Checklist pre-uso para camioneta ${this.formVehiclePlate} registrado en modo local.`;
+        const savedPlate = this.formVehiclePlate;
+        this.selectVehicle(savedPlate);
+        this.successMessage = `Checklist pre-uso para camioneta ${savedPlate} registrado en modo local.`;
         setTimeout(() => this.successMessage = '', 6000);
       }
     });
