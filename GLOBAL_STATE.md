@@ -136,6 +136,7 @@
 | 2026-09-24 | Multi-Agent Team | Orchestrator | `TASK-035` | Diagnóstico y resolución de sincronización multi-dispositivo y persistencia de usuarios en Vercel | Multi-Agent Team | `TASK-034` | `DONE` | 0/3 | Arquitectura híbrida documentada, sincronización local y backend Render/Railway configurado |
 | `TASK-036` | Auditoría Exhaustiva de Código, Resiliencia Runtime y Sanitización de Tipos | Multi-Agent Team | `TASK-035` | `DONE` | 0/3 | Corrección de runtime exception de clipboard en HTTP/móvil con fallback universal, sanitización de guardias legacy a G1-G4, guardas SSR en localStorage, corrección de variable userRole en auth controller, suite de pruebas 15/15 y build de producción 100% limpio |
 | `TASK-037` | Integración Global del Backend Cloud Render (https://basetrack-app.onrender.com) | Multi-Agent Team | `TASK-036` | `DONE` | 0/3 | Backend Node 22 desplegado y verificado en Render con SQLite nativo; URL centralizada configurada como predeterminada en DEFAULT_CLOUD_BACKEND_URL; sincronización multi-dispositivo y persistencia global de usuarios habilitada para Vercel y móviles |
+| `TASK-038` | Módulo de Checklists Digitales Pre-Uso de Camionetas Mineras 4x4 | Multi-Agent Team | `TASK-037` | `DONE` | 0/3 | Selección estricta de 4 matrículas oficiales (BMC715, BKS921, BKS913, BPS747), autocompletado de datos del conductor, inspección de 26 puntos DS-024-2016-EM, compresión Canvas de fotos de observación, historial exclusivo filtrado por vehículo, tabla SQLite vehicle_checklists y 17/17 tests aprobados |
 
 ---
 
@@ -143,6 +144,7 @@
 
 | Timestamp | De Agente | A Agente | Tarea ID | Resumen de Entrega |
 | :--- | :--- | :--- | :--- | :--- |
+| 2026-09-26 | Multi-Agent Team | Orchestrator | `TASK-038` | Entrega del módulo de Checklists Pre-Uso de Camionetas con selector de 4 unidades, autocompletado, subida de fotos, historial por vehículo, tests y build 100% limpios |
 | 2026-09-14 | Setup | Orchestrator | `TASK-000` | Inicialización de reglas y definición del equipo |
 | 2026-09-16 | Orchestrator | Backend Agent | `TASK-001` | Asignación de diseño de base de datos, migraciones y APIs REST |
 | 2026-09-16 | Backend Agent | Frontend Agent | `TASK-001` | Entrega de APIs REST, SQLite nativo, JWT RBAC y datos de prueba |
