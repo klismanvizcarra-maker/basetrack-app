@@ -135,6 +135,7 @@
 | 2026-09-24 | Frontend Agent | Orchestrator | `TASK-034` | Adaptación móvil integral: eliminación absoluta de zoom (meta viewport, pinch-to-zoom y double-tap bloqueados), modales como bottom-sheets, safe-area insets y prevención de auto-zoom en inputs |
 | 2026-09-24 | Multi-Agent Team | Orchestrator | `TASK-035` | Diagnóstico y resolución de sincronización multi-dispositivo y persistencia de usuarios en Vercel | Multi-Agent Team | `TASK-034` | `DONE` | 0/3 | Arquitectura híbrida documentada, sincronización local y backend Render/Railway configurado |
 | `TASK-036` | Auditoría Exhaustiva de Código, Resiliencia Runtime y Sanitización de Tipos | Multi-Agent Team | `TASK-035` | `DONE` | 0/3 | Corrección de runtime exception de clipboard en HTTP/móvil con fallback universal, sanitización de guardias legacy a G1-G4, guardas SSR en localStorage, corrección de variable userRole en auth controller, suite de pruebas 15/15 y build de producción 100% limpio |
+| `TASK-037` | Integración Global del Backend Cloud Render (https://basetrack-app.onrender.com) | Multi-Agent Team | `TASK-036` | `DONE` | 0/3 | Backend Node 22 desplegado y verificado en Render con SQLite nativo; URL centralizada configurada como predeterminada en DEFAULT_CLOUD_BACKEND_URL; sincronización multi-dispositivo y persistencia global de usuarios habilitada para Vercel y móviles |
 
 ---
 
