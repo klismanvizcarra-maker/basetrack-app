@@ -129,13 +129,6 @@ export interface PumpReport {
               </svg>
               Exportar PDF (1 Hoja)
             </button>
-            <button *ngIf="activeTab === 'REPORT'" class="btn btn-secondary" (click)="openEditModal()">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-              </svg>
-              Editar Mediciones
-            </button>
             <button *ngIf="activeTab === 'REPORT'" class="btn btn-primary" (click)="saveOperationalSheet()" [disabled]="isSaving">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
                 <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
@@ -153,6 +146,11 @@ export interface PumpReport {
             </button>
           </div>
         </div>
+      </div>
+
+      <!-- Feedback Notification Banner -->
+      <div *ngIf="saveSuccessMessage" class="feedback-banner glass-panel animate-fade-in no-print">
+        <span class="feedback-text">{{ saveSuccessMessage }}</span>
       </div>
 
       <!-- TAB 1: REPORTE INTEGRAL DE BOMBAS (FORMATO PLANTA SECCIONES A - E) -->
@@ -254,125 +252,140 @@ export interface PumpReport {
           </div>
         </section>
 
-        <!-- SECCIÓN B: OBSERVACIONES DE NIVELES -->
+        <!-- SECCIÓN B: OBSERVACIONES DE NIVELES (EDITABLE DIRECTO) -->
         <section class="section-card glass-panel">
           <div class="section-bar-title">
             <span class="section-icon">👁</span>
             <h4>SECCIÓN B: OBSERVACIONES DE NIVELES</h4>
+            <span class="edit-badge-tag">✍️ Edición en Pantalla</span>
           </div>
-          <div class="levels-grid">
-            <div class="level-item">
-              <span class="level-key">ORCA:</span>
-              <span class="level-val cyan-glow">{{ sheet.levels.orca || '---' }}</span>
+          <div class="levels-grid editable-levels">
+            <div class="level-item-box">
+              <label class="level-key">ORCA:</label>
+              <input type="text" class="inline-level-input cyan-glow" [(ngModel)]="sheet.levels.orca" (ngModelChange)="onSheetChange()" placeholder="Ej: 4,120.5 m" />
             </div>
-            <div class="level-item">
-              <span class="level-key">Espejo:</span>
-              <span class="level-val emerald-glow">{{ sheet.levels.espejo || '---' }}</span>
+            <div class="level-item-box">
+              <label class="level-key">Espejo:</label>
+              <input type="text" class="inline-level-input emerald-glow" [(ngModel)]="sheet.levels.espejo" (ngModelChange)="onSheetChange()" placeholder="Ej: 14.2 m" />
             </div>
-            <div class="level-item">
-              <span class="level-key">Captación:</span>
-              <span class="level-val purple-glow">{{ sheet.levels.captacion || '---' }}</span>
+            <div class="level-item-box">
+              <label class="level-key">Captación:</label>
+              <input type="text" class="inline-level-input purple-glow" [(ngModel)]="sheet.levels.captacion" (ngModelChange)="onSheetChange()" placeholder="Ej: 8.5 m" />
             </div>
           </div>
         </section>
 
-        <!-- SECCIÓN C: INDICADORES PRINCIPALES -->
+        <!-- SECCIÓN C: INDICADORES PRINCIPALES (EDITABLE DIRECTO) -->
         <section class="section-card glass-panel">
           <div class="section-bar-title">
             <span class="section-icon">📈</span>
             <h4>SECCIÓN C: INDICADORES PRINCIPALES</h4>
+            <span class="edit-badge-tag">✍️ Edición en Pantalla</span>
           </div>
           <div class="indicators-dual-columns">
             <!-- Left Column -->
             <div class="indicator-column">
-              <div class="indicator-row">
+              <div class="indicator-row editable-ind-row">
                 <span class="ind-label">Nivel de sentina (%)</span>
                 <span class="ind-leader"></span>
-                <span class="ind-val">{{ sheet.main_indicators.nivel_sentina || '---' }}</span>
+                <input type="text" class="inline-ind-input" [(ngModel)]="sheet.main_indicators.nivel_sentina" (ngModelChange)="onSheetChange()" placeholder="Ej: 74%" />
               </div>
-              <div class="indicator-row">
+              <div class="indicator-row editable-ind-row">
                 <span class="ind-label">Bombeo Turno Intermedia (m³)</span>
                 <span class="ind-leader"></span>
-                <span class="ind-val">{{ sheet.main_indicators.bombeo_turno_intermedia || '---' }}</span>
+                <input type="text" class="inline-ind-input" [(ngModel)]="sheet.main_indicators.bombeo_turno_intermedia" (ngModelChange)="onSheetChange()" placeholder="Ej: 3,420 m³" />
               </div>
-              <div class="indicator-row">
+              <div class="indicator-row editable-ind-row">
                 <span class="ind-label">Nivel TKO02 (%)</span>
                 <span class="ind-leader"></span>
-                <span class="ind-val">{{ sheet.main_indicators.nivel_tko02 || '---' }}</span>
+                <input type="text" class="inline-ind-input" [(ngModel)]="sheet.main_indicators.nivel_tko02" (ngModelChange)="onSheetChange()" placeholder="Ej: 82%" />
               </div>
-              <div class="indicator-row">
+              <div class="indicator-row editable-ind-row">
                 <span class="ind-label">Aforador (m)</span>
                 <span class="ind-leader"></span>
-                <span class="ind-val">{{ sheet.main_indicators.aforador || '---' }}</span>
+                <input type="text" class="inline-ind-input" [(ngModel)]="sheet.main_indicators.aforador" (ngModelChange)="onSheetChange()" placeholder="Ej: 1.45 m" />
               </div>
-              <div class="indicator-row">
+              <div class="indicator-row editable-ind-row">
                 <span class="ind-label">Cortafugas (l/s)</span>
                 <span class="ind-leader"></span>
-                <span class="ind-val">{{ sheet.main_indicators.cortafugas || '---' }}</span>
+                <input type="text" class="inline-ind-input" [(ngModel)]="sheet.main_indicators.cortafugas" (ngModelChange)="onSheetChange()" placeholder="Ej: 12.8 l/s" />
               </div>
-              <div class="indicator-row">
+              <div class="indicator-row editable-ind-row">
                 <span class="ind-label">pH aforador</span>
                 <span class="ind-leader"></span>
-                <span class="ind-val">{{ sheet.main_indicators.ph_aforador || '---' }}</span>
+                <input type="text" class="inline-ind-input" [(ngModel)]="sheet.main_indicators.ph_aforador" (ngModelChange)="onSheetChange()" placeholder="Ej: 7.85" />
               </div>
-              <div class="indicator-row">
+              <div class="indicator-row editable-ind-row">
                 <span class="ind-label">pH Cortafugas</span>
                 <span class="ind-leader"></span>
-                <span class="ind-val">{{ sheet.main_indicators.ph_cortafugas || '---' }}</span>
+                <input type="text" class="inline-ind-input" [(ngModel)]="sheet.main_indicators.ph_cortafugas" (ngModelChange)="onSheetChange()" placeholder="Ej: 8.10" />
               </div>
-              <div class="indicator-row">
+              <div class="indicator-row editable-ind-row">
                 <span class="ind-label">H Embalas</span>
                 <span class="ind-leader"></span>
-                <span class="ind-val">{{ sheet.main_indicators.h_embalas || '---' }}</span>
+                <input type="text" class="inline-ind-input" [(ngModel)]="sheet.main_indicators.h_embalas" (ngModelChange)="onSheetChange()" placeholder="Ej: 2.10 m" />
               </div>
             </div>
 
             <!-- Right Column -->
             <div class="indicator-column">
-              <div class="indicator-row">
+              <div class="indicator-row editable-ind-row">
                 <span class="ind-label">Dique Almacenamiento (%)</span>
                 <span class="ind-leader"></span>
-                <span class="ind-val">{{ sheet.main_indicators.dique_almacenamiento || '---' }}</span>
+                <input type="text" class="inline-ind-input" [(ngModel)]="sheet.main_indicators.dique_almacenamiento" (ngModelChange)="onSheetChange()" placeholder="Ej: 65%" />
               </div>
-              <div class="indicator-row">
+              <div class="indicator-row editable-ind-row">
                 <span class="ind-label">Drenaje del Dique (%)</span>
                 <span class="ind-leader"></span>
-                <span class="ind-val">{{ sheet.main_indicators.drenaje_dique || '---' }}</span>
+                <input type="text" class="inline-ind-input" [(ngModel)]="sheet.main_indicators.drenaje_dique" (ngModelChange)="onSheetChange()" placeholder="Ej: 42%" />
               </div>
-              <div class="indicator-row">
+              <div class="indicator-row editable-ind-row">
                 <span class="ind-label">Agua a car</span>
                 <span class="ind-leader"></span>
-                <span class="ind-val">{{ sheet.main_indicators.agua_a_car || '---' }}</span>
+                <input type="text" class="inline-ind-input" [(ngModel)]="sheet.main_indicators.agua_a_car" (ngModelChange)="onSheetChange()" placeholder="Ej: 180 m³/h" />
               </div>
-              <div class="indicator-row">
+              <div class="indicator-row editable-ind-row">
                 <span class="ind-label">Anticrustante (%)</span>
                 <span class="ind-leader"></span>
-                <span class="ind-val">{{ sheet.main_indicators.anticrustante || '---' }}</span>
+                <input type="text" class="inline-ind-input" [(ngModel)]="sheet.main_indicators.anticrustante" (ngModelChange)="onSheetChange()" placeholder="Ej: 88%" />
               </div>
-              <div class="indicator-row">
+              <div class="indicator-row editable-ind-row">
                 <span class="ind-label">Torre 5 Cortafugas (%)</span>
                 <span class="ind-leader"></span>
-                <span class="ind-val">{{ sheet.main_indicators.torre5_cortafugas || '---' }}</span>
+                <input type="text" class="inline-ind-input" [(ngModel)]="sheet.main_indicators.torre5_cortafugas" (ngModelChange)="onSheetChange()" placeholder="Ej: 15%" />
               </div>
-              <div class="indicator-row">
+              <div class="indicator-row editable-ind-row">
                 <span class="ind-label">Torre 5 Status 1</span>
                 <span class="ind-leader"></span>
-                <span class="status-pill-small standby">{{ sheet.main_indicators.torre5_status1 || 'Stand by' }}</span>
+                <button type="button" 
+                        class="status-badge-btn" 
+                        [ngClass]="getStatusClass(sheet.main_indicators.torre5_status1 || 'Stand by')"
+                        (click)="cycleTorreStatus(1)"
+                        title="Click para cambiar estado de Torre 5 Status 1">
+                  {{ sheet.main_indicators.torre5_status1 || 'Stand by' }}
+                </button>
               </div>
-              <div class="indicator-row">
+              <div class="indicator-row editable-ind-row">
                 <span class="ind-label">Torre 5 Status 2</span>
                 <span class="ind-leader"></span>
-                <span class="status-pill-small standby">{{ sheet.main_indicators.torre5_status2 || 'Stand by' }}</span>
+                <button type="button" 
+                        class="status-badge-btn" 
+                        [ngClass]="getStatusClass(sheet.main_indicators.torre5_status2 || 'Stand by')"
+                        (click)="cycleTorreStatus(2)"
+                        title="Click para cambiar estado de Torre 5 Status 2">
+                  {{ sheet.main_indicators.torre5_status2 || 'Stand by' }}
+                </button>
               </div>
             </div>
           </div>
         </section>
 
-        <!-- SECCIÓN D: POZAS SENTINA -->
+        <!-- SECCIÓN D: POZAS SENTINA (EDITABLE DIRECTO) -->
         <section class="section-card glass-panel">
           <div class="section-bar-title">
             <span class="section-icon">📋</span>
             <h4>SECCIÓN D: POZAS SENTINA</h4>
+            <span class="edit-badge-tag">✍️ Edición en Pantalla</span>
           </div>
           <div class="pozas-table-wrapper">
             <table class="pozas-table">
@@ -390,51 +403,68 @@ export interface PumpReport {
               <tbody>
                 <tr *ngFor="let p of sheet.pozas_sentina">
                   <td class="poza-tag">{{ p.poza }}</td>
-                  <td class="poza-val">{{ p.medida_ini }}</td>
-                  <td class="poza-val">{{ p.flujo_ini }}</td>
-                  <td class="poza-val">{{ p.medida_fin }}</td>
-                  <td class="poza-val">{{ p.flujo_fin }}</td>
-                  <td class="poza-val">{{ p.horas }}</td>
-                  <td class="poza-acc">{{ p.acc }}</td>
+                  <td>
+                    <input type="text" class="inline-poza-input" [(ngModel)]="p.medida_ini" (ngModelChange)="onSheetChange()" placeholder="n/d" />
+                  </td>
+                  <td>
+                    <input type="text" class="inline-poza-input" [(ngModel)]="p.flujo_ini" (ngModelChange)="onSheetChange()" placeholder="n/d" />
+                  </td>
+                  <td>
+                    <input type="text" class="inline-poza-input" [(ngModel)]="p.medida_fin" (ngModelChange)="onSheetChange()" placeholder="n/d" />
+                  </td>
+                  <td>
+                    <input type="text" class="inline-poza-input" [(ngModel)]="p.flujo_fin" (ngModelChange)="onSheetChange()" placeholder="n/d" />
+                  </td>
+                  <td>
+                    <input type="text" class="inline-poza-input" [(ngModel)]="p.horas" (ngModelChange)="onSheetChange()" placeholder="n/d" />
+                  </td>
+                  <td>
+                    <input type="text" class="inline-poza-input" [(ngModel)]="p.acc" (ngModelChange)="onSheetChange()" placeholder="---" />
+                  </td>
                 </tr>
               </tbody>
             </table>
           </div>
         </section>
 
-        <!-- SECCIÓN E: OBSERVACIONES ADICIONALES -->
+        <!-- SECCIÓN E: OBSERVACIONES ADICIONALES (EDITABLE DIRECTO) -->
         <section class="section-card glass-panel">
           <div class="section-bar-title">
             <span class="section-icon">📑</span>
             <h4>SECCIÓN E: OBSERVACIONES ADICIONALES</h4>
+            <span class="edit-badge-tag">✍️ Edición en Pantalla</span>
           </div>
           <div class="additional-obs-layout">
             <div class="notes-block">
-              <span class="notes-heading">NOTAS Y EVENTOS:</span>
-              <div class="notes-content">
-                {{ sheet.additional_obs.notas || 'Sin novedades críticas reportadas en el turno.' }}
-              </div>
+              <label class="notes-heading">NOTAS Y EVENTOS DEL TURNO:</label>
+              <textarea 
+                class="inline-notes-textarea" 
+                rows="4" 
+                [(ngModel)]="sheet.additional_obs.notas" 
+                (ngModelChange)="onSheetChange()" 
+                placeholder="Escriba aquí las notas, novedades operativas, eventos de turno o contingencias..."
+              ></textarea>
             </div>
             <div class="side-metrics-block">
-              <div class="side-metric-row">
+              <div class="side-metric-row editable-sm-row">
                 <span class="sm-label">Af. Cantera:</span>
                 <span class="sm-leader"></span>
-                <span class="sm-val">{{ sheet.additional_obs.af_cantera || '---' }}</span>
+                <input type="text" class="inline-sm-input" [(ngModel)]="sheet.additional_obs.af_cantera" (ngModelChange)="onSheetChange()" placeholder="---" />
               </div>
-              <div class="side-metric-row">
+              <div class="side-metric-row editable-sm-row">
                 <span class="sm-label">Escorrentia:</span>
                 <span class="sm-leader"></span>
-                <span class="sm-val">{{ sheet.additional_obs.escorrentia || '---' }}</span>
+                <input type="text" class="inline-sm-input" [(ngModel)]="sheet.additional_obs.escorrentia" (ngModelChange)="onSheetChange()" placeholder="---" />
               </div>
-              <div class="side-metric-row">
+              <div class="side-metric-row editable-sm-row">
                 <span class="sm-label">pH C/5 (1):</span>
                 <span class="sm-leader"></span>
-                <span class="sm-val">{{ sheet.additional_obs.ph_c5_1 || '---' }}</span>
+                <input type="text" class="inline-sm-input" [(ngModel)]="sheet.additional_obs.ph_c5_1" (ngModelChange)="onSheetChange()" placeholder="---" />
               </div>
-              <div class="side-metric-row">
+              <div class="side-metric-row editable-sm-row">
                 <span class="sm-label">pH C/5 (2):</span>
                 <span class="sm-leader"></span>
-                <span class="sm-val">{{ sheet.additional_obs.ph_c5_2 || '---' }}</span>
+                <input type="text" class="inline-sm-input" [(ngModel)]="sheet.additional_obs.ph_c5_2" (ngModelChange)="onSheetChange()" placeholder="---" />
               </div>
             </div>
           </div>
@@ -491,115 +521,6 @@ export interface PumpReport {
           </div>
         </div>
       </div>
-
-      <!-- MODAL: EDITAR MEDICIONES E INDICADORES (SECCIONES B, C, D, E) -->
-      <app-modal [isOpen]="isEditModalOpen" [title]="'Editar Mediciones de Reporte Operativo - ' + sheet.report_date" (close)="isEditModalOpen = false">
-        <div class="modal-form">
-          <!-- Niveles -->
-          <div class="form-section-title">SECCIÓN B: OBSERVACIONES DE NIVELES</div>
-          <div class="form-row-3">
-            <div class="form-group">
-              <label>ORCA</label>
-              <input type="text" [(ngModel)]="sheet.levels.orca" placeholder="Ej: 4,120.5 m" />
-            </div>
-            <div class="form-group">
-              <label>Espejo</label>
-              <input type="text" [(ngModel)]="sheet.levels.espejo" placeholder="Ej: 14.2 m" />
-            </div>
-            <div class="form-group">
-              <label>Captación</label>
-              <input type="text" [(ngModel)]="sheet.levels.captacion" placeholder="Ej: 8.5 m" />
-            </div>
-          </div>
-
-          <!-- Indicadores Principales -->
-          <div class="form-section-title">SECCIÓN C: INDICADORES PRINCIPALES</div>
-          <div class="form-row">
-            <div class="form-group">
-              <label>Nivel de sentina (%)</label>
-              <input type="text" [(ngModel)]="sheet.main_indicators.nivel_sentina" placeholder="Ej: 74%" />
-            </div>
-            <div class="form-group">
-              <label>Bombeo Turno Intermedia (m³)</label>
-              <input type="text" [(ngModel)]="sheet.main_indicators.bombeo_turno_intermedia" placeholder="Ej: 3,420 m³" />
-            </div>
-          </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label>Nivel TKO02 (%)</label>
-              <input type="text" [(ngModel)]="sheet.main_indicators.nivel_tko02" placeholder="Ej: 82%" />
-            </div>
-            <div class="form-group">
-              <label>Aforador (m)</label>
-              <input type="text" [(ngModel)]="sheet.main_indicators.aforador" placeholder="Ej: 1.45 m" />
-            </div>
-          </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label>Cortafugas (l/s)</label>
-              <input type="text" [(ngModel)]="sheet.main_indicators.cortafugas" placeholder="Ej: 12.8 l/s" />
-            </div>
-            <div class="form-group">
-              <label>pH aforador / pH Cortafugas</label>
-              <input type="text" [(ngModel)]="sheet.main_indicators.ph_aforador" placeholder="Ej: 7.85" />
-            </div>
-          </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label>Dique Almacenamiento (%)</label>
-              <input type="text" [(ngModel)]="sheet.main_indicators.dique_almacenamiento" placeholder="Ej: 65%" />
-            </div>
-            <div class="form-group">
-              <label>Drenaje del Dique (%)</label>
-              <input type="text" [(ngModel)]="sheet.main_indicators.drenaje_dique" placeholder="Ej: 42%" />
-            </div>
-          </div>
-
-          <!-- Pozas Sentina -->
-          <div class="form-section-title">SECCIÓN D: POZAS SENTINA</div>
-          <div *ngFor="let p of sheet.pozas_sentina; let i = index" class="poza-edit-box">
-            <strong>{{ p.poza }}</strong>
-            <div class="form-row-3">
-              <div class="form-group">
-                <label>Medida Inicial / Final</label>
-                <input type="text" [(ngModel)]="p.medida_ini" placeholder="Inicial" />
-              </div>
-              <div class="form-group">
-                <label>Flujo Inicial / Final</label>
-                <input type="text" [(ngModel)]="p.flujo_ini" placeholder="Flujo Ini" />
-              </div>
-              <div class="form-group">
-                <label>Horas de Bombeo</label>
-                <input type="text" [(ngModel)]="p.horas" placeholder="Horas" />
-              </div>
-            </div>
-          </div>
-
-          <!-- Observaciones Adicionales -->
-          <div class="form-section-title">SECCIÓN E: OBSERVACIONES ADICIONALES</div>
-          <div class="form-group">
-            <label>Notas y Eventos de Turno</label>
-            <textarea rows="3" [(ngModel)]="sheet.additional_obs.notas" placeholder="Ingrese eventos, incidentes o tareas pendientes..."></textarea>
-          </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label>Af. Cantera</label>
-              <input type="text" [(ngModel)]="sheet.additional_obs.af_cantera" placeholder="---" />
-            </div>
-            <div class="form-group">
-              <label>Escorrentia</label>
-              <input type="text" [(ngModel)]="sheet.additional_obs.escorrentia" placeholder="---" />
-            </div>
-          </div>
-
-          <div footer class="modal-buttons">
-            <button type="button" class="btn btn-secondary" (click)="isEditModalOpen = false">Cerrar</button>
-            <button type="button" class="btn btn-primary" (click)="saveOperationalSheet(); isEditModalOpen = false">
-              Guardar Cambios
-            </button>
-          </div>
-        </div>
-      </app-modal>
 
       <!-- Create Pump Telemetry Modal -->
       <app-modal [isOpen]="isCreateModalOpen" [title]="'Registrar Nueva Telemetría de Bomba Slurry'" (close)="isCreateModalOpen = false">
@@ -861,6 +782,21 @@ export interface PumpReport {
       }
     }
 
+    /* FEEDBACK BANNER */
+    .feedback-banner {
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      border-radius: var(--radius-md);
+      padding: 12px 18px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #10b981;
+      font-size: 0.88rem;
+      font-weight: 700;
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.12);
+    }
+
     /* REPORT CONTAINER & SECTION CARDS */
     .report-container {
       display: flex;
@@ -966,6 +902,17 @@ export interface PumpReport {
         font-weight: 700;
         color: var(--primary-lavender, #60a5fa);
         letter-spacing: 0.04em;
+      }
+
+      .edit-badge-tag {
+        margin-left: auto;
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: #0284c7;
+        background: rgba(2, 132, 199, 0.1);
+        border: 1px solid rgba(2, 132, 199, 0.25);
+        border-radius: var(--radius-full);
+        padding: 2px 10px;
       }
     }
 
@@ -1159,47 +1106,69 @@ export interface PumpReport {
       }
     }
 
-    /* SECTION B: LEVELS */
+    /* SECTION B: LEVELS (INLINE EDITABLE) */
     .levels-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      padding: 14px 24px;
+      padding: 14px 20px;
       gap: 16px;
 
       @media (max-width: 640px) {
         grid-template-columns: 1fr;
       }
 
-      .level-item {
+      .level-item-box {
         display: flex;
         align-items: center;
         gap: 12px;
+        background: var(--bg-card-subtle);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-md);
+        padding: 8px 14px;
+        transition: border-color 0.2s ease;
+
+        &:focus-within {
+          border-color: #38bdf8;
+        }
 
         .level-key {
           font-size: 0.86rem;
-          font-weight: 700;
+          font-weight: 800;
           color: var(--text-primary);
           min-width: 75px;
         }
 
-        .level-val {
-          font-size: 0.95rem;
+        .inline-level-input {
+          flex: 1;
+          background: var(--bg-input);
+          border: 1px solid var(--border-subtle);
+          color: var(--text-primary);
+          padding: 6px 10px;
+          border-radius: var(--radius-sm);
+          font-size: 0.92rem;
           font-weight: 800;
           font-variant-numeric: tabular-nums;
+          transition: all 0.2s ease;
+
+          &:focus {
+            outline: none;
+            border-color: #38bdf8;
+            box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
+          }
 
           &.cyan-glow { color: #0284c7; }
           &.emerald-glow { color: #059669; }
-          &.purple-glow { color: #031795; }
+          &.purple-glow { color: #4338ca; }
         }
       }
     }
 
-    /* SECTION C: INDICATORS */
+    /* SECTION C: INDICATORS (INLINE EDITABLE) */
     .indicators-dual-columns {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      padding: 16px 24px;
-      gap: 32px;
+      padding: 16px 20px;
+      gap: 24px;
 
       @media (max-width: 800px) {
         grid-template-columns: 1fr;
@@ -1209,57 +1178,75 @@ export interface PumpReport {
       .indicator-column {
         display: flex;
         flex-direction: column;
-        gap: 10px;
+        gap: 8px;
       }
 
       .indicator-row {
         display: flex;
         align-items: center;
         font-size: 0.84rem;
+        padding: 4px 6px;
+        border-radius: var(--radius-sm);
+        transition: background-color 0.15s ease;
+
+        &:hover {
+          background: rgba(255, 255, 255, 0.03);
+        }
 
         .ind-label {
           color: var(--text-secondary);
           white-space: nowrap;
+          font-weight: 600;
         }
 
         .ind-leader {
           flex: 1;
-          border-bottom: 1px dotted rgba(255, 255, 255, 0.15);
-          margin: 0 8px;
+          border-bottom: 1px dotted var(--border-subtle);
+          margin: 0 10px;
+          min-width: 16px;
         }
 
-        .ind-val {
-          color: #38bdf8;
+        .inline-ind-input {
+          width: 100px;
+          background: var(--bg-input);
+          border: 1px solid var(--border-subtle);
+          color: #0284c7;
           font-weight: 700;
+          font-size: 0.86rem;
+          padding: 5px 8px;
+          border-radius: var(--radius-sm);
+          text-align: right;
           font-variant-numeric: tabular-nums;
-          white-space: nowrap;
+          transition: all 0.2s ease;
+
+          &:focus {
+            outline: none;
+            border-color: #38bdf8;
+            box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
+            color: var(--text-primary);
+          }
         }
 
-        .status-pill-small {
-          font-size: 0.74rem;
-          font-weight: 700;
-          padding: 2px 8px;
-          border-radius: var(--radius-full);
-
-          &.standby {
-            background: rgba(52, 211, 153, 0.15);
-            color: #34d399;
-            border: 1px solid rgba(52, 211, 153, 0.3);
-          }
+        .status-badge-btn {
+          min-width: 90px;
+          min-height: 30px;
+          padding: 3px 10px;
+          font-size: 0.76rem;
         }
       }
     }
 
-    /* SECTION D: POZAS SENTINA */
+    /* SECTION D: POZAS SENTINA (INLINE EDITABLE) */
     .pozas-table-wrapper {
       width: 100%;
       overflow-x: auto;
       -webkit-overflow-scrolling: touch;
+      background: var(--bg-card);
     }
 
     .pozas-table {
       width: 100%;
-      min-width: 640px;
+      min-width: 680px;
       border-collapse: collapse;
       text-align: center;
       font-size: 0.84rem;
@@ -1275,8 +1262,9 @@ export interface PumpReport {
       }
 
       td {
-        padding: 9px 12px;
-        border: 1px solid rgba(255, 255, 255, 0.05);
+        padding: 6px 8px;
+        border: 1px solid var(--border-subtle);
+        vertical-align: middle;
       }
 
       tbody tr:hover {
@@ -1284,26 +1272,40 @@ export interface PumpReport {
       }
 
       .poza-tag {
-        color: #38bdf8;
+        color: #0284c7;
         font-weight: 800;
+        font-size: 0.86rem;
       }
 
-      .poza-val {
-        color: var(--text-muted);
+      .inline-poza-input {
+        width: 100%;
+        max-width: 110px;
+        background: var(--bg-input);
+        border: 1px solid var(--border-subtle);
+        color: var(--text-primary);
+        font-size: 0.84rem;
+        font-weight: 700;
+        padding: 6px 8px;
+        border-radius: var(--radius-sm);
+        text-align: center;
         font-variant-numeric: tabular-nums;
-      }
+        transition: all 0.2s ease;
 
-      .poza-acc {
-        color: var(--text-secondary);
+        &:focus {
+          outline: none;
+          border-color: #10b981;
+          box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+          background: rgba(16, 185, 129, 0.06);
+        }
       }
     }
 
-    /* SECTION E: OBSERVACIONES ADICIONALES */
+    /* SECTION E: OBSERVACIONES ADICIONALES (INLINE EDITABLE) */
     .additional-obs-layout {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      padding: 16px 24px;
-      gap: 28px;
+      grid-template-columns: 1.4fr 1fr;
+      padding: 16px 20px;
+      gap: 24px;
 
       @media (max-width: 800px) {
         grid-template-columns: 1fr;
@@ -1317,48 +1319,92 @@ export interface PumpReport {
 
         .notes-heading {
           font-size: 0.82rem;
-          font-weight: 700;
+          font-weight: 800;
           color: var(--text-primary);
         }
 
-        .notes-content {
+        .inline-notes-textarea {
+          width: 100%;
           background: var(--bg-input);
           border: 1px solid var(--border-subtle);
+          color: var(--text-primary);
+          font-size: 0.86rem;
+          padding: 10px 14px;
           border-radius: var(--radius-md);
-          padding: 12px 14px;
-          min-height: 80px;
-          font-size: 0.84rem;
-          color: var(--text-secondary);
+          resize: vertical;
+          min-height: 100px;
+          font-family: inherit;
           line-height: 1.5;
+          transition: all 0.2s ease;
+
+          &:focus {
+            outline: none;
+            border-color: #38bdf8;
+            box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
+          }
         }
       }
 
       .side-metrics-block {
         display: flex;
         flex-direction: column;
-        gap: 10px;
+        gap: 8px;
 
         .side-metric-row {
           display: flex;
           align-items: center;
           font-size: 0.84rem;
+          padding: 4px 6px;
 
           .sm-label {
             color: var(--text-secondary);
-            min-width: 90px;
+            min-width: 95px;
+            font-weight: 600;
           }
 
           .sm-leader {
             flex: 1;
-            border-bottom: 1px dotted rgba(255, 255, 255, 0.15);
-            margin: 0 8px;
+            border-bottom: 1px dotted var(--border-subtle);
+            margin: 0 10px;
+            min-width: 16px;
           }
 
-          .sm-val {
-            color: #38bdf8;
+          .inline-sm-input {
+            width: 90px;
+            background: var(--bg-input);
+            border: 1px solid var(--border-subtle);
+            color: #0284c7;
             font-weight: 700;
+            font-size: 0.86rem;
+            padding: 5px 8px;
+            border-radius: var(--radius-sm);
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+            transition: all 0.2s ease;
+
+            &:focus {
+              outline: none;
+              border-color: #38bdf8;
+              box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
+              color: var(--text-primary);
+            }
           }
         }
+      }
+    }
+
+    :host-context(.dark) {
+      .inline-level-input.cyan-glow,
+      .inline-ind-input,
+      .poza-tag,
+      .inline-sm-input {
+        color: #38bdf8 !important;
+      }
+      .inline-level-input.emerald-glow {
+        color: #34d399 !important;
+      }
+      .inline-level-input.purple-glow {
+        color: #a5b4fc !important;
       }
     }
 
@@ -1574,6 +1620,7 @@ export class PumpsComponent implements OnInit {
   isStatusModalOpen = false;
   isPdfModalOpen = false;
   isSaving = false;
+  saveSuccessMessage = '';
 
   // Max rows in Section A is 10 (Torre 5 has PU021..PU030)
   readonly maxRowsArray = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
@@ -1787,6 +1834,33 @@ export class PumpsComponent implements OnInit {
     this.loadOperationalSheet();
   }
 
+  onSheetChange(): void {
+    saveRealtimeData('pump_sheet_' + this.sheet.report_date, this.sheet);
+    saveRealtimeData('pump_sheet_latest', this.sheet);
+  }
+
+  cycleTorreStatus(which: 1 | 2): void {
+    const states = ['Stand by', 'Operativo', 'Mantenimiento', 'Falla'];
+    const current = which === 1 ? (this.sheet.main_indicators.torre5_status1 || 'Stand by') : (this.sheet.main_indicators.torre5_status2 || 'Stand by');
+    const idx = states.indexOf(current);
+    const next = states[(idx + 1) % states.length];
+    if (which === 1) {
+      this.sheet.main_indicators.torre5_status1 = next;
+    } else {
+      this.sheet.main_indicators.torre5_status2 = next;
+    }
+    this.onSheetChange();
+  }
+
+  showSaveSuccess(msg: string): void {
+    this.saveSuccessMessage = msg;
+    setTimeout(() => {
+      if (this.saveSuccessMessage === msg) {
+        this.saveSuccessMessage = '';
+      }
+    }, 4500);
+  }
+
   openEditModal(): void {
     this.isEditModalOpen = true;
   }
@@ -1807,15 +1881,18 @@ export class PumpsComponent implements OnInit {
       this.http.post<any>(endpoint, payload).subscribe({
         next: () => {
           this.isSaving = false;
+          this.showSaveSuccess('✓ Reporte de bombas guardado y sincronizado exitosamente.');
         },
         error: () => {
           this.offlineSync.queueAction(endpoint, 'POST', payload, 'Reporte Bombas ' + this.sheet.report_date);
           this.isSaving = false;
+          this.showSaveSuccess('✓ Reporte guardado localmente (sincronizará al reconectar).');
         }
       });
     } else {
       this.offlineSync.queueAction(endpoint, 'POST', payload, 'Reporte Bombas ' + this.sheet.report_date);
       this.isSaving = false;
+      this.showSaveSuccess('✓ Reporte guardado localmente (Modo Offline).');
     }
   }
 
