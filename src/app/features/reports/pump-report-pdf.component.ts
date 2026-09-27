@@ -15,8 +15,8 @@ import { copyToClipboard } from '../../core/utils/clipboard.util';
         <!-- Modal Action Header (No se imprime) -->
         <div class="report-modal-header no-print">
           <div class="header-info">
-            <div class="tag-badge">FORMATO OFICIAL A4 (1 HOJA)</div>
-            <h3>Reporte Oficial de Operación de Bombas & Sentinas</h3>
+            <div class="tag-badge">FORMATO OFICIAL PLANTA A4 (1 HOJA)</div>
+            <h3>Reporte Integral de Bombas & Sentinas (Secciones A - E)</h3>
           </div>
           <div class="header-actions">
             <button type="button" class="btn btn-download-pdf" (click)="downloadDirectPdf()" [disabled]="isDownloading" title="Descargar archivo PDF directamente">
@@ -62,139 +62,209 @@ import { copyToClipboard } from '../../core/utils/clipboard.util';
             </div>
 
             <div class="doc-meta-box">
-              <div class="meta-row"><strong>CÓDIGO:</strong> <span>REP-BMB-{{ sheet?.shift_code || 'G1' }}</span></div>
-              <div class="meta-row"><strong>FECHA:</strong> <span>{{ sheet?.report_date || todayDate }}</span></div>
-              <div class="meta-row"><strong>GUARDIA:</strong> <span>{{ sheet?.shift_code || 'G1' }}</span></div>
-              <div class="meta-row"><strong>OPERADOR:</strong> <span>{{ sheet?.operator_name || 'VIZCARRA CORI MANLEY KLISMAN' }}</span></div>
+              <div class="meta-row"><strong>CÓDIGO:</strong> <span>REP-BMB-{{ activeSheet.shift_code || 'G1' }}</span></div>
+              <div class="meta-row"><strong>FECHA:</strong> <span>{{ activeSheet.report_date || todayDate }}</span></div>
+              <div class="meta-row"><strong>GUARDIA:</strong> <span>{{ activeSheet.shift_code || 'G1' }}</span></div>
+              <div class="meta-row"><strong>OPERADOR:</strong> <span>{{ activeSheet.operator_name || operatorName }}</span></div>
             </div>
           </div>
 
           <div class="doc-title-banner">
-            <h2>REPORTE DIARIO DE ESTACIONES DE BOMBEO SLURRY, SENTINAS Y NIVELES</h2>
+            <h2>REPORTE DIARIO DE ESTACIONES DE BOMBEO, SENTINAS Y NIVELES (FORMATO PLANTA SECCIONES A - E)</h2>
           </div>
 
           <!-- Resumen de Indicadores Clave (KPIs) -->
           <div class="kpi-banner-grid">
             <div class="kpi-cell">
-              <span class="kpi-title">Disponibilidad Bombas</span>
-              <span class="kpi-val highlight-emerald">{{ operatingCount }} / {{ totalPumpsCount }} <small>Operando</small></span>
-              <span class="kpi-sub">Sala de Bombas Slurry</span>
+              <span class="kpi-title">Sentina Operando</span>
+              <span class="kpi-val highlight-emerald">{{ sentinaOperatingCount }} / {{ activeSheet.sentina_pumps.length || 8 }}</span>
+              <span class="kpi-sub">Estación Sentina</span>
             </div>
             <div class="kpi-cell">
-              <span class="kpi-title">Nivel de Sentina Principal</span>
-              <span class="kpi-val">{{ sheet?.main_indicators?.nivel_sentina || '45%' }}</span>
-              <span class="kpi-sub">Margen Seguro (&lt; 85%)</span>
+              <span class="kpi-title">Intermedia Operando</span>
+              <span class="kpi-val highlight-blue">{{ intermediaOperatingCount }} / {{ activeSheet.intermedia_pumps.length || 6 }}</span>
+              <span class="kpi-sub">Barrera Intermedia</span>
             </div>
             <div class="kpi-cell">
-              <span class="kpi-title">Bombeo Intermedia</span>
-              <span class="kpi-val">{{ sheet?.main_indicators?.bombeo_turno_intermedia || '1,850 m³' }}</span>
-              <span class="kpi-sub">Acumulado Turno</span>
+              <span class="kpi-title">Torre 5 Operando</span>
+              <span class="kpi-val highlight-purple">{{ torre5OperatingCount }} / {{ activeSheet.torre5_pumps.length || 10 }}</span>
+              <span class="kpi-sub">Torre 5 Impulsión</span>
             </div>
             <div class="kpi-cell">
-              <span class="kpi-title">pH Aforador / Efluente</span>
-              <span class="kpi-val highlight-blue">{{ sheet?.main_indicators?.ph_aforador || '7.8' }}</span>
-              <span class="kpi-sub">Rango Estable (7.0 - 8.5)</span>
+              <span class="kpi-title">Disponibilidad Total</span>
+              <span class="kpi-val highlight-navy">{{ totalOperatingCount }} / {{ totalPumpsCount }}</span>
+              <span class="kpi-sub">{{ ((totalOperatingCount / totalPumpsCount) * 100) | number:'1.0-0' }}% En Servicio</span>
             </div>
           </div>
 
-          <!-- 1. ESTADO DE EQUIPOS DE BOMBEO -->
+          <!-- SECCIÓN A: REPORTE DE BOMBAS -->
           <div class="doc-section">
-            <div class="section-heading">1. ESTACIONES DE BOMBEO SLURRY Y BARRERA INTERMEDIA</div>
-            <table class="report-table">
+            <div class="section-heading">SECCIÓN A: REPORTE DE BOMBAS (SENTINA, INTERMEDIA, TORRE 5)</div>
+            <table class="report-table pumps-grid-table">
               <thead>
                 <tr>
-                  <th>TAG EQUIPO</th>
-                  <th>ÁREA / SISTEMA</th>
-                  <th>ESTADO</th>
-                  <th>CAUDAL (m³/h)</th>
-                  <th>PRESIÓN (PSI)</th>
-                  <th>CORRIENTE (A)</th>
-                  <th>TEMP. MOTOR (°C)</th>
-                  <th>VIBRACIÓN (mm/s)</th>
+                  <th colspan="2" class="th-group th-sentina">SENTINA</th>
+                  <th colspan="2" class="th-group th-intermedia">INTERMEDIA</th>
+                  <th colspan="2" class="th-group th-torre">TORRE 5</th>
+                </tr>
+                <tr class="sub-th-row">
+                  <th class="col-tag">EQUIPO</th>
+                  <th class="col-status">STATUS</th>
+                  <th class="col-tag">EQUIPO</th>
+                  <th class="col-status">STATUS</th>
+                  <th class="col-tag">EQUIPO</th>
+                  <th class="col-status">STATUS</th>
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let p of pumpList">
-                  <td class="font-bold">{{ p.tag }}</td>
-                  <td>{{ p.system }}</td>
-                  <td>
-                    <span class="status-pill" [class.active]="p.status === 'OPERATING'" [class.standby]="p.status === 'STANDBY'" [class.maint]="p.status === 'MAINTENANCE' || p.status === 'FAULT'">
-                      {{ formatStatus(p.status) }}
+                <tr *ngFor="let idx of maxRowsArray">
+                  <!-- Sentina (PU001 - PU008) -->
+                  <td class="cell-tag font-bold">{{ activeSheet.sentina_pumps[idx]?.tag || '' }}</td>
+                  <td class="cell-status">
+                    <span *ngIf="activeSheet.sentina_pumps[idx]" class="pdf-status-pill" [ngClass]="getStatusClass(activeSheet.sentina_pumps[idx].status)">
+                      {{ activeSheet.sentina_pumps[idx].status }}
                     </span>
                   </td>
-                  <td>{{ p.flow_rate_m3h }}</td>
-                  <td>{{ (p.pressure_bar * 14.5038) | number:'1.1-1' }}</td>
-                  <td>{{ p.current_amps }} A</td>
-                  <td>{{ p.bearing_temp_c }} °C</td>
-                  <td>{{ p.vibration_mms }}</td>
+
+                  <!-- Intermedia (PU011 - PU016) -->
+                  <td class="cell-tag font-bold">{{ activeSheet.intermedia_pumps[idx]?.tag || '' }}</td>
+                  <td class="cell-status">
+                    <span *ngIf="activeSheet.intermedia_pumps[idx]" class="pdf-status-pill" [ngClass]="getStatusClass(activeSheet.intermedia_pumps[idx].status)">
+                      {{ activeSheet.intermedia_pumps[idx].status }}
+                    </span>
+                  </td>
+
+                  <!-- Torre 5 (PU021 - PU030) -->
+                  <td class="cell-tag font-bold">{{ activeSheet.torre5_pumps[idx]?.tag || '' }}</td>
+                  <td class="cell-status">
+                    <span *ngIf="activeSheet.torre5_pumps[idx]" class="pdf-status-pill" [ngClass]="getStatusClass(activeSheet.torre5_pumps[idx].status)">
+                      {{ activeSheet.torre5_pumps[idx].status }}
+                    </span>
+                  </td>
+                </tr>
+
+                <!-- Resumen de fila -->
+                <tr class="summary-table-row">
+                  <td colspan="2" class="summary-cell sentina-summary">
+                    Sentina: <strong>{{ sentinaOperatingCount }} / {{ activeSheet.sentina_pumps.length || 8 }} Operando</strong>
+                  </td>
+                  <td colspan="2" class="summary-cell intermedia-summary">
+                    Intermedia: <strong>{{ intermediaOperatingCount }} / {{ activeSheet.intermedia_pumps.length || 6 }} Operando</strong>
+                  </td>
+                  <td colspan="2" class="summary-cell torre-summary">
+                    Torre 5: <strong>{{ torre5OperatingCount }} / {{ activeSheet.torre5_pumps.length || 10 }} Operando</strong>
+                  </td>
                 </tr>
               </tbody>
             </table>
           </div>
 
-          <!-- 2. CONTROL DE POZAS Y SENTINAS (COLUMNA DOBLE CONDENSADA) -->
+          <!-- SECCIÓN B: OBSERVACIONES DE NIVELES -->
           <div class="doc-section">
-            <div class="section-heading">2. MONITOREO DE SENTINAS, POZAS DE SEDIMENTACIÓN Y CORTAFUGAS</div>
-            <div class="two-col-grid">
-              <table class="report-table compact-table">
-                <thead>
-                  <tr>
-                    <th>POZA / SECTOR</th>
-                    <th>MED. INICIAL</th>
-                    <th>FLUJO INI</th>
-                    <th>MED. FINAL</th>
-                    <th>HORAS OPER.</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr *ngFor="let p of (sheet?.pozas_sentina || defaultPozas)">
-                    <td class="font-bold">{{ p.poza }}</td>
-                    <td>{{ p.medida_ini }}</td>
-                    <td>{{ p.flujo_ini }}</td>
-                    <td>{{ p.medida_fin }}</td>
-                    <td>{{ p.horas }} hrs</td>
-                  </tr>
-                </tbody>
-              </table>
+            <div class="section-heading">SECCIÓN B: OBSERVACIONES DE NIVELES</div>
+            <div class="levels-boxes-row">
+              <div class="level-box">
+                <span class="lvl-label">ORCA:</span>
+                <strong class="lvl-val cyan">{{ activeSheet.levels?.orca || '---' }}</strong>
+              </div>
+              <div class="level-box">
+                <span class="lvl-label">Espejo:</span>
+                <strong class="lvl-val emerald">{{ activeSheet.levels?.espejo || '---' }}</strong>
+              </div>
+              <div class="level-box">
+                <span class="lvl-label">Captación:</span>
+                <strong class="lvl-val purple">{{ activeSheet.levels?.captacion || '---' }}</strong>
+              </div>
+            </div>
+          </div>
 
-              <div class="levels-summary-box">
-                <div class="level-item">
-                  <span class="lbl">Nivel Tk-02 / Poza Pulpa:</span>
-                  <span class="val">{{ sheet?.main_indicators?.nivel_tko02 || '68%' }}</span>
+          <!-- SECCIÓN C: INDICADORES PRINCIPALES -->
+          <div class="doc-section">
+            <div class="section-heading">SECCIÓN C: INDICADORES PRINCIPALES</div>
+            <div class="indicators-dual-box">
+              <div class="ind-col">
+                <div class="ind-item"><span class="ind-k">Nivel de sentina (%)</span><span class="ind-dots"></span><strong class="ind-v">{{ activeSheet.main_indicators?.nivel_sentina || '---' }}</strong></div>
+                <div class="ind-item"><span class="ind-k">Bombeo Turno Intermedia (m³)</span><span class="ind-dots"></span><strong class="ind-v">{{ activeSheet.main_indicators?.bombeo_turno_intermedia || '---' }}</strong></div>
+                <div class="ind-item"><span class="ind-k">Nivel TKO02 (%)</span><span class="ind-dots"></span><strong class="ind-v">{{ activeSheet.main_indicators?.nivel_tko02 || '---' }}</strong></div>
+                <div class="ind-item"><span class="ind-k">Aforador (m)</span><span class="ind-dots"></span><strong class="ind-v">{{ activeSheet.main_indicators?.aforador || '---' }}</strong></div>
+                <div class="ind-item"><span class="ind-k">Cortafugas (l/s)</span><span class="ind-dots"></span><strong class="ind-v">{{ activeSheet.main_indicators?.cortafugas || '---' }}</strong></div>
+                <div class="ind-item"><span class="ind-k">pH aforador</span><span class="ind-dots"></span><strong class="ind-v">{{ activeSheet.main_indicators?.ph_aforador || '---' }}</strong></div>
+                <div class="ind-item"><span class="ind-k">pH Cortafugas</span><span class="ind-dots"></span><strong class="ind-v">{{ activeSheet.main_indicators?.ph_cortafugas || '---' }}</strong></div>
+                <div class="ind-item"><span class="ind-k">H Embalas</span><span class="ind-dots"></span><strong class="ind-v">{{ activeSheet.main_indicators?.h_embalas || '---' }}</strong></div>
+              </div>
+              <div class="ind-col">
+                <div class="ind-item"><span class="ind-k">Dique Almacenamiento (%)</span><span class="ind-dots"></span><strong class="ind-v">{{ activeSheet.main_indicators?.dique_almacenamiento || '---' }}</strong></div>
+                <div class="ind-item"><span class="ind-k">Drenaje del Dique (%)</span><span class="ind-dots"></span><strong class="ind-v">{{ activeSheet.main_indicators?.drenaje_dique || '---' }}</strong></div>
+                <div class="ind-item"><span class="ind-k">Agua a car</span><span class="ind-dots"></span><strong class="ind-v">{{ activeSheet.main_indicators?.agua_a_car || '---' }}</strong></div>
+                <div class="ind-item"><span class="ind-k">Anticrustante (%)</span><span class="ind-dots"></span><strong class="ind-v">{{ activeSheet.main_indicators?.anticrustante || '---' }}</strong></div>
+                <div class="ind-item"><span class="ind-k">Torre 5 Cortafugas (%)</span><span class="ind-dots"></span><strong class="ind-v">{{ activeSheet.main_indicators?.torre5_cortafugas || '---' }}</strong></div>
+                <div class="ind-item">
+                  <span class="ind-k">Torre 5 Status 1</span><span class="ind-dots"></span>
+                  <span class="pdf-status-pill" [ngClass]="getStatusClass(activeSheet.main_indicators?.torre5_status1 || 'Stand by')">
+                    {{ activeSheet.main_indicators?.torre5_status1 || 'Stand by' }}
+                  </span>
                 </div>
-                <div class="level-item">
-                  <span class="lbl">Dique de Almacenamiento:</span>
-                  <span class="val">{{ sheet?.main_indicators?.dique_almacenamiento || 'Normal' }}</span>
-                </div>
-                <div class="level-item">
-                  <span class="lbl">pH Cortafugas / Drenaje:</span>
-                  <span class="val">{{ sheet?.main_indicators?.ph_cortafugas || '7.6' }}</span>
-                </div>
-                <div class="level-item">
-                  <span class="lbl">Dosificación Antincrustante:</span>
-                  <span class="val">{{ sheet?.main_indicators?.anticrustante || 'Operativo (45 ml/min)' }}</span>
-                </div>
-                <div class="level-item">
-                  <span class="lbl">Estado Torre 5:</span>
-                  <span class="val">{{ sheet?.main_indicators?.torre5_cortafugas || 'Conforme' }}</span>
+                <div class="ind-item">
+                  <span class="ind-k">Torre 5 Status 2</span><span class="ind-dots"></span>
+                  <span class="pdf-status-pill" [ngClass]="getStatusClass(activeSheet.main_indicators?.torre5_status2 || 'Stand by')">
+                    {{ activeSheet.main_indicators?.torre5_status2 || 'Stand by' }}
+                  </span>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- 3. NOVEDADES OPERACIONALES & OBSERVACIONES -->
+          <!-- SECCIÓN D: POZAS SENTINA -->
           <div class="doc-section">
-            <div class="section-heading">3. NOVEDADES OPERACIONALES Y CONSIGNAS DE SALA DE BOMBAS</div>
-            <div class="notes-content-box">
-              {{ sheet?.additional_obs?.notas || 'Operación continua sin novedades críticas. Parámetros de presión y amperaje dentro de ventana segura. Sentinas operando en automático bajo consigna del supervisor.' }}
+            <div class="section-heading">SECCIÓN D: POZAS SENTINA</div>
+            <table class="report-table compact-table">
+              <thead>
+                <tr>
+                  <th class="th-dark-green">POZA</th>
+                  <th class="th-dark-green">MEDIDA INICIAL</th>
+                  <th class="th-dark-green">FLUJO INICIAL</th>
+                  <th class="th-dark-green">MEDIDA FINAL</th>
+                  <th class="th-dark-green">FLUJO FINAL</th>
+                  <th class="th-dark-green">HORAS DE BOMBEO</th>
+                  <th class="th-dark-green">ACC.</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let p of activeSheet.pozas_sentina">
+                  <td class="font-bold text-center highlight-blue-td">{{ p.poza }}</td>
+                  <td class="text-center">{{ p.medida_ini || 'n/d' }}</td>
+                  <td class="text-center">{{ p.flujo_ini || 'n/d' }}</td>
+                  <td class="text-center">{{ p.medida_fin || 'n/d' }}</td>
+                  <td class="text-center">{{ p.flujo_fin || 'n/d' }}</td>
+                  <td class="text-center">{{ p.horas || 'n/d' }}</td>
+                  <td class="text-center">{{ p.acc || '---' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- SECCIÓN E: OBSERVACIONES ADICIONALES -->
+          <div class="doc-section">
+            <div class="section-heading">SECCIÓN E: OBSERVACIONES ADICIONALES</div>
+            <div class="obs-dual-grid">
+              <div class="notes-content-box">
+                <span class="notes-label">NOTAS Y EVENTOS DEL TURNO:</span>
+                <p class="notes-p">{{ activeSheet.additional_obs?.notas || 'Operación sin novedades críticas registradas durante la guardia.' }}</p>
+              </div>
+              <div class="side-metrics-box">
+                <div class="side-m-row"><span class="sm-k">Af. Cantera:</span><span class="sm-dots"></span><strong class="sm-v">{{ activeSheet.additional_obs?.af_cantera || '---' }}</strong></div>
+                <div class="side-m-row"><span class="sm-k">Escorrentia:</span><span class="sm-dots"></span><strong class="sm-v">{{ activeSheet.additional_obs?.escorrentia || '---' }}</strong></div>
+                <div class="side-m-row"><span class="sm-k">pH C/5 (1):</span><span class="sm-dots"></span><strong class="sm-v">{{ activeSheet.additional_obs?.ph_c5_1 || '---' }}</strong></div>
+                <div class="side-m-row"><span class="sm-k">pH C/5 (2):</span><span class="sm-dots"></span><strong class="sm-v">{{ activeSheet.additional_obs?.ph_c5_2 || '---' }}</strong></div>
+              </div>
             </div>
           </div>
 
-          <!-- 4. FIRMAS OFICIALES -->
+          <!-- FIRMAS OFICIALES -->
           <div class="signatures-grid">
             <div class="signature-box">
               <div class="sig-line"></div>
-              <span class="sig-name">{{ sheet?.operator_name || 'VIZCARRA CORI MANLEY KLISMAN' }}</span>
+              <span class="sig-name">{{ activeSheet.operator_name || operatorName }}</span>
               <span class="sig-role">Operador Titular de Sala de Bombas</span>
               <span class="sig-stamp">REG. OPERACIONES CONFORME</span>
             </div>
@@ -208,9 +278,9 @@ import { copyToClipboard } from '../../core/utils/clipboard.util';
 
           <!-- Pie institucional -->
           <div class="doc-footer">
-            <span>BASETRACK APP — Módulo de Sala de Bombas</span>
+            <span>BASETRACK APP — Módulo de Estaciones de Bombeo y Sentinas</span>
             <span>Generado: {{ todayDate }} | Página 1 de 1 (Documento Oficial A4)</span>
-            <span>Estándar Operacional ISO 9001 / 14001</span>
+            <span>Estándar Operacional ISO 9001 / ISO 14001</span>
           </div>
 
         </div>
@@ -221,7 +291,7 @@ import { copyToClipboard } from '../../core/utils/clipboard.util';
     .report-backdrop {
       position: fixed;
       inset: 0;
-      background: rgba(15, 23, 42, 0.7);
+      background: rgba(15, 23, 42, 0.75);
       backdrop-filter: blur(5px);
       z-index: 99999;
       display: flex;
@@ -236,7 +306,7 @@ import { copyToClipboard } from '../../core/utils/clipboard.util';
       border-radius: 12px;
       box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.35);
       width: 100%;
-      max-width: 900px;
+      max-width: 920px;
       max-height: 94vh;
       display: flex;
       flex-direction: column;
@@ -286,16 +356,7 @@ import { copyToClipboard } from '../../core/utils/clipboard.util';
       .btn-download-pdf {
         background: #031795;
         color: #ffffff;
-        border: none;
         box-shadow: 0 2px 8px rgba(3, 23, 149, 0.4);
-        font-weight: 700;
-        cursor: pointer;
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 6px 14px;
-        border-radius: 6px;
-        font-size: 0.8rem;
         transition: all 0.2s;
 
         &:hover {
@@ -332,33 +393,33 @@ import { copyToClipboard } from '../../core/utils/clipboard.util';
     }
 
     .report-document-body {
-      padding: 24px 30px;
+      padding: 16px 22px;
       background: #ffffff;
       color: #0f172a;
       overflow-y: auto;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-      font-size: 8.5pt;
-      line-height: 1.25;
+      font-size: 7.2pt;
+      line-height: 1.2;
     }
 
-    /* ENCABEZADO OFICIAL */
+    /* ENCABEZADO INSTITUCIONAL */
     .doc-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
       border-bottom: 2px solid #031795;
-      padding-bottom: 8px;
-      margin-bottom: 8px;
+      padding-bottom: 6px;
+      margin-bottom: 6px;
     }
 
     .doc-logo-group {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
 
       .brand-symbol {
-        width: 38px;
-        height: 38px;
+        width: 34px;
+        height: 34px;
         background: #ffffff;
         border: 1.5px solid #c7d2fe;
         border-radius: 8px;
@@ -376,7 +437,7 @@ import { copyToClipboard } from '../../core/utils/clipboard.util';
       }
 
       h1 {
-        font-size: 1.25rem;
+        font-size: 1.15rem;
         font-weight: 900;
         color: #0f172a;
         margin: 0;
@@ -384,20 +445,20 @@ import { copyToClipboard } from '../../core/utils/clipboard.util';
       }
 
       .doc-sub {
-        font-size: 0.65rem;
+        font-size: 0.62rem;
         font-weight: 700;
         color: #031795;
-        margin: 2px 0 0;
+        margin: 1px 0 0;
         letter-spacing: 0.05em;
       }
     }
 
     .doc-meta-box {
-      font-size: 0.72rem;
+      font-size: 0.68rem;
       text-align: right;
 
       .meta-row {
-        margin-bottom: 2px;
+        margin-bottom: 1.5px;
         strong { color: #475569; }
         span { font-weight: 700; color: #0f172a; margin-left: 4px; }
       }
@@ -407,11 +468,11 @@ import { copyToClipboard } from '../../core/utils/clipboard.util';
       background: #f1f5f9;
       border: 1px solid #e2e8f0;
       border-left: 4px solid #031795;
-      padding: 5px 10px;
-      margin-bottom: 8px;
+      padding: 4px 8px;
+      margin-bottom: 6px;
 
       h2 {
-        font-size: 0.82rem;
+        font-size: 0.78rem;
         font-weight: 800;
         color: #0f172a;
         margin: 0;
@@ -423,38 +484,38 @@ import { copyToClipboard } from '../../core/utils/clipboard.util';
     .kpi-banner-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 8px;
-      margin-bottom: 8px;
+      gap: 6px;
+      margin-bottom: 6px;
     }
 
     .kpi-cell {
       background: #f8fafc;
       border: 1px solid #e2e8f0;
-      border-radius: 6px;
-      padding: 6px 8px;
+      border-radius: 5px;
+      padding: 4px 8px;
       display: flex;
       flex-direction: column;
 
       .kpi-title {
-        font-size: 0.65rem;
+        font-size: 0.6rem;
         font-weight: 700;
         color: #64748b;
         text-transform: uppercase;
       }
 
       .kpi-val {
-        font-size: 1.15rem;
+        font-size: 1.05rem;
         font-weight: 900;
-        color: #0f172a;
-        margin: 2px 0;
-        small { font-size: 0.68rem; font-weight: 700; color: #64748b; }
+        margin: 1px 0;
 
-        &.highlight-emerald { color: #031795; }
+        &.highlight-emerald { color: #059669; }
         &.highlight-blue { color: #0284c7; }
+        &.highlight-purple { color: #4f46e5; }
+        &.highlight-navy { color: #031795; }
       }
 
       .kpi-sub {
-        font-size: 0.62rem;
+        font-size: 0.58rem;
         font-weight: 600;
         color: #94a3b8;
       }
@@ -462,39 +523,40 @@ import { copyToClipboard } from '../../core/utils/clipboard.util';
 
     /* SECTIONS & TABLES */
     .doc-section {
-      margin-bottom: 8px;
+      margin-bottom: 6px;
       page-break-inside: avoid;
       break-inside: avoid;
     }
 
     .section-heading {
-      font-size: 0.72rem;
+      font-size: 0.68rem;
       font-weight: 800;
       color: #031795;
       background: #eef2ff;
-      padding: 3px 8px;
+      padding: 2.5px 7px;
       border-radius: 4px;
       border-left: 3px solid #031795;
-      margin-bottom: 5px;
+      margin-bottom: 4px;
       letter-spacing: 0.03em;
     }
 
     .report-table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 7.5pt;
+      font-size: 7pt;
 
       th {
-        background: #f1f5f9;
-        color: #334155;
+        background: #031795;
+        color: #ffffff;
         font-weight: 800;
-        padding: 4px 6px;
-        text-align: left;
+        padding: 3px 5px;
+        text-align: center;
         border: 1px solid #cbd5e1;
+        font-size: 6.8pt;
       }
 
       td {
-        padding: 3.5px 6px;
+        padding: 2.2px 4px;
         border: 1px solid #e2e8f0;
         color: #1e293b;
       }
@@ -504,60 +566,233 @@ import { copyToClipboard } from '../../core/utils/clipboard.util';
       }
     }
 
-    .status-pill {
-      font-size: 0.65rem;
-      font-weight: 800;
-      padding: 1px 6px;
-      border-radius: 9999px;
-      display: inline-block;
-
-      &.active { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
-      &.standby { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
-      &.maint { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
-    }
-
-    .two-col-grid {
-      display: grid;
-      grid-template-columns: 1.4fr 1fr;
-      gap: 8px;
-      align-items: stretch;
-    }
-
-    .compact-table {
-      font-size: 7pt;
-      th, td { padding: 2.5px 5px; }
-    }
-
-    .levels-summary-box {
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 6px;
-      padding: 6px 10px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      gap: 3px;
-
-      .level-item {
-        display: flex;
-        justify-content: space-between;
+    /* PUMPS 3-COLUMN TABLE */
+    .pumps-grid-table {
+      .th-group {
         font-size: 7.2pt;
-        border-bottom: 1px dashed #e2e8f0;
-        padding-bottom: 2px;
+        letter-spacing: 0.04em;
+      }
+      .th-sentina { background: #031795; }
+      .th-intermedia { background: #0284c7; }
+      .th-torre { background: #1e1b4b; }
 
-        .lbl { color: #475569; font-weight: 600; }
-        .val { font-weight: 800; color: #0f172a; }
+      .sub-th-row th {
+        background: #f1f5f9;
+        color: #334155;
+        font-size: 6.2pt;
+        padding: 2px 4px;
+      }
+
+      .col-tag { width: 14%; text-align: center; }
+      .col-status { width: 19%; text-align: center; }
+
+      .cell-tag {
+        color: #031795;
+        text-align: center;
+        background: rgba(3, 23, 149, 0.04);
+        font-weight: 700;
+      }
+
+      .cell-status {
+        text-align: center;
+        padding: 1.5px 3px;
+      }
+
+      .summary-table-row td {
+        background: #f1f5f9;
+        font-size: 6.6pt;
+        padding: 3px 6px;
+        text-align: center;
       }
     }
 
-    .notes-content-box {
+    /* STATUS PILLS FOR PDF */
+    .pdf-status-pill {
+      font-size: 6.2pt;
+      font-weight: 800;
+      padding: 1.2px 6px;
+      border-radius: 9999px;
+      display: inline-block;
+      line-height: 1.1;
+
+      &.pdf-status-operativo {
+        background: #dcfce7;
+        color: #15803d;
+        border: 1px solid #86efac;
+      }
+      &.pdf-status-standby {
+        background: #e0f2fe;
+        color: #0369a1;
+        border: 1px solid #7dd3fc;
+      }
+      &.pdf-status-mantenimiento {
+        background: #fef3c7;
+        color: #b45309;
+        border: 1px solid #fcd34d;
+      }
+      &.pdf-status-falla {
+        background: #fee2e2;
+        color: #b91c1c;
+        border: 1px solid #fca5a5;
+      }
+    }
+
+    /* SECCIÓN B: LEVELS BOXES */
+    .levels-boxes-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+
+      .level-box {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 5px;
+        padding: 4px 10px;
+
+        .lvl-label {
+          font-weight: 700;
+          color: #475569;
+          font-size: 7.2pt;
+        }
+
+        .lvl-val {
+          font-size: 8.5pt;
+          font-weight: 800;
+
+          &.cyan { color: #0284c7; }
+          &.emerald { color: #059669; }
+          &.purple { color: #4338ca; }
+        }
+      }
+    }
+
+    /* SECCIÓN C: DUAL INDICATORS */
+    .indicators-dual-box {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
       background: #f8fafc;
       border: 1px solid #e2e8f0;
-      border-radius: 6px;
-      padding: 6px 10px;
-      font-size: 7.5pt;
-      color: #334155;
-      min-height: 28px;
+      border-radius: 5px;
+      padding: 5px 10px;
+
+      .ind-col {
+        display: flex;
+        flex-direction: column;
+        gap: 2.5px;
+      }
+
+      .ind-item {
+        display: flex;
+        align-items: center;
+        font-size: 6.9pt;
+
+        .ind-k {
+          color: #475569;
+          white-space: nowrap;
+          font-weight: 600;
+        }
+
+        .ind-dots {
+          flex: 1;
+          border-bottom: 1px dotted #cbd5e1;
+          margin: 0 6px;
+        }
+
+        .ind-v {
+          color: #0284c7;
+          font-weight: 800;
+          white-space: nowrap;
+        }
+      }
+    }
+
+    /* SECCIÓN D: POZAS TABLE */
+    .compact-table {
+      font-size: 6.8pt;
+
+      .th-dark-green {
+        background: #064e3b;
+        color: #ffffff;
+      }
+
+      th, td {
+        padding: 2px 4px;
+      }
+
+      .highlight-blue-td {
+        color: #0284c7;
+        font-weight: 800;
+      }
+    }
+
+    /* SECCIÓN E: OBS DUAL GRID */
+    .obs-dual-grid {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr;
+      gap: 10px;
+
+      .notes-content-box {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 5px;
+        padding: 4px 8px;
+        min-height: 38px;
+        display: flex;
+        flex-direction: column;
+
+        .notes-label {
+          font-size: 6.2pt;
+          font-weight: 800;
+          color: #475569;
+          text-transform: uppercase;
+          margin-bottom: 2px;
+        }
+
+        .notes-p {
+          margin: 0;
+          font-size: 6.8pt;
+          color: #1e293b;
+          line-height: 1.3;
+        }
+      }
+
+      .side-metrics-box {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 5px;
+        padding: 4px 8px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-around;
+        gap: 2px;
+
+        .side-m-row {
+          display: flex;
+          align-items: center;
+          font-size: 6.8pt;
+
+          .sm-k {
+            color: #475569;
+            font-weight: 600;
+            white-space: nowrap;
+          }
+
+          .sm-dots {
+            flex: 1;
+            border-bottom: 1px dotted #cbd5e1;
+            margin: 0 6px;
+          }
+
+          .sm-v {
+            color: #0284c7;
+            font-weight: 800;
+          }
+        }
+      }
     }
 
     /* SIGNATURES */
@@ -565,54 +800,54 @@ import { copyToClipboard } from '../../core/utils/clipboard.util';
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 30px;
-      margin-top: 10px;
-      margin-bottom: 6px;
+      margin-top: 6px;
+      margin-bottom: 4px;
       page-break-inside: avoid;
       break-inside: avoid;
-    }
 
-    .signature-box {
-      text-align: center;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+      .signature-box {
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
 
-      .sig-line {
-        width: 75%;
-        border-top: 1.5px solid #0f172a;
-        margin-bottom: 4px;
-      }
+        .sig-line {
+          width: 70%;
+          border-top: 1.2px solid #0f172a;
+          margin-bottom: 2px;
+        }
 
-      .sig-name {
-        font-size: 7.5pt;
-        font-weight: 800;
-        color: #0f172a;
-      }
+        .sig-name {
+          font-size: 7pt;
+          font-weight: 800;
+          color: #0f172a;
+        }
 
-      .sig-role {
-        font-size: 6.8pt;
-        color: #64748b;
-        font-weight: 600;
-      }
+        .sig-role {
+          font-size: 6.3pt;
+          color: #64748b;
+          font-weight: 600;
+        }
 
-      .sig-stamp {
-        font-size: 6pt;
-        font-weight: 800;
-        color: #031795;
-        background: #eef2ff;
-        border: 1px solid #c7d2fe;
-        padding: 1px 6px;
-        border-radius: 9999px;
-        margin-top: 2px;
+        .sig-stamp {
+          font-size: 5.6pt;
+          font-weight: 800;
+          color: #031795;
+          background: #eef2ff;
+          border: 1px solid #c7d2fe;
+          padding: 1px 5px;
+          border-radius: 9999px;
+          margin-top: 2px;
+        }
       }
     }
 
     .doc-footer {
       border-top: 1px solid #cbd5e1;
-      padding-top: 4px;
+      padding-top: 3px;
       display: flex;
       justify-content: space-between;
-      font-size: 6.5pt;
+      font-size: 6pt;
       color: #94a3b8;
     }
 
@@ -620,7 +855,7 @@ import { copyToClipboard } from '../../core/utils/clipboard.util';
     @media print {
       @page {
         size: A4 portrait;
-        margin: 4mm 6mm 4mm 6mm !important;
+        margin: 3mm 5mm 3mm 5mm !important;
       }
 
       .no-print, .header-actions, .close-btn, button, .report-modal-header {
@@ -654,7 +889,7 @@ import { copyToClipboard } from '../../core/utils/clipboard.util';
         width: 100% !important;
         padding: 0 !important;
         margin: 0 !important;
-        font-size: 7.6pt !important;
+        font-size: 7.2pt !important;
         line-height: 1.15 !important;
         display: block !important;
       }
@@ -693,31 +928,80 @@ export class PumpReportPdfComponent implements OnInit {
   todayDate: string = new Date().toISOString().split('T')[0];
   operatorName = 'VIZCARRA CORI MANLEY KLISMAN';
 
-  defaultPozas = [
-    { poza: 'Poza N° 01 Slurry', medida_ini: '1.20 m', flujo_ini: '320 m³/h', medida_fin: '1.15 m', flujo_fin: '315 m³/h', horas: '11.5', acc: '3,650' },
-    { poza: 'Poza N° 02 Auxiliar', medida_ini: '0.85 m', flujo_ini: '180 m³/h', medida_fin: '0.80 m', flujo_fin: '180 m³/h', horas: '12.0', acc: '2,160' },
-    { poza: 'Sentina Torre 5', medida_ini: '0.45 m', flujo_ini: '95 m³/h', medida_fin: '0.40 m', flujo_fin: '90 m³/h', horas: '6.0', acc: '540' },
-    { poza: 'Cortafugas Dique', medida_ini: '0.30 m', flujo_ini: '45 m³/h', medida_fin: '0.28 m', flujo_fin: '45 m³/h', horas: '12.0', acc: '540' }
-  ];
+  readonly maxRowsArray = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
 
-  get pumpList(): PumpReport[] {
-    if (this.pumps && this.pumps.length > 0) {
-      return this.pumps;
-    }
-    return [
-      { id: '1', tag: 'PP-101', name: 'Bomba Slurry 01', system: 'Impulsión Relaves', status: 'OPERATING', flow_rate_m3h: 380, pressure_bar: 5.2, rpm: 890, bearing_temp_c: 54, vibration_mms: 2.1, current_amps: 135, shift_code: 'G-A', operator_name: 'VIZCARRA K.', created_at: '' },
-      { id: '2', tag: 'PP-102', name: 'Bomba Slurry 02', system: 'Impulsión Relaves', status: 'OPERATING', flow_rate_m3h: 375, pressure_bar: 5.1, rpm: 885, bearing_temp_c: 56, vibration_mms: 2.3, current_amps: 132, shift_code: 'G-A', operator_name: 'VIZCARRA K.', created_at: '' },
-      { id: '3', tag: 'PP-103', name: 'Bomba Standby 03', system: 'Línea de Reserva', status: 'STANDBY', flow_rate_m3h: 0, pressure_bar: 0.0, rpm: 0, bearing_temp_c: 24, vibration_mms: 0.0, current_amps: 0, shift_code: 'G-A', operator_name: 'VIZCARRA K.', created_at: '' },
-      { id: '4', tag: 'PP-104', name: 'Bomba Sentina 04', system: 'Sumidero Principal', status: 'OPERATING', flow_rate_m3h: 120, pressure_bar: 2.4, rpm: 1150, bearing_temp_c: 48, vibration_mms: 1.8, current_amps: 42, shift_code: 'G-A', operator_name: 'VIZCARRA K.', created_at: '' }
-    ];
+  defaultSheet: PumpStationSheet = {
+    report_date: new Date().toLocaleDateString('es-PE'),
+    shift_code: 'G1',
+    operator_name: 'VIZCARRA CORI MANLEY KLISMAN',
+    sentina_pumps: [
+      { tag: 'PU001', status: 'Operativo' },
+      { tag: 'PU002', status: 'Operativo' },
+      { tag: 'PU003', status: 'Operativo' },
+      { tag: 'PU004', status: 'Operativo' },
+      { tag: 'PU005', status: 'Operativo' },
+      { tag: 'PU006', status: 'Operativo' },
+      { tag: 'PU007', status: 'Operativo' },
+      { tag: 'PU008', status: 'Operativo' }
+    ],
+    intermedia_pumps: [
+      { tag: 'PU011', status: 'Operativo' },
+      { tag: 'PU012', status: 'Operativo' },
+      { tag: 'PU013', status: 'Operativo' },
+      { tag: 'PU014', status: 'Operativo' },
+      { tag: 'PU015', status: 'Operativo' },
+      { tag: 'PU016', status: 'Operativo' }
+    ],
+    torre5_pumps: [
+      { tag: 'PU021', status: 'Operativo' },
+      { tag: 'PU022', status: 'Operativo' },
+      { tag: 'PU023', status: 'Operativo' },
+      { tag: 'PU024', status: 'Operativo' },
+      { tag: 'PU025', status: 'Operativo' },
+      { tag: 'PU026', status: 'Operativo' },
+      { tag: 'PU027', status: 'Operativo' },
+      { tag: 'PU028', status: 'Operativo' },
+      { tag: 'PU029', status: 'Operativo' },
+      { tag: 'PU030', status: 'Operativo' }
+    ],
+    levels: { orca: '---', espejo: '---', captacion: '---' },
+    main_indicators: {
+      nivel_sentina: '---', bombeo_turno_intermedia: '---', nivel_tko02: '---',
+      aforador: '---', cortafugas: '---', ph_aforador: '---', ph_cortafugas: '---',
+      h_embalas: '---', dique_almacenamiento: '---', drenaje_dique: '---',
+      agua_a_car: '---', anticrustante: '---', torre5_cortafugas: '---',
+      torre5_status1: 'Stand by', torre5_status2: 'Stand by'
+    },
+    pozas_sentina: [
+      { poza: 'S-QCOR.R_02', medida_ini: 'n/d', flujo_ini: 'n/d', medida_fin: 'n/d', flujo_fin: 'n/d', horas: 'n/d', acc: '---' },
+      { poza: 'S-QCOR.R_03', medida_ini: 'n/d', flujo_ini: 'n/d', medida_fin: 'n/d', flujo_fin: 'n/d', horas: 'n/d', acc: '---' }
+    ],
+    additional_obs: { notas: '---', af_cantera: '---', escorrentia: '---', ph_c5_1: '---', ph_c5_2: '---' }
+  };
+
+  get activeSheet(): PumpStationSheet {
+    return this.sheet || this.defaultSheet;
   }
 
-  get operatingCount(): number {
-    return this.pumpList.filter(p => p.status === 'OPERATING').length;
+  get sentinaOperatingCount(): number {
+    return (this.activeSheet.sentina_pumps || []).filter(p => p.status === 'Operativo').length;
+  }
+
+  get intermediaOperatingCount(): number {
+    return (this.activeSheet.intermedia_pumps || []).filter(p => p.status === 'Operativo').length;
+  }
+
+  get torre5OperatingCount(): number {
+    return (this.activeSheet.torre5_pumps || []).filter(p => p.status === 'Operativo').length;
+  }
+
+  get totalOperatingCount(): number {
+    return this.sentinaOperatingCount + this.intermediaOperatingCount + this.torre5OperatingCount;
   }
 
   get totalPumpsCount(): number {
-    return this.pumpList.length;
+    const s = this.activeSheet;
+    return (s.sentina_pumps?.length || 8) + (s.intermedia_pumps?.length || 6) + (s.torre5_pumps?.length || 10);
   }
 
   ngOnInit(): void {
@@ -736,7 +1020,7 @@ export class PumpReportPdfComponent implements OnInit {
   async downloadDirectPdf(): Promise<void> {
     if (this.isDownloading) return;
     this.isDownloading = true;
-    const cleanDate = this.todayDate.replace(/[\/\\]/g, '-');
+    const cleanDate = (this.activeSheet.report_date || this.todayDate).replace(/[\/\\]/g, '-');
     const filename = `Reporte_Oficial_Bombas_${cleanDate}.pdf`;
     const success = await this.pdfService.exportToPdf('printable-pump-report', filename);
     this.isDownloading = false;
@@ -762,25 +1046,27 @@ export class PumpReportPdfComponent implements OnInit {
     window.print();
   }
 
-  formatStatus(status: string): string {
+  getStatusClass(status: string | undefined): string {
     switch (status) {
-      case 'OPERATING': return 'Operando';
-      case 'STANDBY': return 'Stand by';
-      case 'MAINTENANCE': return 'Mantenimiento';
-      case 'FAULT': return 'Falla';
-      default: return status;
+      case 'Operativo': return 'pdf-status-operativo';
+      case 'Stand by': return 'pdf-status-standby';
+      case 'Mantenimiento': return 'pdf-status-mantenimiento';
+      case 'Falla': return 'pdf-status-falla';
+      default: return 'pdf-status-operativo';
     }
   }
 
   copyExecutiveSummary(): void {
-    const summary = `📋 *BASETRACK - REPORTE OFICIAL DE SALA DE BOMBAS (1 HOJA)*
-📅 Fecha: ${this.todayDate} | Guardia: ${this.sheet?.shift_code || 'G1'}
-👤 Operador: ${this.sheet?.operator_name || 'VIZCARRA CORI MANLEY KLISMAN'}
-🌊 Bombas Operando: ${this.operatingCount} de ${this.totalPumpsCount}
-💧 Nivel Sentina: ${this.sheet?.main_indicators?.nivel_sentina || '45%'} | Bombeo Intermedia: ${this.sheet?.main_indicators?.bombeo_turno_intermedia || '1,850 m³'}
-🧪 pH Aforador: ${this.sheet?.main_indicators?.ph_aforador || '7.8'} (Estable)
-📌 Novedad: ${this.sheet?.additional_obs?.notas || 'Operación normal conforme'}
-✅ Documento Oficial Validado`;
+    const s = this.activeSheet;
+    const summary = `📋 *BASETRACK - REPORTE DE BOMBAS Y SENTINAS (FORMATO PLANTA)*
+📅 Fecha: ${s.report_date || this.todayDate} | Guardia: ${s.shift_code || 'G1'}
+👤 Operador: ${s.operator_name || this.operatorName}
+🌊 Bombas Operando: ${this.totalOperatingCount} de ${this.totalPumpsCount} (Sentina: ${this.sentinaOperatingCount}/8, Intermedia: ${this.intermediaOperatingCount}/6, Torre 5: ${this.torre5OperatingCount}/10)
+📊 Niveles: ORCA: ${s.levels?.orca || '---'} | Espejo: ${s.levels?.espejo || '---'} | Captación: ${s.levels?.captacion || '---'}
+💧 Nivel Sentina: ${s.main_indicators?.nivel_sentina || '---'} | Bombeo Turno: ${s.main_indicators?.bombeo_turno_intermedia || '---'}
+🧪 pH Aforador: ${s.main_indicators?.ph_aforador || '---'} | pH Cortafugas: ${s.main_indicators?.ph_cortafugas || '---'}
+📌 Notas: ${s.additional_obs?.notas || '---'}
+✅ Reporte Oficial Validado`;
 
     copyToClipboard(summary).then((success) => {
       if (success) {
