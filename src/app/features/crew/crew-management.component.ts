@@ -33,7 +33,7 @@ import { ModalComponent } from '../../shared/ui/modal.component';
               <line x1="12" y1="8" x2="12" y2="16"></line>
               <line x1="8" y1="12" x2="16" y2="12"></line>
             </svg>
-            <span>+ Nueva Posición</span>
+            <span>Nueva Posición</span>
           </button>
 
           <button type="button" class="btn btn-secondary" (click)="validateAllEppAndTalk()" title="Validar EPP y Charla de 5 min en todas las posiciones">
@@ -49,7 +49,7 @@ import { ModalComponent } from '../../shared/ui/modal.component';
               <line x1="12" y1="5" x2="12" y2="19"></line>
               <line x1="5" y1="12" x2="19" y2="12"></line>
             </svg>
-            <span>+ Nuevo Operador</span>
+            <span>Nuevo Operador</span>
           </button>
         </div>
       </div>
