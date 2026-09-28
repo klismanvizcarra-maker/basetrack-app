@@ -112,7 +112,6 @@ import { ThemeService } from '../../core/theme/theme.service';
                 </svg>
               </span>
               <span class="nav-label">Reporte de bombas</span>
-              <span class="nav-badge">6</span>
             </a>
           </li>
 
