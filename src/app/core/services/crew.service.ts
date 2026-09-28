@@ -56,6 +56,33 @@ export interface CrewAreaAssignment {
   backup_avatar?: string;
 }
 
+export interface SupervisorOperatorItem {
+  assignment_id?: string;
+  supervisor_id: string;
+  operator_id: string;
+  shift_code: string;
+  operator_name: string;
+  document_id: string;
+  primary_role: string;
+  radio_channel?: string;
+  phone_extension?: string;
+  operator_status?: string;
+  operator_avatar?: string;
+}
+
+export interface SupervisorData {
+  id: string;
+  username: string;
+  email: string;
+  full_name: string;
+  role: string;
+  shift: string;
+  avatar_url: string;
+  is_active: number;
+  operators: SupervisorOperatorItem[];
+  operators_count: number;
+}
+
 import { getApiBaseUrl } from '../constants/api.config';
 
 @Injectable({
@@ -216,6 +243,9 @@ export class CrewService {
   crewMembers = signal<CrewMember[]>([]);
   allMembers = signal<CrewMember[]>(this.defaultMembers);
   activeAssignments = signal<CrewAreaAssignment[]>([]);
+  supervisorsWithOperators = signal<SupervisorData[]>([]);
+  myOperators = signal<CrewMember[]>([]);
+  filterByMySupervisor = signal<boolean>(true);
   isLoading = signal<boolean>(false);
 
   constructor() {
@@ -561,6 +591,179 @@ export class CrewService {
         return of({ success: true });
       })
     );
+  }
+
+  // ==========================================
+  // 3. SUPERVISOR & OPERATORS MANAGEMENT
+  // ==========================================
+  loadSupervisorOperators(): Observable<{ success: boolean; supervisors: SupervisorData[]; all_operators: CrewMember[] }> {
+    const url = `${getApiBaseUrl()}/admin/supervisor-operators`;
+    return this.http.get<{ success: boolean; supervisors: SupervisorData[]; all_operators: CrewMember[] }>(url).pipe(
+      tap(res => {
+        if (res?.success && Array.isArray(res.supervisors)) {
+          this.supervisorsWithOperators.set(res.supervisors);
+          this.saveCache('basetrack_supervisor_operators', res.supervisors);
+        }
+      }),
+      catchError(err => {
+        console.warn('[CrewService] Error cargando supervisor-operators, usando caché local:', err);
+        const cached = this.loadCachedSupervisorOperators();
+        this.supervisorsWithOperators.set(cached);
+        return of({ success: true, supervisors: cached, all_operators: this.allMembers() });
+      })
+    );
+  }
+
+  assignOperatorToSupervisor(supervisorId: string, operatorId: string, shiftCode?: string): Observable<any> {
+    const url = `${getApiBaseUrl()}/admin/supervisor-operators/assign`;
+    const payload = { supervisor_id: supervisorId, operator_id: operatorId, shift_code: shiftCode };
+
+    return this.http.post<any>(url, payload).pipe(
+      tap(() => {
+        this.loadSupervisorOperators().subscribe();
+      }),
+      catchError(err => {
+        console.warn('[CrewService] Fallback local para asignar operador a supervisor:', err);
+        const current = [...this.supervisorsWithOperators()];
+        const sup = current.find(s => s.id === supervisorId || s.username === supervisorId);
+        const op = this.allMembers().find(o => o.id === operatorId);
+        if (sup && op && !sup.operators.some(o => o.operator_id === operatorId)) {
+          sup.operators.push({
+            assignment_id: 'local-' + Date.now(),
+            supervisor_id: supervisorId,
+            operator_id: operatorId,
+            shift_code: shiftCode || op.shift_code || sup.shift,
+            operator_name: op.name,
+            document_id: op.document_id,
+            primary_role: op.primary_role,
+            radio_channel: op.radio_channel,
+            phone_extension: op.phone_extension,
+            operator_status: op.status,
+            operator_avatar: op.avatar_url
+          });
+          sup.operators_count = sup.operators.length;
+          this.supervisorsWithOperators.set(current);
+          this.saveCache('basetrack_supervisor_operators', current);
+        }
+        return of({ success: true });
+      })
+    );
+  }
+
+  removeOperatorFromSupervisor(supervisorId: string, operatorId: string): Observable<any> {
+    const url = `${getApiBaseUrl()}/admin/supervisor-operators/remove`;
+    const payload = { supervisor_id: supervisorId, operator_id: operatorId };
+
+    return this.http.post<any>(url, payload).pipe(
+      tap(() => {
+        this.loadSupervisorOperators().subscribe();
+      }),
+      catchError(err => {
+        console.warn('[CrewService] Fallback local para desvincular operador:', err);
+        const current = [...this.supervisorsWithOperators()];
+        const sup = current.find(s => s.id === supervisorId || s.username === supervisorId);
+        if (sup) {
+          sup.operators = sup.operators.filter(o => o.operator_id !== operatorId);
+          sup.operators_count = sup.operators.length;
+          this.supervisorsWithOperators.set(current);
+          this.saveCache('basetrack_supervisor_operators', current);
+        }
+        return of({ success: true });
+      })
+    );
+  }
+
+  autoAssignByShift(supervisorId?: string, shiftCode?: string): Observable<any> {
+    const url = `${getApiBaseUrl()}/admin/supervisor-operators/auto-assign`;
+    return this.http.post<any>(url, { supervisor_id: supervisorId, shift_code: shiftCode }).pipe(
+      tap(() => {
+        this.loadSupervisorOperators().subscribe();
+      }),
+      catchError(err => {
+        console.warn('[CrewService] Fallback auto-assign local:', err);
+        return of({ success: true });
+      })
+    );
+  }
+
+  loadMyOperators(supervisorId?: string): Observable<{ success: boolean; data: CrewMember[] }> {
+    let url = `${this.apiUrl}/my-operators`;
+    if (supervisorId) {
+      url += `?supervisor_id=${encodeURIComponent(supervisorId)}`;
+    }
+
+    return this.http.get<{ success: boolean; data: CrewMember[] }>(url).pipe(
+      tap(res => {
+        if (res?.success && Array.isArray(res.data)) {
+          this.myOperators.set(res.data);
+          this.saveCache('basetrack_my_operators', res.data);
+        }
+      }),
+      catchError(err => {
+        console.warn('[CrewService] Error cargando my-operators, usando caché local o filtro por guardia:', err);
+        const cached = this.loadCachedMyOperators();
+        this.myOperators.set(cached);
+        return of({ success: true, data: cached });
+      })
+    );
+  }
+
+  private loadCachedSupervisorOperators(): SupervisorData[] {
+    if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+      try {
+        const c = localStorage.getItem('basetrack_supervisor_operators');
+        if (c) {
+          const parsed = JSON.parse(c);
+          if (Array.isArray(parsed) && parsed.length >= 4) return parsed;
+        }
+      } catch {}
+    }
+
+    // Default 4 Guardias (G1 - G4) with their 7 official operators
+    const guards = [
+      { id: 'u-klismanv', username: 'KlismanV', email: 'klismanvizcarra@basetrack.com', full_name: 'VIZCARRA CORI MANLEY KLISMAN', role: 'ADMIN', shift: 'G1', avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80' },
+      { id: 'u-victora', username: 'VictorA', email: 'victorllerena@basetrack.com', full_name: 'LLERENA CALLE-BRACAMONTE VICTOR ALEJANDRO II', role: 'SUPERVISOR', shift: 'G2', avatar_url: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&w=250&q=80' },
+      { id: 'u-hectorm', username: 'HectorM', email: 'hectormendoza@basetrack.com', full_name: 'MENDOZA QUISPE HÉCTOR', role: 'SUPERVISOR', shift: 'G3', avatar_url: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=250&q=80' },
+      { id: 'u-cesaro', username: 'CesarO', email: 'cesarortega@basetrack.com', full_name: 'ORTEGA RAMÍREZ CESAR', role: 'SUPERVISOR', shift: 'G4', avatar_url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=250&q=80' }
+    ];
+
+    const allOps = this.defaultMembers.filter(m => m.primary_role !== 'SUPERVISOR');
+    return guards.map(g => {
+      const shiftOps = allOps.filter(o => o.shift_code === g.shift);
+      const opsMapped: SupervisorOperatorItem[] = shiftOps.map(op => ({
+        assignment_id: `cached-${g.id}-${op.id}`,
+        supervisor_id: g.id,
+        operator_id: op.id,
+        shift_code: g.shift,
+        operator_name: op.name,
+        document_id: op.document_id,
+        primary_role: op.primary_role,
+        radio_channel: op.radio_channel,
+        phone_extension: op.phone_extension,
+        operator_status: op.status,
+        operator_avatar: op.avatar_url
+      }));
+
+      return {
+        ...g,
+        is_active: 1,
+        operators: opsMapped,
+        operators_count: opsMapped.length
+      };
+    });
+  }
+
+  private loadCachedMyOperators(): CrewMember[] {
+    if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+      try {
+        const c = localStorage.getItem('basetrack_my_operators');
+        if (c) {
+          const parsed = JSON.parse(c);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      } catch {}
+    }
+    return this.defaultMembers.filter(m => m.shift_code === 'G1' && m.primary_role !== 'SUPERVISOR');
   }
 
   private loadCachedMembers(shift?: string): void {

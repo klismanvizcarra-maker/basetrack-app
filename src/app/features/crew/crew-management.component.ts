@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { CrewService, CrewMember, CrewAreaAssignment, PositionKey, CrewPositionMeta } from '../../core/services/crew.service';
+import { AuthService } from '../../core/auth/auth.service';
 import { ModalComponent } from '../../shared/ui/modal.component';
 
 @Component({
@@ -138,6 +139,47 @@ import { ModalComponent } from '../../shared/ui/modal.component';
         </div>
       </div>
 
+      <!-- SUPERVISOR SQUAD SCOPED BANNER -->
+      <div class="supervisor-scoped-banner glass-panel">
+        <div class="banner-left">
+          <div class="supervisor-avatar-wrap">
+            <span class="badge-role-icon">🦺</span>
+          </div>
+          <div class="supervisor-banner-meta">
+            <div class="banner-title-line">
+              <span class="banner-sup-title">Supervisor de Guardia:</span>
+              <span class="sup-highlight-name">{{ activeSupervisorDisplayName }}</span>
+              <span class="guard-pill-tag">{{ selectedShift }}</span>
+            </div>
+            <p class="banner-desc-text">
+              <span class="highlight-count">{{ currentSquadOperators.length }} Operadores asignados</span> a esta cuadrilla.
+              {{ showOnlyMyOperators ? 'Los selectores muestran únicamente su cuadrilla para asignación rápida.' : 'Mostrando lista global de toda la planta.' }}
+            </p>
+          </div>
+        </div>
+
+        <div class="banner-right">
+          <button
+            type="button"
+            class="btn-scope-filter"
+            [class.active-scope]="showOnlyMyOperators"
+            (click)="showOnlyMyOperators = !showOnlyMyOperators"
+            [title]="showOnlyMyOperators ? 'Ver todos los operadores de planta' : 'Ver únicamente operadores de esta cuadrilla'"
+          >
+            <svg *ngIf="showOnlyMyOperators" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <circle cx="12" cy="12" r="10"></circle>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+            <svg *ngIf="!showOnlyMyOperators" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="2" y1="12" x2="22" y2="12"></line>
+              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+            </svg>
+            <span>{{ showOnlyMyOperators ? '⭐ Cuadrilla Asignada' : '🌐 Toda la Planta' }}</span>
+          </button>
+        </div>
+      </div>
+
       <!-- THE OPERATIONAL POSITIONS BOARD (PIZARRA INTERACTIVA) -->
       <div class="section-divider-title">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#031795" stroke-width="2.2">
@@ -188,13 +230,13 @@ import { ModalComponent } from '../../shared/ui/modal.component';
                 (ngModelChange)="onAssignOperator(pos.key, $event)"
               >
                 <option [ngValue]="null" disabled>-- Seleccionar Operador Titular --</option>
-                <optgroup [label]="'Operadores ' + selectedShift + ' (En Turno Recomendados)'">
-                  <option *ngFor="let m of activeShiftMembers" [value]="m.id">
-                    {{ m.name }} ({{ formatRoleName(m.primary_role) }})
+                <optgroup [label]="'⭐ Cuadrilla Asignada (' + currentSquadOperators.length + ' de ' + activeSupervisorDisplayName + ')'">
+                  <option *ngFor="let m of currentSquadOperators" [value]="m.id">
+                    ⭐ {{ m.name }} ({{ formatRoleName(m.primary_role) }})
                   </option>
                 </optgroup>
-                <optgroup label="Todos los Operadores de Planta">
-                  <option *ngFor="let m of otherShiftMembers" [value]="m.id">
+                <optgroup *ngIf="!showOnlyMyOperators" label="Otros Operadores de Planta">
+                  <option *ngFor="let m of nonSquadMembers" [value]="m.id">
                     {{ m.name }} ({{ formatRoleName(m.primary_role) }} - {{ m.shift_code }})
                   </option>
                 </optgroup>
@@ -223,13 +265,13 @@ import { ModalComponent } from '../../shared/ui/modal.component';
               (ngModelChange)="onAssignBackup(pos.key, $event)"
             >
               <option [ngValue]="null">-- Sin Relevo Asignado --</option>
-              <optgroup [label]="'Personal ' + selectedShift">
-                <option *ngFor="let m of activeShiftMembers" [value]="m.id">
-                  {{ m.name }} ({{ formatRoleName(m.primary_role) }})
+              <optgroup [label]="'⭐ Cuadrilla Asignada (' + currentSquadOperators.length + ')'">
+                <option *ngFor="let m of currentSquadOperators" [value]="m.id">
+                  ⭐ {{ m.name }} ({{ formatRoleName(m.primary_role) }})
                 </option>
               </optgroup>
-              <optgroup label="Otros Operadores de Planta">
-                <option *ngFor="let m of otherShiftMembers" [value]="m.id">
+              <optgroup *ngIf="!showOnlyMyOperators" label="Otros Operadores de Planta">
+                <option *ngFor="let m of nonSquadMembers" [value]="m.id">
                   {{ m.name }} ({{ formatRoleName(m.primary_role) }} - {{ m.shift_code }})
                 </option>
               </optgroup>
@@ -328,10 +370,26 @@ import { ModalComponent } from '../../shared/ui/modal.component';
             <button
               type="button"
               class="tab-btn"
+              [class.active]="rosterFilter === 'SQUAD'"
+              (click)="rosterFilter = 'SQUAD'"
+            >
+              ⭐ Mi Cuadrilla ({{ currentSquadOperators.length }})
+            </button>
+            <button
+              type="button"
+              class="tab-btn"
+              [class.active]="rosterFilter === 'SHIFT'"
+              (click)="rosterFilter = 'SHIFT'"
+            >
+              Guardia {{ selectedShift }} ({{ activeShiftMembers.length }})
+            </button>
+            <button
+              type="button"
+              class="tab-btn"
               [class.active]="rosterFilter === 'ALL'"
               (click)="rosterFilter = 'ALL'"
             >
-              Todos ({{ crewService.allMembers().length }})
+              Toda la Planta ({{ crewService.allMembers().length }})
             </button>
             <button
               type="button"
@@ -634,13 +692,13 @@ import { ModalComponent } from '../../shared/ui/modal.component';
             name="pos_operator"
           >
             <option value="">-- Sin asignar por ahora --</option>
-            <optgroup [label]="'Operadores ' + selectedShift">
-              <option *ngFor="let m of activeShiftMembers" [value]="m.id">
-                {{ m.name }} ({{ formatRoleName(m.primary_role) }})
+            <optgroup [label]="'⭐ Cuadrilla Asignada (' + currentSquadOperators.length + ' de ' + activeSupervisorDisplayName + ')'">
+              <option *ngFor="let m of currentSquadOperators" [value]="m.id">
+                ⭐ {{ m.name }} ({{ formatRoleName(m.primary_role) }})
               </option>
             </optgroup>
             <optgroup label="Otros Operadores de Planta">
-              <option *ngFor="let m of otherShiftMembers" [value]="m.id">
+              <option *ngFor="let m of nonSquadMembers" [value]="m.id">
                 {{ m.name }} ({{ formatRoleName(m.primary_role) }} - {{ m.shift_code }})
               </option>
             </optgroup>
@@ -959,6 +1017,132 @@ import { ModalComponent } from '../../shared/ui/modal.component';
 
     .text-success {
       color: #059669 !important;
+    }
+
+    /* Supervisor Scoped Banner */
+    .supervisor-scoped-banner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      padding: 14px 20px;
+      background: linear-gradient(135deg, rgba(3, 23, 149, 0.05) 0%, rgba(2, 132, 199, 0.08) 100%);
+      border: 1px solid rgba(3, 23, 149, 0.2);
+      border-radius: var(--radius-lg);
+      box-shadow: 0 2px 10px rgba(3, 23, 149, 0.04);
+      flex-wrap: wrap;
+
+      .banner-left {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+
+      .supervisor-avatar-wrap {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        background: #031795;
+        color: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.4rem;
+        box-shadow: 0 4px 10px rgba(3, 23, 149, 0.25);
+        flex-shrink: 0;
+      }
+
+      .supervisor-banner-meta {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .banner-title-line {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .banner-sup-title {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+
+      .sup-highlight-name {
+        font-size: 0.95rem;
+        font-weight: 800;
+        color: #031795;
+      }
+
+      .guard-pill-tag {
+        font-size: 0.72rem;
+        font-weight: 800;
+        padding: 2px 8px;
+        background: #031795;
+        color: #ffffff;
+        border-radius: 12px;
+      }
+
+      .banner-desc-text {
+        font-size: 0.82rem;
+        color: var(--text-secondary);
+        margin: 0;
+
+        .highlight-count {
+          font-weight: 700;
+          color: var(--text-primary);
+        }
+      }
+
+      .banner-right {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .btn-scope-filter {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        border-radius: var(--radius-md);
+        font-size: 0.85rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 1.5px solid #031795;
+        background: #ffffff;
+        color: #031795;
+
+        &:hover {
+          background: #eef2ff;
+          transform: translateY(-1px);
+        }
+
+        &.active-scope {
+          background: #031795;
+          color: #ffffff;
+          box-shadow: 0 4px 12px rgba(3, 23, 149, 0.3);
+        }
+      }
+
+      @media (max-width: 768px) {
+        flex-direction: column;
+        align-items: flex-start;
+
+        .banner-right {
+          width: 100%;
+          .btn-scope-filter {
+            width: 100%;
+            justify-content: center;
+          }
+        }
+      }
     }
 
     /* Section divider */
@@ -1646,12 +1830,14 @@ import { ModalComponent } from '../../shared/ui/modal.component';
   `]
 })
 export class CrewManagementComponent implements OnInit {
+  authService = inject(AuthService);
   crewService = inject(CrewService);
 
   selectedShift: 'G1' | 'G2' | 'G3' | 'G4' | string = 'G1';
   selectedShiftType: 'DIA' | 'NOCHE' = 'DIA';
   selectedDate: string = new Date().toISOString().split('T')[0];
-  rosterFilter: 'ALL' | 'EN_TURNO' | 'DESCANSO' = 'ALL';
+  rosterFilter: 'SQUAD' | 'SHIFT' | 'ALL' | 'EN_TURNO' | 'DESCANSO' = 'SQUAD';
+  showOnlyMyOperators: boolean = true;
 
   // Modals
   isCreateModalOpen = false;
@@ -1726,7 +1912,51 @@ export class CrewManagementComponent implements OnInit {
     return this.crewService.allMembers().filter(m => m.shift_code !== this.selectedShift);
   }
 
+  get activeSupervisorDisplayName(): string {
+    const currentUser = this.authService.currentUser();
+    if (currentUser?.role === 'SUPERVISOR' && currentUser.shift === this.selectedShift) {
+      return currentUser.fullName || currentUser.username;
+    }
+    const sup = this.crewService.supervisorsWithOperators().find(s => s.shift === this.selectedShift);
+    if (sup) {
+      return sup.full_name;
+    }
+    switch (this.selectedShift) {
+      case 'G1': return 'Klisman Vizcarra Cori';
+      case 'G2': return 'Víctor Alarcón';
+      case 'G3': return 'Héctor Mamani';
+      case 'G4': return 'César Olivares';
+      default: return currentUser?.fullName || 'Supervisor de Planta';
+    }
+  }
+
+  get currentSquadOperators(): CrewMember[] {
+    const all = this.crewService.allMembers();
+    const sup = this.crewService.supervisorsWithOperators().find(s => s.shift === this.selectedShift);
+    if (sup && sup.operators && sup.operators.length > 0) {
+      const ids = new Set(sup.operators.map(o => o.operator_id));
+      const squad = all.filter(m => ids.has(m.id));
+      if (squad.length > 0) return squad;
+    }
+    const currentUser = this.authService.currentUser();
+    if (currentUser?.shift === this.selectedShift && this.crewService.myOperators().length > 0) {
+      const ids = new Set(this.crewService.myOperators().map(o => o.id));
+      const squad = all.filter(m => ids.has(m.id));
+      if (squad.length > 0) return squad;
+    }
+    return this.activeShiftMembers.filter(m => m.primary_role !== 'SUPERVISOR');
+  }
+
+  get nonSquadMembers(): CrewMember[] {
+    const squadIds = new Set(this.currentSquadOperators.map(o => o.id));
+    return this.crewService.allMembers().filter(m => !squadIds.has(m.id) && m.primary_role !== 'SUPERVISOR');
+  }
+
   ngOnInit(): void {
+    const userShift = this.authService.currentUser()?.shift;
+    if (userShift && ['G1', 'G2', 'G3', 'G4'].includes(userShift)) {
+      this.selectedShift = userShift;
+    }
     this.loadData();
   }
 
@@ -1734,6 +1964,8 @@ export class CrewManagementComponent implements OnInit {
     this.crewService.loadPositions().subscribe();
     this.crewService.loadCrew(this.selectedShift).subscribe();
     this.crewService.loadAssignments(this.selectedDate, this.selectedShift, this.selectedShiftType).subscribe();
+    this.crewService.loadSupervisorOperators().subscribe();
+    this.crewService.loadMyOperators().subscribe();
   }
 
   selectShift(shift: 'G1' | 'G2' | 'G3' | 'G4' | string): void {
@@ -1777,6 +2009,12 @@ export class CrewManagementComponent implements OnInit {
 
   get filteredCrew(): CrewMember[] {
     const all = this.crewService.allMembers();
+    if (this.rosterFilter === 'SQUAD') {
+      return this.currentSquadOperators;
+    }
+    if (this.rosterFilter === 'SHIFT') {
+      return this.activeShiftMembers;
+    }
     if (this.rosterFilter === 'EN_TURNO') {
       return all.filter(m => m.status === 'EN_TURNO');
     }

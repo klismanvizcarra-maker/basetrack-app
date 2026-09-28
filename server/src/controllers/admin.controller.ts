@@ -227,6 +227,7 @@ export function getDatabaseBackup(req: Request, res: Response) {
       crew_members: db.prepare('SELECT * FROM crew_members').all(),
       crew_positions: db.prepare('SELECT * FROM crew_positions').all(),
       crew_area_assignments: db.prepare('SELECT * FROM crew_area_assignments').all(),
+      supervisor_operators: db.prepare('SELECT * FROM supervisor_operators').all(),
       audit_logs: db.prepare('SELECT * FROM audit_logs').all(),
       exportedAt: new Date().toISOString(),
       system: 'BASETRACK_APP_V1'
@@ -425,6 +426,22 @@ export function restoreDatabaseBackup(req: AuthenticatedRequest, res: Response) 
           }
         }
         summary.maintenance_requests = count;
+      }
+
+      // 11. Supervisor Operators (Vínculos Cuadrilla Supervisor)
+      if (Array.isArray(data.supervisor_operators) && data.supervisor_operators.length > 0) {
+        const stmt = db.prepare(`
+          INSERT OR REPLACE INTO supervisor_operators (id, supervisor_id, operator_id, shift_code, created_at)
+          VALUES (?, ?, ?, ?, COALESCE(?, datetime('now')))
+        `);
+        let count = 0;
+        for (const so of data.supervisor_operators) {
+          if (so.id && so.supervisor_id && so.operator_id) {
+            stmt.run(so.id, so.supervisor_id, so.operator_id, so.shift_code || 'G1', so.created_at || null);
+            count++;
+          }
+        }
+        summary.supervisor_operators = count;
       }
 
       db.exec('COMMIT;');
@@ -670,3 +687,307 @@ export function revokeDeviceSession(req: AuthenticatedRequest, res: Response) {
     return res.status(500).json({ success: false, message: error.message });
   }
 }
+
+// =========================================================================
+// SUPERVISOR & OPERATORS MANAGEMENT (Gestión de Cuadrilla por Supervisor)
+// =========================================================================
+
+export function getSupervisorOperators(req: AuthenticatedRequest, res: Response) {
+  try {
+    // 1. Obtener todos los supervisores
+    const supervisors = db.prepare(`
+      SELECT id, username, email, full_name, role, shift, avatar_url, COALESCE(is_active, 1) as is_active
+      FROM users
+      WHERE role IN ('SUPERVISOR', 'ADMIN')
+      ORDER BY 
+        CASE role WHEN 'ADMIN' THEN 1 ELSE 2 END,
+        shift ASC,
+        full_name ASC
+    `).all() as any[];
+
+    // 2. Obtener todas las asignaciones existentes
+    const allAssignments = db.prepare(`
+      SELECT 
+        so.id as assignment_id,
+        so.supervisor_id,
+        so.operator_id,
+        so.shift_code,
+        m.name as operator_name,
+        m.document_id,
+        m.primary_role,
+        m.radio_channel,
+        m.phone_extension,
+        m.status as operator_status,
+        m.avatar_url as operator_avatar
+      FROM supervisor_operators so
+      JOIN crew_members m ON so.operator_id = m.id
+      ORDER BY m.name ASC
+    `).all() as any[];
+
+    // 3. Obtener nómina de operadores para selector
+    const allOperators = db.prepare(`
+      SELECT id, name, document_id, primary_role, shift_code, radio_channel, phone_extension, status, avatar_url
+      FROM crew_members
+      WHERE primary_role != 'SUPERVISOR'
+      ORDER BY shift_code ASC, name ASC
+    `).all() as any[];
+
+    // Mapear operadores a cada supervisor
+    const supervisorsWithOperators = supervisors.map(sup => {
+      const assigned = allAssignments.filter(a => 
+        a.supervisor_id === sup.id || 
+        a.supervisor_id === sup.username
+      );
+
+      const uniqueAssignedMap = new Map<string, any>();
+      for (const item of assigned) {
+        if (!uniqueAssignedMap.has(item.operator_id)) {
+          uniqueAssignedMap.set(item.operator_id, item);
+        }
+      }
+
+      // Si aún no tiene operadores explícitos, fallback automático por misma guardia
+      if (uniqueAssignedMap.size === 0 && sup.shift) {
+        const shiftOps = allOperators.filter(o => o.shift_code === sup.shift);
+        for (const op of shiftOps) {
+          uniqueAssignedMap.set(op.id, {
+            assignment_id: `auto-${sup.id}-${op.id}`,
+            supervisor_id: sup.id,
+            operator_id: op.id,
+            shift_code: sup.shift,
+            operator_name: op.name,
+            document_id: op.document_id,
+            primary_role: op.primary_role,
+            radio_channel: op.radio_channel,
+            phone_extension: op.phone_extension,
+            operator_status: op.status,
+            operator_avatar: op.avatar_url
+          });
+        }
+      }
+
+      const opsList = Array.from(uniqueAssignedMap.values());
+      return {
+        ...sup,
+        operators: opsList,
+        operators_count: opsList.length
+      };
+    });
+
+    return res.json({
+      success: true,
+      count: supervisorsWithOperators.length,
+      supervisors: supervisorsWithOperators,
+      all_operators: allOperators
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+export function assignOperatorToSupervisor(req: AuthenticatedRequest, res: Response) {
+  try {
+    const { supervisor_id, operator_id, shift_code } = req.body;
+
+    if (!supervisor_id || !operator_id) {
+      return res.status(400).json({ success: false, message: 'supervisor_id y operator_id son requeridos' });
+    }
+
+    const operator = db.prepare('SELECT * FROM crew_members WHERE id = ?').get(operator_id) as any;
+    if (!operator) {
+      return res.status(404).json({ success: false, message: 'Operador no encontrado' });
+    }
+
+    const supervisor = db.prepare('SELECT * FROM users WHERE id = ? OR username = ?').get(supervisor_id, supervisor_id) as any;
+    const finalSupervisorId = supervisor ? supervisor.id : supervisor_id;
+    const finalShift = shift_code || operator.shift_code || supervisor?.shift || 'G1';
+
+    const id = crypto.randomUUID();
+    db.prepare(`
+      INSERT OR REPLACE INTO supervisor_operators (id, supervisor_id, operator_id, shift_code)
+      VALUES (?, ?, ?, ?)
+    `).run(id, finalSupervisorId, operator_id, finalShift);
+
+    if (supervisor?.username && supervisor.username !== finalSupervisorId) {
+      db.prepare(`
+        INSERT OR REPLACE INTO supervisor_operators (id, supervisor_id, operator_id, shift_code)
+        VALUES (?, ?, ?, ?)
+      `).run(crypto.randomUUID(), supervisor.username, operator_id, finalShift);
+    }
+
+    logAudit(
+      req.user?.userId || null,
+      req.user?.username || 'admin',
+      'ASSIGN_OPERATOR_SUPERVISOR',
+      'CREW',
+      operator_id,
+      `Operador ${operator.name} asignado al supervisor ${supervisor?.full_name || supervisor_id}`,
+      req.ip || '127.0.0.1'
+    );
+
+    return res.json({
+      success: true,
+      message: `Operador ${operator.name} asignado exitosamente al supervisor`,
+      assignment: { id, supervisor_id: finalSupervisorId, operator_id, shift_code: finalShift }
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+export function removeOperatorFromSupervisor(req: AuthenticatedRequest, res: Response) {
+  try {
+    const supervisor_id = req.body?.supervisor_id || req.params?.supervisor_id;
+    const operator_id = req.body?.operator_id || req.params?.operator_id;
+
+    if (!supervisor_id || !operator_id) {
+      return res.status(400).json({ success: false, message: 'supervisor_id y operator_id son requeridos' });
+    }
+
+    const supervisor = db.prepare('SELECT * FROM users WHERE id = ? OR username = ?').get(supervisor_id, supervisor_id) as any;
+    const supId = supervisor ? supervisor.id : supervisor_id;
+    const supUsername = supervisor ? supervisor.username : supervisor_id;
+
+    db.prepare(`
+      DELETE FROM supervisor_operators 
+      WHERE (supervisor_id = ? OR supervisor_id = ?) AND operator_id = ?
+    `).run(supId, supUsername, operator_id);
+
+    logAudit(
+      req.user?.userId || null,
+      req.user?.username || 'admin',
+      'REMOVE_OPERATOR_SUPERVISOR',
+      'CREW',
+      operator_id,
+      `Operador ${operator_id} desvinculado del supervisor ${supUsername}`,
+      req.ip || '127.0.0.1'
+    );
+
+    return res.json({
+      success: true,
+      message: 'Operador desvinculado exitosamente del supervisor'
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+export function autoAssignByShift(req: AuthenticatedRequest, res: Response) {
+  try {
+    const { supervisor_id, shift_code } = req.body || {};
+
+    let supervisorsQuery = "SELECT id, username, shift, full_name FROM users WHERE role IN ('SUPERVISOR', 'ADMIN')";
+    const params: any[] = [];
+    if (supervisor_id) {
+      supervisorsQuery += " AND (id = ? OR username = ?)";
+      params.push(supervisor_id, supervisor_id);
+    } else if (shift_code) {
+      supervisorsQuery += " AND shift = ?";
+      params.push(shift_code);
+    }
+
+    const supervisors = db.prepare(supervisorsQuery).all(...params) as any[];
+
+    const insertSupOp = db.prepare(`
+      INSERT OR REPLACE INTO supervisor_operators (id, supervisor_id, operator_id, shift_code)
+      VALUES (?, ?, ?, ?)
+    `);
+
+    let totalAssigned = 0;
+
+    for (const sup of supervisors) {
+      const shift = sup.shift || 'G1';
+      const ops = db.prepare(`
+        SELECT id FROM crew_members 
+        WHERE shift_code = ? AND primary_role != 'SUPERVISOR'
+      `).all(shift) as Array<{ id: string }>;
+
+      for (const op of ops) {
+        insertSupOp.run(crypto.randomUUID(), sup.id, op.id, shift);
+        if (sup.username && sup.username !== sup.id) {
+          insertSupOp.run(crypto.randomUUID(), sup.username, op.id, shift);
+        }
+        totalAssigned++;
+      }
+    }
+
+    logAudit(
+      req.user?.userId || null,
+      req.user?.username || 'admin',
+      'AUTO_ASSIGN_SUPERVISOR_OPERATORS',
+      'CREW',
+      null,
+      `Auto-asignación completada para ${supervisors.length} supervisores: ${totalAssigned} vínculos creados`,
+      req.ip || '127.0.0.1'
+    );
+
+    return res.json({
+      success: true,
+      message: `Auto-asignación completada exitosamente (${totalAssigned} operadores vinculados a sus supervisores)`,
+      supervisors_updated: supervisors.length,
+      total_assigned: totalAssigned
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+export function getMyOperators(req: AuthenticatedRequest, res: Response) {
+  try {
+    const user = req.user;
+    if (!user) {
+      return res.status(401).json({ success: false, message: 'Usuario no autenticado' });
+    }
+
+    const supervisorId = String(user.userId || '');
+    const supervisorUsername = String(user.username || '');
+    const userRole = user.role || 'OPERATOR';
+    const userShift = (user as any).shift || 'G1';
+
+    const targetSupervisor = (userRole === 'ADMIN' && req.query.supervisor_id) 
+      ? String(req.query.supervisor_id) 
+      : supervisorId;
+
+    let operators: any[] = [];
+
+    // Buscar operadores vinculados en supervisor_operators
+    operators = db.prepare(`
+      SELECT DISTINCT
+        m.id,
+        m.name,
+        m.document_id,
+        m.primary_role,
+        m.shift_code,
+        m.radio_channel,
+        m.phone_extension,
+        m.status,
+        m.avatar_url
+      FROM supervisor_operators so
+      JOIN crew_members m ON so.operator_id = m.id
+      WHERE (so.supervisor_id = ? OR so.supervisor_id = ?)
+      ORDER BY m.name ASC
+    `).all(targetSupervisor, supervisorUsername) as any[];
+
+    // Fallback: Si no tiene registros en la tabla, filtrar por su guardia
+    if (operators.length === 0 && userRole !== 'OPERATOR') {
+      operators = db.prepare(`
+        SELECT id, name, document_id, primary_role, shift_code, radio_channel, phone_extension, status, avatar_url
+        FROM crew_members
+        WHERE shift_code = ? AND primary_role != 'SUPERVISOR'
+        ORDER BY name ASC
+      `).all(userShift) as any[];
+    }
+
+    return res.json({
+      success: true,
+      count: operators.length,
+      supervisor: supervisorUsername,
+      role: userRole,
+      shift: userShift,
+      data: operators
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+

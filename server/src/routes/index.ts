@@ -17,7 +17,12 @@ import {
   resetUserPassword,
   toggleUserStatus,
   getConnectedDevices,
-  revokeDeviceSession
+  revokeDeviceSession,
+  getSupervisorOperators,
+  assignOperatorToSupervisor,
+  removeOperatorFromSupervisor,
+  autoAssignByShift,
+  getMyOperators
 } from '../controllers/admin.controller.js';
 import { getCrewMembers, createCrewMember, updateCrewMember, deleteCrewMember, getAreaAssignments, saveAreaAssignment, checkinAreaAssignment, getCrewPositions, createCrewPosition, deleteCrewPosition } from '../controllers/crew.controller.js';
 import { pushEvents, pullEvents, getSyncStatus } from '../controllers/sync.controller.js';
@@ -88,9 +93,16 @@ apiRouter.post('/admin/users/:id/reset-password', authenticateToken, requireRole
 apiRouter.patch('/admin/users/:id/status', authenticateToken, requireRoles('ADMIN'), toggleUserStatus);
 apiRouter.get('/admin/devices', authenticateToken, requireRoles('ADMIN', 'SUPERVISOR'), getConnectedDevices);
 apiRouter.post('/admin/devices/:deviceId/revoke', authenticateToken, requireRoles('ADMIN'), revokeDeviceSession);
+apiRouter.get('/admin/supervisor-operators', authenticateToken, requireRoles('ADMIN', 'SUPERVISOR'), getSupervisorOperators);
+apiRouter.post('/admin/supervisor-operators', authenticateToken, requireRoles('ADMIN', 'SUPERVISOR'), assignOperatorToSupervisor);
+apiRouter.delete('/admin/supervisor-operators/:supervisor_id/:operator_id', authenticateToken, requireRoles('ADMIN', 'SUPERVISOR'), removeOperatorFromSupervisor);
+apiRouter.post('/admin/supervisor-operators/assign', authenticateToken, requireRoles('ADMIN', 'SUPERVISOR'), assignOperatorToSupervisor);
+apiRouter.post('/admin/supervisor-operators/remove', authenticateToken, requireRoles('ADMIN', 'SUPERVISOR'), removeOperatorFromSupervisor);
+apiRouter.post('/admin/supervisor-operators/auto-assign', authenticateToken, requireRoles('ADMIN', 'SUPERVISOR'), autoAssignByShift);
 
 // 10. Crew & Area Assignments Routes (Gestión de Cuadrilla y Asignación por Área)
 apiRouter.get('/crew/members', getCrewMembers);
+apiRouter.get('/crew/my-operators', authenticateToken, getMyOperators);
 apiRouter.post('/crew/members', authenticateToken, createCrewMember);
 apiRouter.put('/crew/members/:id', authenticateToken, updateCrewMember);
 apiRouter.delete('/crew/members/:id', authenticateToken, deleteCrewMember);

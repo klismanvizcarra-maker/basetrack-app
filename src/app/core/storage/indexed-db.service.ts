@@ -21,7 +21,7 @@ export interface CachedData {
 })
 export class IndexedDbService {
   private readonly dbName = 'basetrack_db';
-  private readonly dbVersion = 1;
+  private readonly dbVersion = 2;
   private db: IDBDatabase | null = null;
   private isAvailable = typeof window !== 'undefined' && 'indexedDB' in window;
 
@@ -34,7 +34,13 @@ export class IndexedDbService {
   }
 
   private initDb(): Promise<IDBDatabase> {
-    if (this.db) return Promise.resolve(this.db);
+    if (this.db) {
+      if (this.db.objectStoreNames.contains('sync_queue') && this.db.objectStoreNames.contains('offline_cache')) {
+        return Promise.resolve(this.db);
+      }
+      this.db.close();
+      this.db = null;
+    }
     if (!this.isAvailable) return Promise.reject(new Error('IndexedDB not available'));
 
     return new Promise((resolve, reject) => {
@@ -56,7 +62,35 @@ export class IndexedDbService {
       };
 
       request.onsuccess = (event) => {
-        this.db = (event.target as IDBOpenDBRequest).result;
+        const openedDb = (event.target as IDBOpenDBRequest).result;
+        
+        // Verificación de integridad: si por alguna razón faltan los stores, forzar actualización
+        if (!openedDb.objectStoreNames.contains('sync_queue') || !openedDb.objectStoreNames.contains('offline_cache')) {
+          const nextVersion = (openedDb.version || 1) + 1;
+          openedDb.close();
+          const fixReq = indexedDB.open(this.dbName, nextVersion);
+          fixReq.onupgradeneeded = (fixEv) => {
+            const fixDb = (fixEv.target as IDBOpenDBRequest).result;
+            if (!fixDb.objectStoreNames.contains('sync_queue')) {
+              const syncStore = fixDb.createObjectStore('sync_queue', { keyPath: 'id' });
+              syncStore.createIndex('timestamp', 'timestamp', { unique: false });
+            }
+            if (!fixDb.objectStoreNames.contains('offline_cache')) {
+              fixDb.createObjectStore('offline_cache', { keyPath: 'key' });
+            }
+          };
+          fixReq.onsuccess = (fixEv) => {
+            this.db = (fixEv.target as IDBOpenDBRequest).result;
+            resolve(this.db);
+          };
+          fixReq.onerror = () => {
+            this.db = openedDb;
+            resolve(this.db);
+          };
+          return;
+        }
+
+        this.db = openedDb;
         resolve(this.db);
       };
 

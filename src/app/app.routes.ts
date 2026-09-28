@@ -54,6 +54,10 @@ export const routes: Routes = [
         loadComponent: () => import('./features/vehicle-checklist/vehicle-checklist.component').then(m => m.VehicleChecklistComponent)
       },
       {
+        path: 'roster',
+        loadComponent: () => import('./features/roster/guard-roster.component').then(m => m.GuardRosterComponent)
+      },
+      {
         path: 'admin',
         canActivate: [authGuard],
         data: { roles: ['ADMIN'] },

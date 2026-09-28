@@ -7,9 +7,9 @@
 ## 1. Metadatos del Proyecto
 
 - **Proyecto**: BASETRACK APP
-- **Estado Actual**: `INITIALIZED`
-- **Fase Actual**: `SYSTEM_SETUP`
-- **Última Actualización**: 2026-09-14
+- **Estado Actual**: `ACTIVE`
+- **Fase Actual**: `OPERATIONAL_ENHANCEMENT`
+- **Última Actualización**: 2026-09-27
 - **Iteraciones Críticas Acumuladas**: 0 / 3
 
 ---
@@ -137,6 +137,9 @@
 | `TASK-036` | Auditoría Exhaustiva de Código, Resiliencia Runtime y Sanitización de Tipos | Multi-Agent Team | `TASK-035` | `DONE` | 0/3 | Corrección de runtime exception de clipboard en HTTP/móvil con fallback universal, sanitización de guardias legacy a G1-G4, guardas SSR en localStorage, corrección de variable userRole en auth controller, suite de pruebas 15/15 y build de producción 100% limpio |
 | `TASK-037` | Integración Global del Backend Cloud Render (https://basetrack-app.onrender.com) | Multi-Agent Team | `TASK-036` | `DONE` | 0/3 | Backend Node 22 desplegado y verificado en Render con SQLite nativo; URL centralizada configurada como predeterminada en DEFAULT_CLOUD_BACKEND_URL; sincronización multi-dispositivo y persistencia global de usuarios habilitada para Vercel y móviles |
 | `TASK-038` | Módulo de Checklists Digitales Pre-Uso de Camionetas Mineras 4x4 | Multi-Agent Team | `TASK-037` | `DONE` | 0/3 | Selección estricta de 4 matrículas oficiales (BMC715, BKS921, BKS913, BPS747), autocompletado de datos del conductor, inspección de 26 puntos DS-024-2016-EM, compresión Canvas de fotos de observación, historial exclusivo filtrado por vehículo, tabla SQLite vehicle_checklists y 17/17 tests aprobados |
+| `TASK-039` | Gestión de Personal: Apartado "Guardias" (G1-G4) & Vista Scoped para Supervisores | Multi-Agent Team | `TASK-038` | `DONE` | 0/3 | Apartado dedicado en Administrador renombrado a "Guardias" para gestionar las 4 guardias oficiales (G1 Klisman, G2 Víctor, G3 Héctor, G4 César) con sus 7 operadores cada una, vinculación 1-click, filtro y vista optimizada para supervisores en Cuadrilla, persistencia SQLite supervisor_operators, offline sync y tests |
+| `TASK-040` | Auditoría Integral, Hardening de Autenticación, Resiliencia IndexedDB y Suite 20/20 | Multi-Agent Team | `TASK-039` | `DONE` | 0/3 | Corrección de expiración JWT (401 + auto-logout suave), migración IndexedDB v2 autoreparable, alias RESTful estándar en supervisor-operators, sanitización de usuarios legacy en BD, barra de completitud de dotación en Guardias, presupuesto SCSS en build y suite de pruebas 20/20 aprobadas |
+| `TASK-041` | Sistema de Roster de Guardias y Rol de Turnos Operacional (Régimen Minero 8x8) | Multi-Agent Team | `TASK-040` | `DONE` | 0/3 | Implementación del motor rotativo minero 8x8 continuo (4D + 4N = 8 trabajo x 8 descanso), anclado al 26-Sep-2026 (G1 inicio de bajada en Bloque 3: G4 Día, G2 Noche, G1/G3 Descanso), calendario mensual interactivo, filtros individuales por guardia, estado operacional en tiempo real, exportador oficial en PDF A4 e integración en Admin y Sidebar |
 
 ---
 
@@ -144,6 +147,9 @@
 
 | Timestamp | De Agente | A Agente | Tarea ID | Resumen de Entrega |
 | :--- | :--- | :--- | :--- | :--- |
+| 2026-09-27 | Multi-Agent Team | Orchestrator | `TASK-041` | Entrega del módulo de Roster de Guardias 8x8 (`/roster`), motor matemático `roster.util.ts` anclado al 26-Sep-2026, cuadrícula mensual con filtros por guardia, estado en vivo (Día/Noche/Descanso), exportación de PDF A4 para impresión de rol de mina y enlaces en menú lateral y panel de Administración |
+| 2026-09-27 | QA & Security Agent | Orchestrator | `TASK-040` | Auditoría integral completada: corrección de test 20 del backend (20/20 tests aprobados), normalización RFC 7235 en auth middleware (401), auto-redirección de sesión expirada en Angular, IndexedDB v2 autoreparable, saneamiento de CarlosP a OPERATOR G1 y barra de progreso visual en Guardias |
+| 2026-09-27 | Multi-Agent Team | Orchestrator | `TASK-039` | Configuración completa de las 4 Guardias oficiales (G1-G4) con 1 Supervisor + 7 Operadores cada una (32 colaboradores en total). Apartado en Panel Admin denominado estrictamente "Guardias", auto-vinculación en 1 click, persistencia SQLite supervisor_operators y selector inteligente en Cuadrilla |
 | 2026-09-26 | Multi-Agent Team | Orchestrator | `TASK-038` | Entrega del módulo de Checklists Pre-Uso de Camionetas con selector de 4 unidades, autocompletado, subida de fotos, historial por vehículo, tests y build 100% limpios |
 | 2026-09-14 | Setup | Orchestrator | `TASK-000` | Inicialización de reglas y definición del equipo |
 | 2026-09-16 | Orchestrator | Backend Agent | `TASK-001` | Asignación de diseño de base de datos, migraciones y APIs REST |

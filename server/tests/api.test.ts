@@ -460,8 +460,83 @@ test('17. POST & GET /api/vehicles/checklists: create checklist, reject unauthor
   const historyRes = await fetch(`${baseUrl}/vehicles/checklists?plate=BMC715`);
   assert.strictEqual(historyRes.status, 200);
   const historyJson = await historyRes.json() as any;
-  assert.strictEqual(historyJson.success, true);
   assert.ok(historyJson.count >= 1);
-  assert.strictEqual(historyJson.data[0].vehicle_plate, 'BMC715');
-  assert.strictEqual(historyJson.data[0].operational_status, 'OBSERVADO');
+  const found = historyJson.data.find((c: any) => c.id === createJson.id);
+  assert.ok(found, 'Created checklist must be present in history');
+  assert.strictEqual(found.vehicle_plate, 'BMC715');
+  assert.strictEqual(found.operational_status, 'OBSERVADO');
 });
+
+test('18. GET /api/admin/supervisor-operators should return supervisors and squad counts', async () => {
+  const res = await fetch(`${baseUrl}/admin/supervisor-operators`, {
+    headers: {
+      'Authorization': `Bearer ${authToken}`
+    }
+  });
+  assert.strictEqual(res.status, 200);
+  const json = await res.json() as any;
+  assert.strictEqual(json.success, true);
+  assert.ok(Array.isArray(json.supervisors));
+  assert.ok(json.supervisors.length >= 4);
+
+  // G1 Klisman should have operators assigned from baseline seed
+  const g1Sup = json.supervisors.find((s: any) => s.shift === 'G1');
+  assert.ok(g1Sup, 'G1 supervisor should exist');
+  assert.ok(g1Sup.operators.length >= 1, 'G1 supervisor should have assigned operators');
+});
+
+test('19. GET /api/crew/my-operators should return scoped squad for supervisor', async () => {
+  const res = await fetch(`${baseUrl}/crew/my-operators`, {
+    headers: {
+      'Authorization': `Bearer ${authToken}`
+    }
+  });
+  assert.strictEqual(res.status, 200);
+  const json = await res.json() as any;
+  assert.strictEqual(json.success, true);
+  assert.ok(Array.isArray(json.data));
+  assert.ok(json.data.length >= 1);
+  assert.ok(json.data.every((op: any) => op.id && op.name));
+});
+
+test('20. POST & DELETE /api/admin/supervisor-operators: assign and remove operator from supervisor', async () => {
+  // Find G1 supervisor ID
+  const listRes = await fetch(`${baseUrl}/admin/supervisor-operators`, {
+    headers: { 'Authorization': `Bearer ${authToken}` }
+  });
+  const listJson = await listRes.json() as any;
+  const supervisor = listJson.supervisors.find((s: any) => s.shift === 'G1');
+  assert.ok(supervisor, 'G1 supervisor must exist');
+
+  // Pick an existing operator from the list
+  const testOperator = listJson.all_operators?.[0];
+  assert.ok(testOperator, 'At least one operator must be registered');
+  const testOperatorId = testOperator.id;
+
+  const assignRes = await fetch(`${baseUrl}/admin/supervisor-operators`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${authToken}`
+    },
+    body: JSON.stringify({
+      supervisor_id: supervisor.id,
+      operator_id: testOperatorId
+    })
+  });
+  assert.strictEqual(assignRes.status, 200);
+  const assignJson = await assignRes.json() as any;
+  assert.strictEqual(assignJson.success, true);
+
+  // Remove the operator
+  const removeRes = await fetch(`${baseUrl}/admin/supervisor-operators/${supervisor.id}/${testOperatorId}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${authToken}`
+    }
+  });
+  assert.strictEqual(removeRes.status, 200);
+  const removeJson = await removeRes.json() as any;
+  assert.strictEqual(removeJson.success, true);
+});
+

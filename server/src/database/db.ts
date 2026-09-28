@@ -1,6 +1,8 @@
 import { DatabaseSync } from 'node:sqlite';
 import path from 'node:path';
 import fs from 'node:fs';
+import crypto from 'node:crypto';
+import bcrypt from 'bcryptjs';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -261,6 +263,16 @@ export function initDatabase() {
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
+    -- Supervisor - Operators Assignment (Cuadrilla por Supervisor)
+    CREATE TABLE IF NOT EXISTS supervisor_operators (
+      id TEXT PRIMARY KEY,
+      supervisor_id TEXT NOT NULL,
+      operator_id TEXT NOT NULL,
+      shift_code TEXT NOT NULL DEFAULT 'G1',
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE(supervisor_id, operator_id)
+    );
+
     -- Indexes for performance
     CREATE INDEX IF NOT EXISTS idx_pumps_tag ON pump_reports(tag);
     CREATE INDEX IF NOT EXISTS idx_pumps_created ON pump_reports(created_at);
@@ -274,6 +286,8 @@ export function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_sync_events_device ON sync_events(device_id);
     CREATE INDEX IF NOT EXISTS idx_devices_last_seen ON connected_devices(last_seen);
     CREATE INDEX IF NOT EXISTS idx_vehicle_checklists_plate ON vehicle_checklists(vehicle_plate, date DESC);
+    CREATE INDEX IF NOT EXISTS idx_sup_op_supervisor ON supervisor_operators(supervisor_id);
+    CREATE INDEX IF NOT EXISTS idx_sup_op_operator ON supervisor_operators(operator_id);
   `);
 
   // Safe migration: remove CHECK constraint from existing crew_area_assignments if present
@@ -465,6 +479,81 @@ export function initDatabase() {
     `);
   } catch (e) {
     console.warn('[Database] Global shift update migration:', e);
+  }
+
+  // Baseline initialization: supervisor_operators and 4 supervisors (G1-G4)
+  try {
+    const defaultSupervisors = [
+      { username: 'KlismanV', fullName: 'VIZCARRA CORI MANLEY KLISMAN', dni: '71209033', role: 'ADMIN', shift: 'G1', email: 'klismanvizcarra@basetrack.com', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80' },
+      { username: 'VictorA', fullName: 'LLERENA CALLE-BRACAMONTE VICTOR ALEJANDRO II', dni: '71491945', role: 'SUPERVISOR', shift: 'G2', email: 'victorllerena@basetrack.com', avatar: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&w=250&q=80' },
+      { username: 'HectorM', fullName: 'MENDOZA QUISPE HÉCTOR', dni: '41920394', role: 'SUPERVISOR', shift: 'G3', email: 'hectormendoza@basetrack.com', avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=250&q=80' },
+      { username: 'CesarO', fullName: 'ORTEGA RAMÍREZ CESAR', dni: '40918239', role: 'SUPERVISOR', shift: 'G4', email: 'cesarortega@basetrack.com', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=250&q=80' }
+    ];
+
+    const findUser = db.prepare('SELECT id, username, shift, role FROM users WHERE LOWER(username) = LOWER(?) OR LOWER(email) = LOWER(?)');
+    const insertSup = db.prepare(`
+      INSERT INTO users (id, username, email, password_hash, full_name, role, shift, avatar_url, is_active, document_id, primary_role)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, 'SUPERVISOR')
+    `);
+    const updateSup = db.prepare(`
+      UPDATE users SET role = ?, shift = ?, full_name = ?, is_active = 1 WHERE id = ?
+    `);
+
+    for (const sup of defaultSupervisors) {
+      const existing = findUser.get(sup.username, sup.email) as any;
+      if (!existing) {
+        insertSup.run(
+          crypto.randomUUID(),
+          sup.username,
+          sup.email,
+          bcrypt.hashSync(sup.dni, 10),
+          sup.fullName,
+          sup.role,
+          sup.shift,
+          sup.avatar,
+          sup.dni
+        );
+      } else {
+        if (existing.role !== sup.role || existing.shift !== sup.shift) {
+          updateSup.run(sup.role, sup.shift, sup.fullName, existing.id);
+        }
+      }
+    }
+
+    // Ensure CarlosP is OPERATOR in G1 and clean legacy supervisor_a test user
+    try {
+      db.prepare("UPDATE users SET role = 'OPERATOR', shift = 'G1' WHERE username = 'CarlosP'").run();
+      db.prepare("DELETE FROM users WHERE username = 'supervisor_a'").run();
+      db.prepare("DELETE FROM supervisor_operators WHERE supervisor_id IN (SELECT id FROM users WHERE username = 'CarlosP') OR supervisor_id = 'CarlosP'").run();
+      db.prepare("DELETE FROM supervisor_operators WHERE supervisor_id = 'supervisor_a' OR supervisor_id LIKE '%supervisor_a%'").run();
+    } catch {}
+
+    const insertSupOp = db.prepare(`
+      INSERT OR IGNORE INTO supervisor_operators (id, supervisor_id, operator_id, shift_code)
+      VALUES (?, ?, ?, ?)
+    `);
+
+    const supervisors = db.prepare(`
+      SELECT id, username, shift, full_name FROM users WHERE role IN ('SUPERVISOR', 'ADMIN')
+    `).all() as Array<{ id: string; username: string; shift: string; full_name: string }>;
+
+    for (const sup of supervisors) {
+      const shift = sup.shift || 'G1';
+      const ops = db.prepare(`
+        SELECT id FROM crew_members 
+        WHERE shift_code = ? AND primary_role != 'SUPERVISOR'
+      `).all(shift) as Array<{ id: string }>;
+
+      for (const op of ops) {
+        insertSupOp.run(crypto.randomUUID(), sup.id, op.id, shift);
+        if (sup.username) {
+          insertSupOp.run(crypto.randomUUID(), sup.username, op.id, shift);
+        }
+      }
+    }
+    console.log('[Database] supervisor_operators initialized for all 4 guards (G1-G4).');
+  } catch (e) {
+    console.warn('[Database] supervisor_operators init check:', e);
   }
 
   console.log('[Database] Tables and indexes initialized successfully.');

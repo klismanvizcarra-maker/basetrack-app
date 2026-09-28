@@ -18,9 +18,12 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
 
   return next(authReq).pipe(
     catchError((error: HttpErrorResponse) => {
-      // If 401 from protected resource (not login attempt itself), clear session
-      if (error.status === 401 && !req.url.includes('/api/auth/login')) {
-        console.warn('[AuthInterceptor] Sesión no autorizada o expirada (401), redirigiendo al login...');
+      // If 401 (or token expired 403) from protected resource (not login attempt itself), clear session
+      const isAuthError = error.status === 401 || 
+        (error.status === 403 && (error.error?.message?.includes('Token') || error.error?.message?.includes('expirado')));
+
+      if (isAuthError && !req.url.includes('/api/auth/login')) {
+        console.warn('[AuthInterceptor] Sesión no autorizada o token expirado, redirigiendo al login...');
         authService.logout();
       }
       return throwError(() => error);

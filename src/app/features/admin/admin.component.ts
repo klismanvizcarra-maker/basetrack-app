@@ -3,12 +3,13 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { getApiBaseUrl, getCustomApiUrl, setCustomApiUrl, DEFAULT_CLOUD_BACKEND_URL } from '../../core/constants/api.config';
-import { timeout } from 'rxjs';
+import { timeout, finalize } from 'rxjs';
 import { ModalComponent } from '../../shared/ui/modal.component';
 import { AuthService } from '../../core/auth/auth.service';
 import { OfflineSyncService } from '../../core/offline/offline-sync.service';
 import { CloudSyncService } from '../../core/services/cloud-sync.service';
 import { getRealtimeData, saveRealtimeData } from '../../core/storage/local-store.util';
+import { CrewService, SupervisorData, CrewMember, SupervisorOperatorItem } from '../../core/services/crew.service';
 
 export interface UserItem {
   id: string;
@@ -46,6 +47,7 @@ export interface AuditLog {
 }
 
 const DEFAULT_USERS: UserItem[] = [
+  // GUARDIA 1 (G1) - 1 Supervisor + 7 Operadores
   {
     id: 'u-klismanv',
     username: 'KlismanV',
@@ -53,6 +55,7 @@ const DEFAULT_USERS: UserItem[] = [
     full_name: 'VIZCARRA CORI MANLEY KLISMAN',
     role: 'ADMIN',
     shift: 'G1',
+    document_id: '71209033',
     avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80',
     created_at: '2026-09-17T08:00:00.000Z'
   },
@@ -63,6 +66,7 @@ const DEFAULT_USERS: UserItem[] = [
     full_name: 'PILCO APAZA CARLOS EDUARDO',
     role: 'OPERATOR',
     shift: 'G1',
+    document_id: '42324277',
     avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=120&q=80',
     created_at: '2026-09-17T08:00:00.000Z'
   },
@@ -73,6 +77,7 @@ const DEFAULT_USERS: UserItem[] = [
     full_name: 'VILCAMIZA PEVE JORGE RICARDO',
     role: 'OPERATOR',
     shift: 'G1',
+    document_id: '41748219',
     avatar_url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=120&q=80',
     created_at: '2026-09-17T08:00:00.000Z'
   },
@@ -83,6 +88,7 @@ const DEFAULT_USERS: UserItem[] = [
     full_name: 'ROSADO FALCON VILMA LUCIA',
     role: 'OPERATOR',
     shift: 'G1',
+    document_id: '45564062',
     avatar_url: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=120&q=80',
     created_at: '2026-09-17T08:00:00.000Z'
   },
@@ -93,6 +99,7 @@ const DEFAULT_USERS: UserItem[] = [
     full_name: 'PARI COAYLA JHOFER LUIS',
     role: 'OPERATOR',
     shift: 'G1',
+    document_id: '74924255',
     avatar_url: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=120&q=80',
     created_at: '2026-09-17T08:00:00.000Z'
   },
@@ -103,6 +110,7 @@ const DEFAULT_USERS: UserItem[] = [
     full_name: 'MONTES RODRIGUEZ DIEGO ALEXANDER',
     role: 'OPERATOR',
     shift: 'G1',
+    document_id: '45437279',
     avatar_url: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=120&q=80',
     created_at: '2026-09-17T08:00:00.000Z'
   },
@@ -113,6 +121,7 @@ const DEFAULT_USERS: UserItem[] = [
     full_name: 'MAMANI MIRANDA RONAL',
     role: 'OPERATOR',
     shift: 'G1',
+    document_id: '72958467',
     avatar_url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=120&q=80',
     created_at: '2026-09-17T08:00:00.000Z'
   },
@@ -123,16 +132,20 @@ const DEFAULT_USERS: UserItem[] = [
     full_name: 'MAMANI CUTIPA ANTHONY JESUS SMIT',
     role: 'OPERATOR',
     shift: 'G1',
+    document_id: '72297288',
     avatar_url: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=120&q=80',
     created_at: '2026-09-17T08:00:00.000Z'
   },
+
+  // GUARDIA 2 (G2) - 1 Supervisor + 7 Operadores
   {
     id: 'u-victora',
     username: 'VictorA',
-    email: 'victora@basetrack.mining.com',
+    email: 'victorllerena@basetrack.com',
     full_name: 'LLERENA CALLE-BRACAMONTE VICTOR ALEJANDRO II',
-    role: 'OPERATOR',
+    role: 'SUPERVISOR',
     shift: 'G2',
+    document_id: '71491945',
     avatar_url: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&w=120&q=80',
     created_at: '2026-09-17T08:00:00.000Z'
   },
@@ -143,6 +156,7 @@ const DEFAULT_USERS: UserItem[] = [
     full_name: 'HILARI CABRERA EDSON EUSEBIO',
     role: 'OPERATOR',
     shift: 'G2',
+    document_id: '40824273',
     avatar_url: 'https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?auto=format&fit=crop&w=120&q=80',
     created_at: '2026-09-17T08:00:00.000Z'
   },
@@ -153,6 +167,7 @@ const DEFAULT_USERS: UserItem[] = [
     full_name: 'ALIAGA CASTAÑEDA EMILIO URIEL',
     role: 'OPERATOR',
     shift: 'G2',
+    document_id: '46593500',
     avatar_url: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=120&q=80',
     created_at: '2026-09-17T08:00:00.000Z'
   },
@@ -163,6 +178,7 @@ const DEFAULT_USERS: UserItem[] = [
     full_name: 'CASCASI FLORES LUIS ANTONIO',
     role: 'OPERATOR',
     shift: 'G2',
+    document_id: '43132072',
     avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=120&q=80',
     created_at: '2026-09-17T08:00:00.000Z'
   },
@@ -173,6 +189,7 @@ const DEFAULT_USERS: UserItem[] = [
     full_name: 'CAYO GOMEZ VALERIE JAZMINE',
     role: 'OPERATOR',
     shift: 'G2',
+    document_id: '71719330',
     avatar_url: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=120&q=80',
     created_at: '2026-09-17T08:00:00.000Z'
   },
@@ -183,6 +200,7 @@ const DEFAULT_USERS: UserItem[] = [
     full_name: 'CHOQUE MANZANO PEDRO IVAN',
     role: 'OPERATOR',
     shift: 'G2',
+    document_id: '75555937',
     avatar_url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=120&q=80',
     created_at: '2026-09-17T08:00:00.000Z'
   },
@@ -193,7 +211,199 @@ const DEFAULT_USERS: UserItem[] = [
     full_name: 'CRUZ APAZA PAUL',
     role: 'OPERATOR',
     shift: 'G2',
+    document_id: '44428468',
     avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80',
+    created_at: '2026-09-17T08:00:00.000Z'
+  },
+  {
+    id: 'u-carlosb',
+    username: 'CarlosB',
+    email: 'carlosbarrios@basetrack.com',
+    full_name: 'BARRIOS HUAMÁN CARLOS',
+    role: 'OPERATOR',
+    shift: 'G2',
+    document_id: '72190458',
+    avatar_url: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=120&q=80',
+    created_at: '2026-09-17T08:00:00.000Z'
+  },
+
+  // GUARDIA 3 (G3) - 1 Supervisor + 7 Operadores
+  {
+    id: 'u-hectorm',
+    username: 'HectorM',
+    email: 'hectormendoza@basetrack.com',
+    full_name: 'MENDOZA QUISPE HÉCTOR',
+    role: 'SUPERVISOR',
+    shift: 'G3',
+    document_id: '41920394',
+    avatar_url: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=120&q=80',
+    created_at: '2026-09-17T08:00:00.000Z'
+  },
+  {
+    id: 'u-marcoc',
+    username: 'MarcoC',
+    email: 'marcochavez@basetrack.com',
+    full_name: 'CHÁVEZ ROJAS MARCO ANTONIO',
+    role: 'OPERATOR',
+    shift: 'G3',
+    document_id: '70491823',
+    avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=120&q=80',
+    created_at: '2026-09-17T08:00:00.000Z'
+  },
+  {
+    id: 'u-angelt',
+    username: 'AngelT',
+    email: 'angeltorres@basetrack.com',
+    full_name: 'TORRES FLORES ÁNGEL',
+    role: 'OPERATOR',
+    shift: 'G3',
+    document_id: '43920194',
+    avatar_url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=120&q=80',
+    created_at: '2026-09-17T08:00:00.000Z'
+  },
+  {
+    id: 'u-juang',
+    username: 'JuanG',
+    email: 'juangutierrez@basetrack.com',
+    full_name: 'GUTIÉRREZ VERA JUAN CARLOS',
+    role: 'OPERATOR',
+    shift: 'G3',
+    document_id: '71829304',
+    avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80',
+    created_at: '2026-09-17T08:00:00.000Z'
+  },
+  {
+    id: 'u-renatoq',
+    username: 'RenatoQ',
+    email: 'renatoquispe@basetrack.com',
+    full_name: 'QUISPE APAZA RENATO',
+    role: 'OPERATOR',
+    shift: 'G3',
+    document_id: '45819203',
+    avatar_url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=120&q=80',
+    created_at: '2026-09-17T08:00:00.000Z'
+  },
+  {
+    id: 'u-edgarh',
+    username: 'EdgarH',
+    email: 'edgarhuaman@basetrack.com',
+    full_name: 'HUAMÁN CARBAJAL EDGAR',
+    role: 'OPERATOR',
+    shift: 'G3',
+    document_id: '74829104',
+    avatar_url: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=120&q=80',
+    created_at: '2026-09-17T08:00:00.000Z'
+  },
+  {
+    id: 'u-gabriels',
+    username: 'GabrielS',
+    email: 'gabrielsalas@basetrack.com',
+    full_name: 'SALAS VÁSQUEZ GABRIEL',
+    role: 'OPERATOR',
+    shift: 'G3',
+    document_id: '42910293',
+    avatar_url: 'https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?auto=format&fit=crop&w=120&q=80',
+    created_at: '2026-09-17T08:00:00.000Z'
+  },
+  {
+    id: 'u-wilberf',
+    username: 'WilberF',
+    email: 'wilberfernandez@basetrack.com',
+    full_name: 'FERNÁNDEZ COSI WILBER',
+    role: 'OPERATOR',
+    shift: 'G3',
+    document_id: '73910293',
+    avatar_url: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=120&q=80',
+    created_at: '2026-09-17T08:00:00.000Z'
+  },
+
+  // GUARDIA 4 (G4) - 1 Supervisor + 7 Operadores
+  {
+    id: 'u-cesaro',
+    username: 'CesarO',
+    email: 'cesarortega@basetrack.com',
+    full_name: 'ORTEGA RAMÍREZ CESAR',
+    role: 'SUPERVISOR',
+    shift: 'G4',
+    document_id: '40918239',
+    avatar_url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=120&q=80',
+    created_at: '2026-09-17T08:00:00.000Z'
+  },
+  {
+    id: 'u-oswaldoc',
+    username: 'OswaldoC',
+    email: 'oswaldocampos@basetrack.com',
+    full_name: 'CAMPOS ZEA OSWALDO',
+    role: 'OPERATOR',
+    shift: 'G4',
+    document_id: '72910394',
+    avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80',
+    created_at: '2026-09-17T08:00:00.000Z'
+  },
+  {
+    id: 'u-julios',
+    username: 'JulioS',
+    email: 'juliosuarez@basetrack.com',
+    full_name: 'SUÁREZ MAMANI JULIO',
+    role: 'OPERATOR',
+    shift: 'G4',
+    document_id: '44819203',
+    avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=120&q=80',
+    created_at: '2026-09-17T08:00:00.000Z'
+  },
+  {
+    id: 'u-enriqued',
+    username: 'EnriqueD',
+    email: 'enriquedelgado@basetrack.com',
+    full_name: 'DELGADO PACHECO ENRIQUE',
+    role: 'OPERATOR',
+    shift: 'G4',
+    document_id: '71920394',
+    avatar_url: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=120&q=80',
+    created_at: '2026-09-17T08:00:00.000Z'
+  },
+  {
+    id: 'u-samuelt',
+    username: 'SamuelT',
+    email: 'samueltito@basetrack.com',
+    full_name: 'TITO CONDORI SAMUEL',
+    role: 'OPERATOR',
+    shift: 'G4',
+    document_id: '46819203',
+    avatar_url: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=120&q=80',
+    created_at: '2026-09-17T08:00:00.000Z'
+  },
+  {
+    id: 'u-alonsoc',
+    username: 'AlonsoC',
+    email: 'alonsocornejo@basetrack.com',
+    full_name: 'CORNEJO NINA ALONSO',
+    role: 'OPERATOR',
+    shift: 'G4',
+    document_id: '75910293',
+    avatar_url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=120&q=80',
+    created_at: '2026-09-17T08:00:00.000Z'
+  },
+  {
+    id: 'u-oscarv',
+    username: 'OscarV',
+    email: 'oscarvillalba@basetrack.com',
+    full_name: 'VILLALBA ZAPATA OSCAR',
+    role: 'OPERATOR',
+    shift: 'G4',
+    document_id: '43819203',
+    avatar_url: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=120&q=80',
+    created_at: '2026-09-17T08:00:00.000Z'
+  },
+  {
+    id: 'u-christianz',
+    username: 'ChristianZ',
+    email: 'christianz@basetrack.com',
+    full_name: 'ZAMORA PÉREZ CHRISTIAN',
+    role: 'OPERATOR',
+    shift: 'G4',
+    document_id: '72819203',
+    avatar_url: 'https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?auto=format&fit=crop&w=120&q=80',
     created_at: '2026-09-17T08:00:00.000Z'
   }
 ];
@@ -303,8 +513,236 @@ const DEFAULT_LOGS: AuditLog[] = [
         <span>{{ backupSuccessMessage }}</span>
       </div>
 
+      <!-- Navigation Tabs: Apartados de Administración -->
+      <div class="admin-nav-tabs glass-panel animate-fade-in">
+        <button 
+          type="button" 
+          class="nav-tab-btn" 
+          [class.active]="activeAdminTab === 'SUPERVISORS_CREW'" 
+          (click)="activeAdminTab = 'SUPERVISORS_CREW'"
+        >
+          <span class="tab-icon">🛡️</span>
+          <span class="tab-title">Guardias</span>
+          <span class="tab-badge">{{ supervisorsList.length || 4 }} Guardias</span>
+        </button>
+
+        <button 
+          type="button" 
+          class="nav-tab-btn" 
+          [class.active]="activeAdminTab === 'USERS_ROLES'" 
+          (click)="activeAdminTab = 'USERS_ROLES'"
+        >
+          <span class="tab-icon">👥</span>
+          <span class="tab-title">Usuarios & Cuentas</span>
+          <span class="tab-badge">{{ users.length }} Cuentas</span>
+        </button>
+
+        <button 
+          type="button" 
+          class="nav-tab-btn" 
+          [class.active]="activeAdminTab === 'TERMINALS_SYNC'" 
+          (click)="activeAdminTab = 'TERMINALS_SYNC'"
+        >
+          <span class="tab-icon">☁️</span>
+          <span class="tab-title">Dispositivos & Conectividad</span>
+          <span class="tab-badge">{{ connectedDevices.length }}</span>
+        </button>
+
+        <button 
+          type="button" 
+          class="nav-tab-btn" 
+          [class.active]="activeAdminTab === 'AUDIT_LOGS'" 
+          (click)="activeAdminTab = 'AUDIT_LOGS'"
+        >
+          <span class="tab-icon">📜</span>
+          <span class="tab-title">Trazabilidad SCADA</span>
+          <span class="tab-badge">{{ logs.length }}</span>
+        </button>
+      </div>
+
+      <!-- APARTADO 1: GUARDIAS (Gestión de Personal G1 - G4) -->
+      <div class="supervisors-crew-section animate-fade-in" *ngIf="activeAdminTab === 'SUPERVISORS_CREW'">
+        <div class="section-card glass-panel header-banner-card">
+          <div class="card-head">
+            <div class="head-with-icon">
+              <span class="fleet-icon">🛡️</span>
+              <div>
+                <h3>Administración de Guardias</h3>
+                <p class="section-sub">
+                  Asigna y organiza los operadores específicos de cada guardia (G1 a G4) a cargo de su supervisor para acelerar el relevo y la asignación operacional.
+                </p>
+              </div>
+            </div>
+            <div class="head-actions">
+              <a 
+                routerLink="/roster" 
+                class="btn btn-secondary btn-sm"
+                title="Abrir Calendario y Roster Oficial de Guardias 8x8"
+              >
+                <span>📅 Ver Roster & Rol 8x8</span>
+              </a>
+              <button 
+                type="button" 
+                class="btn btn-secondary btn-sm" 
+                (click)="triggerAutoAssignByShift()" 
+                [disabled]="isAutoAssigning"
+                title="Vincular automáticamente todos los operadores de G1 a G4 con su supervisor oficial"
+              >
+                <span *ngIf="!isAutoAssigning">⚡ Auto-vincular Guardias</span>
+                <span *ngIf="isAutoAssigning">Procesando...</span>
+              </button>
+              <button 
+                type="button" 
+                class="btn btn-primary btn-sm" 
+                (click)="openAssignOperatorModal()" 
+                [disabled]="!selectedSupervisor"
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                <span>Vincular Operador</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="supervisors-workspace-grid">
+          <!-- Left Column: Supervisors List -->
+          <div class="supervisors-list-panel glass-panel">
+            <div class="panel-header">
+              <h4>Guardias de Planta (G1 - G4)</h4>
+              <span class="panel-badge">{{ filteredSupervisors.length || 4 }} Guardias</span>
+            </div>
+
+            <div class="search-mini-box">
+              <input 
+                type="text" 
+                [(ngModel)]="supervisorSearchQuery" 
+                placeholder="Buscar guardia o supervisor..." 
+                class="mini-search-input"
+              />
+            </div>
+
+            <div class="supervisor-cards-list">
+              <div 
+                *ngFor="let s of filteredSupervisors" 
+                class="supervisor-card"
+                [class.selected]="selectedSupervisor?.id === s.id || selectedSupervisor?.username === s.username"
+                (click)="selectSupervisor(s)"
+              >
+                <img [src]="s.avatar_url || 'https://api.dicebear.com/7.x/bottts/svg?seed=' + s.username" class="sup-avatar" />
+                <div class="sup-info">
+                  <div class="sup-name-row">
+                    <strong>{{ s.full_name }}</strong>
+                    <span class="badge badge-slate">{{ s.shift }}</span>
+                  </div>
+                  <div class="sup-meta-row">
+                    <span class="sup-role-tag">{{ s.role }}</span>
+                    <span class="sup-count-tag" [class.full-squad]="(s.operators_count || s.operators?.length || 0) >= 7">
+                      👥 {{ s.operators_count || s.operators?.length || 0 }}/7 Operadores ({{ getGuardSquadProgress(s) }}%)
+                    </span>
+                  </div>
+                  <div class="guard-progress-track" [title]="'Dotación: ' + (s.operators_count || s.operators?.length || 0) + '/7 (' + getGuardSquadProgress(s) + '%)'">
+                    <div 
+                      class="guard-progress-bar" 
+                      [style.width.%]="getGuardSquadProgress(s)"
+                      [class.complete]="(s.operators_count || s.operators?.length || 0) >= 7"
+                    ></div>
+                  </div>
+                </div>
+              </div>
+
+              <div *ngIf="filteredSupervisors.length === 0" class="empty-state-card">
+                No se encontraron supervisores registrados.
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Column: Assigned Operators Workspace -->
+          <div class="assigned-operators-panel glass-panel" *ngIf="selectedSupervisor">
+            <div class="selected-sup-header">
+              <div class="sup-summary-card">
+                <img [src]="selectedSupervisor.avatar_url || 'https://api.dicebear.com/7.x/bottts/svg?seed=' + selectedSupervisor.username" class="sup-big-avatar" />
+                <div class="sup-detail-text">
+                  <h3>{{ selectedSupervisor.full_name }}</h3>
+                  <div class="sup-tags-row">
+                    <span class="badge badge-primary">{{ selectedSupervisor.role }}</span>
+                    <span class="badge badge-slate">Guardia {{ selectedSupervisor.shift }}</span>
+                    <span class="tag-meta">👤 Usuario: <code>{{ selectedSupervisor.username }}</code></span>
+                    <span class="tag-meta">📧 {{ selectedSupervisor.email }}</span>
+                  </div>
+                </div>
+                <button 
+                  type="button" 
+                  class="btn btn-primary btn-sm btn-link-op" 
+                  (click)="openAssignOperatorModal()"
+                >
+                  + Vincular Operador
+                </button>
+              </div>
+            </div>
+
+            <div class="operators-table-wrapper">
+              <div class="sub-table-header">
+                <div>
+                  <h4>Operadores a Cargo de esta Cuadrilla ({{ selectedSupervisor.operators?.length || 0 }})</h4>
+                  <p class="sub-table-help">Estos operadores son los que {{ selectedSupervisor.full_name }} visualizará en sus relevos y asignaciones para agilizar la bitácora diaria.</p>
+                </div>
+              </div>
+
+              <div class="operators-grid" *ngIf="(selectedSupervisor.operators?.length || 0) > 0">
+                <div *ngFor="let op of selectedSupervisor.operators" class="operator-item-card">
+                  <img [src]="op.operator_avatar || 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&q=80'" class="op-card-avatar" />
+                  <div class="op-card-body">
+                    <div class="op-card-title">{{ op.operator_name }}</div>
+                    <div class="op-card-sub">DNI: {{ op.document_id }} | Guardia: {{ op.shift_code }}</div>
+                    <div class="op-card-badges">
+                      <span class="badge badge-role">{{ formatRoleName(op.primary_role) }}</span>
+                      <span class="badge" [class.badge-success]="op.operator_status === 'EN_TURNO'" [class.badge-secondary]="op.operator_status !== 'EN_TURNO'">
+                        {{ op.operator_status || 'EN_TURNO' }}
+                      </span>
+                    </div>
+                    <div class="op-card-comms" *ngIf="op.radio_channel || op.phone_extension">
+                      <span *ngIf="op.radio_channel">📻 {{ op.radio_channel }}</span>
+                      <span *ngIf="op.phone_extension">📞 {{ op.phone_extension }}</span>
+                    </div>
+                  </div>
+                  <button 
+                    type="button" 
+                    class="btn-unlink-op" 
+                    (click)="confirmRemoveOperator(op.operator_id, op.operator_name)"
+                    title="Desvincular operador de este supervisor"
+                  >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <line x1="18" y1="6" x2="6" y2="18"></line>
+                      <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                    <span>Desvincular</span>
+                  </button>
+                </div>
+              </div>
+
+              <div *ngIf="!selectedSupervisor.operators || selectedSupervisor.operators.length === 0" class="empty-operators-banner">
+                <div class="empty-icon">🦺</div>
+                <h4>Sin operadores asignados todavía</h4>
+                <p>Este supervisor no tiene operadores vinculados a su cuadrilla. Puedes asignarle operadores manualmente o presionar el botón de auto-vinculación por guardia.</p>
+                <div class="empty-actions">
+                  <button type="button" class="btn btn-primary btn-sm" (click)="openAssignOperatorModal()">
+                    + Vincular Operador Manualmente
+                  </button>
+                  <button type="button" class="btn btn-secondary btn-sm" (click)="triggerAutoAssignByShift()">
+                    ⚡ Auto-vincular de Guardia {{ selectedSupervisor.shift }}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Cloud Realtime Sync & Multi-Device Fleet Manager -->
-      <div class="cloud-sync-card glass-panel animate-fade-in">
+      <div class="cloud-sync-card glass-panel animate-fade-in" *ngIf="activeAdminTab === 'TERMINALS_SYNC'">
         <div class="sync-card-left">
           <div class="cloud-avatar-icon">☁️</div>
           <div>
@@ -355,7 +793,7 @@ const DEFAULT_LOGS: AuditLog[] = [
       </div>
 
       <!-- Fleet & Session Manager (Dispositivos Conectados) -->
-      <div class="section-card glass-panel animate-fade-in">
+      <div class="section-card glass-panel animate-fade-in" *ngIf="activeAdminTab === 'TERMINALS_SYNC'">
         <div class="card-head">
           <div class="head-with-icon">
             <span class="fleet-icon">📱</span>
@@ -443,7 +881,7 @@ const DEFAULT_LOGS: AuditLog[] = [
       </div>
 
       <!-- Users Management Table -->
-      <div class="section-card glass-panel">
+      <div class="section-card glass-panel animate-fade-in" *ngIf="activeAdminTab === 'USERS_ROLES'">
         <div class="card-head">
           <div class="head-with-icon">
             <span class="fleet-icon">👥</span>
@@ -573,7 +1011,7 @@ const DEFAULT_LOGS: AuditLog[] = [
       </div>
 
       <!-- Audit Logs Table -->
-      <div class="section-card glass-panel">
+      <div class="section-card glass-panel animate-fade-in" *ngIf="activeAdminTab === 'AUDIT_LOGS'">
         <div class="card-head">
           <h3>Registro de Auditoría y Trazabilidad (SCADA Logs)</h3>
           <span class="counter">{{ logs.length }} Eventos Registrados</span>
@@ -942,6 +1380,79 @@ const DEFAULT_LOGS: AuditLog[] = [
           <button type="button" class="btn btn-primary" (click)="saveBackendConfig()">Guardar y Conectar</button>
         </div>
       </app-modal>
+
+      <!-- Modal: Vincular Operador a Supervisor -->
+      <app-modal
+        [isOpen]="isAssignOperatorModalOpen"
+        [title]="'Vincular Operador a Cuadrilla: ' + (selectedSupervisor?.full_name || 'Supervisor')"
+        [showFooter]="true"
+        (close)="isAssignOperatorModalOpen = false"
+      >
+        <div class="modal-form" *ngIf="selectedSupervisor">
+          <div class="modal-user-summary">
+            <img [src]="selectedSupervisor.avatar_url || 'https://api.dicebear.com/7.x/bottts/svg?seed=' + selectedSupervisor.username" class="modal-avatar" />
+            <div>
+              <strong>{{ selectedSupervisor.full_name }}</strong>
+              <div class="user-sub">{{ selectedSupervisor.role }} | Guardia: {{ selectedSupervisor.shift }} | {{ selectedSupervisor.email }}</div>
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-top: 14px;">
+            <label class="form-label" style="font-size: 0.82rem; font-weight: 700; color: var(--text-primary);">
+              Buscar Operador de Planta:
+            </label>
+            <input 
+              type="text" 
+              class="modal-input" 
+              placeholder="Escribe nombre, DNI o cargo..." 
+              [(ngModel)]="operatorSearchQuery"
+            />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" style="font-size: 0.82rem; font-weight: 700; color: var(--text-primary);">
+              Seleccionar Operador ({{ unassignedOperatorsForSelectedSupervisor.length }} disponibles):
+            </label>
+            <select class="modal-select" [(ngModel)]="operatorToAssignId">
+              <option value="" disabled>-- Selecciona un Operador --</option>
+              <optgroup [label]="'Recomendados Guardia ' + selectedSupervisor.shift">
+                <option *ngFor="let op of getOperatorsForSelectedShift()" [value]="op.id">
+                  {{ op.name }} ({{ formatRoleName(op.primary_role) }} - DNI: {{ op.document_id }})
+                </option>
+              </optgroup>
+              <optgroup label="Otras Guardias de Planta">
+                <option *ngFor="let op of getOperatorsForOtherShifts()" [value]="op.id">
+                  {{ op.name }} ({{ formatRoleName(op.primary_role) }} - Guardia {{ op.shift_code }})
+                </option>
+              </optgroup>
+            </select>
+          </div>
+
+          <div class="assignment-preview-pill" *ngIf="getSelectedOperatorForPreview() as prev">
+            <img [src]="prev.avatar_url || 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&q=80'" class="prev-avatar" />
+            <div>
+              <strong>{{ prev.name }}</strong>
+              <div class="prev-sub">{{ formatRoleName(prev.primary_role) }} | Guardia: {{ prev.shift_code }} | DNI: {{ prev.document_id }}</div>
+            </div>
+          </div>
+
+          <p class="modal-help-text" style="margin-top: 10px;">
+            ℹ️ Al vincular este operador, {{ selectedSupervisor.full_name }} lo tendrá inmediatamente en su listado exclusivo de cuadrilla para agilizar turnos y relevos.
+          </p>
+        </div>
+
+        <div footer class="modal-footer-actions">
+          <button type="button" class="btn btn-secondary" (click)="isAssignOperatorModalOpen = false">Cancelar</button>
+          <button 
+            type="button" 
+            class="btn btn-primary" 
+            [disabled]="!operatorToAssignId"
+            (click)="confirmAssignOperator()"
+          >
+            Vincular a esta Cuadrilla
+          </button>
+        </div>
+      </app-modal>
   `,
   styles: [`
     .admin-page {
@@ -951,6 +1462,529 @@ const DEFAULT_LOGS: AuditLog[] = [
 
       @media (max-width: 768px) {
         gap: 16px;
+      }
+    }
+
+    /* Navigation Tabs */
+    .admin-nav-tabs {
+      display: flex;
+      gap: 8px;
+      padding: 6px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      overflow-x: auto;
+      scrollbar-width: none;
+
+      &::-webkit-scrollbar {
+        display: none;
+      }
+
+      @media (max-width: 768px) {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+      }
+    }
+
+    .nav-tab-btn {
+      flex: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 16px;
+      border: none;
+      background: transparent;
+      border-radius: var(--radius-md);
+      font-size: 0.86rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: var(--transition-smooth);
+      white-space: nowrap;
+
+      .tab-icon {
+        font-size: 1.15rem;
+      }
+
+      .tab-badge {
+        font-size: 0.72rem;
+        padding: 2px 7px;
+        border-radius: 12px;
+        background: rgba(0, 0, 0, 0.06);
+        color: var(--text-muted);
+        font-weight: 700;
+      }
+
+      &:hover {
+        background: rgba(3, 23, 149, 0.05);
+        color: var(--primary-purple, #031795);
+      }
+
+      &.active {
+        background: #031795;
+        color: #ffffff;
+        box-shadow: 0 4px 12px rgba(3, 23, 149, 0.25);
+
+        .tab-badge {
+          background: rgba(255, 255, 255, 0.22);
+          color: #ffffff;
+        }
+      }
+    }
+
+    /* Supervisors & Operators Section Styles */
+    .supervisors-crew-section {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .header-banner-card {
+      padding: 18px 24px;
+      margin-bottom: 20px;
+
+      .card-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 0;
+        flex-wrap: wrap;
+
+        @media (max-width: 992px) {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 14px;
+        }
+      }
+
+      .head-with-icon {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex: 1 1 340px;
+        min-width: 260px;
+
+        .fleet-icon {
+          font-size: 2.2rem;
+          line-height: 1;
+          flex-shrink: 0;
+        }
+
+        h3 {
+          margin: 0 0 4px 0;
+          font-size: 1.15rem;
+          font-weight: 800;
+          color: var(--text-primary);
+        }
+
+        .section-sub {
+          margin: 0;
+          font-size: 0.8rem;
+          color: var(--text-muted);
+          line-height: 1.4;
+        }
+      }
+
+      .head-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+
+        @media (max-width: 992px) {
+          width: 100%;
+          justify-content: flex-start;
+        }
+
+        .btn {
+          white-space: nowrap;
+          display: inline-flex;
+          align-items: center;
+          gap: 7px;
+          padding: 8px 14px;
+          font-size: 0.82rem;
+          font-weight: 600;
+          border-radius: 8px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          text-decoration: none;
+        }
+      }
+    }
+
+    .supervisors-workspace-grid {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 20px;
+      align-items: start;
+
+      @media (max-width: 1024px) {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .supervisors-list-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 18px;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      background: var(--bg-card);
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+
+      h4 {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--text-primary);
+      }
+
+      .panel-badge {
+        font-size: 0.74rem;
+        padding: 3px 8px;
+        border-radius: 10px;
+        background: rgba(3, 23, 149, 0.08);
+        color: #031795;
+        font-weight: 700;
+      }
+    }
+
+    .search-mini-box {
+      width: 100%;
+
+      .mini-search-input {
+        width: 100%;
+        padding: 8px 12px;
+        border-radius: var(--radius-md);
+        border: 1px solid var(--border-subtle);
+        background: var(--bg-input, #f8fafc);
+        font-size: 0.82rem;
+        outline: none;
+        transition: var(--transition-smooth);
+
+        &:focus {
+          border-color: #031795;
+          box-shadow: 0 0 0 2px rgba(3, 23, 149, 0.15);
+        }
+      }
+    }
+
+    .supervisor-cards-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 520px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .supervisor-card {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      border: 1.5px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      background: var(--bg-card);
+      cursor: pointer;
+      transition: var(--transition-smooth);
+
+      &:hover {
+        border-color: rgba(3, 23, 149, 0.4);
+        background: rgba(3, 23, 149, 0.02);
+      }
+
+      &.selected {
+        border-color: #031795;
+        background: rgba(3, 23, 149, 0.05);
+        box-shadow: 0 2px 8px rgba(3, 23, 149, 0.12);
+      }
+
+      .sup-avatar {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid var(--border-subtle);
+        flex-shrink: 0;
+      }
+
+      .sup-info {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .sup-name-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 6px;
+
+        strong {
+          font-size: 0.84rem;
+          color: var(--text-primary);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+      }
+
+      .sup-meta-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.74rem;
+
+        .sup-role-tag {
+          color: var(--text-secondary);
+          font-weight: 600;
+        }
+
+        .sup-count-tag {
+          color: #031795;
+          font-weight: 700;
+          background: rgba(3, 23, 149, 0.08);
+          padding: 1px 6px;
+          border-radius: 6px;
+
+          &.full-squad {
+            color: #059669;
+            background: rgba(5, 150, 105, 0.1);
+          }
+        }
+      }
+    }
+
+    /* Right Column: Assigned Operators Detail */
+    .assigned-operators-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      padding: 20px;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      background: var(--bg-card);
+    }
+
+    .sup-summary-card {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px;
+      background: linear-gradient(135deg, rgba(3, 23, 149, 0.04) 0%, rgba(3, 23, 149, 0.01) 100%);
+      border: 1px solid rgba(3, 23, 149, 0.15);
+      border-radius: var(--radius-md);
+      flex-wrap: wrap;
+
+      .sup-big-avatar {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2.5px solid #031795;
+      }
+
+      .sup-detail-text {
+        flex: 1;
+        min-width: 240px;
+
+        h3 {
+          margin: 0 0 6px 0;
+          font-size: 1.15rem;
+          color: var(--text-primary);
+          font-weight: 800;
+        }
+
+        .sup-tags-row {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex-wrap: wrap;
+          font-size: 0.78rem;
+
+          .tag-meta {
+            color: var(--text-secondary);
+          }
+        }
+      }
+
+      .btn-link-op {
+        margin-left: auto;
+      }
+    }
+
+    .sub-table-header {
+      margin-bottom: 14px;
+
+      h4 {
+        margin: 0 0 4px 0;
+        font-size: 0.98rem;
+        font-weight: 700;
+        color: var(--text-primary);
+      }
+
+      .sub-table-help {
+        margin: 0;
+        font-size: 0.78rem;
+        color: var(--text-muted);
+      }
+    }
+
+    .operators-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 14px;
+    }
+
+    .operator-item-card {
+      display: flex;
+      flex-direction: column;
+      padding: 14px;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      background: #ffffff;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+      gap: 10px;
+      transition: var(--transition-smooth);
+
+      &:hover {
+        border-color: rgba(3, 23, 149, 0.3);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+      }
+
+      .op-card-avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid #e2e8f0;
+      }
+
+      .op-card-title {
+        font-weight: 700;
+        font-size: 0.88rem;
+        color: var(--text-primary);
+        line-height: 1.3;
+      }
+
+      .op-card-sub {
+        font-size: 0.74rem;
+        color: var(--text-secondary);
+        margin-top: 2px;
+      }
+
+      .op-card-badges {
+        display: flex;
+        gap: 6px;
+        margin-top: 6px;
+        flex-wrap: wrap;
+
+        .badge-role {
+          background: rgba(3, 23, 149, 0.08);
+          color: #031795;
+          font-weight: 700;
+          font-size: 0.7rem;
+        }
+      }
+
+      .op-card-comms {
+        display: flex;
+        gap: 10px;
+        font-size: 0.74rem;
+        color: var(--text-muted);
+        margin-top: 4px;
+      }
+
+      .btn-unlink-op {
+        align-self: flex-end;
+        margin-top: 4px;
+        border: none;
+        background: transparent;
+        color: #ef4444;
+        font-size: 0.74rem;
+        font-weight: 700;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 8px;
+        border-radius: var(--radius-sm);
+        transition: var(--transition-smooth);
+
+        &:hover {
+          background: #fee2e2;
+        }
+      }
+    }
+
+    .empty-operators-banner {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 36px 20px;
+      background: #f8fafc;
+      border: 1.5px dashed var(--border-subtle);
+      border-radius: var(--radius-md);
+
+      .empty-icon {
+        font-size: 2.2rem;
+        margin-bottom: 8px;
+      }
+
+      h4 {
+        margin: 0 0 6px 0;
+        font-size: 1.05rem;
+        color: var(--text-primary);
+      }
+
+      p {
+        max-width: 480px;
+        font-size: 0.82rem;
+        color: var(--text-muted);
+        margin: 0 0 16px 0;
+      }
+
+      .empty-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+    }
+
+    .assignment-preview-pill {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      background: #f1f5f9;
+      border-radius: var(--radius-md);
+      margin-top: 10px;
+
+      .prev-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        object-fit: cover;
+      }
+
+      .prev-sub {
+        font-size: 0.74rem;
+        color: var(--text-secondary);
       }
     }
 
@@ -1999,6 +3033,26 @@ const DEFAULT_LOGS: AuditLog[] = [
         flex-shrink: 0;
       }
     }
+
+    .guard-progress-track {
+      width: 100%;
+      height: 6px;
+      background: #e2e8f0;
+      border-radius: 999px;
+      overflow: hidden;
+      margin-top: 6px;
+    }
+
+    .guard-progress-bar {
+      height: 100%;
+      background: #3b82f6;
+      border-radius: 999px;
+      transition: width 0.3s ease;
+
+      &.complete {
+        background: #10b981;
+      }
+    }
   `]
 })
 export class AdminComponent implements OnInit {
@@ -2006,6 +3060,20 @@ export class AdminComponent implements OnInit {
   authService = inject(AuthService);
   offlineSync = inject(OfflineSyncService);
   cloudSync = inject(CloudSyncService);
+  crewService = inject(CrewService);
+
+  // Navegación por Apartados en Administrador
+  activeAdminTab: 'SUPERVISORS_CREW' | 'USERS_ROLES' | 'TERMINALS_SYNC' | 'AUDIT_LOGS' = 'SUPERVISORS_CREW';
+
+  // Supervisores y Operadores (Apartado Nuevo)
+  supervisorsList: SupervisorData[] = [];
+  allAvailableOperators: CrewMember[] = [];
+  selectedSupervisor: SupervisorData | null = null;
+  supervisorSearchQuery = '';
+  isAssignOperatorModalOpen = false;
+  operatorToAssignId = '';
+  operatorSearchQuery = '';
+  isAutoAssigning = false;
 
   // Inicialización con datos por defecto
   users: UserItem[] = [...DEFAULT_USERS];
@@ -2142,6 +3210,7 @@ export class AdminComponent implements OnInit {
     this.loadUsers();
     this.loadLogs();
     this.loadConnectedDevices();
+    this.loadSupervisorsAndOperators();
   }
 
   loadFromStorage(): void {
@@ -2839,5 +3908,138 @@ export class AdminComponent implements OnInit {
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem('basetrack_admin_users', JSON.stringify(this.users));
     }
+  }
+
+  // ==========================================
+  // SUPERVISOR & OPERATORS MANAGEMENT METHODS
+  // ==========================================
+  loadSupervisorsAndOperators(): void {
+    this.crewService.loadSupervisorOperators().subscribe(res => {
+      if (res?.supervisors) {
+        this.supervisorsList = res.supervisors;
+        this.allAvailableOperators = res.all_operators || [];
+        if (!this.selectedSupervisor && this.supervisorsList.length > 0) {
+          this.selectedSupervisor = this.supervisorsList[0];
+        } else if (this.selectedSupervisor) {
+          const updated = this.supervisorsList.find(s => s.id === this.selectedSupervisor!.id || s.username === this.selectedSupervisor!.username);
+          if (updated) this.selectedSupervisor = updated;
+        }
+      }
+    });
+  }
+
+  selectSupervisor(sup: SupervisorData): void {
+    this.selectedSupervisor = sup;
+  }
+
+  openAssignOperatorModal(): void {
+    this.operatorToAssignId = '';
+    this.operatorSearchQuery = '';
+    this.isAssignOperatorModalOpen = true;
+  }
+
+  confirmAssignOperator(): void {
+    if (!this.selectedSupervisor || !this.operatorToAssignId) return;
+    this.crewService.assignOperatorToSupervisor(this.selectedSupervisor.id, this.operatorToAssignId, this.selectedSupervisor.shift).subscribe({
+      next: () => {
+        this.isAssignOperatorModalOpen = false;
+        this.loadSupervisorsAndOperators();
+        this.backupSuccessMessage = 'Operador vinculado a la cuadrilla exitosamente';
+        setTimeout(() => this.backupSuccessMessage = '', 4000);
+      }
+    });
+  }
+
+  confirmRemoveOperator(operatorId: string, operatorName: string): void {
+    if (!this.selectedSupervisor) return;
+    if (confirm(`¿Confirma desvincular al operador ${operatorName} de la supervisión de ${this.selectedSupervisor.full_name}?`)) {
+      this.crewService.removeOperatorFromSupervisor(this.selectedSupervisor.id, operatorId).subscribe({
+        next: () => {
+          this.loadSupervisorsAndOperators();
+          this.backupSuccessMessage = `Operador ${operatorName} desvinculado de la cuadrilla`;
+          setTimeout(() => this.backupSuccessMessage = '', 4000);
+        }
+      });
+    }
+  }
+
+  triggerAutoAssignByShift(): void {
+    if (confirm('¿Desea auto-vincular automáticamente los operadores de cada guardia (G1 a G4) con sus respectivos supervisores oficiales?')) {
+      this.isAutoAssigning = true;
+      const timeoutSafety = setTimeout(() => {
+        this.isAutoAssigning = false;
+      }, 5000);
+
+      this.crewService.autoAssignByShift().pipe(
+        finalize(() => {
+          clearTimeout(timeoutSafety);
+          this.isAutoAssigning = false;
+        })
+      ).subscribe({
+        next: () => {
+          this.loadSupervisorsAndOperators();
+          this.backupSuccessMessage = 'Auto-asignación por guardia completada con éxito';
+          setTimeout(() => this.backupSuccessMessage = '', 5000);
+        },
+        error: (err) => {
+          console.warn('[Admin] Error en auto-asignación:', err);
+        }
+      });
+    }
+  }
+
+  get unassignedOperatorsForSelectedSupervisor(): CrewMember[] {
+    if (!this.selectedSupervisor) return [];
+    const assignedIds = new Set(this.selectedSupervisor.operators.map(o => o.operator_id));
+    let list = this.allAvailableOperators.filter(o => !assignedIds.has(o.id));
+    if (this.operatorSearchQuery.trim()) {
+      const q = this.operatorSearchQuery.toLowerCase().trim();
+      list = list.filter(o => o.name.toLowerCase().includes(q) || o.document_id.includes(q) || (o.primary_role || '').toLowerCase().includes(q));
+    }
+    return list;
+  }
+
+  get filteredSupervisors(): SupervisorData[] {
+    if (!this.supervisorSearchQuery.trim()) return this.supervisorsList;
+    const q = this.supervisorSearchQuery.toLowerCase().trim();
+    return this.supervisorsList.filter(s => 
+      s.full_name.toLowerCase().includes(q) || 
+      s.username.toLowerCase().includes(q) || 
+      s.shift.toLowerCase().includes(q)
+    );
+  }
+
+  getOperatorsForSelectedShift(): CrewMember[] {
+    if (!this.selectedSupervisor) return [];
+    return this.unassignedOperatorsForSelectedSupervisor.filter(o => o.shift_code === this.selectedSupervisor!.shift);
+  }
+
+  getOperatorsForOtherShifts(): CrewMember[] {
+    if (!this.selectedSupervisor) return [];
+    return this.unassignedOperatorsForSelectedSupervisor.filter(o => o.shift_code !== this.selectedSupervisor!.shift);
+  }
+
+  getSelectedOperatorForPreview(): CrewMember | undefined {
+    if (!this.operatorToAssignId) return undefined;
+    return this.allAvailableOperators.find(o => o.id === this.operatorToAssignId);
+  }
+
+  formatRoleName(role: string): string {
+    switch (role) {
+      case 'OPERADOR_BOMBAS': return 'Operador de Bombas';
+      case 'OPERADOR_CICLONES_1': return 'Operador de Ciclones 1';
+      case 'OPERADOR_CICLONES_2': return 'Operador de Ciclones 2';
+      case 'OPERADOR_DISTRIBUIDOR': return 'Operador de Distribuidor';
+      case 'OPERADOR_DESCARGA_1': return 'Operador de Descarga 1';
+      case 'OPERADOR_DESCARGA_2': return 'Operador de Descarga 2';
+      case 'OPERADOR_MISCELANEOS': return 'Operador Misceláneos';
+      case 'SUPERVISOR': return 'Supervisor de Planta';
+      default: return role || 'Operador';
+    }
+  }
+
+  getGuardSquadProgress(s: SupervisorData): number {
+    const count = s.operators_count || s.operators?.length || 0;
+    return Math.min(100, Math.round((count / 7) * 100));
   }
 }
