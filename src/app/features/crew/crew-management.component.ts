@@ -5,6 +5,7 @@ import { RouterModule } from '@angular/router';
 import { CrewService, CrewMember, CrewAreaAssignment, PositionKey, CrewPositionMeta } from '../../core/services/crew.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { ModalComponent } from '../../shared/ui/modal.component';
+import { getRosterForDate, getCurrentActiveShift, DayRoster, GuardInfo } from '../../shared/utils/roster.util';
 
 @Component({
   selector: 'app-crew-management',
@@ -57,42 +58,14 @@ import { ModalComponent } from '../../shared/ui/modal.component';
 
       <!-- Shift Selector & Status Filter Bar -->
       <div class="shift-filter-panel glass-panel">
-        <div class="filter-group">
-          <label class="filter-label">Guardia Activa:</label>
-          <div class="guard-tabs">
-            <button
-              type="button"
-              class="guard-tab-btn"
-              [class.active]="selectedShift === 'G1'"
-              (click)="selectShift('G1')"
-            >
-              Guardia 1 (G1)
-            </button>
-            <button
-              type="button"
-              class="guard-tab-btn"
-              [class.active]="selectedShift === 'G2'"
-              (click)="selectShift('G2')"
-            >
-              Guardia 2 (G2)
-            </button>
-            <button
-              type="button"
-              class="guard-tab-btn"
-              [class.active]="selectedShift === 'G3'"
-              (click)="selectShift('G3')"
-            >
-              Guardia 3 (G3)
-            </button>
-            <button
-              type="button"
-              class="guard-tab-btn"
-              [class.active]="selectedShift === 'G4'"
-              (click)="selectShift('G4')"
-            >
-              Guardia 4 (G4)
-            </button>
-          </div>
+        <div class="filter-group date-picker-group">
+          <label class="filter-label">Fecha:</label>
+          <input
+            type="date"
+            class="filter-date-input"
+            [(ngModel)]="selectedDate"
+            (change)="onDateChange()"
+          />
         </div>
 
         <div class="filter-group">
@@ -117,14 +90,30 @@ import { ModalComponent } from '../../shared/ui/modal.component';
           </div>
         </div>
 
-        <div class="filter-group date-picker-group">
-          <label class="filter-label">Fecha de Turno:</label>
-          <input
-            type="date"
-            class="filter-date-input"
-            [(ngModel)]="selectedDate"
-            (change)="onDateChange()"
-          />
+        <!-- Solo aparece la guardia que está de turno según el Rol 8x8 -->
+        <div class="filter-group guard-active-display-group">
+          <label class="filter-label">Guardia en Turno (Rol 8×8):</label>
+          <div class="active-guard-chip" [style.border-color]="scheduledGuardForShift.badgeBorder" [style.background]="scheduledGuardForShift.bgLight">
+            <span class="guard-chip-pill" [style.background]="scheduledGuardForShift.colorHex">
+              {{ scheduledGuardForShift.code }}
+            </span>
+            <div class="guard-chip-text">
+              <span class="guard-chip-title">{{ scheduledGuardForShift.name }}</span>
+              <span class="guard-chip-sub">Sup: {{ scheduledGuardForShift.supervisorName }}</span>
+            </div>
+            <span class="guard-chip-status" [class.dia]="selectedShiftType === 'DIA'" [class.noche]="selectedShiftType === 'NOCHE'">
+              {{ selectedShiftType === 'DIA' ? '☀️ Turno Día' : '🌙 Turno Noche' }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Aviso de guardias en descanso / bajada -->
+        <div class="off-guards-notice" title="Guardias que se encuentran en su ciclo de 8 días de bajada/descanso">
+          <span class="off-icon">🏖️</span>
+          <span class="off-label">En Descanso (Bajada):</span>
+          <span class="off-names">
+            {{ offGuards[0]?.name }} ({{ offGuards[0]?.code }}) & {{ offGuards[1]?.name }} ({{ offGuards[1]?.code }})
+          </span>
         </div>
 
         <div class="filter-kpi-block">
@@ -936,12 +925,90 @@ import { ModalComponent } from '../../shared/ui/modal.component';
       letter-spacing: 0.04em;
     }
 
-    .guard-tabs, .shift-type-tabs {
+    .guard-active-display-group {
       display: flex;
-      background: #f1f5f9;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .active-guard-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 14px;
       border-radius: var(--radius-md);
-      padding: 3px;
-      gap: 3px;
+      border: 1.5px solid;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+
+      .guard-chip-pill {
+        color: #ffffff;
+        font-size: 0.82rem;
+        font-weight: 800;
+        padding: 3px 8px;
+        border-radius: 6px;
+        letter-spacing: 0.03em;
+      }
+
+      .guard-chip-text {
+        display: flex;
+        flex-direction: column;
+        line-height: 1.25;
+
+        .guard-chip-title {
+          font-size: 0.84rem;
+          font-weight: 800;
+          color: var(--text-primary);
+        }
+
+        .guard-chip-sub {
+          font-size: 0.72rem;
+          color: var(--text-secondary);
+        }
+      }
+
+      .guard-chip-status {
+        font-size: 0.72rem;
+        font-weight: 700;
+        padding: 3px 8px;
+        border-radius: var(--radius-full);
+
+        &.dia {
+          background: #fef3c7;
+          color: #b45309;
+          border: 1px solid #fde68a;
+        }
+
+        &.noche {
+          background: #e0e7ff;
+          color: #3730a3;
+          border: 1px solid #c7d2fe;
+        }
+      }
+    }
+
+    .off-guards-notice {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: var(--radius-md);
+      background: #f8fafc;
+      border: 1px dashed var(--border-subtle);
+      font-size: 0.76rem;
+      color: var(--text-muted);
+
+      .off-icon {
+        font-size: 0.95rem;
+      }
+
+      .off-label {
+        font-weight: 600;
+      }
+
+      .off-names {
+        font-weight: 700;
+        color: var(--text-secondary);
+      }
     }
 
     .guard-tab-btn, .type-tab-btn {
@@ -1952,11 +2019,30 @@ export class CrewManagementComponent implements OnInit {
     return this.crewService.allMembers().filter(m => !squadIds.has(m.id) && m.primary_role !== 'SUPERVISOR');
   }
 
+  get currentDayRoster(): DayRoster {
+    return getRosterForDate(this.selectedDate);
+  }
+
+  get scheduledGuardForShift(): GuardInfo {
+    const r = this.currentDayRoster;
+    return this.selectedShiftType === 'DIA' ? r.dayShiftGuard : r.nightShiftGuard;
+  }
+
+  get offGuards(): GuardInfo[] {
+    return this.currentDayRoster.offGuards;
+  }
+
+  syncShiftWithRoster(): void {
+    const scheduled = this.scheduledGuardForShift;
+    this.selectedShift = scheduled.code;
+  }
+
   ngOnInit(): void {
-    const userShift = this.authService.currentUser()?.shift;
-    if (userShift && ['G1', 'G2', 'G3', 'G4'].includes(userShift)) {
-      this.selectedShift = userShift;
-    }
+    const active = getCurrentActiveShift();
+    this.selectedDate = new Date().toISOString().split('T')[0];
+    this.selectedShiftType = active.shiftName;
+    this.selectedShift = active.activeGuard.code;
+
     this.loadData();
   }
 
@@ -1975,10 +2061,12 @@ export class CrewManagementComponent implements OnInit {
 
   selectShiftType(type: 'DIA' | 'NOCHE'): void {
     this.selectedShiftType = type;
+    this.syncShiftWithRoster();
     this.loadData();
   }
 
   onDateChange(): void {
+    this.syncShiftWithRoster();
     this.loadData();
   }
 
