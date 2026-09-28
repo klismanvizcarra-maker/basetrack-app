@@ -256,23 +256,26 @@ export class CrewService {
   // 1. POSITIONS MANAGEMENT (STANDARD & CUSTOM)
   // ==========================================
   loadPositions(): Observable<CrewPositionMeta[]> {
-    const cachedCustom = this.loadCachedCustomPositions();
-    const initialList = [...this.defaultPositions, ...cachedCustom];
-    this.positions.set(initialList);
+    const standardKeys = new Set(this.defaultPositions.map(p => p.key));
+    const cachedCustom = this.loadCachedCustomPositions().filter(p => !standardKeys.has(p.key) && p.isCustom);
+    this.saveCache('basetrack_custom_positions', cachedCustom);
+    this.positions.set([...this.defaultPositions, ...cachedCustom]);
 
     return this.http.get<{ success: boolean; data: any[] }>(`${this.apiUrl}/positions`).pipe(
       tap(res => {
         if (res?.success && Array.isArray(res.data)) {
-          const apiCustoms: CrewPositionMeta[] = res.data.map(d => ({
-            key: d.key,
-            title: d.title,
-            defaultLocation: d.default_location || d.defaultLocation || 'Planta Concentradora',
-            defaultRadio: d.default_radio || d.defaultRadio || 'Canal 1 Operaciones',
-            badgeClass: d.badge_class || d.badgeClass || 'card-custom',
-            iconSvg: d.icon_svg || d.iconSvg || '⚙️',
-            description: d.description || 'Posición operativa de planta',
-            isCustom: true
-          }));
+          const apiCustoms: CrewPositionMeta[] = res.data
+            .filter(d => Boolean(d.is_custom) && !standardKeys.has(d.key))
+            .map(d => ({
+              key: d.key,
+              title: d.title,
+              defaultLocation: d.default_location || d.defaultLocation || 'Planta Concentradora',
+              defaultRadio: d.default_radio || d.defaultRadio || 'Canal 1 Operaciones',
+              badgeClass: d.badge_class || d.badgeClass || 'card-custom',
+              iconSvg: d.icon_svg || d.iconSvg || '⚙️',
+              description: d.description || 'Posición operativa de planta',
+              isCustom: true
+            }));
 
           const mapPositions = new Map<string, CrewPositionMeta>();
           cachedCustom.forEach(c => mapPositions.set(c.key, c));
@@ -839,34 +842,71 @@ export class CrewService {
     }
   }
 
-  private synthesizeDefaultAssignments(date: string, shiftCode: string, shiftType: 'DIA' | 'NOCHE'): void {
-    const all = this.allMembers().length > 0 ? this.allMembers() : this.defaultMembers;
-    const shiftMembers = all.filter(m => m.shift_code === shiftCode);
-    const members = shiftMembers.length > 0 ? shiftMembers : all;
+  public getOfficialShiftStaff(shiftCode: string): {
+    supervisor: CrewMember;
+    bombas: CrewMember;
+    ciclones1: CrewMember;
+    ciclones2: CrewMember;
+    distribuidor: CrewMember;
+    descarga1: CrewMember;
+    descarga2: CrewMember;
+    miscelaneos: CrewMember;
+  } {
+    const normShift = shiftCode === 'GUARDIA_A' ? 'G1' :
+                      shiftCode === 'GUARDIA_B' ? 'G2' :
+                      shiftCode === 'GUARDIA_C' ? 'G3' :
+                      shiftCode === 'GUARDIA_D' ? 'G4' : (shiftCode || 'G1');
 
-    const opSupervisor = members.find(m => m.primary_role === 'SUPERVISOR') || members[0];
-    const opBombas = members.find(m => m.primary_role === 'OPERADOR_BOMBAS') || members[1] || members[0];
-    const opCiclones1 = members.find(m => m.primary_role === 'OPERADOR_CICLONES_1') || members[2] || members[0];
-    const opCiclones2 = members.find(m => m.primary_role === 'OPERADOR_CICLONES_2') || members[3] || members[0];
-    const opDistribuidor = members.find(m => m.primary_role === 'OPERADOR_DISTRIBUIDOR') || members[4] || members[0];
-    const opDescarga1 = members.find(m => m.primary_role === 'OPERADOR_DESCARGA_1') || members[5] || members[0];
-    const opDescarga2 = members.find(m => m.primary_role === 'OPERADOR_DESCARGA_2') || members[6] || members[0];
-    const opMisc = members.find(m => m.primary_role === 'OPERADOR_MISCELANEOS') || members[7] || members[0];
+    const defaultShiftStaff = this.defaultMembers.filter(m => m.shift_code === normShift);
+    const activeShiftStaff = this.allMembers().filter(m => m.shift_code === normShift);
+
+    const findStaff = (role: string, indexFallback: number): CrewMember => {
+      // 1. Try finding by role in active shift staff from API/db
+      const foundInActive = activeShiftStaff.find(m => m.primary_role === role);
+      if (foundInActive) return foundInActive;
+
+      // 2. Try finding by role in default shift staff
+      const foundInDefault = defaultShiftStaff.find(m => m.primary_role === role);
+      if (foundInDefault) return foundInDefault;
+
+      // 3. Fallback by index in shift staff
+      return activeShiftStaff[indexFallback] || defaultShiftStaff[indexFallback] || this.defaultMembers[0];
+    };
+
+    return {
+      supervisor: findStaff('SUPERVISOR', 0),
+      bombas: findStaff('OPERADOR_BOMBAS', 1),
+      ciclones1: findStaff('OPERADOR_CICLONES_1', 2),
+      ciclones2: findStaff('OPERADOR_CICLONES_2', 3),
+      distribuidor: findStaff('OPERADOR_DISTRIBUIDOR', 4),
+      descarga1: findStaff('OPERADOR_DESCARGA_1', 5),
+      descarga2: findStaff('OPERADOR_DESCARGA_2', 6),
+      miscelaneos: findStaff('OPERADOR_MISCELANEOS', 7)
+    };
+  }
+
+  public synthesizeDefaultAssignments(date: string, shiftCode: string, shiftType: 'DIA' | 'NOCHE'): void {
+    const normShift = shiftCode === 'GUARDIA_A' ? 'G1' :
+                      shiftCode === 'GUARDIA_B' ? 'G2' :
+                      shiftCode === 'GUARDIA_C' ? 'G3' :
+                      shiftCode === 'GUARDIA_D' ? 'G4' : (shiftCode || 'G1');
+
+    const staff = this.getOfficialShiftStaff(normShift);
 
     const defaults: CrewAreaAssignment[] = [
       {
-        id: `assign-sup-${shiftCode}-${shiftType}`,
-        shift_code: shiftCode,
+        id: `assign-sup-${normShift}-${shiftType}`,
+        shift_code: normShift,
         shift_date: date,
         shift_type: shiftType,
         position_key: 'SUPERVISOR',
         position_title: 'Supervisor de Guardia',
-        operator_id: opSupervisor?.id || 'op-klisman-g1',
-        operator_name: opSupervisor?.name || 'VIZCARRA CORI MANLEY KLISMAN',
-        operator_avatar: opSupervisor?.avatar_url || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80',
+        operator_id: staff.supervisor.id,
+        operator_name: staff.supervisor.name,
+        operator_avatar: staff.supervisor.avatar_url,
         operator_role: 'SUPERVISOR',
-        operator_phone: opSupervisor?.phone_extension || 'Ext. 4125',
-        operator_default_radio: opSupervisor?.radio_channel || 'Canal 1 Operaciones / Control',
+        operator_phone: staff.supervisor.phone_extension || 'Ext. 4125',
+        operator_default_radio: staff.supervisor.radio_channel || 'Canal 1 Operaciones / Control',
         backup_operator_id: null,
         epp_verified: 1,
         safety_talk_completed: 1,
@@ -875,20 +915,20 @@ export class CrewService {
         notes: 'Liderazgo de guardia, supervisión operativa y control SCADA'
       },
       {
-        id: `assign-bombas-${shiftCode}-${shiftType}`,
-        shift_code: shiftCode,
+        id: `assign-bombas-${normShift}-${shiftType}`,
+        shift_code: normShift,
         shift_date: date,
         shift_type: shiftType,
         position_key: 'BOMBAS',
         position_title: 'Operador de bombas',
-        operator_id: opBombas?.id || 'op-carlos-g1',
-        operator_name: opBombas?.name || 'PILCO APAZA CARLOS EDUARDO',
-        operator_avatar: opBombas?.avatar_url || 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=250&q=80',
+        operator_id: staff.bombas.id,
+        operator_name: staff.bombas.name,
+        operator_avatar: staff.bombas.avatar_url,
         operator_role: 'OPERADOR_BOMBAS',
-        operator_phone: opBombas?.phone_extension || 'Ext. 4122',
-        operator_default_radio: opBombas?.radio_channel || 'Canal 3 Bombas',
-        backup_operator_id: opMisc?.id || null,
-        backup_name: opMisc?.name,
+        operator_phone: staff.bombas.phone_extension || 'Ext. 4122',
+        operator_default_radio: staff.bombas.radio_channel || 'Canal 3 Bombas',
+        backup_operator_id: staff.miscelaneos.id,
+        backup_name: staff.miscelaneos.name,
         epp_verified: 1,
         safety_talk_completed: 1,
         radio_channel: 'Canal 3 Bombas',
@@ -896,20 +936,20 @@ export class CrewService {
         notes: 'Monitoreo de flujo, amperaje y presión en bombas y pozas'
       },
       {
-        id: `assign-ciclones1-${shiftCode}-${shiftType}`,
-        shift_code: shiftCode,
+        id: `assign-ciclones1-${normShift}-${shiftType}`,
+        shift_code: normShift,
         shift_date: date,
         shift_type: shiftType,
         position_key: 'CICLONES_1',
         position_title: 'Operador de ciclones 1',
-        operator_id: opCiclones1?.id || 'op-jorge-g1',
-        operator_name: opCiclones1?.name || 'VILCAMIZA PEVE JORGE RICARDO',
-        operator_avatar: opCiclones1?.avatar_url || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=250&q=80',
+        operator_id: staff.ciclones1.id,
+        operator_name: staff.ciclones1.name,
+        operator_avatar: staff.ciclones1.avatar_url,
         operator_role: 'OPERADOR_CICLONES_1',
-        operator_phone: opCiclones1?.phone_extension || 'Ext. 4124',
-        operator_default_radio: opCiclones1?.radio_channel || 'Canal 2 Ciclones',
-        backup_operator_id: opMisc?.id || null,
-        backup_name: opMisc?.name,
+        operator_phone: staff.ciclones1.phone_extension || 'Ext. 4124',
+        operator_default_radio: staff.ciclones1.radio_channel || 'Canal 2 Ciclones',
+        backup_operator_id: staff.miscelaneos.id,
+        backup_name: staff.miscelaneos.name,
         epp_verified: 1,
         safety_talk_completed: 1,
         radio_channel: 'Canal 2 Ciclones',
@@ -917,20 +957,20 @@ export class CrewService {
         notes: 'Muestreo metalúrgico horario en 1ra estación, presiones y mallas'
       },
       {
-        id: `assign-ciclones2-${shiftCode}-${shiftType}`,
-        shift_code: shiftCode,
+        id: `assign-ciclones2-${normShift}-${shiftType}`,
+        shift_code: normShift,
         shift_date: date,
         shift_type: shiftType,
         position_key: 'CICLONES_2',
         position_title: 'Operador de ciclones 2',
-        operator_id: opCiclones2?.id || 'op-vilma-g1',
-        operator_name: opCiclones2?.name || 'ROSADO FALCON VILMA LUCIA',
-        operator_avatar: opCiclones2?.avatar_url || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=250&q=80',
+        operator_id: staff.ciclones2.id,
+        operator_name: staff.ciclones2.name,
+        operator_avatar: staff.ciclones2.avatar_url,
         operator_role: 'OPERADOR_CICLONES_2',
-        operator_phone: opCiclones2?.phone_extension || 'Ext. 4123',
-        operator_default_radio: opCiclones2?.radio_channel || 'Canal 2 Ciclones',
-        backup_operator_id: opMisc?.id || null,
-        backup_name: opMisc?.name,
+        operator_phone: staff.ciclones2.phone_extension || 'Ext. 4123',
+        operator_default_radio: staff.ciclones2.radio_channel || 'Canal 2 Ciclones',
+        backup_operator_id: staff.miscelaneos.id,
+        backup_name: staff.miscelaneos.name,
         epp_verified: 1,
         safety_talk_completed: 1,
         radio_channel: 'Canal 2 Ciclones',
@@ -938,20 +978,20 @@ export class CrewService {
         notes: 'Planilla metalúrgica, % de sólidos y granulometría de malla -200'
       },
       {
-        id: `assign-dist-${shiftCode}-${shiftType}`,
-        shift_code: shiftCode,
+        id: `assign-dist-${normShift}-${shiftType}`,
+        shift_code: normShift,
         shift_date: date,
         shift_type: shiftType,
         position_key: 'DISTRIBUIDOR',
         position_title: 'Operador de distribuidor',
-        operator_id: opDistribuidor?.id || 'op-jhofer-g1',
-        operator_name: opDistribuidor?.name || 'PARI COAYLA JHOFER LUIS',
-        operator_avatar: opDistribuidor?.avatar_url || 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=250&q=80',
+        operator_id: staff.distribuidor.id,
+        operator_name: staff.distribuidor.name,
+        operator_avatar: staff.distribuidor.avatar_url,
         operator_role: 'OPERADOR_DISTRIBUIDOR',
-        operator_phone: opDistribuidor?.phone_extension || 'Ext. 4121',
-        operator_default_radio: opDistribuidor?.radio_channel || 'Canal 6 Distribuidor / Flujo',
-        backup_operator_id: opMisc?.id || null,
-        backup_name: opMisc?.name,
+        operator_phone: staff.distribuidor.phone_extension || 'Ext. 4121',
+        operator_default_radio: staff.distribuidor.radio_channel || 'Canal 6 Distribuidor / Flujo',
+        backup_operator_id: staff.miscelaneos.id,
+        backup_name: staff.miscelaneos.name,
         epp_verified: 1,
         safety_talk_completed: 1,
         radio_channel: 'Canal 6 Distribuidor / Flujo',
@@ -959,20 +999,20 @@ export class CrewService {
         notes: 'Distribución uniforme de carga y flujo hacia líneas de clasificación'
       },
       {
-        id: `assign-descarga1-${shiftCode}-${shiftType}`,
-        shift_code: shiftCode,
+        id: `assign-descarga1-${normShift}-${shiftType}`,
+        shift_code: normShift,
         shift_date: date,
         shift_type: shiftType,
         position_key: 'DESCARGA_1',
         position_title: 'Operador de descarga 1',
-        operator_id: opDescarga1?.id || 'op-diego-g1',
-        operator_name: opDescarga1?.name || 'MONTES RODRIGUEZ DIEGO ALEXANDER',
-        operator_avatar: opDescarga1?.avatar_url || 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=250&q=80',
+        operator_id: staff.descarga1.id,
+        operator_name: staff.descarga1.name,
+        operator_avatar: staff.descarga1.avatar_url,
         operator_role: 'OPERADOR_DESCARGA_1',
-        operator_phone: opDescarga1?.phone_extension || 'Ext. 4120',
-        operator_default_radio: opDescarga1?.radio_channel || 'Canal 4 Presa / Descarga',
-        backup_operator_id: opMisc?.id || null,
-        backup_name: opMisc?.name,
+        operator_phone: staff.descarga1.phone_extension || 'Ext. 4120',
+        operator_default_radio: staff.descarga1.radio_channel || 'Canal 4 Presa / Descarga',
+        backup_operator_id: staff.miscelaneos.id,
+        backup_name: staff.miscelaneos.name,
         epp_verified: 1,
         safety_talk_completed: 1,
         radio_channel: 'Canal 4 Presa / Descarga',
@@ -980,20 +1020,20 @@ export class CrewService {
         notes: 'Supervisión de presiones en línea HDPE y flujo de pulpa espesada'
       },
       {
-        id: `assign-descarga2-${shiftCode}-${shiftType}`,
-        shift_code: shiftCode,
+        id: `assign-descarga2-${normShift}-${shiftType}`,
+        shift_code: normShift,
         shift_date: date,
         shift_type: shiftType,
         position_key: 'DESCARGA_2',
         position_title: 'Operador de descarga 2',
-        operator_id: opDescarga2?.id || 'op-ronal-g1',
-        operator_name: opDescarga2?.name || 'MAMANI MIRANDA RONAL',
-        operator_avatar: opDescarga2?.avatar_url || 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=250&q=80',
+        operator_id: staff.descarga2.id,
+        operator_name: staff.descarga2.name,
+        operator_avatar: staff.descarga2.avatar_url,
         operator_role: 'OPERADOR_DESCARGA_2',
-        operator_phone: opDescarga2?.phone_extension || 'Ext. 4119',
-        operator_default_radio: opDescarga2?.radio_channel || 'Canal 4 Presa / Descarga',
-        backup_operator_id: opMisc?.id || null,
-        backup_name: opMisc?.name,
+        operator_phone: staff.descarga2.phone_extension || 'Ext. 4119',
+        operator_default_radio: staff.descarga2.radio_channel || 'Canal 4 Presa / Descarga',
+        backup_operator_id: staff.miscelaneos.id,
+        backup_name: staff.miscelaneos.name,
         epp_verified: 1,
         safety_talk_completed: 1,
         radio_channel: 'Canal 4 Presa / Descarga',
@@ -1001,18 +1041,18 @@ export class CrewService {
         notes: 'Inspección de vertederos, nivel de laguna, borde libre y piezómetros'
       },
       {
-        id: `assign-misc-${shiftCode}-${shiftType}`,
-        shift_code: shiftCode,
+        id: `assign-misc-${normShift}-${shiftType}`,
+        shift_code: normShift,
         shift_date: date,
         shift_type: shiftType,
         position_key: 'MISCELANEOS',
         position_title: 'Operador de misceláneos',
-        operator_id: opMisc?.id || 'op-anthony-g1',
-        operator_name: opMisc?.name || 'MAMANI CUTIPA ANTHONY JESUS SMIT',
-        operator_avatar: opMisc?.avatar_url || 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=250&q=80',
+        operator_id: staff.miscelaneos.id,
+        operator_name: staff.miscelaneos.name,
+        operator_avatar: staff.miscelaneos.avatar_url,
         operator_role: 'OPERADOR_MISCELANEOS',
-        operator_phone: opMisc?.phone_extension || 'Ext. 4118',
-        operator_default_radio: opMisc?.radio_channel || 'Canal 5 Auxiliares / Planta',
+        operator_phone: staff.miscelaneos.phone_extension || 'Ext. 4118',
+        operator_default_radio: staff.miscelaneos.radio_channel || 'Canal 5 Auxiliares / Planta',
         backup_operator_id: null,
         epp_verified: 1,
         safety_talk_completed: 1,
@@ -1023,7 +1063,7 @@ export class CrewService {
     ];
 
     this.activeAssignments.set(defaults);
-    this.saveCache(`basetrack_assignments_${date}_${shiftCode}_${shiftType}`, defaults);
+    this.saveCache(`basetrack_assignments_${date}_${normShift}_${shiftType}`, defaults);
   }
 
   private saveCache(key: string, data: any): void {

@@ -174,7 +174,61 @@ export function getAreaAssignments(req: Request, res: Response) {
         END ASC
     `;
 
-    const assignments = db.prepare(query).all(shiftDate, shiftCode, shiftType);
+    let assignments = db.prepare(query).all(shiftDate, shiftCode, shiftType) as any[];
+
+    // If no assignments exist for this date and shift, auto-seed the 8 official positions
+    if (assignments.length === 0) {
+      const shiftMembers = db.prepare('SELECT * FROM crew_members WHERE shift_code = ?').all(shiftCode) as any[];
+      if (shiftMembers.length > 0) {
+        const sup = shiftMembers.find((m: any) => m.primary_role === 'SUPERVISOR') || shiftMembers[0];
+        const bmb = shiftMembers.find((m: any) => m.primary_role === 'OPERADOR_BOMBAS') || shiftMembers.find((m: any) => m.primary_role !== 'SUPERVISOR') || shiftMembers[0];
+        const cyc1 = shiftMembers.find((m: any) => m.primary_role === 'OPERADOR_CICLONES_1' || m.primary_role === 'OPERADOR_CICLONES') || shiftMembers[1] || shiftMembers[0];
+        const cyc2 = shiftMembers.find((m: any) => m.primary_role === 'OPERADOR_CICLONES_2' || (m.primary_role === 'OPERADOR_CICLONES' && m.id !== cyc1.id)) || shiftMembers[2] || shiftMembers[0];
+        const dist = shiftMembers.find((m: any) => m.primary_role === 'OPERADOR_DISTRIBUIDOR') || shiftMembers[3] || shiftMembers[0];
+        const des1 = shiftMembers.find((m: any) => m.primary_role === 'OPERADOR_DESCARGA_1' || m.primary_role === 'OPERADOR_DESCARGA') || shiftMembers[4] || shiftMembers[0];
+        const des2 = shiftMembers.find((m: any) => m.primary_role === 'OPERADOR_DESCARGA_2' || (m.primary_role === 'OPERADOR_DESCARGA' && m.id !== des1.id)) || shiftMembers[5] || shiftMembers[0];
+        const misc = shiftMembers.find((m: any) => m.primary_role === 'OPERADOR_MISCELANEOS') || shiftMembers[6] || shiftMembers[0];
+
+        const insertStmt = db.prepare(`
+          INSERT OR REPLACE INTO crew_area_assignments (
+            id, shift_code, shift_date, shift_type, position_key, position_title,
+            operator_id, backup_operator_id, epp_verified, safety_talk_completed,
+            radio_channel, station_location, notes
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `);
+
+        const defaultsToInsert = [
+          { key: 'SUPERVISOR', title: 'Supervisor de Guardia', opId: sup.id, backupId: null, radio: 'Canal 1 Operaciones / Control', loc: 'Sala de Control & Supervisión de Turno', notes: 'Liderazgo de guardia, supervisión operativa y control SCADA' },
+          { key: 'BOMBAS', title: 'Operador de bombas', opId: bmb.id, backupId: misc.id, radio: 'Canal 3 Bombas', loc: 'Sala de Bombas Slurry PP-101 a PP-104 & Sentinas', notes: 'Monitoreo de flujo, amperaje y presión en bombas y pozas' },
+          { key: 'CICLONES_1', title: 'Operador de ciclones 1', opId: cyc1.id, backupId: misc.id, radio: 'Canal 2 Ciclones', loc: '1ra Estación Baterías de Ciclones D-10', notes: 'Muestreo metalúrgico horario en 1ra estación, presiones y mallas' },
+          { key: 'CICLONES_2', title: 'Operador de ciclones 2', opId: cyc2.id, backupId: misc.id, radio: 'Canal 2 Ciclones', loc: '2da Estación Baterías de Ciclones D-10', notes: 'Planilla metalúrgica, % de sólidos y granulometría de malla -200' },
+          { key: 'DISTRIBUIDOR', title: 'Operador de distribuidor', opId: dist.id, backupId: misc.id, radio: 'Canal 6 Distribuidor / Flujo', loc: 'Cajón Distribuidor & Repartición de Carga', notes: 'Distribución uniforme de carga y flujo hacia líneas de clasificación' },
+          { key: 'DESCARGA_1', title: 'Operador de descarga 1', opId: des1.id, backupId: misc.id, radio: 'Canal 4 Presa / Descarga', loc: 'Línea HDPE de Impulsión & Estación Relaves', notes: 'Supervisión de presiones en línea HDPE y flujo de pulpa espesada' },
+          { key: 'DESCARGA_2', title: 'Operador de descarga 2', opId: des2.id, backupId: misc.id, radio: 'Canal 4 Presa / Descarga', loc: 'Presa Principal de Relaves & Muro de Contención', notes: 'Inspección de vertederos, nivel de laguna, borde libre y piezómetros' },
+          { key: 'MISCELANEOS', title: 'Operador de misceláneos', opId: misc.id, backupId: null, radio: 'Canal 5 Auxiliares / Planta', loc: 'Planta de Reactivos, Floculante & Servicios Auxiliares', notes: 'Preparación de reactivos, apoyo en espesadores e inspección general' }
+        ];
+
+        for (const item of defaultsToInsert) {
+          insertStmt.run(
+            `assign-${item.key.toLowerCase()}-${shiftCode}-${shiftType}-${shiftDate}`,
+            shiftCode,
+            shiftDate,
+            shiftType,
+            item.key,
+            item.title,
+            item.opId,
+            item.backupId,
+            1,
+            1,
+            item.radio,
+            item.loc,
+            item.notes
+          );
+        }
+
+        assignments = db.prepare(query).all(shiftDate, shiftCode, shiftType) as any[];
+      }
+    }
 
     return res.json({
       success: true,

@@ -211,24 +211,44 @@ import { getRosterForDate, getCurrentActiveShift, DayRoster, GuardInfo } from '.
 
           <!-- Titular Operator Selector -->
           <div class="pos-operator-select-box">
-            <label class="operator-field-label">Operador Titular Asignado:</label>
+            <label class="operator-field-label">
+              {{ pos.key === 'SUPERVISOR' ? 'Supervisor Titular Asignado:' : 'Operador Titular Asignado:' }}
+            </label>
             <div class="operator-dropdown-wrapper">
               <select
                 class="operator-select"
                 [ngModel]="getAssignment(pos.key)?.operator_id"
                 (ngModelChange)="onAssignOperator(pos.key, $event)"
               >
-                <option [ngValue]="null" disabled>-- Seleccionar Operador Titular --</option>
-                <optgroup [label]="'⭐ Cuadrilla Asignada (' + currentSquadOperators.length + ' de ' + activeSupervisorDisplayName + ')'">
-                  <option *ngFor="let m of currentSquadOperators" [value]="m.id">
-                    ⭐ {{ m.name }} ({{ formatRoleName(m.primary_role) }})
-                  </option>
-                </optgroup>
-                <optgroup *ngIf="!showOnlyMyOperators" label="Otros Operadores de Planta">
-                  <option *ngFor="let m of nonSquadMembers" [value]="m.id">
-                    {{ m.name }} ({{ formatRoleName(m.primary_role) }} - {{ m.shift_code }})
-                  </option>
-                </optgroup>
+                <option [ngValue]="null" disabled>-- Seleccionar {{ pos.key === 'SUPERVISOR' ? 'Supervisor' : 'Operador' }} Titular --</option>
+                
+                <!-- For SUPERVISOR position -->
+                <ng-container *ngIf="pos.key === 'SUPERVISOR'">
+                  <optgroup [label]="'⭐ Supervisión de Guardia ' + selectedShift">
+                    <option *ngIf="activeSupervisorMember" [value]="activeSupervisorMember.id">
+                      ⭐ {{ activeSupervisorMember.name }} (Supervisor de Guardia)
+                    </option>
+                  </optgroup>
+                  <optgroup *ngIf="!showOnlyMyOperators" label="Otros Supervisores de Planta">
+                    <option *ngFor="let s of otherSupervisors" [value]="s.id">
+                      {{ s.name }} (Supervisor - {{ s.shift_code }})
+                    </option>
+                  </optgroup>
+                </ng-container>
+
+                <!-- For OPERATOR positions -->
+                <ng-container *ngIf="pos.key !== 'SUPERVISOR'">
+                  <optgroup [label]="'⭐ Cuadrilla Asignada (' + currentSquadOperators.length + ' de ' + activeSupervisorDisplayName + ')'">
+                    <option *ngFor="let m of currentSquadOperators" [value]="m.id">
+                      ⭐ {{ m.name }} ({{ formatRoleName(m.primary_role) }})
+                    </option>
+                  </optgroup>
+                  <optgroup *ngIf="!showOnlyMyOperators" label="Otros Operadores de Planta">
+                    <option *ngFor="let m of nonSquadMembers" [value]="m.id">
+                      {{ m.name }} ({{ formatRoleName(m.primary_role) }} - {{ m.shift_code }})
+                    </option>
+                  </optgroup>
+                </ng-container>
               </select>
             </div>
 
@@ -246,7 +266,7 @@ import { getRosterForDate, getCurrentActiveShift, DayRoster, GuardInfo } from '.
           </div>
 
           <!-- Backup / Relevo Operator Selector -->
-          <div class="pos-backup-select-box" *ngIf="pos.key !== 'RELEVO'">
+          <div class="pos-backup-select-box" *ngIf="pos.key !== 'RELEVO' && pos.key !== 'SUPERVISOR'">
             <label class="operator-field-label">Operador de Soporte / Relevo:</label>
             <select
               class="operator-select-sm"
@@ -362,7 +382,7 @@ import { getRosterForDate, getCurrentActiveShift, DayRoster, GuardInfo } from '.
               [class.active]="rosterFilter === 'SQUAD'"
               (click)="rosterFilter = 'SQUAD'"
             >
-              ⭐ Mi Cuadrilla ({{ currentSquadOperators.length }})
+              ⭐ Mi Cuadrilla ({{ currentSquadMembers.length }})
             </button>
             <button
               type="button"
@@ -1964,7 +1984,8 @@ export class CrewManagementComponent implements OnInit {
   ];
 
   get positionsList(): CrewPositionMeta[] {
-    return this.crewService.positions();
+    const standardKeys = new Set(['SUPERVISOR', 'BOMBAS', 'CICLONES_1', 'CICLONES_2', 'DISTRIBUIDOR', 'DESCARGA_1', 'DESCARGA_2', 'MISCELANEOS']);
+    return this.crewService.positions().filter(p => standardKeys.has(p.key));
   }
 
   get customPositionsList(): CrewPositionMeta[] {
@@ -1979,39 +2000,61 @@ export class CrewManagementComponent implements OnInit {
     return this.crewService.allMembers().filter(m => m.shift_code !== this.selectedShift);
   }
 
+  get activeSupervisorMember(): CrewMember | undefined {
+    return this.crewService.allMembers().find(m => m.shift_code === this.selectedShift && m.primary_role === 'SUPERVISOR') ||
+           this.crewService.defaultMembers.find(m => m.shift_code === this.selectedShift && m.primary_role === 'SUPERVISOR');
+  }
+
+  get otherSupervisors(): CrewMember[] {
+    return this.crewService.allMembers().filter(m => m.primary_role === 'SUPERVISOR' && m.shift_code !== this.selectedShift);
+  }
+
   get activeSupervisorDisplayName(): string {
+    const supMember = this.activeSupervisorMember;
+    if (supMember) {
+      return supMember.name;
+    }
     const currentUser = this.authService.currentUser();
     if (currentUser?.role === 'SUPERVISOR' && currentUser.shift === this.selectedShift) {
       return currentUser.fullName || currentUser.username;
     }
-    const sup = this.crewService.supervisorsWithOperators().find(s => s.shift === this.selectedShift);
-    if (sup) {
-      return sup.full_name;
-    }
     switch (this.selectedShift) {
-      case 'G1': return 'Klisman Vizcarra Cori';
-      case 'G2': return 'Víctor Alarcón';
-      case 'G3': return 'Héctor Mamani';
-      case 'G4': return 'César Olivares';
+      case 'G1': return 'VIZCARRA CORI MANLEY KLISMAN';
+      case 'G2': return 'LLERENA CALLE-BRACAMONTE VICTOR ALEJANDRO II';
+      case 'G3': return 'MENDOZA QUISPE HÉCTOR';
+      case 'G4': return 'ORTEGA RAMÍREZ CESAR';
       default: return currentUser?.fullName || 'Supervisor de Planta';
     }
   }
 
+  get activeSupervisorAvatar(): string {
+    return this.activeSupervisorMember?.avatar_url || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80';
+  }
+
   get currentSquadOperators(): CrewMember[] {
     const all = this.crewService.allMembers();
-    const sup = this.crewService.supervisorsWithOperators().find(s => s.shift === this.selectedShift);
-    if (sup && sup.operators && sup.operators.length > 0) {
-      const ids = new Set(sup.operators.map(o => o.operator_id));
-      const squad = all.filter(m => ids.has(m.id));
-      if (squad.length > 0) return squad;
+    const shiftOps = all.filter(m => m.shift_code === this.selectedShift && m.primary_role !== 'SUPERVISOR');
+    if (shiftOps.length >= 7) {
+      return shiftOps;
     }
-    const currentUser = this.authService.currentUser();
-    if (currentUser?.shift === this.selectedShift && this.crewService.myOperators().length > 0) {
-      const ids = new Set(this.crewService.myOperators().map(o => o.id));
-      const squad = all.filter(m => ids.has(m.id));
-      if (squad.length > 0) return squad;
+    const defaultShiftStaff = this.crewService.defaultMembers.filter(m => m.shift_code === this.selectedShift && m.primary_role !== 'SUPERVISOR');
+    if (shiftOps.length > 0) {
+      return shiftOps;
     }
-    return this.activeShiftMembers.filter(m => m.primary_role !== 'SUPERVISOR');
+    return defaultShiftStaff;
+  }
+
+  get currentSquadMembers(): CrewMember[] {
+    const list: CrewMember[] = [];
+    if (this.activeSupervisorMember) {
+      list.push(this.activeSupervisorMember);
+    }
+    for (const op of this.currentSquadOperators) {
+      if (!list.some(m => m.id === op.id)) {
+        list.push(op);
+      }
+    }
+    return list;
   }
 
   get nonSquadMembers(): CrewMember[] {
@@ -2071,12 +2114,73 @@ export class CrewManagementComponent implements OnInit {
   }
 
   getAssignment(key: PositionKey): CrewAreaAssignment | undefined {
-    return this.crewService.activeAssignments().find(a => a.position_key === key);
+    const existing = this.crewService.activeAssignments().find(a => a.position_key === key);
+    if (existing && existing.operator_id && existing.shift_code === this.selectedShift) {
+      return existing;
+    }
+
+    // Always synthesize default operator for this position and shift
+    const staff = this.crewService.getOfficialShiftStaff(this.selectedShift);
+    let titular: CrewMember = staff.bombas;
+    let backup: CrewMember | null = staff.miscelaneos;
+
+    switch (key) {
+      case 'SUPERVISOR':
+        titular = staff.supervisor;
+        backup = null;
+        break;
+      case 'BOMBAS':
+        titular = staff.bombas;
+        break;
+      case 'CICLONES_1':
+        titular = staff.ciclones1;
+        break;
+      case 'CICLONES_2':
+        titular = staff.ciclones2;
+        break;
+      case 'DISTRIBUIDOR':
+        titular = staff.distribuidor;
+        break;
+      case 'DESCARGA_1':
+        titular = staff.descarga1;
+        break;
+      case 'DESCARGA_2':
+        titular = staff.descarga2;
+        break;
+      case 'MISCELANEOS':
+        titular = staff.miscelaneos;
+        backup = null;
+        break;
+    }
+
+    const posMeta = this.positionsList.find(p => p.key === key);
+    return {
+      id: existing?.id || `assign-${key.toString().toLowerCase()}-${this.selectedShift}-${this.selectedShiftType}`,
+      shift_code: this.selectedShift,
+      shift_date: this.selectedDate,
+      shift_type: this.selectedShiftType,
+      position_key: key,
+      position_title: posMeta?.title || key,
+      operator_id: titular.id,
+      operator_name: titular.name,
+      operator_avatar: titular.avatar_url,
+      operator_role: titular.primary_role,
+      operator_phone: titular.phone_extension,
+      operator_default_radio: titular.radio_channel,
+      backup_operator_id: backup ? backup.id : null,
+      backup_name: backup ? backup.name : undefined,
+      epp_verified: existing?.epp_verified ?? 1,
+      safety_talk_completed: existing?.safety_talk_completed ?? 1,
+      radio_channel: existing?.radio_channel || posMeta?.defaultRadio,
+      station_location: existing?.station_location || posMeta?.defaultLocation,
+      notes: existing?.notes || posMeta?.description
+    };
   }
 
   getOperator(operatorId?: string | null): CrewMember | undefined {
     if (!operatorId) return undefined;
     return this.crewService.allMembers().find(m => m.id === operatorId) ||
+           this.crewService.defaultMembers.find(m => m.id === operatorId) ||
            this.crewService.crewMembers().find(m => m.id === operatorId);
   }
 
@@ -2098,7 +2202,7 @@ export class CrewManagementComponent implements OnInit {
   get filteredCrew(): CrewMember[] {
     const all = this.crewService.allMembers();
     if (this.rosterFilter === 'SQUAD') {
-      return this.currentSquadOperators;
+      return this.currentSquadMembers;
     }
     if (this.rosterFilter === 'SHIFT') {
       return this.activeShiftMembers;
