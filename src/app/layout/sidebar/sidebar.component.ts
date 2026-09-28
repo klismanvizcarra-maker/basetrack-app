@@ -1,7 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
-import { getCurrentActiveShift } from '../../shared/utils/roster.util';
 import { AuthService } from '../../core/auth/auth.service';
 import { OfflineSyncService } from '../../core/offline/offline-sync.service';
 import { LayoutService } from '../../core/layout/layout.service';
@@ -83,7 +82,6 @@ import { ThemeService } from '../../core/theme/theme.service';
                 </svg>
               </span>
               <span class="nav-label">Gestión de Cuadrilla</span>
-              <span class="nav-badge-crew">{{ currentShiftBadge }}</span>
             </a>
           </li>
 
@@ -622,11 +620,6 @@ export class SidebarComponent {
   layoutService = inject(LayoutService);
   pwa = inject(PwaService);
   themeService = inject(ThemeService);
-
-  get currentShiftBadge(): string {
-    const shift = getCurrentActiveShift();
-    return `${shift.activeGuard.code} ${shift.shiftName === 'DIA' ? '☀️' : '🌙'}`;
-  }
 
   onNavClick(): void {
     if (window.innerWidth <= 900) {
