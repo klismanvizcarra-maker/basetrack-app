@@ -160,34 +160,36 @@ export function getAreaAssignments(req: Request, res: Response) {
       ORDER BY
         CASE a.position_key
           WHEN 'SUPERVISOR' THEN 1
-          WHEN 'BOMBAS' THEN 2
-          WHEN 'CICLONES_1' THEN 3
-          WHEN 'CICLONES_2' THEN 4
-          WHEN 'DISTRIBUIDOR' THEN 5
-          WHEN 'DESCARGA_1' THEN 6
-          WHEN 'DESCARGA_2' THEN 7
-          WHEN 'MISCELANEOS' THEN 8
-          WHEN 'CICLONES' THEN 9
-          WHEN 'DESCARGA' THEN 10
-          WHEN 'RELEVO' THEN 11
-          ELSE 12
+          WHEN 'SALA_CONTROL' THEN 2
+          WHEN 'BOMBAS' THEN 3
+          WHEN 'CICLONES_1' THEN 4
+          WHEN 'CICLONES_2' THEN 5
+          WHEN 'DISTRIBUIDOR' THEN 6
+          WHEN 'DESCARGA_1' THEN 7
+          WHEN 'DESCARGA_2' THEN 8
+          WHEN 'MISCELANEOS' THEN 9
+          WHEN 'CICLONES' THEN 10
+          WHEN 'DESCARGA' THEN 11
+          WHEN 'RELEVO' THEN 12
+          ELSE 13
         END ASC
     `;
 
     let assignments = db.prepare(query).all(shiftDate, shiftCode, shiftType) as any[];
 
-    // If no assignments exist for this date and shift, auto-seed the 8 official positions
+    // If no assignments exist for this date and shift, auto-seed the 9 official positions
     if (assignments.length === 0) {
       const shiftMembers = db.prepare('SELECT * FROM crew_members WHERE shift_code = ?').all(shiftCode) as any[];
       if (shiftMembers.length > 0) {
         const sup = shiftMembers.find((m: any) => m.primary_role === 'SUPERVISOR') || shiftMembers[0];
-        const bmb = shiftMembers.find((m: any) => m.primary_role === 'OPERADOR_BOMBAS') || shiftMembers.find((m: any) => m.primary_role !== 'SUPERVISOR') || shiftMembers[0];
-        const cyc1 = shiftMembers.find((m: any) => m.primary_role === 'OPERADOR_CICLONES_1' || m.primary_role === 'OPERADOR_CICLONES') || shiftMembers[1] || shiftMembers[0];
-        const cyc2 = shiftMembers.find((m: any) => m.primary_role === 'OPERADOR_CICLONES_2' || (m.primary_role === 'OPERADOR_CICLONES' && m.id !== cyc1.id)) || shiftMembers[2] || shiftMembers[0];
-        const dist = shiftMembers.find((m: any) => m.primary_role === 'OPERADOR_DISTRIBUIDOR') || shiftMembers[3] || shiftMembers[0];
-        const des1 = shiftMembers.find((m: any) => m.primary_role === 'OPERADOR_DESCARGA_1' || m.primary_role === 'OPERADOR_DESCARGA') || shiftMembers[4] || shiftMembers[0];
-        const des2 = shiftMembers.find((m: any) => m.primary_role === 'OPERADOR_DESCARGA_2' || (m.primary_role === 'OPERADOR_DESCARGA' && m.id !== des1.id)) || shiftMembers[5] || shiftMembers[0];
-        const misc = shiftMembers.find((m: any) => m.primary_role === 'OPERADOR_MISCELANEOS') || shiftMembers[6] || shiftMembers[0];
+        const ctrl = shiftMembers.find((m: any) => m.primary_role === 'OPERADOR_SALA_CONTROL' || m.primary_role.includes('CONTROL')) || shiftMembers.find((m: any) => m.primary_role !== 'SUPERVISOR') || shiftMembers[1] || shiftMembers[0];
+        const bmb = shiftMembers.find((m: any) => m.primary_role === 'OPERADOR_BOMBAS') || shiftMembers.find((m: any) => m.primary_role !== 'SUPERVISOR' && m.id !== ctrl.id) || shiftMembers[2] || shiftMembers[0];
+        const cyc1 = shiftMembers.find((m: any) => (m.primary_role === 'OPERADOR_CICLONES_1' || m.primary_role === 'OPERADOR_CICLONES') && m.id !== ctrl.id) || shiftMembers[3] || shiftMembers[0];
+        const cyc2 = shiftMembers.find((m: any) => (m.primary_role === 'OPERADOR_CICLONES_2' || m.primary_role === 'OPERADOR_CICLONES') && m.id !== cyc1.id && m.id !== ctrl.id) || shiftMembers[4] || shiftMembers[0];
+        const dist = shiftMembers.find((m: any) => m.primary_role === 'OPERADOR_DISTRIBUIDOR' && m.id !== ctrl.id) || shiftMembers[5] || shiftMembers[0];
+        const des1 = shiftMembers.find((m: any) => (m.primary_role === 'OPERADOR_DESCARGA_1' || m.primary_role === 'OPERADOR_DESCARGA') && m.id !== ctrl.id) || shiftMembers[6] || shiftMembers[0];
+        const des2 = shiftMembers.find((m: any) => (m.primary_role === 'OPERADOR_DESCARGA_2' || m.primary_role === 'OPERADOR_DESCARGA') && m.id !== des1.id && m.id !== ctrl.id) || shiftMembers[7] || shiftMembers[0];
+        const misc = shiftMembers.find((m: any) => m.primary_role === 'OPERADOR_MISCELANEOS' && m.id !== ctrl.id) || shiftMembers[8] || shiftMembers[0];
 
         const insertStmt = db.prepare(`
           INSERT OR REPLACE INTO crew_area_assignments (
@@ -198,7 +200,8 @@ export function getAreaAssignments(req: Request, res: Response) {
         `);
 
         const defaultsToInsert = [
-          { key: 'SUPERVISOR', title: 'Supervisor de Guardia', opId: sup.id, backupId: null, radio: 'Canal 1 Operaciones / Control', loc: 'Sala de Control & Supervisión de Turno', notes: 'Liderazgo de guardia, supervisión operativa y control SCADA' },
+          { key: 'SUPERVISOR', title: 'Supervisor de guardia', opId: sup.id, backupId: null, radio: 'Canal 1 Operaciones / Control', loc: 'Supervisión de Turno / Gestión Operativa', notes: 'Liderazgo operativo de guardia, gestión de seguridad y supervisión general de planta' },
+          { key: 'SALA_CONTROL', title: 'Operador sala de control', opId: ctrl.id, backupId: misc.id, radio: 'Canal 1 Operaciones / Control', loc: 'Sala de Control DCS / SCADA', notes: 'Operación de consolas DCS/SCADA, monitoreo de variables de proceso, enclavamientos y alarmas' },
           { key: 'BOMBAS', title: 'Operador de bombas', opId: bmb.id, backupId: misc.id, radio: 'Canal 3 Bombas', loc: 'Sala de Bombas Slurry PP-101 a PP-104 & Sentinas', notes: 'Monitoreo de flujo, amperaje y presión en bombas y pozas' },
           { key: 'CICLONES_1', title: 'Operador de ciclones 1', opId: cyc1.id, backupId: misc.id, radio: 'Canal 2 Ciclones', loc: '1ra Estación Baterías de Ciclones D-10', notes: 'Muestreo metalúrgico horario en 1ra estación, presiones y mallas' },
           { key: 'CICLONES_2', title: 'Operador de ciclones 2', opId: cyc2.id, backupId: misc.id, radio: 'Canal 2 Ciclones', loc: '2da Estación Baterías de Ciclones D-10', notes: 'Planilla metalúrgica, % de sólidos y granulometría de malla -200' },

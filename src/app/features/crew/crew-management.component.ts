@@ -212,7 +212,7 @@ import { getRosterForDate, getCurrentActiveShift, DayRoster, GuardInfo } from '.
           <!-- Titular Operator Selector -->
           <div class="pos-operator-select-box">
             <label class="operator-field-label">
-              {{ pos.key === 'SUPERVISOR' ? 'Supervisor Titular Asignado:' : 'Operador Titular Asignado:' }}
+              {{ pos.key === 'SUPERVISOR' ? 'Supervisor de guardia Asignado:' : 'Operador Titular Asignado:' }}
             </label>
             <div class="operator-dropdown-wrapper">
               <select
@@ -220,13 +220,13 @@ import { getRosterForDate, getCurrentActiveShift, DayRoster, GuardInfo } from '.
                 [ngModel]="getAssignment(pos.key)?.operator_id"
                 (ngModelChange)="onAssignOperator(pos.key, $event)"
               >
-                <option [ngValue]="null" disabled>-- Seleccionar {{ pos.key === 'SUPERVISOR' ? 'Supervisor' : 'Operador' }} Titular --</option>
+                <option [ngValue]="null" disabled>-- Seleccionar {{ pos.key === 'SUPERVISOR' ? 'Supervisor de guardia' : 'Operador' }} Titular --</option>
                 
                 <!-- For SUPERVISOR position -->
                 <ng-container *ngIf="pos.key === 'SUPERVISOR'">
                   <optgroup [label]="'⭐ Supervisión de Guardia ' + selectedShift">
                     <option *ngIf="activeSupervisorMember" [value]="activeSupervisorMember.id">
-                      ⭐ {{ activeSupervisorMember.name }} (Supervisor de Guardia)
+                      ⭐ {{ activeSupervisorMember.name }} (Supervisor de guardia)
                     </option>
                   </optgroup>
                   <optgroup *ngIf="!showOnlyMyOperators" label="Otros Supervisores de Planta">
@@ -1282,11 +1282,20 @@ import { getRosterForDate, getCurrentActiveShift, DayRoster, GuardInfo } from '.
         height: 4px;
       }
 
+      &.card-supervisor::before {
+        background: linear-gradient(90deg, #ea580c, #f97316);
+      }
+      &.card-control::before {
+        background: linear-gradient(90deg, #1e40af, #06b6d4);
+      }
       &.card-bombas::before {
         background: linear-gradient(90deg, #0284c7, #38bdf8);
       }
       &.card-ciclones::before {
         background: linear-gradient(90deg, #6366f1, #818cf8);
+      }
+      &.card-distribuidor::before {
+        background: linear-gradient(90deg, #8b5cf6, #c084fc);
       }
       &.card-descarga::before {
         background: linear-gradient(90deg, #d97706, #fbbf24);
@@ -1984,7 +1993,7 @@ export class CrewManagementComponent implements OnInit {
   ];
 
   get positionsList(): CrewPositionMeta[] {
-    const standardKeys = new Set(['SUPERVISOR', 'BOMBAS', 'CICLONES_1', 'CICLONES_2', 'DISTRIBUIDOR', 'DESCARGA_1', 'DESCARGA_2', 'MISCELANEOS']);
+    const standardKeys = new Set(['SUPERVISOR', 'SALA_CONTROL', 'BOMBAS', 'CICLONES_1', 'CICLONES_2', 'DISTRIBUIDOR', 'DESCARGA_1', 'DESCARGA_2', 'MISCELANEOS']);
     return this.crewService.positions().filter(p => standardKeys.has(p.key));
   }
 
@@ -2034,12 +2043,20 @@ export class CrewManagementComponent implements OnInit {
   get currentSquadOperators(): CrewMember[] {
     const all = this.crewService.allMembers();
     const shiftOps = all.filter(m => m.shift_code === this.selectedShift && m.primary_role !== 'SUPERVISOR');
-    if (shiftOps.length >= 7) {
+    if (shiftOps.length >= 8) {
       return shiftOps;
     }
     const defaultShiftStaff = this.crewService.defaultMembers.filter(m => m.shift_code === this.selectedShift && m.primary_role !== 'SUPERVISOR');
     if (shiftOps.length > 0) {
-      return shiftOps;
+      const existingRoles = new Set(shiftOps.map(m => m.primary_role));
+      const merged = [...shiftOps];
+      for (const d of defaultShiftStaff) {
+        if (!existingRoles.has(d.primary_role)) {
+          merged.push(d);
+          existingRoles.add(d.primary_role);
+        }
+      }
+      return merged;
     }
     return defaultShiftStaff;
   }
@@ -2128,6 +2145,10 @@ export class CrewManagementComponent implements OnInit {
       case 'SUPERVISOR':
         titular = staff.supervisor;
         backup = null;
+        break;
+      case 'SALA_CONTROL':
+        titular = staff.controlRoom;
+        backup = staff.miscelaneos;
         break;
       case 'BOMBAS':
         titular = staff.bombas;
@@ -2218,12 +2239,18 @@ export class CrewManagementComponent implements OnInit {
 
   formatRoleName(role: string): string {
     switch (role) {
+      case 'SUPERVISOR': return 'Supervisor de guardia';
+      case 'OPERADOR_SALA_CONTROL': return 'Operador Sala de Control';
       case 'OPERADOR_BOMBAS': return 'Operador de Bombas';
+      case 'OPERADOR_CICLONES_1': return 'Operador de Ciclones 1';
+      case 'OPERADOR_CICLONES_2': return 'Operador de Ciclones 2';
       case 'OPERADOR_CICLONES': return 'Operador de Ciclones';
-      case 'OPERADOR_DESCARGA': return 'Operador de descarga';
+      case 'OPERADOR_DISTRIBUIDOR': return 'Operador de Distribuidor';
+      case 'OPERADOR_DESCARGA_1': return 'Operador de Descarga 1';
+      case 'OPERADOR_DESCARGA_2': return 'Operador de Descarga 2';
+      case 'OPERADOR_DESCARGA': return 'Operador de Descarga';
       case 'OPERADOR_MISCELANEOS': return 'Operador Misceláneos';
       case 'OPERADOR_RELEVO': return 'Operador de Relevo';
-      case 'SUPERVISOR': return 'Supervisor de Planta';
       default: {
         const custom = this.positionsList.find(p => p.key === role);
         return custom ? custom.title : role;
