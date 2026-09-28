@@ -220,18 +220,26 @@ import { getRosterForDate, getCurrentActiveShift, DayRoster, GuardInfo } from '.
                 [ngModel]="getAssignment(pos.key)?.operator_id"
                 (ngModelChange)="onAssignOperator(pos.key, $event)"
               >
-                <option [ngValue]="null" disabled>-- Seleccionar {{ pos.key === 'SUPERVISOR' ? 'Supervisor de guardia' : 'Operador' }} Titular --</option>
+                <option [ngValue]="null">-- Sin Operador Asignado (Vacante) --</option>
                 
                 <!-- For SUPERVISOR position -->
                 <ng-container *ngIf="pos.key === 'SUPERVISOR'">
                   <optgroup [label]="'⭐ Supervisión de Guardia ' + selectedShift">
-                    <option *ngIf="activeSupervisorMember" [value]="activeSupervisorMember.id">
+                    <option 
+                      *ngIf="activeSupervisorMember" 
+                      [value]="activeSupervisorMember.id"
+                      [disabled]="isOperatorAssignedElsewhere(activeSupervisorMember.id, pos.key)">
                       ⭐ {{ activeSupervisorMember.name }} (Supervisor de guardia)
+                      {{ isOperatorAssignedElsewhere(activeSupervisorMember.id, pos.key) ? ' — [Asignado en: ' + getOperatorAssignedPositionTitle(activeSupervisorMember.id, pos.key) + ']' : '' }}
                     </option>
                   </optgroup>
                   <optgroup *ngIf="!showOnlyMyOperators" label="Otros Supervisores de Planta">
-                    <option *ngFor="let s of otherSupervisors" [value]="s.id">
+                    <option 
+                      *ngFor="let s of otherSupervisors" 
+                      [value]="s.id"
+                      [disabled]="isOperatorAssignedElsewhere(s.id, pos.key)">
                       {{ s.name }} (Supervisor - {{ s.shift_code }})
+                      {{ isOperatorAssignedElsewhere(s.id, pos.key) ? ' — [Asignado en: ' + getOperatorAssignedPositionTitle(s.id, pos.key) + ']' : '' }}
                     </option>
                   </optgroup>
                 </ng-container>
@@ -239,13 +247,21 @@ import { getRosterForDate, getCurrentActiveShift, DayRoster, GuardInfo } from '.
                 <!-- For OPERATOR positions -->
                 <ng-container *ngIf="pos.key !== 'SUPERVISOR'">
                   <optgroup [label]="'⭐ Cuadrilla Asignada (' + currentSquadOperators.length + ' de ' + activeSupervisorDisplayName + ')'">
-                    <option *ngFor="let m of currentSquadOperators" [value]="m.id">
+                    <option 
+                      *ngFor="let m of currentSquadOperators" 
+                      [value]="m.id"
+                      [disabled]="isOperatorAssignedElsewhere(m.id, pos.key)">
                       ⭐ {{ m.name }} ({{ formatRoleName(m.primary_role) }})
+                      {{ isOperatorAssignedElsewhere(m.id, pos.key) ? ' — [Ocupado en: ' + getOperatorAssignedPositionTitle(m.id, pos.key) + ']' : '' }}
                     </option>
                   </optgroup>
                   <optgroup *ngIf="!showOnlyMyOperators" label="Otros Operadores de Planta">
-                    <option *ngFor="let m of nonSquadMembers" [value]="m.id">
+                    <option 
+                      *ngFor="let m of nonSquadMembers" 
+                      [value]="m.id"
+                      [disabled]="isOperatorAssignedElsewhere(m.id, pos.key)">
                       {{ m.name }} ({{ formatRoleName(m.primary_role) }} - {{ m.shift_code }})
+                      {{ isOperatorAssignedElsewhere(m.id, pos.key) ? ' — [Ocupado en: ' + getOperatorAssignedPositionTitle(m.id, pos.key) + ']' : '' }}
                     </option>
                   </optgroup>
                 </ng-container>
@@ -1413,6 +1429,12 @@ import { getRosterForDate, getCurrentActiveShift, DayRoster, GuardInfo } from '.
       option, optgroup {
         background: var(--bg-card);
         color: var(--text-primary);
+
+        &:disabled {
+          color: #94a3b8;
+          font-style: italic;
+          background: #f8fafc;
+        }
       }
 
       &:focus {
@@ -2131,9 +2153,15 @@ export class CrewManagementComponent implements OnInit {
   }
 
   getAssignment(key: PositionKey): CrewAreaAssignment | undefined {
-    const existing = this.crewService.activeAssignments().find(a => a.position_key === key);
-    if (existing && existing.operator_id && existing.shift_code === this.selectedShift) {
-      return existing;
+    const existing = this.crewService.activeAssignments().find(a => a.position_key === key && a.shift_code === this.selectedShift);
+    if (existing) {
+      // Si la posición fue explícitamente vaciada
+      if (existing.operator_id === null || existing.operator_id === '') {
+        return existing;
+      }
+      if (existing.operator_id) {
+        return existing;
+      }
     }
 
     // Always synthesize default operator for this position and shift
@@ -2174,6 +2202,16 @@ export class CrewManagementComponent implements OnInit {
         break;
     }
 
+    // Regla de unicidad operativa: Si el titular por defecto ya está ocupando otra posición en este turno,
+    // esta posición queda vacante (null) para que no se duplique al operador.
+    const isOccupiedElsewhere = this.crewService.activeAssignments().some(
+      a => a.position_key !== key && a.operator_id === titular.id && a.shift_code === this.selectedShift
+    );
+    const resolvedOperatorId = isOccupiedElsewhere ? null : titular.id;
+    const resolvedOperatorName = isOccupiedElsewhere ? undefined : titular.name;
+    const resolvedOperatorAvatar = isOccupiedElsewhere ? undefined : titular.avatar_url;
+    const resolvedOperatorRole = isOccupiedElsewhere ? undefined : titular.primary_role;
+
     const posMeta = this.positionsList.find(p => p.key === key);
     return {
       id: existing?.id || `assign-${key.toString().toLowerCase()}-${this.selectedShift}-${this.selectedShiftType}`,
@@ -2182,12 +2220,12 @@ export class CrewManagementComponent implements OnInit {
       shift_type: this.selectedShiftType,
       position_key: key,
       position_title: posMeta?.title || key,
-      operator_id: titular.id,
-      operator_name: titular.name,
-      operator_avatar: titular.avatar_url,
-      operator_role: titular.primary_role,
-      operator_phone: titular.phone_extension,
-      operator_default_radio: titular.radio_channel,
+      operator_id: resolvedOperatorId,
+      operator_name: resolvedOperatorName,
+      operator_avatar: resolvedOperatorAvatar,
+      operator_role: resolvedOperatorRole,
+      operator_phone: isOccupiedElsewhere ? undefined : titular.phone_extension,
+      operator_default_radio: isOccupiedElsewhere ? undefined : titular.radio_channel,
       backup_operator_id: backup ? backup.id : null,
       backup_name: backup ? backup.name : undefined,
       epp_verified: existing?.epp_verified ?? 1,
@@ -2196,6 +2234,32 @@ export class CrewManagementComponent implements OnInit {
       station_location: existing?.station_location || posMeta?.defaultLocation,
       notes: existing?.notes || posMeta?.description
     };
+  }
+
+  isOperatorAssignedElsewhere(operatorId?: string | null, currentPosKey?: PositionKey): boolean {
+    if (!operatorId) return false;
+    for (const p of this.positionsList) {
+      if (p.key !== currentPosKey) {
+        const a = this.getAssignment(p.key);
+        if (a && a.operator_id === operatorId) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  getOperatorAssignedPositionTitle(operatorId?: string | null, currentPosKey?: PositionKey): string {
+    if (!operatorId) return '';
+    for (const p of this.positionsList) {
+      if (!currentPosKey || p.key !== currentPosKey) {
+        const a = this.getAssignment(p.key);
+        if (a && a.operator_id === operatorId) {
+          return p.title;
+        }
+      }
+    }
+    return '';
   }
 
   getOperator(operatorId?: string | null): CrewMember | undefined {
@@ -2270,17 +2334,39 @@ export class CrewManagementComponent implements OnInit {
     return null;
   }
 
-  onAssignOperator(key: PositionKey, operatorId: string): void {
+  onAssignOperator(key: PositionKey, operatorId: string | null): void {
     const meta = this.positionsList.find(p => p.key === key);
     const existing = this.getAssignment(key);
-    const operator = this.getOperator(operatorId);
+    const operator = operatorId ? this.getOperator(operatorId) : null;
+
+    // Regla de unicidad operativa: Cada operador solo realiza una posición a la vez.
+    // Si este operador ya estaba en otra posición, liberamos la posición previa de inmediato.
+    if (operatorId) {
+      const otherAssigns = this.crewService.activeAssignments().filter(
+        a => a.position_key !== key && a.operator_id === operatorId && a.shift_code === this.selectedShift
+      );
+      for (const other of otherAssigns) {
+        this.crewService.saveAssignment({
+          ...other,
+          operator_id: null as any,
+          operator_name: undefined,
+          operator_avatar: undefined,
+          operator_role: undefined
+        }).subscribe();
+      }
+    }
 
     const payload: Partial<CrewAreaAssignment> = {
       ...existing,
       id: existing?.id || ('assign-' + key.toString().toLowerCase() + '-' + Date.now()),
       position_key: key,
       position_title: meta?.title || key,
-      operator_id: operatorId,
+      operator_id: operatorId || null,
+      operator_name: operator?.name || undefined,
+      operator_avatar: operator?.avatar_url || undefined,
+      operator_role: operator?.primary_role || undefined,
+      operator_phone: operator?.phone_extension || undefined,
+      operator_default_radio: operator?.radio_channel || undefined,
       shift_code: this.selectedShift,
       shift_date: this.selectedDate,
       shift_type: this.selectedShiftType,

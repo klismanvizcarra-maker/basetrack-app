@@ -38,7 +38,7 @@ export interface CrewAreaAssignment {
   shift_type: 'DIA' | 'NOCHE' | string;
   position_key: PositionKey;
   position_title: string;
-  operator_id: string;
+  operator_id?: string | null;
   backup_operator_id?: string | null;
   epp_verified: number;
   safety_talk_completed: number;
@@ -461,7 +461,7 @@ export class CrewService {
       shift_type: payload.shift_type || 'DIA',
       position_key: payload.position_key || 'BOMBAS',
       position_title: payload.position_title || 'Operador',
-      operator_id: payload.operator_id || '',
+      operator_id: payload.operator_id !== undefined ? payload.operator_id : null,
       backup_operator_id: payload.backup_operator_id || null,
       epp_verified: payload.epp_verified !== undefined ? payload.epp_verified : 1,
       safety_talk_completed: payload.safety_talk_completed !== undefined ? payload.safety_talk_completed : 1,
@@ -471,7 +471,25 @@ export class CrewService {
     };
 
     // Optimistic local update
-    const current = [...this.activeAssignments()];
+    let current = [...this.activeAssignments()];
+
+    // Regla de unicidad operativa: Cada operador solo realiza una posición a la vez.
+    // Si se asigna un operador titular, se vacía de cualquier otra posición en el estado activo.
+    if (completePayload.operator_id) {
+      current = current.map(a => {
+        if (a.position_key !== completePayload.position_key && a.operator_id === completePayload.operator_id) {
+          return {
+            ...a,
+            operator_id: null as any,
+            operator_name: undefined,
+            operator_avatar: undefined,
+            operator_role: undefined
+          };
+        }
+        return a;
+      });
+    }
+
     const idx = current.findIndex(a => a.position_key === completePayload.position_key);
     if (idx >= 0) {
       current[idx] = { ...current[idx], ...completePayload };
@@ -877,17 +895,25 @@ export class CrewService {
     const defaultShiftStaff = this.defaultMembers.filter(m => m.shift_code === normShift);
     const activeShiftStaff = this.allMembers().filter(m => m.shift_code === normShift);
 
+    const usedStaffIds = new Set<string>();
     const findStaff = (role: string, indexFallback: number): CrewMember => {
-      // 1. Try finding by role in active shift staff from API/db
-      const foundInActive = activeShiftStaff.find(m => m.primary_role === role);
-      if (foundInActive) return foundInActive;
-
-      // 2. Try finding by role in default shift staff
-      const foundInDefault = defaultShiftStaff.find(m => m.primary_role === role);
-      if (foundInDefault) return foundInDefault;
-
-      // 3. Fallback by index in shift staff
-      return activeShiftStaff[indexFallback] || defaultShiftStaff[indexFallback] || this.defaultMembers[0];
+      // 1. Try finding by role in active shift staff from API/db that is not already used
+      let found = activeShiftStaff.find(m => !usedStaffIds.has(m.id) && m.primary_role === role);
+      if (!found) {
+        // 2. Try finding by role in default shift staff
+        found = defaultShiftStaff.find(m => !usedStaffIds.has(m.id) && m.primary_role === role);
+      }
+      if (!found) {
+        // 3. Fallback to any unused in active or default
+        found = activeShiftStaff.find(m => !usedStaffIds.has(m.id)) ||
+                defaultShiftStaff.find(m => !usedStaffIds.has(m.id)) ||
+                defaultShiftStaff[indexFallback] ||
+                this.defaultMembers[0];
+      }
+      if (found) {
+        usedStaffIds.add(found.id);
+      }
+      return found;
     };
 
     return {

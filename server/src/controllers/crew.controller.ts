@@ -181,15 +181,25 @@ export function getAreaAssignments(req: Request, res: Response) {
     if (assignments.length === 0) {
       const shiftMembers = db.prepare('SELECT * FROM crew_members WHERE shift_code = ?').all(shiftCode) as any[];
       if (shiftMembers.length > 0) {
-        const sup = shiftMembers.find((m: any) => m.primary_role === 'SUPERVISOR') || shiftMembers[0];
-        const ctrl = shiftMembers.find((m: any) => m.primary_role === 'OPERADOR_SALA_CONTROL' || m.primary_role.includes('CONTROL')) || shiftMembers.find((m: any) => m.primary_role !== 'SUPERVISOR') || shiftMembers[1] || shiftMembers[0];
-        const bmb = shiftMembers.find((m: any) => m.primary_role === 'OPERADOR_BOMBAS') || shiftMembers.find((m: any) => m.primary_role !== 'SUPERVISOR' && m.id !== ctrl.id) || shiftMembers[2] || shiftMembers[0];
-        const cyc1 = shiftMembers.find((m: any) => (m.primary_role === 'OPERADOR_CICLONES_1' || m.primary_role === 'OPERADOR_CICLONES') && m.id !== ctrl.id) || shiftMembers[3] || shiftMembers[0];
-        const cyc2 = shiftMembers.find((m: any) => (m.primary_role === 'OPERADOR_CICLONES_2' || m.primary_role === 'OPERADOR_CICLONES') && m.id !== cyc1.id && m.id !== ctrl.id) || shiftMembers[4] || shiftMembers[0];
-        const dist = shiftMembers.find((m: any) => m.primary_role === 'OPERADOR_DISTRIBUIDOR' && m.id !== ctrl.id) || shiftMembers[5] || shiftMembers[0];
-        const des1 = shiftMembers.find((m: any) => (m.primary_role === 'OPERADOR_DESCARGA_1' || m.primary_role === 'OPERADOR_DESCARGA') && m.id !== ctrl.id) || shiftMembers[6] || shiftMembers[0];
-        const des2 = shiftMembers.find((m: any) => (m.primary_role === 'OPERADOR_DESCARGA_2' || m.primary_role === 'OPERADOR_DESCARGA') && m.id !== des1.id && m.id !== ctrl.id) || shiftMembers[7] || shiftMembers[0];
-        const misc = shiftMembers.find((m: any) => m.primary_role === 'OPERADOR_MISCELANEOS' && m.id !== ctrl.id) || shiftMembers[8] || shiftMembers[0];
+        const usedIds = new Set<string>();
+        const pickNext = (predicate: (m: any) => boolean, fallbackIndex: number) => {
+          let chosen = shiftMembers.find((m: any) => !usedIds.has(m.id) && predicate(m));
+          if (!chosen) {
+            chosen = shiftMembers.find((m: any) => !usedIds.has(m.id)) || shiftMembers[fallbackIndex] || shiftMembers[0];
+          }
+          if (chosen) usedIds.add(chosen.id);
+          return chosen;
+        };
+
+        const sup = pickNext(m => m.primary_role === 'SUPERVISOR', 0);
+        const ctrl = pickNext(m => m.primary_role === 'OPERADOR_SALA_CONTROL' || m.primary_role.includes('CONTROL'), 1);
+        const bmb = pickNext(m => m.primary_role === 'OPERADOR_BOMBAS', 2);
+        const cyc1 = pickNext(m => m.primary_role === 'OPERADOR_CICLONES_1' || m.primary_role === 'OPERADOR_CICLONES', 3);
+        const cyc2 = pickNext(m => m.primary_role === 'OPERADOR_CICLONES_2' || m.primary_role === 'OPERADOR_CICLONES', 4);
+        const dist = pickNext(m => m.primary_role === 'OPERADOR_DISTRIBUIDOR', 5);
+        const des1 = pickNext(m => m.primary_role === 'OPERADOR_DESCARGA_1' || m.primary_role === 'OPERADOR_DESCARGA', 6);
+        const des2 = pickNext(m => m.primary_role === 'OPERADOR_DESCARGA_2' || m.primary_role === 'OPERADOR_DESCARGA', 7);
+        const misc = pickNext(m => m.primary_role === 'OPERADOR_MISCELANEOS', 8);
 
         const insertStmt = db.prepare(`
           INSERT OR REPLACE INTO crew_area_assignments (
@@ -259,11 +269,22 @@ export function saveAreaAssignment(req: AuthenticatedRequest, res: Response) {
                        rawShiftCode === 'GUARDIA_C' ? 'G3' :
                        rawShiftCode === 'GUARDIA_D' ? 'G4' : (rawShiftCode || 'G1');
 
-    if (!shift_code || !shift_date || !position_key || !operator_id) {
-      return res.status(400).json({ success: false, message: 'Guardia, fecha, posición y operador titular son requeridos.' });
+    if (!shift_code || !shift_date || !position_key) {
+      return res.status(400).json({ success: false, message: 'Guardia, fecha y posición son requeridos.' });
     }
 
     const shiftTypeVal = shift_type || 'DIA';
+    const finalOperatorId = operator_id || null;
+
+    // Regla de unicidad operativa: Cada operador solo realiza una posición a la vez en la guardia/fecha/turno.
+    // Si el operador ya estaba asignado a otra posición, se libera (vacante) esa otra posición previa.
+    if (finalOperatorId) {
+      db.prepare(`
+        UPDATE crew_area_assignments
+        SET operator_id = NULL
+        WHERE shift_date = ? AND shift_code = ? AND shift_type = ? AND position_key != ? AND operator_id = ?
+      `).run(shift_date, shift_code, shiftTypeVal, position_key, finalOperatorId);
+    }
 
     // Check if assignment exists
     const existing = db.prepare(`
@@ -287,7 +308,7 @@ export function saveAreaAssignment(req: AuthenticatedRequest, res: Response) {
             updated_at = datetime('now')
         WHERE id = ?
       `).run(
-        operator_id,
+        finalOperatorId,
         backup_operator_id || null,
         epp_verified !== undefined ? (epp_verified ? 1 : 0) : 1,
         safety_talk_completed !== undefined ? (safety_talk_completed ? 1 : 0) : 1,
@@ -311,7 +332,7 @@ export function saveAreaAssignment(req: AuthenticatedRequest, res: Response) {
         shiftTypeVal,
         position_key,
         position_title || position_key,
-        operator_id,
+        finalOperatorId,
         backup_operator_id || null,
         epp_verified !== undefined ? (epp_verified ? 1 : 0) : 1,
         safety_talk_completed !== undefined ? (safety_talk_completed ? 1 : 0) : 1,
@@ -321,7 +342,7 @@ export function saveAreaAssignment(req: AuthenticatedRequest, res: Response) {
       );
     }
 
-    logAudit(req.user?.userId || null, req.user?.username || 'system', 'ASSIGN', 'CREW_ASSIGNMENT', assignmentId, `Asignación ${position_key} a operador ${operator_id}`, req.ip || '127.0.0.1');
+    logAudit(req.user?.userId || null, req.user?.username || 'system', 'ASSIGN', 'CREW_ASSIGNMENT', assignmentId, `Asignación ${position_key} a operador ${finalOperatorId || 'VACANTE'}`, req.ip || '127.0.0.1');
 
     return res.json({ success: true, message: 'Asignación guardada exitosamente', id: assignmentId });
   } catch (error: any) {
