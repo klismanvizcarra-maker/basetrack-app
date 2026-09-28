@@ -1,6 +1,6 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, tap, catchError, of, map } from 'rxjs';
+import { Observable, tap, catchError, of, map, timeout } from 'rxjs';
 import { OfflineSyncService } from '../offline/offline-sync.service';
 
 export type PositionKey = 'SUPERVISOR' | 'BOMBAS' | 'CICLONES_1' | 'CICLONES_2' | 'DISTRIBUIDOR' | 'DESCARGA_1' | 'DESCARGA_2' | 'MISCELANEOS' | string;
@@ -196,7 +196,7 @@ export class CrewService {
   ];
 
   // Default fallback seeds when offline or first load (32 Official Staff in 4 Shifts)
-  private defaultMembers: CrewMember[] = [
+  public readonly defaultMembers: CrewMember[] = [
     // Guardia 1 (G1) - 1 Supervisor + 7 Operadores
     { id: 'op-klisman-g1', name: 'VIZCARRA CORI MANLEY KLISMAN', document_id: '71209033', primary_role: 'SUPERVISOR', shift_code: 'G1', radio_channel: 'Canal 1 Operaciones / Control', phone_extension: 'Ext. 4125', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80' },
     { id: 'op-carlos-g1', name: 'PILCO APAZA CARLOS EDUARDO', document_id: '42324277', primary_role: 'OPERADOR_BOMBAS', shift_code: 'G1', radio_channel: 'Canal 3 Bombas', phone_extension: 'Ext. 4122', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=250&q=80' },
@@ -599,14 +599,19 @@ export class CrewService {
   loadSupervisorOperators(): Observable<{ success: boolean; supervisors: SupervisorData[]; all_operators: CrewMember[] }> {
     const url = `${getApiBaseUrl()}/admin/supervisor-operators`;
     return this.http.get<{ success: boolean; supervisors: SupervisorData[]; all_operators: CrewMember[] }>(url).pipe(
+      timeout(4000),
       tap(res => {
-        if (res?.success && Array.isArray(res.supervisors)) {
+        if (res?.success && Array.isArray(res.supervisors) && res.supervisors.length >= 4) {
           this.supervisorsWithOperators.set(res.supervisors);
           this.saveCache('basetrack_supervisor_operators', res.supervisors);
+        } else {
+          const fallback = this.loadCachedSupervisorOperators();
+          this.supervisorsWithOperators.set(fallback);
+          if (res) res.supervisors = fallback;
         }
       }),
       catchError(err => {
-        console.warn('[CrewService] Error cargando supervisor-operators, usando caché local:', err);
+        console.warn('[CrewService] Error o timeout cargando supervisor-operators, usando respaldo oficial:', err);
         const cached = this.loadCachedSupervisorOperators();
         this.supervisorsWithOperators.set(cached);
         return of({ success: true, supervisors: cached, all_operators: this.allMembers() });
@@ -708,7 +713,7 @@ export class CrewService {
     );
   }
 
-  private loadCachedSupervisorOperators(): SupervisorData[] {
+  public loadCachedSupervisorOperators(): SupervisorData[] {
     if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
       try {
         const c = localStorage.getItem('basetrack_supervisor_operators');

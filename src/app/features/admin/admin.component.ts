@@ -3206,6 +3206,12 @@ export class AdminComponent implements OnInit {
   };
 
   ngOnInit(): void {
+    // Precarga síncrona instantánea (0ms) para Vercel y móviles
+    const initialGuards = this.crewService.loadCachedSupervisorOperators();
+    this.supervisorsList = initialGuards;
+    this.selectedSupervisor = initialGuards[0] || null;
+    this.allAvailableOperators = this.crewService.defaultMembers.filter(m => m.primary_role !== 'SUPERVISOR');
+
     this.loadFromStorage();
     this.loadUsers();
     this.loadLogs();
@@ -3914,16 +3920,26 @@ export class AdminComponent implements OnInit {
   // SUPERVISOR & OPERATORS MANAGEMENT METHODS
   // ==========================================
   loadSupervisorsAndOperators(): void {
+    const fallbackGuards = this.crewService.loadCachedSupervisorOperators();
+    if (!this.supervisorsList || this.supervisorsList.length === 0) {
+      this.supervisorsList = fallbackGuards;
+      this.allAvailableOperators = this.crewService.defaultMembers.filter(m => m.primary_role !== 'SUPERVISOR');
+      if (!this.selectedSupervisor && fallbackGuards.length > 0) {
+        this.selectedSupervisor = fallbackGuards[0];
+      }
+    }
+
     this.crewService.loadSupervisorOperators().subscribe(res => {
-      if (res?.supervisors) {
-        this.supervisorsList = res.supervisors;
-        this.allAvailableOperators = res.all_operators || [];
-        if (!this.selectedSupervisor && this.supervisorsList.length > 0) {
-          this.selectedSupervisor = this.supervisorsList[0];
-        } else if (this.selectedSupervisor) {
-          const updated = this.supervisorsList.find(s => s.id === this.selectedSupervisor!.id || s.username === this.selectedSupervisor!.username);
-          if (updated) this.selectedSupervisor = updated;
-        }
+      const list = (res?.supervisors && res.supervisors.length >= 4) ? res.supervisors : fallbackGuards;
+      this.supervisorsList = list;
+      this.allAvailableOperators = (res?.all_operators && res.all_operators.length > 0) 
+        ? res.all_operators 
+        : (this.allAvailableOperators.length > 0 ? this.allAvailableOperators : this.crewService.defaultMembers.filter(m => m.primary_role !== 'SUPERVISOR'));
+      if (!this.selectedSupervisor && this.supervisorsList.length > 0) {
+        this.selectedSupervisor = this.supervisorsList[0];
+      } else if (this.selectedSupervisor) {
+        const updated = this.supervisorsList.find(s => s.id === this.selectedSupervisor!.id || s.username === this.selectedSupervisor!.username);
+        if (updated) this.selectedSupervisor = updated;
       }
     });
   }
