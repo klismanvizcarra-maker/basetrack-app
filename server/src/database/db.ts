@@ -762,17 +762,41 @@ export function initDatabase() {
       }
     }
 
-    // 5. Ensure KlismanV is an ADMIN with shift ADMIN
-    db.prepare(`
-      UPDATE users 
-      SET role = 'ADMIN', shift = 'ADMIN', primary_role = 'ADMIN' 
-      WHERE LOWER(username) = 'klismanv' OR full_name LIKE '%VIZCARRA CORI%';
-    `).run();
+    // 5. Ensure KlismanV exists as an ADMIN with shift ADMIN and login 71209033
+    const existingKlisman = db.prepare('SELECT id FROM users WHERE LOWER(username) = ? OR document_id = ?').get('klismanv', '71209033') as any;
+    if (existingKlisman) {
+      db.prepare(`
+        UPDATE users 
+        SET username = 'KlismanV', full_name = 'VIZCARRA CORI MANLEY KLISMAN', role = 'ADMIN', shift = 'ADMIN', primary_role = 'ADMIN', document_id = '71209033', password_hash = ?
+        WHERE id = ?;
+      `).run(bcrypt.hashSync('71209033', 10), existingKlisman.id);
+    } else {
+      db.prepare(`
+        INSERT INTO users (id, username, email, password_hash, full_name, role, shift, avatar_url, is_active, document_id, primary_role)
+        VALUES (?, 'KlismanV', 'klismanvizcarra@basetrack.com', ?, 'VIZCARRA CORI MANLEY KLISMAN', 'ADMIN', 'ADMIN', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=250&q=80', 1, '71209033', 'ADMIN');
+      `).run(crypto.randomUUID(), bcrypt.hashSync('71209033', 10));
+    }
 
-    // 6. Upsert the 32 Operators in crew_members
+    // 6. Upsert the 32 Operators in crew_members and users table
     for (const op of ALL_32_OPERATORS) {
       deleteOldCrew.run(op.id, op.document_id);
       insertCrew.run(op.id, op.name, op.document_id, op.primary_role, op.shift_code, op.radio, op.phone, op.avatar);
+
+      // Also ensure operator account exists in users table for DNI login
+      const existingOpUser = db.prepare('SELECT id FROM users WHERE document_id = ?').get(op.document_id) as any;
+      if (existingOpUser) {
+        db.prepare(`
+          UPDATE users 
+          SET full_name = ?, role = 'OPERATOR', shift = ?, primary_role = ?, avatar_url = ?, password_hash = ?
+          WHERE id = ?;
+        `).run(op.name, op.shift_code, op.primary_role, op.avatar, bcrypt.hashSync(op.document_id, 10), existingOpUser.id);
+      } else {
+        const username = op.name.split(' ')[0] + op.document_id.slice(-4);
+        db.prepare(`
+          INSERT INTO users (id, username, email, password_hash, full_name, role, shift, avatar_url, is_active, document_id, primary_role)
+          VALUES (?, ?, ?, ?, ?, 'OPERATOR', ?, ?, 1, ?, ?);
+        `).run(crypto.randomUUID(), username, `${op.document_id}@basetrack.com`, bcrypt.hashSync(op.document_id, 10), op.name, op.shift_code, op.avatar, op.document_id, op.primary_role);
+      }
     }
 
     // 7. Auto-link 8 operators to each official supervisor in supervisor_operators

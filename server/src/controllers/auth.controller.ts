@@ -26,7 +26,7 @@ export async function login(req: Request, res: Response) {
       user = db.prepare('SELECT * FROM users WHERE LOWER(username) = ?').get('admin') as any;
     }
   } else {
-    user = db.prepare('SELECT * FROM users WHERE LOWER(username) = LOWER(?) OR LOWER(email) = LOWER(?)').get(cleanUser, cleanUser) as any;
+    user = db.prepare('SELECT * FROM users WHERE LOWER(username) = LOWER(?) OR LOWER(email) = LOWER(?) OR document_id = ?').get(cleanUser, cleanUser, cleanUser) as any;
     if (!user) {
       // Allow login with operator DNI
       const crew = db.prepare('SELECT name FROM crew_members WHERE document_id = ?').get(cleanUser) as { name: string } | undefined;
