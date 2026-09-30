@@ -2006,35 +2006,7 @@ export class CyclonesComponent implements OnInit {
   }
 
   useFallbackData(): void {
-    const today = new Date().toISOString().split('T')[0];
-
-    // Datos completos para 2DA ESTACION (G1 noche y G2 día) y 1RA ESTACION
-    this.rawStationSamples = [
-      // 2DA ESTACION - GUARDIA 1 (G1)
-      { id: 's-1', station: '2DA ESTACIÓN CICLONES', sample_time: '20:00', battery_tag: 'CY3', solids_feed: 45.30, solids_of: 28.60, solids_uf: 69.40, mesh200_feed: 54.60, mesh200_of: 22.40, mesh200_uf: 23.40, shift_code: 'G1', date: today },
-      { id: 's-2', station: '2DA ESTACIÓN CICLONES', sample_time: '20:00', battery_tag: 'CY4', solids_feed: 43.20, solids_of: 30.10, solids_uf: 68.60, mesh200_feed: 54.10, mesh200_of: 19.80, mesh200_uf: 23.60, shift_code: 'G1', date: today },
-      { id: 's-3', station: '2DA ESTACIÓN CICLONES', sample_time: '23:00', battery_tag: 'CY3', solids_feed: 48.60, solids_of: 32.40, solids_uf: 72.10, mesh200_feed: 58.20, mesh200_of: 24.10, mesh200_uf: 25.80, shift_code: 'G1', date: today },
-      { id: 's-4', station: '2DA ESTACIÓN CICLONES', sample_time: '23:00', battery_tag: 'CY4', solids_feed: 47.10, solids_of: 31.80, solids_uf: 71.50, mesh200_feed: 57.40, mesh200_of: 23.50, mesh200_uf: 25.20, shift_code: 'G1', date: today },
-      { id: 's-5', station: '2DA ESTACIÓN CICLONES', sample_time: '02:00', battery_tag: 'CY3', solids_feed: 42.10, solids_of: 27.20, solids_uf: 67.80, mesh200_feed: 51.50, mesh200_of: 20.80, mesh200_uf: 22.10, shift_code: 'G1', date: today },
-      { id: 's-6', station: '2DA ESTACIÓN CICLONES', sample_time: '02:00', battery_tag: 'CY4', solids_feed: 41.50, solids_of: 26.80, solids_uf: 67.20, mesh200_feed: 50.90, mesh200_of: 20.10, mesh200_uf: 21.80, shift_code: 'G1', date: today },
-      { id: 's-7', station: '2DA ESTACIÓN CICLONES', sample_time: '05:00', battery_tag: 'CY3', solids_feed: 46.80, solids_of: 29.80, solids_uf: 70.80, mesh200_feed: 56.10, mesh200_of: 22.90, mesh200_uf: 24.30, shift_code: 'G1', date: today },
-      { id: 's-8', station: '2DA ESTACIÓN CICLONES', sample_time: '05:00', battery_tag: 'CY4', solids_feed: 45.90, solids_of: 29.20, solids_uf: 70.10, mesh200_feed: 55.40, mesh200_of: 22.20, mesh200_uf: 23.90, shift_code: 'G1', date: today },
-
-      // 2DA ESTACION - GUARDIA 2 (G2)
-      { id: 's-9', station: '2DA ESTACIÓN CICLONES', sample_time: '08:00', battery_tag: 'CY3', solids_feed: 46.10, solids_of: 29.10, solids_uf: 70.20, mesh200_feed: 55.20, mesh200_of: 22.80, mesh200_uf: 24.10, shift_code: 'G2', date: today },
-      { id: 's-10', station: '2DA ESTACIÓN CICLONES', sample_time: '08:00', battery_tag: 'CY4', solids_feed: 44.50, solids_of: 28.90, solids_uf: 69.80, mesh200_feed: 54.80, mesh200_of: 21.50, mesh200_uf: 23.90, shift_code: 'G2', date: today },
-      { id: 's-11', station: '2DA ESTACIÓN CICLONES', sample_time: '11:00', battery_tag: 'CY3', solids_feed: 47.30, solids_of: 30.50, solids_uf: 71.40, mesh200_feed: 56.70, mesh200_of: 23.20, mesh200_uf: 24.80, shift_code: 'G2', date: today },
-      { id: 's-12', station: '2DA ESTACIÓN CICLONES', sample_time: '11:00', battery_tag: 'CY4', solids_feed: 46.80, solids_of: 30.10, solids_uf: 70.90, mesh200_feed: 55.90, mesh200_of: 22.70, mesh200_uf: 24.40, shift_code: 'G2', date: today },
-
-      // 1RA ESTACION - CY1 / CY2
-      { id: 's-13', station: '1RA ESTACIÓN CICLONES', sample_time: '20:00', battery_tag: 'CY1', solids_feed: 44.80, solids_of: 27.90, solids_uf: 68.90, mesh200_feed: 53.80, mesh200_of: 21.90, mesh200_uf: 23.10, shift_code: 'G1', date: today },
-      { id: 's-14', station: '1RA ESTACIÓN CICLONES', sample_time: '20:00', battery_tag: 'CY2', solids_feed: 43.90, solids_of: 28.50, solids_uf: 68.20, mesh200_feed: 53.20, mesh200_of: 20.40, mesh200_uf: 23.00, shift_code: 'G1', date: today },
-      { id: 's-15', station: '1RA ESTACIÓN CICLONES', sample_time: '23:00', battery_tag: 'CY1', solids_feed: 47.50, solids_of: 31.00, solids_uf: 71.20, mesh200_feed: 57.00, mesh200_of: 23.50, mesh200_uf: 25.10, shift_code: 'G1', date: today },
-      { id: 's-16', station: '1RA ESTACIÓN CICLONES', sample_time: '23:00', battery_tag: 'CY2', solids_feed: 46.20, solids_of: 30.80, solids_uf: 70.80, mesh200_feed: 56.40, mesh200_of: 22.90, mesh200_uf: 24.70, shift_code: 'G1', date: today },
-      { id: 's-17', station: '1RA ESTACIÓN CICLONES', sample_time: '02:00', battery_tag: 'CY1', solids_feed: 41.80, solids_of: 26.50, solids_uf: 67.20, mesh200_feed: 50.80, mesh200_of: 20.20, mesh200_uf: 21.90, shift_code: 'G1', date: today },
-      { id: 's-18', station: '1RA ESTACIÓN CICLONES', sample_time: '02:00', battery_tag: 'CY2', solids_feed: 41.00, solids_of: 26.10, solids_uf: 66.80, mesh200_feed: 50.10, mesh200_of: 19.80, mesh200_uf: 21.50, shift_code: 'G1', date: today }
-    ];
-
+    this.rawStationSamples = [];
     this.filterSamples();
   }
 

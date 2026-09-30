@@ -473,36 +473,8 @@ export class MaintenanceComponent implements OnInit {
   }
 
   private loadDefaultTickets(): void {
-    this.tickets = [
-      {
-        id: 'm-1', ticket_number: 'OT-2026-0041', equipment_tag: 'PP-102',
-        title: 'Vibración anormal en rodamiento lado acople',
-        description: 'Durante la inspección de rutina se detectó vibración de 4.8 mm/s en rodamiento DE. Requiere análisis espectral y re-engrase.',
-        priority: 'HIGH', status: 'IN_PROGRESS', requester_name: 'GONGORA ROJAS MIGUEL ALONSO',
-        assigned_to: 'Ing. Mantenimiento Mecánico',
-        photo_url: 'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=600&q=80',
-        estimated_hours: 4.5, created_at: new Date().toISOString()
-      },
-      {
-        id: 'm-2', ticket_number: 'OT-2026-0042', equipment_tag: 'CYCLOPAC-02',
-        title: 'Reemplazo de Liner de Vortex Finder ciclón 04',
-        description: 'Desgaste severo por abrasión de pulpa en vortex. Pérdida de eficiencia en corte de finos.',
-        priority: 'MEDIUM', status: 'PENDING', requester_name: 'PILCO APAZA CARLOS EDUARDO',
-        assigned_to: 'Equipo Mantenimiento Planta',
-        photo_url: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=600&q=80',
-        estimated_hours: 3.0, created_at: new Date().toISOString()
-      },
-      {
-        id: 'm-3', ticket_number: 'OT-2026-0039', equipment_tag: 'TL-201',
-        title: 'Fuga en empaquetadura de prensaestopas',
-        description: 'Goteo de pulpa de relaves sobre canaleta de drenaje. Ajuste de empaquetadura completado satisfactoriamente.',
-        priority: 'LOW', status: 'RESOLVED', requester_name: 'VILCAMIZA PEVE JORGE RICARDO',
-        assigned_to: 'Técnico Lubricador',
-        photo_url: 'https://images.unsplash.com/photo-1504917599217-d4dc5ebe6122?auto=format&fit=crop&w=600&q=80',
-        estimated_hours: 1.5, created_at: new Date().toISOString()
-      }
-    ];
-    saveRealtimeData('maintenance_tickets', this.tickets);
+    this.tickets = [];
+    saveRealtimeData('maintenance_tickets', []);
   }
 
   getPriorityBadge(priority: string): string {

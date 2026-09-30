@@ -1132,11 +1132,7 @@ export class VehicleChecklistReportPdfComponent implements OnInit, OnChanges {
     const sup = this.crewService.getActiveSupervisorForShift(shift);
     if (sup) {
       this.supervisorName = sup.name;
-      this.supervisorDni = sup.document_id || '18110964';
-    } else {
-      const fallback = CrewService.OFFICIAL_SUPERVISOR_MAP[shift] || CrewService.OFFICIAL_SUPERVISOR_MAP['G4'];
-      this.supervisorName = fallback.name;
-      this.supervisorDni = fallback.document_id;
+      this.supervisorDni = sup.document_id;
     }
   }
 

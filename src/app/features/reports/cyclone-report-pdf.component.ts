@@ -712,21 +712,14 @@ export class CycloneReportPdfComponent implements OnInit {
   copiedText = false;
   todayDate: string = new Date().toISOString().split('T')[0];
   reportDate: string = new Date().toISOString().split('T')[0];
-  operatorName = 'PILCO APAZA CARLOS EDUARDO';
-  operatorDni = '42324277';
-  operatorRole = 'Operador de ciclones 1';
-  supervisorName = 'FERNANDEZ ASCURRA DANTE PACO';
-  supervisorDni = '18110964';
-  supervisorRole = 'Supervisor de guardia';
+  operatorName = 'Marck Vizcarra';
+  operatorDni = '91209966';
+  operatorRole = 'Administrador de Planta';
+  supervisorName = 'Marck Vizcarra';
+  supervisorDni = '91209966';
+  supervisorRole = 'Administrador de Guardia';
 
-  defaultSamples: StationSample[] = [
-    { id: '1', station: '2DA ESTACIÓN', sample_time: '08:00', battery_tag: 'Nido CY-03', solids_feed: 54.2, solids_of: 36.8, solids_uf: 72.4, mesh200_feed: 48.2, mesh200_of: 64.8, mesh200_uf: 28.5, shift_code: 'G4', date: '' },
-    { id: '2', station: '2DA ESTACIÓN', sample_time: '10:00', battery_tag: 'Nido CY-03', solids_feed: 55.0, solids_of: 37.1, solids_uf: 72.8, mesh200_feed: 47.9, mesh200_of: 65.2, mesh200_uf: 28.1, shift_code: 'G4', date: '' },
-    { id: '3', station: '2DA ESTACIÓN', sample_time: '12:00', battery_tag: 'Nido CY-03', solids_feed: 53.8, solids_of: 36.4, solids_uf: 71.9, mesh200_feed: 49.0, mesh200_of: 64.5, mesh200_uf: 29.0, shift_code: 'G4', date: '' },
-    { id: '4', station: '2DA ESTACIÓN', sample_time: '14:00', battery_tag: 'Nido CY-04', solids_feed: 54.5, solids_of: 36.9, solids_uf: 72.5, mesh200_feed: 48.5, mesh200_of: 64.9, mesh200_uf: 28.6, shift_code: 'G4', date: '' },
-    { id: '5', station: '2DA ESTACIÓN', sample_time: '16:00', battery_tag: 'Nido CY-04', solids_feed: 54.1, solids_of: 36.5, solids_uf: 72.1, mesh200_feed: 48.8, mesh200_of: 65.4, mesh200_uf: 28.2, shift_code: 'G4', date: '' },
-    { id: '6', station: '2DA ESTACIÓN', sample_time: '18:00', battery_tag: 'Nido CY-04', solids_feed: 54.8, solids_of: 37.0, solids_uf: 72.6, mesh200_feed: 48.1, mesh200_of: 64.7, mesh200_uf: 28.8, shift_code: 'G4', date: '' }
-  ];
+  defaultSamples: StationSample[] = [];
 
   get displaySamples(): StationSample[] {
     if (this.samples && this.samples.length > 0) {
@@ -739,7 +732,7 @@ export class CycloneReportPdfComponent implements OnInit {
     if (this.averages) return this.averages;
     const list = this.displaySamples;
     if (list.length === 0) {
-      return { solids_feed: 54.4, solids_of: 36.8, solids_uf: 72.4, mesh200_feed: 48.4, mesh200_of: 64.9, mesh200_uf: 28.5 };
+      return { solids_feed: 0, solids_of: 0, solids_uf: 0, mesh200_feed: 0, mesh200_of: 0, mesh200_uf: 0 };
     }
     const sum = list.reduce((acc, curr) => ({
       solids_feed: acc.solids_feed + curr.solids_feed,

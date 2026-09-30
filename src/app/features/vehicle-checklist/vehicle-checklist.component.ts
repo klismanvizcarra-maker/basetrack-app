@@ -114,13 +114,13 @@ export class VehicleChecklistComponent implements OnInit {
     if (!dni) {
       const uLower = (user?.username || '').toLowerCase();
       if (uLower === 'marckv' || uLower === 'admin') {
-        dni = '2794vizcarra';
+        dni = '91209966';
       }
     }
     this.formDriverDni = dni;
 
     // Driver License auto-fill
-    this.formDriverLicense = this.formDriverDni ? `Q${this.formDriverDni}` : 'Q2794vizcarra';
+    this.formDriverLicense = this.formDriverDni ? `Q${this.formDriverDni}` : 'Q91209966';
     
     // Set initial odometer suggested from vehicle current odometer + 5 km
     this.formOdometer = currentVeh.currentOdometer + 5;
@@ -248,7 +248,7 @@ export class VehicleChecklistComponent implements OnInit {
     if (!this.formDriverDni) {
       const uLower = (this.authService.currentUser()?.username || '').toLowerCase();
       if (uLower === 'marckv' || uLower === 'admin') {
-        this.formDriverDni = '2794vizcarra';
+        this.formDriverDni = '91209966';
       }
     }
 

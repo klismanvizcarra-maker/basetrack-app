@@ -10,8 +10,8 @@ const DEFAULT_ADMIN_USER: User = {
   username: 'Marckv',
   email: 'marckvizcarra@basetrack.com',
   fullName: 'Marck Vizcarra',
-  document_id: '2794vizcarra',
-  password: '2794vizcarra',
+  document_id: '91209966',
+  password: '91209966',
   role: 'ADMIN',
   shift: 'ADMIN',
   avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80'
@@ -34,7 +34,7 @@ for (const u of OFFICIAL_USERS_LIST) {
 }
 INITIAL_USERS_REGISTRY['admin'] = DEFAULT_ADMIN_USER;
 INITIAL_USERS_REGISTRY['marckv'] = DEFAULT_ADMIN_USER;
-INITIAL_USERS_REGISTRY['2794vizcarra'] = DEFAULT_ADMIN_USER;
+INITIAL_USERS_REGISTRY['91209966'] = DEFAULT_ADMIN_USER;
 
 import { getApiBaseUrl } from '../constants/api.config';
 
@@ -83,7 +83,7 @@ export class AuthService {
     }
     updated['admin'] = DEFAULT_ADMIN_USER;
     updated['marckv'] = DEFAULT_ADMIN_USER;
-    updated['2794vizcarra'] = DEFAULT_ADMIN_USER;
+    updated['91209966'] = DEFAULT_ADMIN_USER;
     delete updated['klismanv'];
     delete updated['71209033'];
     saveRealtimeData('users_registry', updated);
@@ -92,7 +92,7 @@ export class AuthService {
   private getUserFromRegistry(usernameOrEmailOrDni: string): User | null {
     if (!usernameOrEmailOrDni) return null;
     const key = usernameOrEmailOrDni.trim().toLowerCase();
-    if (['admin', 'marckv', '2794vizcarra'].includes(key)) {
+    if (['admin', 'marckv', '91209966'].includes(key)) {
       return DEFAULT_ADMIN_USER;
     }
     const registry = getRealtimeData<Record<string, User>>('users_registry', INITIAL_USERS_REGISTRY);
@@ -352,7 +352,7 @@ export class AuthService {
       if (!user.document_id) {
         const uLower = (user.username || '').toLowerCase();
         if (uLower === 'marckv' || uLower === 'admin') {
-          user.document_id = '2794vizcarra';
+          user.document_id = '91209966';
         } else if (typeof localStorage !== 'undefined') {
           try {
             const crew = JSON.parse(localStorage.getItem('basetrack_crew_members') || '[]');

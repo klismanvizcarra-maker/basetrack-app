@@ -55,7 +55,7 @@ const DEFAULT_USERS: UserItem[] = [
     full_name: 'Marck Vizcarra',
     role: 'ADMIN',
     shift: 'ADMIN',
-    document_id: '2794vizcarra',
+    document_id: '91209966',
     avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80',
     created_at: '2026-09-29T08:00:00.000Z'
   }

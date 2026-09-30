@@ -41,12 +41,7 @@ export interface OfficialSupervisor {
   shift: string;
 }
 
-export const OFFICIAL_SUPERVISORS: OfficialSupervisor[] = [
-  { name: 'GONGORA ROJAS MIGUEL ALONSO', dni: '41833717', role: 'Supervisor de guardia', shift: 'G1' },
-  { name: 'ALIAGA CASTAÑEDA EMILIO URIEL', dni: '46593500', role: 'Supervisor de guardia', shift: 'G2' },
-  { name: 'ARI MAMANI HUGO ANDRES', dni: '40132660', role: 'Supervisor de guardia', shift: 'G3' },
-  { name: 'FERNANDEZ ASCURRA DANTE PACO', dni: '18110964', role: 'Supervisor de guardia', shift: 'G4' },
-];
+export const OFFICIAL_SUPERVISORS: OfficialSupervisor[] = [];
 
 @Component({
   selector: 'app-shift-handover',
@@ -180,6 +175,20 @@ export const OFFICIAL_SUPERVISORS: OfficialSupervisor[] = [
               <polyline points="20 6 9 17 4 12"></polyline>
             </svg>
             Validar y Aceptar Relevo Formal
+          </button>
+        </div>
+      </div>
+
+      <!-- Empty State Banner when no handovers exist -->
+      <div class="current-handover-banner glass-panel" *ngIf="!latestHandover">
+        <div style="padding: 24px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 10px;">
+          <span style="font-size: 2.2rem;">📋</span>
+          <h3 style="margin: 0; font-size: 1.15rem; color: var(--text-primary);">Bitácora de Relevo Lista</h3>
+          <p style="margin: 0; font-size: 0.88rem; color: var(--text-secondary); max-width: 500px;">
+            No hay entregas de guardia registradas. La bitácora se encuentra limpia y preparada para registrar el primer relevo de operaciones.
+          </p>
+          <button class="btn btn-primary" (click)="openCreateModal()" *ngIf="permissionsService.canCloseShift()" style="margin-top: 6px;">
+            Registrar Entrega de Guardia
           </button>
         </div>
       </div>
@@ -1039,45 +1048,9 @@ export class ShiftHandoverComponent implements OnInit {
   }
 
   private loadDefaultHandovers(): void {
-    const shiftInfo = getCurrentActiveShift();
-    const outGuard = shiftInfo.activeGuard;
-    const inGuard = shiftInfo.nextGuard;
-    const shiftType = shiftInfo.shiftName;
-
-    const outSup = this.officialSupervisors.find(s => s.shift === outGuard.code) || 
-                   this.crewService.getActiveSupervisorForShift(outGuard.code) ||
-                   { name: outGuard.supervisorName, dni: '18110964', role: 'Supervisor de guardia', shift: outGuard.code };
-
-    const inSup = this.officialSupervisors.find(s => s.shift === inGuard.code) || 
-                  this.crewService.getActiveSupervisorForShift(inGuard.code) ||
-                  { name: inGuard.supervisorName, dni: '46593500', role: 'Supervisor de guardia', shift: inGuard.code };
-
-    const todayStr = shiftInfo.dateStr || getLocalDateString();
-    const dateCode = todayStr.slice(5).replace('-', '');
-
-    this.handovers = [
-      {
-        id: 'sh-1',
-        shift_code: `${outGuard.code}_${shiftType}_${dateCode}`,
-        date: todayStr,
-        shift_type: shiftType,
-        outgoing_supervisor: outSup.name,
-        outgoing_dni: (outSup as any).dni || (outSup as any).document_id || '18110964',
-        outgoing_role: 'Supervisor de guardia',
-        incoming_supervisor: inSup.name,
-        incoming_dni: (inSup as any).dni || (inSup as any).document_id || '46593500',
-        incoming_role: 'Supervisor de guardia',
-        plant_status: 'Planta Concentradora operando al 94.5% de régimen de diseño. Circuito de molienda SAG en régimen estable.',
-        tonnage_processed: 24500,
-        safety_incidents: 'LTI: 0 incidentes. Charlas de seguridad de 5 min completadas al inicio de turno.',
-        operational_highlights: 'Caudal promedio pulpa: 3,420 m³/h. Densidad hidrociclones controlada en 52.4% sólidos.',
-        pending_tasks: 'Inspeccionar desgaste en impelente de bomba PP-102 durante parada programada.',
-        status: 'ACCEPTED',
-        created_at: new Date().toISOString()
-      }
-    ];
-    this.latestHandover = this.handovers[0];
-    saveRealtimeData('shift_handovers', this.handovers);
+    this.handovers = [];
+    this.latestHandover = null;
+    saveRealtimeData('shift_handovers', []);
   }
 
   openCreateModal(): void {

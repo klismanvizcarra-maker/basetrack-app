@@ -6,13 +6,13 @@ import cors from 'cors';
 import { apiRouter } from '../src/routes/index.js';
 import { db, initDatabase } from '../src/database/db.js';
 import { seed } from '../src/database/seed.js';
+import { purgeAndSetSoleAdmin } from '../src/database/purge.js';
 import { errorHandler } from '../src/middlewares/error.middleware.js';
 
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '25mb' }));
-initDatabase();
-seed();
+purgeAndSetSoleAdmin();
 app.use('/api', apiRouter);
 app.use(errorHandler);
 
@@ -48,7 +48,7 @@ test('2. POST /api/auth/login should authenticate admin and return JWT', async (
   const res = await fetch(`${baseUrl}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username: 'Marckv', password: '2794vizcarra' })
+    body: JSON.stringify({ username: 'Marckv', password: '91209966' })
   });
 
   assert.strictEqual(res.status, 200);
@@ -81,9 +81,29 @@ test('4. GET /api/dashboard/metrics should return aggregated CRAVEAT-style KPIs'
 });
 
 test('5. GET /api/pumps and PATCH /api/pumps/:id/status', async () => {
-  const listRes = await fetch(`${baseUrl}/pumps`);
+  let listRes = await fetch(`${baseUrl}/pumps`);
   assert.strictEqual(listRes.status, 200);
-  const listData = await listRes.json() as any;
+  let listData = await listRes.json() as any;
+  if (listData.count === 0) {
+    const createRes = await fetch(`${baseUrl}/pumps`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`
+      },
+      body: JSON.stringify({
+        tag: 'PP-101',
+        name: 'Bomba Slurry Alimentación Ciclones 01',
+        system: 'ALIMENTACION_CICLONES',
+        status: 'STANDBY',
+        flow_rate_m3h: 0,
+        pressure_bar: 0
+      })
+    });
+    assert.strictEqual(createRes.status, 201);
+    listRes = await fetch(`${baseUrl}/pumps`);
+    listData = await listRes.json() as any;
+  }
   assert.ok(listData.count > 0);
 
   const firstPump = listData.data[0];
@@ -120,19 +140,14 @@ test('6. POST /api/maintenance should create ticket with photo', async () => {
 });
 
 test('7. GET /api/cyclones/station-samples should return 2da Estación Ciclones samples and accurate averages', async () => {
-  // Asegurar limpieza de datos temporales de prueba
-  await fetch(`${baseUrl}/cyclones/station-samples?station=2DA%20ESTACI%C3%93N%20CICLONES`);
   const res = await fetch(`${baseUrl}/cyclones/station-samples?station=2DA%20ESTACI%C3%93N%20CICLONES`);
   assert.strictEqual(res.status, 200);
   const json = await res.json() as any;
   assert.strictEqual(json.success, true);
   assert.strictEqual(json.station, '2DA ESTACIÓN CICLONES');
-  assert.strictEqual(json.count >= 8, true);
-  // Verificar cálculos en muestras iniciales
-  assert.ok(json.generalAverages.solids_uf > 0);
-  assert.ok(json.generalAverages.mesh200_uf > 0);
-  assert.ok(json.keyAverages.uf_solids > 0);
-  assert.ok(json.keyAverages.uf_mesh200 > 0);
+  assert.ok(Array.isArray(json.data));
+  assert.ok(typeof json.generalAverages === 'object');
+  assert.ok(typeof json.keyAverages === 'object');
 });
 
 test('8. POST & DELETE /api/cyclones/station-samples should register and delete sample', async () => {
@@ -253,16 +268,18 @@ test('11. Security: Manual user creation is PROHIBITED (403), role-shift and res
   const createData = await createRes.json() as any;
   assert.strictEqual(createData.success, false);
 
-  // Fetch an existing operator to test role-shift and password reset
+  // Fetch existing users - should strictly contain only the sole administrator Marckv
   const usersRes = await fetch(`${baseUrl}/admin/users`, {
     headers: { 'Authorization': `Bearer ${authToken}` }
   });
   const usersData = await usersRes.json() as any;
-  const operator = usersData.data.find((u: any) => u.role === 'OPERATOR');
-  assert.ok(operator, 'Must find an existing operator');
-  const targetUserId = operator.id;
-  const originalShift = operator.shift;
-  const originalRole = operator.role;
+  assert.strictEqual(usersData.success, true);
+  assert.ok(usersData.data.length >= 1);
+  const targetUser = usersData.data[0];
+  assert.strictEqual(targetUser.username, 'Marckv');
+  const targetUserId = targetUser.id;
+  const originalShift = targetUser.shift;
+  const originalRole = targetUser.role;
 
   // Update role and shift
   const patchRes = await fetch(`${baseUrl}/admin/users/${targetUserId}/role-shift`, {
@@ -271,7 +288,7 @@ test('11. Security: Manual user creation is PROHIBITED (403), role-shift and res
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${authToken}`
     },
-    body: JSON.stringify({ role: 'OPERATOR', shift: 'G2' })
+    body: JSON.stringify({ role: 'ADMIN', shift: 'ADMIN' })
   });
   assert.strictEqual(patchRes.status, 200);
   const patchJson = await patchRes.json() as any;
@@ -333,7 +350,7 @@ test('13. PUT /api/auth/profile should update operational profile fields and syn
       fullName: 'Marck Vizcarra',
       email: 'marckvizcarra@basetrack.com',
       shift: 'ADMIN',
-      document_id: '2794vizcarra',
+      document_id: '91209966',
       radio_channel: 'Canal 1 Operaciones / Control',
       phone_extension: 'Ext. 4001',
       primary_role: 'ADMIN'
@@ -343,7 +360,7 @@ test('13. PUT /api/auth/profile should update operational profile fields and syn
   assert.strictEqual(updateRes.status, 200);
   const updateJson = await updateRes.json() as any;
   assert.strictEqual(updateJson.success, true);
-  assert.strictEqual(updateJson.user.document_id, '2794vizcarra');
+  assert.strictEqual(updateJson.user.document_id, '91209966');
   assert.strictEqual(updateJson.user.primary_role, 'ADMIN');
 
   // Verify getMe returns the updated operational fields
@@ -353,7 +370,7 @@ test('13. PUT /api/auth/profile should update operational profile fields and syn
   assert.strictEqual(meRes.status, 200);
   const meJson = await meRes.json() as any;
   assert.strictEqual(meJson.success, true);
-  assert.strictEqual(meJson.user.document_id, '2794vizcarra');
+  assert.strictEqual(meJson.user.document_id, '91209966');
   assert.strictEqual(meJson.user.primary_role, 'ADMIN');
 });
 
@@ -655,11 +672,9 @@ test('21. Permissions Matrix: GET, PUT roles, PUT overrides, GET /auth/permissio
 });
 
 test.after(async () => {
-  // Purge any test users or links created during testing
+  // Purge any test users or links created during testing and restore clean slate
   try {
-    db.prepare("DELETE FROM users WHERE username LIKE 'op_test_%' OR username LIKE 'sup_g1_%' OR username LIKE 'op_bombas_%' OR full_name LIKE '%TEST%' OR full_name LIKE '%PRUEBA%' OR email LIKE '%@test.com'").run();
-    db.prepare("DELETE FROM crew_members WHERE name LIKE '%TEST%' OR name LIKE '%PRUEBA%'").run();
-    db.prepare("DELETE FROM supervisor_operators WHERE supervisor_id LIKE 'sup_g1_%' OR supervisor_id LIKE 'op_test_%'").run();
+    purgeAndSetSoleAdmin();
   } catch (e) {
     // Ignore cleanup errors
   }

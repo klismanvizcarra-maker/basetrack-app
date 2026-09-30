@@ -1697,7 +1697,7 @@ export class PumpsComponent implements OnInit {
   sheet: PumpStationSheet = {
     report_date: new Date().toLocaleDateString('es-PE'),
     shift_code: 'G4',
-    operator_name: 'MONTES RODRIGUEZ DIEGO ALEXANDER',
+    operator_name: 'Marck Vizcarra',
     sentina_pumps: [
       { tag: 'PU001', status: 'Operativo' },
       { tag: 'PU002', status: 'Operativo' },
@@ -1875,31 +1875,8 @@ export class PumpsComponent implements OnInit {
         }
       },
       error: () => {
-        if (!this.pumps || this.pumps.length === 0) {
-          this.pumps = [
-            {
-              id: 'p-1', tag: 'PP-101', name: 'Bomba Slurry Alimentación Ciclones 01',
-              system: 'ALIMENTACION_CICLONES', status: 'OPERATING', flow_rate_m3h: 1850,
-              pressure_bar: 4.8, rpm: 580, bearing_temp_c: 62.4, vibration_mms: 2.3,
-              current_amps: 310, shift_code: 'G4', operator_name: 'MONTES RODRIGUEZ DIEGO ALEXANDER',
-              created_at: new Date().toISOString()
-            },
-            {
-              id: 'p-2', tag: 'PP-102', name: 'Bomba Slurry Alimentación Ciclones 02',
-              system: 'ALIMENTACION_CICLONES', status: 'STANDBY', flow_rate_m3h: 0,
-              pressure_bar: 0.1, rpm: 0, bearing_temp_c: 34.0, vibration_mms: 0.2,
-              current_amps: 0, shift_code: 'G4', operator_name: 'MONTES RODRIGUEZ DIEGO ALEXANDER',
-              created_at: new Date().toISOString()
-            },
-            {
-              id: 'p-3', tag: 'TL-201', name: 'Bomba de Pulpa Relaves Espesados',
-              system: 'TRANSPORTE_RELAVES', status: 'OPERATING', flow_rate_m3h: 2150,
-              pressure_bar: 6.2, rpm: 720, bearing_temp_c: 68.1, vibration_mms: 3.1,
-              current_amps: 420, shift_code: 'G4', operator_name: 'VILCAMIZA PEVE JORGE RICARDO',
-              created_at: new Date().toISOString()
-            }
-          ];
-          saveRealtimeData('pumps_telemetry', this.pumps);
+        if (!this.pumps) {
+          this.pumps = [];
         }
       }
     });
@@ -2030,7 +2007,7 @@ export class PumpsComponent implements OnInit {
       vibration_mms: this.newPump.vibration_mms,
       current_amps: this.newPump.current_amps,
       shift_code: 'G1',
-      operator_name: this.authService.currentUser()?.fullName || this.sheet.operator_name || 'MONTES RODRIGUEZ DIEGO ALEXANDER',
+      operator_name: this.authService.currentUser()?.fullName || this.sheet.operator_name || 'Marck Vizcarra',
       notes: this.newPump.notes,
       created_at: new Date().toISOString()
     };
