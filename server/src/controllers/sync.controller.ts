@@ -70,7 +70,7 @@ export async function pushEvents(req: Request, res: Response) {
     }
 
     const safeDeviceId = String(deviceId).slice(0, 100);
-    const safeUserId = userId ? String(userId).slice(0, 100) : null;
+    const safeUserId = userId ? String(userId).slice(0, 100) : undefined;
     const safeUsername = username ? String(username).slice(0, 100) : undefined;
     const safeDeviceName = deviceName ? String(deviceName).slice(0, 150) : undefined;
 
@@ -103,7 +103,7 @@ export async function pushEvents(req: Request, res: Response) {
 
         const result = insertStmt.run(
           devId,
-          uId,
+          uId || null,
           ent,
           act,
           payloadStr,

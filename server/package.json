@@ -2,6 +2,7 @@
   "name": "basetrack-backend",
   "version": "1.0.0",
   "description": "Backend API for BASETRACK APP - Industrial & Mining Operations Tracking",
+  "type": "module",
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",

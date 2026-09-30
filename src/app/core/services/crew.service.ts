@@ -452,20 +452,42 @@ export class CrewService {
       tap((res) => {
         this.isLoading.set(false);
         if (res?.success && res.data?.length > 0) {
-          const clean = res.data.map(m => ({
-            ...m,
-            name: sanitizeOfficialName(m.name),
-            shift_code: m.shift_code === 'GUARDIA_A' ? 'G1' :
-                        m.shift_code === 'GUARDIA_B' ? 'G2' :
-                        m.shift_code === 'GUARDIA_C' ? 'G3' :
-                        m.shift_code === 'GUARDIA_D' ? 'G4' : (m.shift_code || 'G1')
-          }));
+          const clean = res.data.map(m => {
+            let role = m.primary_role;
+            if (role === 'SUPERVISOR') {
+              const isOfficial = 
+                (m.shift_code === 'G1' && m.name.includes('GONGORA')) ||
+                (m.shift_code === 'G2' && m.name.includes('ALIAGA')) ||
+                (m.shift_code === 'G3' && m.name.includes('ARI MAMANI')) ||
+                (m.shift_code === 'G4' && m.name.includes('FERNANDEZ'));
+              if (!isOfficial) {
+                role = 'OPERADOR_BOMBAS';
+              }
+            }
+            return {
+              ...m,
+              primary_role: role,
+              name: sanitizeOfficialName(m.name),
+              shift_code: m.shift_code === 'GUARDIA_A' ? 'G1' :
+                          m.shift_code === 'GUARDIA_B' ? 'G2' :
+                          m.shift_code === 'GUARDIA_C' ? 'G3' :
+                          m.shift_code === 'GUARDIA_D' ? 'G4' : (m.shift_code || 'G1')
+            };
+          });
+
+          // Asegurar que los 4 supervisores oficiales siempre estén presentes
+          (['G1', 'G2', 'G3', 'G4'] as const).forEach(sc => {
+            if (!clean.some(m => m.shift_code === sc && m.primary_role === 'SUPERVISOR')) {
+              clean.unshift(CrewService.OFFICIAL_SUPERVISOR_MAP[sc]);
+            }
+          });
+
           this.allMembers.set(clean);
           const filtered = normShift ? clean.filter(m => m.shift_code === normShift) : clean;
           this.crewMembers.set(filtered);
           this.saveCache('basetrack_crew_members', clean);
 
-          // Sincronizar catálogo de roster con supervisores reales
+          // Sincronizar catálogo de roster con supervisores reales oficiales
           const foundSups: any = {};
           clean.forEach(m => {
             if (['G1', 'G2', 'G3', 'G4'].includes(m.shift_code) && m.primary_role === 'SUPERVISOR') {
@@ -911,10 +933,13 @@ export class CrewService {
       if (cached) {
         const parsed = JSON.parse(cached);
         const hasOldMocks = Array.isArray(parsed) && parsed.some((m: any) => 
+          (m.shift_code === 'G1' && m.primary_role === 'SUPERVISOR' && !m.name?.includes('GONGORA')) ||
+          (m.shift_code === 'G2' && m.primary_role === 'SUPERVISOR' && !m.name?.includes('ALIAGA')) ||
+          (m.shift_code === 'G3' && m.primary_role === 'SUPERVISOR' && !m.name?.includes('ARI MAMANI')) ||
+          (m.shift_code === 'G4' && m.primary_role === 'SUPERVISOR' && !m.name?.includes('FERNANDEZ')) ||
           m.id?.includes('klisman') || 
           m.id?.includes('op-carlos') || 
           m.document_id === '71209033' || 
-          m.document_id === '42324277' ||
           m.name?.includes('TEST') ||
           m.name?.includes('PRUEBA')
         );

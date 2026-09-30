@@ -40,7 +40,7 @@ export function authenticateToken(req: AuthenticatedRequest, res: Response, next
   }
 }
 
-export function requireRoles(...allowedRoles: Array<'ADMIN' | 'SUPERVISOR' | 'OPERATOR'>) {
+export function requireRoles(...allowedRoles: Array<'ADMIN' | 'SUPERVISOR' | 'OPERATOR' | 'OPERADOR'>) {
   return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     if (!req.user) {
       return res.status(401).json({ success: false, message: 'No autenticado' });

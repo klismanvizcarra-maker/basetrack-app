@@ -83,13 +83,27 @@ export function updateGuardsCatalog(supervisors: Partial<Record<GuardCode, Parti
   });
 }
 
-// Cargar automáticamente supervisores guardados en almacenamiento local si existen
+// Validar y cargar automáticamente supervisores guardados en almacenamiento local si existen
 if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
   try {
     const rawCrew = localStorage.getItem('basetrack_crew_members');
     if (rawCrew) {
       const parsed = JSON.parse(rawCrew);
-      if (Array.isArray(parsed)) {
+      const isStale = Array.isArray(parsed) && parsed.some((m: any) => 
+        (m.shift_code === 'G1' && m.primary_role === 'SUPERVISOR' && !m.name?.includes('GONGORA')) ||
+        (m.shift_code === 'G2' && m.primary_role === 'SUPERVISOR' && !m.name?.includes('ALIAGA')) ||
+        (m.shift_code === 'G3' && m.primary_role === 'SUPERVISOR' && !m.name?.includes('ARI MAMANI')) ||
+        (m.shift_code === 'G4' && m.primary_role === 'SUPERVISOR' && !m.name?.includes('FERNANDEZ')) ||
+        m.name?.includes('Roberto Quispe') ||
+        m.name?.includes('Marco Vel') ||
+        (m.primary_role === 'SUPERVISOR' && (m.name?.includes('VIZCARRA CORI') || m.name?.includes('LLERENA CALLE') || m.name?.includes('MENDOZA QUISPE') || m.name?.includes('ORTEGA RAM')))
+      );
+
+      if (isStale) {
+        localStorage.removeItem('basetrack_crew_members');
+        localStorage.removeItem('basetrack_supervisor_operators');
+        localStorage.removeItem('basetrack_my_operators');
+      } else if (Array.isArray(parsed)) {
         const foundSups: Partial<Record<GuardCode, Partial<GuardInfo>>> = {};
         parsed.forEach((m: any) => {
           const shift = (m.shift_code || m.shift) as GuardCode;

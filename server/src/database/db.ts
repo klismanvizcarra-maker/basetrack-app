@@ -643,5 +643,156 @@ export function initDatabase() {
     console.warn('[Database] Error initializing role_permissions:', e);
   }
 
+  // -------------------------------------------------------------
+  // Mandatory Migration: Synchronize Official 4 Supervisors and 36 Staff Members
+  // -------------------------------------------------------------
+  try {
+    const OFFICIAL_SUPERVISORS_DATA = [
+      { id: 'op-g1-sup', username: 'MiguelG', name: 'GONGORA ROJAS MIGUEL ALONSO', document_id: '41833717', shift: 'G1', email: 'miguelgongora@basetrack.com', radio: 'Canal 1 Operaciones / Control', phone: 'Ext. 4101', avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=MIGUELG' },
+      { id: 'op-g2-sup', username: 'EmilioA', name: 'ALIAGA CASTAÑEDA EMILIO URIEL', document_id: '46593500', shift: 'G2', email: 'emilioaliaga@basetrack.com', radio: 'Canal 1 Operaciones / Control', phone: 'Ext. 4102', avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=EMILIOA' },
+      { id: 'op-g3-sup', username: 'HugoA', name: 'ARI MAMANI HUGO ANDRES', document_id: '40132660', shift: 'G3', email: 'hugoari@basetrack.com', radio: 'Canal 1 Operaciones / Control', phone: 'Ext. 4103', avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=HUGOA' },
+      { id: 'op-g4-sup', username: 'DanteF', name: 'FERNANDEZ ASCURRA DANTE PACO', document_id: '18110964', shift: 'G4', email: 'dantefernandez@basetrack.com', radio: 'Canal 1 Operaciones / Control', phone: 'Ext. 4104', avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=DANTEF' }
+    ];
+
+    const ALL_32_OPERATORS = [
+      // G1
+      { id: 'op-g1-ctrl', name: 'PARI COAYLA JHOFER LUIS', document_id: '74924255', primary_role: 'OPERADOR_SALA_CONTROL', shift_code: 'G1', radio: 'Canal 1 Operaciones / Control', phone: 'Ext. 4121', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=250&q=80' },
+      { id: 'op-g1-bombas', name: 'MONTES RODRIGUEZ DIEGO ALEXANDER', document_id: '45437279', primary_role: 'OPERADOR_BOMBAS', shift_code: 'G1', radio: 'Canal 3 Bombas', phone: 'Ext. 4120', avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=250&q=80' },
+      { id: 'op-g1-cyc1', name: 'PILCO APAZA CARLOS EDUARDO', document_id: '42324277', primary_role: 'OPERADOR_CICLONES_1', shift_code: 'G1', radio: 'Canal 2 Ciclones', phone: 'Ext. 4122', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80' },
+      { id: 'op-g1-cyc2', name: 'MAMANI MIRANDA RONAL', document_id: '72958467', primary_role: 'OPERADOR_CICLONES_2', shift_code: 'G1', radio: 'Canal 2 Ciclones', phone: 'Ext. 4119', avatar: 'https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?auto=format&fit=crop&w=250&q=80' },
+      { id: 'op-g1-dist', name: 'HILARI CABRERA EDSON EUSEBIO', document_id: '40824273', primary_role: 'OPERADOR_DISTRIBUIDOR', shift_code: 'G1', radio: 'Canal 6 Distribuidor / Flujo', phone: 'Ext. 4116', avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=250&q=80' },
+      { id: 'op-g1-desc1', name: 'VILCAMIZA PEVE JORGE RICARDO', document_id: '41748219', primary_role: 'OPERADOR_DESCARGA_1', shift_code: 'G1', radio: 'Canal 4 Presa / Descarga', phone: 'Ext. 4124', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=250&q=80' },
+      { id: 'op-g1-desc2', name: 'MAMANI CUTIPA ANTHONY JESUS SMIT', document_id: '72297288', primary_role: 'OPERADOR_DESCARGA_2', shift_code: 'G1', radio: 'Canal 4 Presa / Descarga', phone: 'Ext. 4118', avatar: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=250&q=80' },
+      { id: 'op-g1-misc', name: 'ROSADO FALCON VILMA LUCIA', document_id: '45564062', primary_role: 'OPERADOR_MISCELANEOS', shift_code: 'G1', radio: 'Canal 5 Auxiliares / Planta', phone: 'Ext. 4123', avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=250&q=80' },
+
+      // G2
+      { id: 'op-g2-ctrl', name: 'CRUZ APAZA PAUL', document_id: '44428468', primary_role: 'OPERADOR_SALA_CONTROL', shift_code: 'G2', radio: 'Canal 1 Operaciones / Control', phone: 'Ext. 4115', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80' },
+      { id: 'op-g2-bombas', name: 'CASCASI FLORES LUIS ANTONIO', document_id: '43132072', primary_role: 'OPERADOR_BOMBAS', shift_code: 'G2', radio: 'Canal 3 Bombas', phone: 'Ext. 4105', avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=250&q=80' },
+      { id: 'op-g2-cyc1', name: 'CHOQUE MANZANO PEDRO IVAN', document_id: '75555937', primary_role: 'OPERADOR_CICLONES_1', shift_code: 'G2', radio: 'Canal 2 Ciclones', phone: 'Ext. 4112', avatar: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=250&q=80' },
+      { id: 'op-g2-cyc2', name: 'CAYO GOMEZ VALERIE JAZMINE', document_id: '71719330', primary_role: 'OPERADOR_CICLONES_2', shift_code: 'G2', radio: 'Canal 2 Ciclones', phone: 'Ext. 4109', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=250&q=80' },
+      { id: 'op-g2-dist', name: 'MAMANI CONDORI MARCOS', document_id: '44921034', primary_role: 'OPERADOR_DISTRIBUIDOR', shift_code: 'G2', radio: 'Canal 6 Distribuidor / Flujo', phone: 'Ext. 4113', avatar: 'https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?auto=format&fit=crop&w=250&q=80' },
+      { id: 'op-g2-desc1', name: 'QUISPE FLORES ALBERTO', document_id: '45129038', primary_role: 'OPERADOR_DESCARGA_1', shift_code: 'G2', radio: 'Canal 4 Presa / Descarga', phone: 'Ext. 4114', avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=250&q=80' },
+      { id: 'op-g2-desc2', name: 'TICONA NINA SERGIO', document_id: '46719203', primary_role: 'OPERADOR_DESCARGA_2', shift_code: 'G2', radio: 'Canal 4 Presa / Descarga', phone: 'Ext. 4110', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=250&q=80' },
+      { id: 'op-g2-misc', name: 'FLORES HUAMAN DANIEL', document_id: '71829340', primary_role: 'OPERADOR_MISCELANEOS', shift_code: 'G2', radio: 'Canal 5 Auxiliares / Planta', phone: 'Ext. 4111', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=250&q=80' },
+
+      // G3
+      { id: 'op-g3-ctrl', name: 'ZEA MAMANI WALTER', document_id: '41920384', primary_role: 'OPERADOR_SALA_CONTROL', shift_code: 'G3', radio: 'Canal 1 Operaciones / Control', phone: 'Ext. 4131', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80' },
+      { id: 'op-g3-bombas', name: 'CHURA MAMANI JORGE LUIS', document_id: '42910293', primary_role: 'OPERADOR_BOMBAS', shift_code: 'G3', radio: 'Canal 3 Bombas', phone: 'Ext. 4132', avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=250&q=80' },
+      { id: 'op-g3-cyc1', name: 'SUCA APAZA MARIO', document_id: '43819204', primary_role: 'OPERADOR_CICLONES_1', shift_code: 'G3', radio: 'Canal 2 Ciclones', phone: 'Ext. 4133', avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=250&q=80' },
+      { id: 'op-g3-cyc2', name: 'HUANCA QUISPE ELVIS', document_id: '72109283', primary_role: 'OPERADOR_CICLONES_2', shift_code: 'G3', radio: 'Canal 2 Ciclones', phone: 'Ext. 4134', avatar: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=250&q=80' },
+      { id: 'op-g3-dist', name: 'CALISAYA CONDORI NESTOR', document_id: '40918204', primary_role: 'OPERADOR_DISTRIBUIDOR', shift_code: 'G3', radio: 'Canal 6 Distribuidor / Flujo', phone: 'Ext. 4135', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=250&q=80' },
+      { id: 'op-g3-desc1', name: 'MAMANI QUISPE VICTOR', document_id: '44109283', primary_role: 'OPERADOR_DESCARGA_1', shift_code: 'G3', radio: 'Canal 4 Presa / Descarga', phone: 'Ext. 4136', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=250&q=80' },
+      { id: 'op-g3-desc2', name: 'RAMOS COAQUIRA GUIDO', document_id: '73192039', primary_role: 'OPERADOR_DESCARGA_2', shift_code: 'G3', radio: 'Canal 4 Presa / Descarga', phone: 'Ext. 4137', avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=250&q=80' },
+      { id: 'op-g3-misc', name: 'PARI MAMANI HERNAN', document_id: '42109384', primary_role: 'OPERADOR_MISCELANEOS', shift_code: 'G3', radio: 'Canal 5 Auxiliares / Planta', phone: 'Ext. 4138', avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=250&q=80' },
+
+      // G4
+      { id: 'op-g4-ctrl', name: 'ORTEGA RAMÍREZ CESAR', document_id: '40918239', primary_role: 'OPERADOR_SALA_CONTROL', shift_code: 'G4', radio: 'Canal 1 Operaciones / Control', phone: 'Ext. 4141', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80' },
+      { id: 'op-g4-bombas', name: 'CAMPOS ZEA OSWALDO', document_id: '72910394', primary_role: 'OPERADOR_BOMBAS', shift_code: 'G4', radio: 'Canal 3 Bombas', phone: 'Ext. 4142', avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=250&q=80' },
+      { id: 'op-g4-cyc1', name: 'SUÁREZ MAMANI JULIO', document_id: '44819203', primary_role: 'OPERADOR_CICLONES_1', shift_code: 'G4', radio: 'Canal 2 Ciclones', phone: 'Ext. 4143', avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=250&q=80' },
+      { id: 'op-g4-cyc2', name: 'CORNEJO NINA ALONSO', document_id: '75910293', primary_role: 'OPERADOR_CICLONES_2', shift_code: 'G4', radio: 'Canal 2 Ciclones', phone: 'Ext. 4144', avatar: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=250&q=80' },
+      { id: 'op-g4-dist', name: 'MAMANI YUCRA EDWIN', document_id: '43910293', primary_role: 'OPERADOR_DISTRIBUIDOR', shift_code: 'G4', radio: 'Canal 6 Distribuidor / Flujo', phone: 'Ext. 4145', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=250&q=80' },
+      { id: 'op-g4-desc1', name: 'CANAZA MAMANI JAIME', document_id: '42019283', primary_role: 'OPERADOR_DESCARGA_1', shift_code: 'G4', radio: 'Canal 4 Presa / Descarga', phone: 'Ext. 4146', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=250&q=80' },
+      { id: 'op-g4-desc2', name: 'QUISPE TICONA FREDY', document_id: '71920394', primary_role: 'OPERADOR_DESCARGA_2', shift_code: 'G4', radio: 'Canal 4 Presa / Descarga', phone: 'Ext. 4147', avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=250&q=80' },
+      { id: 'op-g4-misc', name: 'ALVAREZ CHURA GABRIEL', document_id: '45192038', primary_role: 'OPERADOR_MISCELANEOS', shift_code: 'G4', radio: 'Canal 5 Auxiliares / Planta', phone: 'Ext. 4148', avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=250&q=80' }
+    ];
+
+    db.exec('PRAGMA foreign_keys = OFF;');
+
+    // 0. Clean old supervisor assignments in referencing tables
+    db.prepare(`
+      DELETE FROM supervisor_operators;
+    `).run();
+    db.prepare(`
+      UPDATE crew_area_assignments 
+      SET operator_id = NULL 
+      WHERE operator_id IN ('op-klisman-g1', 'op-victor-g2', 'op-sup-g3', 'op-sup-g4');
+    `).run();
+
+    // 1. Remove obsolete test entries from crew_members
+    db.prepare(`
+      DELETE FROM crew_members 
+      WHERE id LIKE '%test%' 
+         OR name LIKE '%TEST%' 
+         OR name LIKE '%PRUEBA%'
+         OR id = 'op-klisman-g1'
+         OR id = 'op-victor-g2'
+         OR (id = 'op-sup-g3' AND name LIKE '%MENDOZA%')
+         OR (id = 'op-sup-g4' AND name LIKE '%ORTEGA%');
+    `).run();
+
+    // 2. Demote any incorrect supervisors
+    db.prepare(`
+      UPDATE crew_members 
+      SET primary_role = 'OPERADOR_SALA_CONTROL' 
+      WHERE name LIKE '%ORTEGA RAM%REZ%' AND primary_role = 'SUPERVISOR';
+    `).run();
+    db.prepare(`
+      UPDATE users 
+      SET role = 'OPERATOR' 
+      WHERE (full_name LIKE '%ORTEGA RAM%REZ%' OR full_name LIKE '%MENDOZA QUISPE%' OR full_name LIKE '%LLERENA CALLE%') 
+        AND role = 'SUPERVISOR';
+    `).run();
+
+    // 3. Upsert the 4 Official Supervisors in crew_members (safe against id or document_id conflicts)
+    const deleteOldCrew = db.prepare('DELETE FROM crew_members WHERE id = ? OR document_id = ?');
+    const insertCrew = db.prepare(`
+      INSERT INTO crew_members (id, name, document_id, primary_role, shift_code, radio_channel, phone_extension, status, avatar_url)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 'EN_TURNO', ?);
+    `);
+
+    for (const sup of OFFICIAL_SUPERVISORS_DATA) {
+      deleteOldCrew.run(sup.id, sup.document_id);
+      insertCrew.run(sup.id, sup.name, sup.document_id, 'SUPERVISOR', sup.shift, sup.radio, sup.phone, sup.avatar);
+    }
+
+    // 4. Upsert the 4 Official Supervisors in users
+    for (const sup of OFFICIAL_SUPERVISORS_DATA) {
+      const existingUser = db.prepare('SELECT id FROM users WHERE LOWER(username) = LOWER(?) OR document_id = ?').get(sup.username, sup.document_id) as any;
+      if (existingUser) {
+        db.prepare(`
+          UPDATE users 
+          SET full_name = ?, role = 'SUPERVISOR', shift = ?, document_id = ?, avatar_url = ?, primary_role = 'SUPERVISOR'
+          WHERE id = ?;
+        `).run(sup.name, sup.shift, sup.document_id, sup.avatar, existingUser.id);
+      } else {
+        db.prepare(`
+          INSERT INTO users (id, username, email, password_hash, full_name, role, shift, avatar_url, is_active, document_id, primary_role)
+          VALUES (?, ?, ?, ?, ?, 'SUPERVISOR', ?, ?, 1, ?, 'SUPERVISOR');
+        `).run(crypto.randomUUID(), sup.username, sup.email, bcrypt.hashSync(sup.document_id, 10), sup.name, sup.shift, sup.avatar, sup.document_id);
+      }
+    }
+
+    // 5. Ensure KlismanV is an ADMIN with shift ADMIN
+    db.prepare(`
+      UPDATE users 
+      SET role = 'ADMIN', shift = 'ADMIN', primary_role = 'ADMIN' 
+      WHERE LOWER(username) = 'klismanv' OR full_name LIKE '%VIZCARRA CORI%';
+    `).run();
+
+    // 6. Upsert the 32 Operators in crew_members
+    for (const op of ALL_32_OPERATORS) {
+      deleteOldCrew.run(op.id, op.document_id);
+      insertCrew.run(op.id, op.name, op.document_id, op.primary_role, op.shift_code, op.radio, op.phone, op.avatar);
+    }
+
+    // 7. Auto-link 8 operators to each official supervisor in supervisor_operators
+    db.prepare('DELETE FROM supervisor_operators WHERE supervisor_id NOT IN (?, ?, ?, ?)').run(
+      'op-g1-sup', 'op-g2-sup', 'op-g3-sup', 'op-g4-sup'
+    );
+    const insertSupOp = db.prepare(`
+      INSERT OR IGNORE INTO supervisor_operators (id, supervisor_id, operator_id, shift_code)
+      VALUES (?, ?, ?, ?);
+    `);
+    for (const op of ALL_32_OPERATORS) {
+      const supId = `op-${op.shift_code.toLowerCase()}-sup`;
+      insertSupOp.run(crypto.randomUUID(), supId, op.id, op.shift_code);
+    }
+
+    db.exec('PRAGMA foreign_keys = ON;');
+    console.log('[Database] Official 4 Supervisors and 36 Staff synchronized successfully.');
+  } catch (e) {
+    console.warn('[Database] Official supervisors synchronization warning:', e);
+  }
+
   console.log('[Database] Tables and indexes initialized successfully.');
 }

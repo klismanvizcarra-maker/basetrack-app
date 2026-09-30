@@ -1181,7 +1181,7 @@ export function updateRolePermissions(req: AuthenticatedRequest, res: Response) 
 
 export function updateUserPermissionOverrides(req: AuthenticatedRequest, res: Response) {
   try {
-    const { userId } = req.params;
+    const userId = String(req.params.userId || '');
     const { permissions } = req.body;
 
     if (!userId) {
