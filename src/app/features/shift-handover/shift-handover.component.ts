@@ -97,7 +97,7 @@ export const OFFICIAL_SUPERVISORS: OfficialSupervisor[] = [
             <span class="cell-label">Supervisor Saliente (Entrega)</span>
             <span class="cell-value">{{ latestHandover.outgoing_supervisor }}</span>
             <span class="cell-sub" *ngIf="latestHandover.outgoing_dni || latestHandover.outgoing_role">
-              DNI: {{ latestHandover.outgoing_dni || '71209033' }} • {{ latestHandover.outgoing_role || 'Supervisor de guardia' }}
+              DNI: {{ latestHandover.outgoing_dni || '41833717' }} • {{ latestHandover.outgoing_role || 'Supervisor de guardia' }}
             </span>
           </div>
           <div class="banner-cell">

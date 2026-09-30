@@ -9,6 +9,7 @@ import { getRealtimeData, saveRealtimeData } from '../../core/storage/local-stor
 import { PumpReportPdfComponent } from '../reports/pump-report-pdf.component';
 import { CrewService } from '../../core/services/crew.service';
 import { getCurrentActiveShift } from '../../shared/utils/roster.util';
+import { AuthService } from '../../core/auth/auth.service';
 
 export interface PumpStatusItem {
   tag: string;
@@ -1677,6 +1678,7 @@ export class PumpsComponent implements OnInit {
   private http = inject(HttpClient);
   offlineSync = inject(OfflineSyncService);
   private crewService = inject(CrewService);
+  private authService = inject(AuthService);
 
   activeTab: 'REPORT' | 'TELEMETRY' = 'REPORT';
   isEditModalOpen = false;
@@ -2028,7 +2030,7 @@ export class PumpsComponent implements OnInit {
       vibration_mms: this.newPump.vibration_mms,
       current_amps: this.newPump.current_amps,
       shift_code: 'G1',
-      operator_name: 'VIZCARRA CORI MANLEY KLISMAN',
+      operator_name: this.authService.currentUser()?.fullName || this.sheet.operator_name || 'MONTES RODRIGUEZ DIEGO ALEXANDER',
       notes: this.newPump.notes,
       created_at: new Date().toISOString()
     };

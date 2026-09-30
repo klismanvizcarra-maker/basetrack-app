@@ -15,7 +15,7 @@ export const authGuard: CanActivateFn = (route, state) => {
 
     const requiredRoles = route.data?.['roles'] as string[] | undefined;
     if (requiredRoles && requiredRoles.length > 0) {
-      // Super Admin (KlismanV / admin) has unconditional access to all administration routes
+      // Super Admin (Marckv / admin) has unconditional access to all administration routes
       if (authService.isAdmin()) {
         return true;
       }

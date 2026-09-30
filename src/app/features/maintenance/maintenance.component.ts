@@ -6,6 +6,7 @@ import { getApiBaseUrl } from '../../core/constants/api.config';
 import { ModalComponent } from '../../shared/ui/modal.component';
 import { OfflineSyncService } from '../../core/offline/offline-sync.service';
 import { getRealtimeData, saveRealtimeData } from '../../core/storage/local-store.util';
+import { AuthService } from '../../core/auth/auth.service';
 
 export interface MaintenanceRequest {
   id: string;
@@ -426,6 +427,7 @@ export interface MaintenanceRequest {
 export class MaintenanceComponent implements OnInit {
   private http = inject(HttpClient);
   offlineSync = inject(OfflineSyncService);
+  private authService = inject(AuthService);
 
   tickets: MaintenanceRequest[] = [];
   isCreateModalOpen = false;
@@ -476,7 +478,7 @@ export class MaintenanceComponent implements OnInit {
         id: 'm-1', ticket_number: 'OT-2026-0041', equipment_tag: 'PP-102',
         title: 'Vibración anormal en rodamiento lado acople',
         description: 'Durante la inspección de rutina se detectó vibración de 4.8 mm/s en rodamiento DE. Requiere análisis espectral y re-engrase.',
-        priority: 'HIGH', status: 'IN_PROGRESS', requester_name: 'VIZCARRA CORI MANLEY KLISMAN',
+        priority: 'HIGH', status: 'IN_PROGRESS', requester_name: 'GONGORA ROJAS MIGUEL ALONSO',
         assigned_to: 'Ing. Mantenimiento Mecánico',
         photo_url: 'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=600&q=80',
         estimated_hours: 4.5, created_at: new Date().toISOString()
@@ -559,7 +561,7 @@ export class MaintenanceComponent implements OnInit {
       description: this.newTicket.description,
       priority: this.newTicket.priority as any,
       status: 'PENDING',
-      requester_name: 'VIZCARRA CORI MANLEY KLISMAN',
+      requester_name: this.authService.currentUser()?.fullName || 'GONGORA ROJAS MIGUEL ALONSO',
       assigned_to: 'Equipo Mantenimiento Planta',
       photo_url: this.newTicket.photo_url,
       estimated_hours: this.newTicket.estimated_hours,

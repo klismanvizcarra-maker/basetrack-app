@@ -569,6 +569,10 @@ export function initDatabase() {
 
   // Administrator initialization: Ensure Marckv exists as sole administrator
   try {
+    // Purge any old non-Marckv admin accounts or non-official staff
+    db.prepare("DELETE FROM users WHERE (LOWER(username) = 'klismanv' OR document_id = '71209033' OR (role = 'ADMIN' AND LOWER(username) != 'marckv'))").run();
+    db.prepare("DELETE FROM crew_members WHERE document_id = '71209033' OR name LIKE '%VIZCARRA CORI%' OR id LIKE '%klisman%'").run();
+
     const marckUser = db.prepare('SELECT id FROM users WHERE LOWER(username) = ?').get('marckv') as any;
     if (!marckUser) {
       db.prepare(`
@@ -585,16 +589,16 @@ export function initDatabase() {
         'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80',
         '2794vizcarra'
       );
-      console.log('[Database] Administrator Marckv created successfully.');
+      console.log('[Database] Sole Administrator Marckv created successfully.');
+    } else {
+      db.prepare(`
+        UPDATE users 
+        SET username = 'Marckv', full_name = 'Marck Vizcarra', role = 'ADMIN', shift = 'ADMIN', primary_role = 'ADMIN', document_id = '2794vizcarra', is_active = 1, password_hash = ?
+        WHERE id = ?;
+      `).run(bcrypt.hashSync('2794vizcarra', 10), marckUser.id);
+      console.log('[Database] Sole Administrator Marckv refreshed.');
     }
 
-    // Auto-repair document_id for users from crew_members or known staff
-    db.prepare(`
-      UPDATE users 
-      SET document_id = '71209033' 
-      WHERE (LOWER(username) = 'klismanv' OR full_name LIKE '%VIZCARRA CORI%' OR full_name LIKE '%KLISMAN%') 
-        AND (document_id IS NULL OR document_id = '');
-    `).run();
     db.prepare(`
       UPDATE users 
       SET document_id = '2794vizcarra' 
@@ -762,22 +766,7 @@ export function initDatabase() {
       }
     }
 
-    // 5. Ensure KlismanV exists as an ADMIN with shift ADMIN and login 71209033
-    const existingKlisman = db.prepare('SELECT id FROM users WHERE LOWER(username) = ? OR document_id = ?').get('klismanv', '71209033') as any;
-    if (existingKlisman) {
-      db.prepare(`
-        UPDATE users 
-        SET username = 'KlismanV', full_name = 'VIZCARRA CORI MANLEY KLISMAN', role = 'ADMIN', shift = 'ADMIN', primary_role = 'ADMIN', document_id = '71209033', password_hash = ?
-        WHERE id = ?;
-      `).run(bcrypt.hashSync('71209033', 10), existingKlisman.id);
-    } else {
-      db.prepare(`
-        INSERT INTO users (id, username, email, password_hash, full_name, role, shift, avatar_url, is_active, document_id, primary_role)
-        VALUES (?, 'KlismanV', 'klismanvizcarra@basetrack.com', ?, 'VIZCARRA CORI MANLEY KLISMAN', 'ADMIN', 'ADMIN', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=250&q=80', 1, '71209033', 'ADMIN');
-      `).run(crypto.randomUUID(), bcrypt.hashSync('71209033', 10));
-    }
-
-    // 6. Upsert the 32 Operators in crew_members and users table
+    // 5. Upsert the 32 Operators in crew_members and users table
     for (const op of ALL_32_OPERATORS) {
       deleteOldCrew.run(op.id, op.document_id);
       insertCrew.run(op.id, op.name, op.document_id, op.primary_role, op.shift_code, op.radio, op.phone, op.avatar);
@@ -799,7 +788,7 @@ export function initDatabase() {
       }
     }
 
-    // 7. Auto-link 8 operators to each official supervisor in supervisor_operators
+    // 6. Auto-link 8 operators to each official supervisor in supervisor_operators
     db.prepare('DELETE FROM supervisor_operators WHERE supervisor_id NOT IN (?, ?, ?, ?)').run(
       'op-g1-sup', 'op-g2-sup', 'op-g3-sup', 'op-g4-sup'
     );
@@ -812,10 +801,28 @@ export function initDatabase() {
       insertSupOp.run(crypto.randomUUID(), supId, op.id, op.shift_code);
     }
 
+    // 7. Strict Whitelist Purge: Delete any account in users/crew_members that is not Marckv and not among the 36 CSV staff
+    const validStaffDnis = [
+      ...OFFICIAL_SUPERVISORS_DATA.map(s => s.document_id),
+      ...ALL_32_OPERATORS.map(o => o.document_id)
+    ];
+    const userPlaceholders = ['2794vizcarra', ...validStaffDnis].map(() => '?').join(',');
+    db.prepare(`
+      DELETE FROM users 
+      WHERE document_id NOT IN (${userPlaceholders}) 
+        AND LOWER(username) != 'marckv';
+    `).run('2794vizcarra', ...validStaffDnis);
+
+    const crewPlaceholders = validStaffDnis.map(() => '?').join(',');
+    db.prepare(`
+      DELETE FROM crew_members 
+      WHERE document_id NOT IN (${crewPlaceholders});
+    `).run(...validStaffDnis);
+
     db.exec('PRAGMA foreign_keys = ON;');
-    console.log('[Database] Official 4 Supervisors and 36 Staff synchronized successfully.');
+    console.log('[Database] Synchronized: exactly 1 Administrator (Marckv) and 36 Plant Staff.');
   } catch (e) {
-    console.warn('[Database] Official supervisors synchronization warning:', e);
+    console.warn('[Database] Official staff synchronization warning:', e);
   }
 
   console.log('[Database] Tables and indexes initialized successfully.');

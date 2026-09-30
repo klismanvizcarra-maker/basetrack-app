@@ -219,8 +219,6 @@ export async function updateProfile(req: AuthenticatedRequest, res: Response) {
           primary_role = COALESCE(?, primary_role),
           shift_code = COALESCE(?, shift_code)
         WHERE (document_id IS NOT NULL AND document_id = ?) 
-           OR document_id = '71209033' 
-           OR name LIKE '%KLISMAN%' 
            OR name = ?
       `).run(
         updatedFullName, 

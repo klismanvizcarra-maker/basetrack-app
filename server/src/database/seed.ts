@@ -435,7 +435,7 @@ export function seed() {
     const twoDaysAgo = new Date(Date.now() - 172800000).toISOString().slice(0, 10);
 
     const initialChecklists = [
-      { plate: 'BMC715', date: yesterday, time: '06:45', shift: 'G1', shift_type: 'DIA', driver: 'VIZCARRA CORI MANLEY KLISMAN', dni: '71209033', lic: 'Q71209033', odo: 48250, hasObs: 0, notes: null, photo: null, status: 'APTO' },
+      { plate: 'BMC715', date: yesterday, time: '06:45', shift: 'G1', shift_type: 'DIA', driver: 'GONGORA ROJAS MIGUEL ALONSO', dni: '41833717', lic: 'Q41833717', odo: 48250, hasObs: 0, notes: null, photo: null, status: 'APTO' },
       { plate: 'BMC715', date: twoDaysAgo, time: '18:50', shift: 'G4', shift_type: 'NOCHE', driver: 'ORTEGA RAMÍREZ CESAR', dni: '40918239', lic: 'Q40918239', odo: 48190, hasObs: 0, notes: null, photo: null, status: 'APTO' },
       { plate: 'BKS921', date: yesterday, time: '07:05', shift: 'G1', shift_type: 'DIA', driver: 'PILCO APAZA CARLOS EDUARDO', dni: '42324277', lic: 'Q42324277', odo: 53120, hasObs: 1, notes: 'Leve desgaste en plumilla limpiaparabrisas derecha. Operativo.', photo: null, status: 'OBSERVADO' },
       { plate: 'BKS921', date: twoDaysAgo, time: '06:50', shift: 'G4', shift_type: 'DIA', driver: 'CAMPOS ZEA OSWALDO', dni: '72910394', lic: 'Q72910394', odo: 53040, hasObs: 0, notes: null, photo: null, status: 'APTO' },

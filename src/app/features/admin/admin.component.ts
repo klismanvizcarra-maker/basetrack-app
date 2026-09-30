@@ -1021,10 +1021,10 @@ const DEFAULT_LOGS: AuditLog[] = [
                   (ngModelChange)="onTargetShiftChange($event)"
                 >
                   <option value="TODAS">🌟 Todas las Guardias (G1 a G4 - Planta Completa)</option>
-                  <option value="G1">🛡️ Guardia 1 (G1) - Sup. Klisman Vizcarra</option>
-                  <option value="G2">🛡️ Guardia 2 (G2) - Sup. Víctor Llerena</option>
-                  <option value="G3">🛡️ Guardia 3 (G3) - Sup. Héctor Mendoza</option>
-                  <option value="G4">🛡️ Guardia 4 (G4) - Sup. César Ortega</option>
+                  <option value="G1">🛡️ Guardia 1 (G1) - Sup. Miguel Góngora</option>
+                  <option value="G2">🛡️ Guardia 2 (G2) - Sup. Emilio Aliaga</option>
+                  <option value="G3">🛡️ Guardia 3 (G3) - Sup. Hugo Ari</option>
+                  <option value="G4">🛡️ Guardia 4 (G4) - Sup. Dante Fernández</option>
                 </select>
               </div>
 
@@ -4459,17 +4459,17 @@ export class AdminComponent implements OnInit {
       return {
         name: s.full_name,
         username: s.username,
-        dni: (s as any).document_id || (s as any).dni || '71209033',
+        dni: (s as any).document_id || (s as any).dni || (shift === 'G4' ? '18110964' : shift === 'G3' ? '40132660' : shift === 'G2' ? '46593500' : '41833717'),
         email: s.email,
         avatar: s.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${s.username}`,
         role: s.role || 'SUPERVISOR'
       };
     }
     const defaults: Record<string, any> = {
-      G1: { name: 'Supervisor Guardia 1', username: 'supervisor_g1', dni: '70010010', email: 'sup.g1@basetrack.com', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80', role: 'SUPERVISOR' },
-      G2: { name: 'Supervisor Guardia 2', username: 'supervisor_g2', dni: '70010020', email: 'sup.g2@basetrack.com', avatar: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&w=250&q=80', role: 'SUPERVISOR' },
-      G3: { name: 'Supervisor Guardia 3', username: 'supervisor_g3', dni: '70010030', email: 'sup.g3@basetrack.com', avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=250&q=80', role: 'SUPERVISOR' },
-      G4: { name: 'Supervisor Guardia 4', username: 'supervisor_g4', dni: '70010040', email: 'sup.g4@basetrack.com', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=250&q=80', role: 'SUPERVISOR' }
+      G1: { name: 'GONGORA ROJAS MIGUEL ALONSO', username: 'MiguelG', dni: '41833717', email: 'miguelgongora@basetrack.com', avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=MIGUELG', role: 'SUPERVISOR' },
+      G2: { name: 'ALIAGA CASTAÑEDA EMILIO URIEL', username: 'EmilioA', dni: '46593500', email: 'emilioaliaga@basetrack.com', avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=EMILIOA', role: 'SUPERVISOR' },
+      G3: { name: 'ARI MAMANI HUGO ANDRES', username: 'HugoA', dni: '40132660', email: 'hugoari@basetrack.com', avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=HUGOA', role: 'SUPERVISOR' },
+      G4: { name: 'FERNANDEZ ASCURRA DANTE PACO', username: 'DanteF', dni: '18110964', email: 'dantefernandez@basetrack.com', avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=DANTEF', role: 'SUPERVISOR' }
     };
     return defaults[shift] || defaults['G1'];
   }
@@ -4823,8 +4823,8 @@ export class AdminComponent implements OnInit {
             {
               device_id: this.currentDeviceId || 'dev_current_local',
               device_name: 'Estación Central (Actual)',
-              user_id: 'u-klismanv',
-              username: 'KlismanV',
+              user_id: 'u-marckv',
+              username: 'Marckv',
               ip_address: '127.0.0.1',
               user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : 'Chrome / Windows',
               last_seen: new Date().toISOString(),

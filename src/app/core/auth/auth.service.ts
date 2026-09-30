@@ -231,7 +231,7 @@ export class AuthService {
     this.setLocalUser(updatedUser);
     this.saveUserToRegistry(updatedUser);
 
-    // 2. Synchronize with crew members cache if KlismanV or member
+    // 2. Synchronize with crew members cache
     this.syncWithCrewCache(updatedUser);
 
     // 3. Send to backend API
@@ -351,10 +351,7 @@ export class AuthService {
     if (user) {
       if (!user.document_id) {
         const uLower = (user.username || '').toLowerCase();
-        const fLower = (user.fullName || '').toLowerCase();
-        if (uLower === 'klismanv' || fLower.includes('klisman') || fLower.includes('vizcarra cori')) {
-          user.document_id = '71209033';
-        } else if (uLower === 'marckv' || uLower === 'admin') {
+        if (uLower === 'marckv' || uLower === 'admin') {
           user.document_id = '2794vizcarra';
         } else if (typeof localStorage !== 'undefined') {
           try {
@@ -386,10 +383,8 @@ export class AuthService {
         let changed = false;
         const updatedCrew = crewList.map(member => {
           if (
-            member.name?.toLowerCase().includes('klisman') ||
-            member.name?.toLowerCase() === user.fullName?.toLowerCase() ||
-            (user.document_id && member.document_id === user.document_id) ||
-            member.document_id === '71209033'
+            (user.fullName && member.name?.toLowerCase() === user.fullName?.toLowerCase()) ||
+            (user.document_id && member.document_id === user.document_id)
           ) {
             changed = true;
             let sCode = (user.shift || member.shift_code) as string;

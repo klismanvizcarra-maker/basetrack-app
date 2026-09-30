@@ -1410,7 +1410,7 @@ export class ShiftReportPdfComponent implements OnInit, OnChanges {
   }
 
   get outgoingSupervisorDni(): string {
-    if (this.reportData.outgoing_dni && this.reportData.outgoing_dni !== '71209033') {
+    if (this.reportData.outgoing_dni) {
       return this.reportData.outgoing_dni;
     }
     const active = getCurrentActiveShift();

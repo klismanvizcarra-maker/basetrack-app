@@ -115,7 +115,7 @@ export class PermissionsService {
     const user = this.authService.currentUser();
     if (!user) return [];
 
-    // Super Admin KlismanV / admin has all permissions unconditionally
+    // Super Admin Marckv / admin has all permissions unconditionally
     if (this.authService.isAdmin()) {
       return ALL_PERMISSIONS.map(p => p.key);
     }

@@ -97,7 +97,7 @@ export class VehicleChecklistComponent implements OnInit {
     this.formShift = ['G1', 'G2', 'G3', 'G4'].includes(userShift) ? (userShift as any) : (activeShift as any);
     
     // Driver Full Name
-    this.formDriverName = user?.fullName || user?.username || 'VIZCARRA CORI MANLEY KLISMAN';
+    this.formDriverName = user?.fullName || user?.username || 'Marck Vizcarra';
 
     // Driver DNI resolution
     let dni = user?.document_id || '';
@@ -113,17 +113,14 @@ export class VehicleChecklistComponent implements OnInit {
     }
     if (!dni) {
       const uLower = (user?.username || '').toLowerCase();
-      const fLower = this.formDriverName.toLowerCase();
-      if (uLower === 'klismanv' || fLower.includes('klisman') || fLower.includes('vizcarra cori')) {
-        dni = '71209033';
-      } else if (uLower === 'marckv' || uLower === 'admin') {
+      if (uLower === 'marckv' || uLower === 'admin') {
         dni = '2794vizcarra';
       }
     }
     this.formDriverDni = dni;
 
     // Driver License auto-fill
-    this.formDriverLicense = this.formDriverDni ? `Q${this.formDriverDni}` : 'Q71209033';
+    this.formDriverLicense = this.formDriverDni ? `Q${this.formDriverDni}` : 'Q2794vizcarra';
     
     // Set initial odometer suggested from vehicle current odometer + 5 km
     this.formOdometer = currentVeh.currentOdometer + 5;
@@ -245,15 +242,12 @@ export class VehicleChecklistComponent implements OnInit {
 
   submitChecklist(): void {
     if (!this.formDriverName) {
-      this.formDriverName = this.authService.currentUser()?.fullName || 'VIZCARRA CORI MANLEY KLISMAN';
+      this.formDriverName = this.authService.currentUser()?.fullName || 'Marck Vizcarra';
     }
 
     if (!this.formDriverDni) {
       const uLower = (this.authService.currentUser()?.username || '').toLowerCase();
-      const fLower = (this.formDriverName || '').toLowerCase();
-      if (uLower === 'klismanv' || fLower.includes('klisman') || fLower.includes('vizcarra cori')) {
-        this.formDriverDni = '71209033';
-      } else if (uLower === 'marckv' || uLower === 'admin') {
+      if (uLower === 'marckv' || uLower === 'admin') {
         this.formDriverDni = '2794vizcarra';
       }
     }

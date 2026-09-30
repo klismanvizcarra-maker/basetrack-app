@@ -124,7 +124,7 @@ import { ThemeService } from '../../core/theme/theme.service';
             <div class="quick-op-list">
               <div class="quick-op-item">
                 <span class="op-label">DNI / Carnet:</span>
-                <strong class="op-value font-mono">{{ profileForm.document_id || '71209033' }}</strong>
+                <strong class="op-value font-mono">{{ profileForm.document_id || '---' }}</strong>
               </div>
               <div class="quick-op-item">
                 <span class="op-label">Canal Radial:</span>
@@ -242,7 +242,7 @@ import { ThemeService } from '../../core/theme/theme.service';
                       type="text"
                       [(ngModel)]="profileForm.document_id"
                       name="documentId"
-                      placeholder="Ej. 71209033"
+                      placeholder="Ej. 41833717"
                       maxlength="12"
                       required
                     />
@@ -1144,7 +1144,7 @@ export class ProfileComponent implements OnInit {
         email: user.email || '',
         shift: user.shift || 'G1',
         avatarUrl: user.avatarUrl || this.presetAvatars[0].url,
-        document_id: user.document_id || '71209033',
+        document_id: user.document_id || '',
         radio_channel: user.radio_channel || 'Canal 1 Operaciones',
         phone_extension: user.phone_extension || 'Anexo 402',
         primary_role: user.primary_role || (user.role === 'ADMIN' || user.role === 'SUPERVISOR' ? 'SUPERVISOR' : 'OPERADOR_BOMBAS')
