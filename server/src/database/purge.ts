@@ -44,6 +44,32 @@ export function purgeAndSetSoleAdmin() {
     '91209966'
   );
 
+  // 4. Seed initial active operational shift handover for current shift
+  db.prepare(`
+    INSERT INTO shift_handovers (
+      id, shift_code, date, shift_type, outgoing_supervisor, outgoing_dni, outgoing_role,
+      incoming_supervisor, incoming_dni, incoming_role,
+      plant_status, tonnage_processed, safety_incidents, operational_highlights, pending_tasks, status
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    'sh-active-g4-dia',
+    'G4_DIA_20260930',
+    '2026-09-30',
+    'DIA',
+    'Marck Vizcarra',
+    '91209966',
+    'Administrador de Planta',
+    'En espera de relevo de guardia',
+    '---',
+    'Supervisor de guardia',
+    'Operación continua en condiciones estables de proceso. Circuitos de molienda SAG, flotación y espesamiento operando según parámetros de diseño.',
+    24500,
+    'Cero accidentes laborales (LTI: 0). Charla de seguridad de 5 minutos dictada.',
+    'Monitoreo continuo de presiones y densidades en ciclones y bombeo de pulpa.',
+    'Mantener control de nivel en presa de relaves y dosificación en planta de reactivos.',
+    'SUBMITTED'
+  );
+
   db.exec('PRAGMA foreign_keys = ON;');
 
   const remainingUsers = db.prepare('SELECT id, username, full_name, role, shift, document_id FROM users').all();
