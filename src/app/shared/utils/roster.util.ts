@@ -30,42 +30,42 @@ export const GUARDS_CATALOG: Record<GuardCode, GuardInfo> = {
   G1: {
     code: 'G1',
     name: 'Guardia 1',
-    supervisorName: 'Sin Asignar',
-    supervisorUser: '',
+    supervisorName: 'GONGORA ROJAS MIGUEL ALONSO',
+    supervisorUser: 'MIGUELG',
     colorHex: '#1d4ed8', // Azul Cobalto
     bgLight: '#eff6ff',
     badgeBorder: '#93c5fd',
-    avatarUrl: ''
+    avatarUrl: 'https://api.dicebear.com/7.x/bottts/svg?seed=MIGUELG'
   },
   G2: {
     code: 'G2',
     name: 'Guardia 2',
-    supervisorName: 'Sin Asignar',
-    supervisorUser: '',
+    supervisorName: 'ALIAGA CASTAÑEDA EMILIO URIEL',
+    supervisorUser: 'EMILIOA',
     colorHex: '#059669', // Verde Esmeralda
     bgLight: '#ecfdf5',
     badgeBorder: '#6ee7b7',
-    avatarUrl: ''
+    avatarUrl: 'https://api.dicebear.com/7.x/bottts/svg?seed=EMILIOA'
   },
   G3: {
     code: 'G3',
     name: 'Guardia 3',
-    supervisorName: 'Sin Asignar',
-    supervisorUser: '',
+    supervisorName: 'ARI MAMANI HUGO ANDRES',
+    supervisorUser: 'HUGOA',
     colorHex: '#d97706', // Ámbar Minero
     bgLight: '#fffbeb',
     badgeBorder: '#fcd34d',
-    avatarUrl: ''
+    avatarUrl: 'https://api.dicebear.com/7.x/bottts/svg?seed=HUGOA'
   },
   G4: {
     code: 'G4',
     name: 'Guardia 4',
-    supervisorName: 'Sin Asignar',
-    supervisorUser: '',
+    supervisorName: 'FERNANDEZ ASCURRA DANTE PACO',
+    supervisorUser: 'DANTEF',
     colorHex: '#7c3aed', // Púrpura Industrial
     bgLight: '#f5f3ff',
     badgeBorder: '#c4b5fd',
-    avatarUrl: ''
+    avatarUrl: 'https://api.dicebear.com/7.x/bottts/svg?seed=DANTEF'
   }
 };
 

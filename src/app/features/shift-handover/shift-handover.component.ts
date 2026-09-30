@@ -41,7 +41,12 @@ export interface OfficialSupervisor {
   shift: string;
 }
 
-export const OFFICIAL_SUPERVISORS: OfficialSupervisor[] = [];
+export const OFFICIAL_SUPERVISORS: OfficialSupervisor[] = [
+  { shift: 'G1', name: 'GONGORA ROJAS MIGUEL ALONSO', dni: '41833717', role: 'Supervisor de guardia' },
+  { shift: 'G2', name: 'ALIAGA CASTAÑEDA EMILIO URIEL', dni: '46593500', role: 'Supervisor de guardia' },
+  { shift: 'G3', name: 'ARI MAMANI HUGO ANDRES', dni: '40132660', role: 'Supervisor de guardia' },
+  { shift: 'G4', name: 'FERNANDEZ ASCURRA DANTE PACO', dni: '18110964', role: 'Supervisor de guardia' }
+];
 
 @Component({
   selector: 'app-shift-handover',
@@ -983,14 +988,14 @@ export class ShiftHandoverComponent implements OnInit {
   newHandover = {
     shift_code: 'G4_DIA_' + new Date().toISOString().slice(5, 10).replace('-', ''),
     shift_type: 'DIA' as 'DIA' | 'NOCHE',
-    outgoing_supervisor: 'Marck Vizcarra',
-    outgoing_dni: '91209966',
-    outgoing_role: 'Administrador',
-    incoming_supervisor: '',
-    incoming_dni: '',
+    outgoing_supervisor: 'FERNANDEZ ASCURRA DANTE PACO',
+    outgoing_dni: '18110964',
+    outgoing_role: 'Supervisor de guardia',
+    incoming_supervisor: 'ALIAGA CASTAÑEDA EMILIO URIEL',
+    incoming_dni: '46593500',
     incoming_role: 'Supervisor de guardia',
     plant_status: 'Operación de planta en condiciones normales de proceso. Circuitos de molienda y flotación estables.',
-    tonnage_processed: 0,
+    tonnage_processed: 24500,
     safety_incidents: 'Cero accidentes laborales (LTI: 0). Charla de seguridad dictada.',
     pending_tasks: ''
   };
@@ -1077,8 +1082,13 @@ export class ShiftHandoverComponent implements OnInit {
     const isMock = 
       outName.includes('Roberto Quispe') ||
       outName.includes('VIZCARRA CORI') ||
+      outName.includes('Marck Vizcarra') ||
       inName.includes('Marco Vel') ||
-      inName.includes('LLERENA CALLE');
+      inName.includes('LLERENA CALLE') ||
+      inName.includes('En espera de relevo') ||
+      inName.includes('Marck Vizcarra') ||
+      !h.incoming_supervisor ||
+      h.incoming_supervisor === '---';
     const isOldDate = h.date && h.date < '2026-09-26';
     return isMock || isOldDate;
   }
@@ -1120,19 +1130,24 @@ export class ShiftHandoverComponent implements OnInit {
     const shiftInfo = getCurrentActiveShift();
     const todayStr = shiftInfo.dateStr || getLocalDateString();
     const shiftType = shiftInfo.shiftName;
-    const guardCode = shiftInfo.activeGuard.code;
-    const user = this.authService.currentUser();
+    const outGuard = shiftInfo.activeGuard;
+    const inGuard = shiftInfo.nextGuard;
+
+    const outSup = this.crewService.getActiveSupervisorForShift(outGuard.code) ||
+                   this.officialSupervisors.find(s => s.shift === outGuard.code);
+    const inSup = this.crewService.getActiveSupervisorForShift(inGuard.code) ||
+                  this.officialSupervisors.find(s => s.shift === inGuard.code);
 
     const activeHandover: ShiftHandover = {
       id: 'sh-active-' + todayStr.replace(/-/g, ''),
-      shift_code: `${guardCode}_${shiftType}_${todayStr.slice(5).replace('-', '')}`,
+      shift_code: `${outGuard.code}_${shiftType}_${todayStr.slice(5).replace('-', '')}`,
       date: todayStr,
       shift_type: shiftType,
-      outgoing_supervisor: user?.fullName || 'Marck Vizcarra',
-      outgoing_dni: (user as any)?.document_id || '91209966',
-      outgoing_role: 'Administrador de Planta',
-      incoming_supervisor: 'En espera de relevo de guardia',
-      incoming_dni: '---',
+      outgoing_supervisor: outSup?.name || outGuard.supervisorName || 'FERNANDEZ ASCURRA DANTE PACO',
+      outgoing_dni: (outSup as any)?.document_id || (outSup as any)?.dni || '18110964',
+      outgoing_role: 'Supervisor de guardia',
+      incoming_supervisor: inSup?.name || inGuard.supervisorName || 'ALIAGA CASTAÑEDA EMILIO URIEL',
+      incoming_dni: (inSup as any)?.document_id || (inSup as any)?.dni || '46593500',
       incoming_role: 'Supervisor de guardia',
       plant_status: 'Operación continua en condiciones estables de proceso. Circuitos de molienda SAG, flotación y espesamiento operando según parámetros de diseño.',
       tonnage_processed: 24500,
@@ -1155,24 +1170,21 @@ export class ShiftHandoverComponent implements OnInit {
     const inGuard = shiftInfo.nextGuard;
     const shiftType = shiftInfo.shiftName;
 
-    const user = this.authService.currentUser();
-    const outSup = this.officialSupervisors.find(s => s.shift === outGuard.code) ||
-                   this.crewService.getActiveSupervisorForShift(outGuard.code);
-    if (outSup && outSup.name !== 'Sin Supervisor Asignado') {
+    const outSup = this.crewService.getActiveSupervisorForShift(outGuard.code) ||
+                   this.officialSupervisors.find(s => s.shift === outGuard.code);
+    if (outSup) {
       this.newHandover.outgoing_supervisor = outSup.name;
-      this.newHandover.outgoing_dni = (outSup as any).dni || (outSup as any).document_id || '';
+      this.newHandover.outgoing_dni = (outSup as any)?.document_id || (outSup as any)?.dni || '';
       this.newHandover.outgoing_role = 'Supervisor de guardia';
     } else {
-      this.newHandover.outgoing_supervisor = user?.fullName || outGuard.supervisorName || 'Marck Vizcarra';
-      this.newHandover.outgoing_dni = (user as any)?.document_id || '91209966';
-      this.newHandover.outgoing_role = user?.role === 'ADMIN' ? 'Administrador' : 'Supervisor de guardia';
+      this.newHandover.outgoing_supervisor = outGuard.supervisorName;
     }
 
-    const inSup = this.officialSupervisors.find(s => s.shift === inGuard.code) ||
-                  this.crewService.getActiveSupervisorForShift(inGuard.code);
+    const inSup = this.crewService.getActiveSupervisorForShift(inGuard.code) ||
+                  this.officialSupervisors.find(s => s.shift === inGuard.code);
     if (inSup) {
       this.newHandover.incoming_supervisor = inSup.name;
-      this.newHandover.incoming_dni = (inSup as any).dni || (inSup as any).document_id || '';
+      this.newHandover.incoming_dni = (inSup as any)?.document_id || (inSup as any)?.dni || '';
       this.newHandover.incoming_role = 'Supervisor de guardia';
     } else {
       this.newHandover.incoming_supervisor = inGuard.supervisorName;
@@ -1241,12 +1253,20 @@ export class ShiftHandoverComponent implements OnInit {
 
   acceptHandover(id: string): void {
     const found = this.handovers.find(h => h.id === id);
+    const shiftInfo = getCurrentActiveShift();
+    const nextSup = this.crewService.getActiveSupervisorForShift(shiftInfo.nextGuard.code) ||
+                    this.officialSupervisors.find(s => s.shift === shiftInfo.nextGuard.code);
+
     const currentUser = this.authService.currentUser();
-    const supFound = this.officialSupervisors.find(s => s.name === currentUser?.fullName) || this.officialSupervisors[1];
+    const isCurrentUserOfficialSup = this.officialSupervisors.find(s => s.name === currentUser?.fullName || s.dni === currentUser?.document_id);
+
+    const finalIncomingSup = isCurrentUserOfficialSup 
+      ? isCurrentUserOfficialSup 
+      : (nextSup || this.officialSupervisors[1]);
 
     const acceptPayload = {
-      incoming_supervisor: currentUser?.fullName || supFound.name,
-      incoming_dni: (currentUser as any)?.document_id || supFound.dni,
+      incoming_supervisor: finalIncomingSup.name,
+      incoming_dni: (finalIncomingSup as any).dni || (finalIncomingSup as any).document_id || '46593500',
       incoming_role: 'Supervisor de guardia'
     };
 
