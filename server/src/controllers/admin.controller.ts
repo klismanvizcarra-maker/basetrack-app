@@ -535,7 +535,9 @@ export function resetApp(req: AuthenticatedRequest, res: Response) {
     const currentUserId = req.user?.userId;
     const currentUsername = req.user?.username;
 
-    let adminUser = db.prepare('SELECT id, username, password_hash, role, full_name, email, document_id FROM users WHERE id = ?').get(currentUserId) as any;
+    let adminUser = currentUserId 
+      ? (db.prepare('SELECT id, username, password_hash, role, full_name, email, document_id FROM users WHERE id = ?').get(currentUserId) as any)
+      : null;
     if (!adminUser && currentUsername) {
       adminUser = db.prepare('SELECT id, username, password_hash, role, full_name, email, document_id FROM users WHERE username = ?').get(currentUsername) as any;
     }
