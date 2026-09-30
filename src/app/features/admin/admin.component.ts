@@ -111,6 +111,15 @@ const DEFAULT_LOGS: AuditLog[] = [
             </svg>
             Restaurar Backup JSON
           </button>
+          <button class="btn btn-danger btn-reset-app" (click)="openResetAppModal()" title="Restablecer completamente la aplicación a estado inicial limpio">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <path d="M3 6h18"></path>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              <line x1="10" y1="11" x2="10" y2="17"></line>
+              <line x1="14" y1="11" x2="14" y2="17"></line>
+            </svg>
+            Reset App (Limpieza Total)
+          </button>
         </div>
       </div>
 
@@ -1431,6 +1440,60 @@ const DEFAULT_LOGS: AuditLog[] = [
           >
             Vincular a esta Cuadrilla
           </button>
+        </div>
+      </app-modal>
+
+      <!-- Modal: Reset App (Limpieza Total) con Confirmación de Clave -->
+      <app-modal
+        [isOpen]="isResetAppModalOpen"
+        [title]="'⚠️ Reset App: Restablecimiento Total del Sistema'"
+        [showFooter]="false"
+        (close)="isResetAppModalOpen = false"
+      >
+        <div class="reset-app-modal-body">
+          <div class="reset-app-warning-box">
+            <div class="warning-icon-large">⚠️</div>
+            <div class="warning-text">
+              <h4>¿Estás seguro de restablecer completamente la aplicación?</h4>
+              <p>Esta acción es <strong>IRREVERSIBLE</strong> y realizará una depuración total:</p>
+              <ul>
+                <li>❌ <strong>Eliminará todos los usuarios y operadores</strong> registrados.</li>
+                <li>❌ <strong>Eliminará todos los reportes</strong>: bitácoras de relevo de guardia, bombas, ciclones, relaves y checklists vehiculares.</li>
+                <li>❌ <strong>Eliminará todas las solicitudes de mantenimiento</strong> y asignaciones de cuadrilla.</li>
+                <li>✅ <strong>Dejará la app 100% limpia</strong>, conservando únicamente tu cuenta oficial de Administrador.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="reset-app-form-group">
+            <label for="resetPasswordInput">
+              <strong>Ingresa tu contraseña de Administrador para autorizar el reseteo:</strong>
+            </label>
+            <input 
+              id="resetPasswordInput" 
+              type="password" 
+              class="modal-input" 
+              [(ngModel)]="resetAppPassword" 
+              placeholder="Contraseña del Administrador..." 
+              autocomplete="current-password"
+              (keyup.enter)="confirmResetApp()"
+            />
+            <span class="reset-error-msg" *ngIf="resetAppErrorMessage">⚠️ {{ resetAppErrorMessage }}</span>
+          </div>
+
+          <div class="modal-buttons" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 14px;">
+            <button type="button" class="btn btn-secondary" (click)="isResetAppModalOpen = false" [disabled]="isResettingApp">
+              Cancelar
+            </button>
+            <button 
+              type="button" 
+              class="btn btn-danger btn-reset-app" 
+              (click)="confirmResetApp()" 
+              [disabled]="!resetAppPassword || isResettingApp"
+            >
+              {{ isResettingApp ? 'Restableciendo Sistema...' : 'Confirmar y Limpiar Todo' }}
+            </button>
+          </div>
         </div>
       </app-modal>
   `,
@@ -3855,6 +3918,77 @@ const DEFAULT_LOGS: AuditLog[] = [
         margin: 0;
       }
     }
+
+    .btn-reset-app {
+      background: #dc2626 !important;
+      color: #ffffff !important;
+      border: 1px solid #b91c1c !important;
+      font-weight: 700;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: #b91c1c !important;
+        box-shadow: 0 4px 12px rgba(220, 38, 38, 0.35);
+      }
+    }
+
+    .reset-app-modal-body {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .reset-app-warning-box {
+      display: flex;
+      gap: 14px;
+      padding: 14px;
+      background: #fef2f2;
+      border: 1.5px solid #fecaca;
+      border-radius: var(--radius-md, 8px);
+      color: #991b1b;
+
+      .warning-icon-large {
+        font-size: 2rem;
+        line-height: 1;
+        flex-shrink: 0;
+      }
+
+      h4 {
+        margin: 0 0 6px 0;
+        font-size: 0.95rem;
+        font-weight: 800;
+        color: #991b1b;
+      }
+
+      p {
+        margin: 0 0 6px 0;
+        font-size: 0.82rem;
+      }
+
+      ul {
+        margin: 0;
+        padding-left: 18px;
+        font-size: 0.78rem;
+        line-height: 1.45;
+      }
+    }
+
+    .reset-app-form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+
+      label {
+        font-size: 0.82rem;
+        color: var(--text-primary);
+      }
+
+      .reset-error-msg {
+        color: #dc2626;
+        font-size: 0.78rem;
+        font-weight: 700;
+      }
+    }
   `]
 })
 export class AdminComponent implements OnInit {
@@ -3975,6 +4109,12 @@ export class AdminComponent implements OnInit {
   pastedText = '';
   isImporting = false;
   parsedBulkUsers: any[] = [];
+
+  // Reset App State (Limpieza Total con Clave)
+  isResetAppModalOpen = false;
+  resetAppPassword = '';
+  resetAppErrorMessage = '';
+  isResettingApp = false;
 
   // Toolbar & Search Filters (Punto 1)
   userSearchQuery = '';
@@ -5033,6 +5173,73 @@ export class AdminComponent implements OnInit {
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem('basetrack_admin_users', JSON.stringify(this.users));
     }
+  }
+
+  // ==========================================
+  // RESET APP (LIMPIEZA TOTAL CON CLAVE)
+  // ==========================================
+  openResetAppModal(): void {
+    this.resetAppPassword = '';
+    this.resetAppErrorMessage = '';
+    this.isResettingApp = false;
+    this.isResetAppModalOpen = true;
+  }
+
+  confirmResetApp(): void {
+    if (!this.resetAppPassword || !this.resetAppPassword.trim()) {
+      this.resetAppErrorMessage = 'Debes ingresar tu contraseña de Administrador para confirmar.';
+      return;
+    }
+
+    this.isResettingApp = true;
+    this.resetAppErrorMessage = '';
+
+    this.http.post<any>(`${getApiBaseUrl()}/admin/reset-app`, { password: this.resetAppPassword.trim() })
+      .subscribe({
+        next: (res) => {
+          this.isResettingApp = false;
+          this.isResetAppModalOpen = false;
+
+          // Limpieza total del almacenamiento local (dejando únicamente la sesión activa del admin)
+          if (typeof localStorage !== 'undefined') {
+            const keysToPurge = [
+              'basetrack_admin_users',
+              'basetrack_crew_members',
+              'basetrack_supervisor_operators',
+              'basetrack_my_operators',
+              'basetrack_users_registry',
+              'shift_handovers',
+              'tailings_reports',
+              'pump_sheets',
+              'cyclone_samples',
+              'vehicle_checklists'
+            ];
+            keysToPurge.forEach(k => localStorage.removeItem(k));
+
+            // Limpiar también todas las asignaciones dinámicas por turno y colas offline
+            for (let i = localStorage.length - 1; i >= 0; i--) {
+              const key = localStorage.key(i);
+              if (key && (key.startsWith('basetrack_assignments_') || key.startsWith('offline_queue'))) {
+                localStorage.removeItem(key);
+              }
+            }
+          }
+
+          this.backupSuccessMessage = '✅ ¡Reset App completado! Toda la aplicación ha quedado limpia de usuarios y reportes.';
+          setTimeout(() => this.backupSuccessMessage = '', 7000);
+
+          // Recargar datos limpios
+          this.loadUsers();
+          this.loadLogs();
+          this.loadSupervisorsAndOperators();
+          this.loadConnectedDevices();
+          this.crewService.loadCrew().subscribe();
+        },
+        error: (err) => {
+          this.isResettingApp = false;
+          this.resetAppErrorMessage = err?.error?.message || 'Error al restablecer la aplicación. Verifica tu contraseña.';
+        }
+      });
   }
 
   // ==========================================

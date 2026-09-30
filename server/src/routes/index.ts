@@ -29,7 +29,8 @@ import {
   updateRolePermissions,
   updateUserPermissionOverrides,
   resetPermissionsMatrix,
-  getMyPermissions
+  getMyPermissions,
+  resetApp
 } from '../controllers/admin.controller.js';
 import { getCrewMembers, createCrewMember, updateCrewMember, deleteCrewMember, getAreaAssignments, saveAreaAssignment, checkinAreaAssignment, getCrewPositions, createCrewPosition, deleteCrewPosition } from '../controllers/crew.controller.js';
 import { pushEvents, pullEvents, getSyncStatus } from '../controllers/sync.controller.js';
@@ -97,6 +98,7 @@ apiRouter.post('/admin/bulk-upload', authenticateToken, requireRoles('ADMIN'), c
 apiRouter.get('/admin/audit-logs', authenticateToken, requireRoles('ADMIN'), getAuditLogs);
 apiRouter.get('/admin/backup', authenticateToken, requireRoles('ADMIN'), getDatabaseBackup);
 apiRouter.post('/admin/restore', authenticateToken, requireRoles('ADMIN'), restoreDatabaseBackup);
+apiRouter.post('/admin/reset-app', authenticateToken, requireRoles('ADMIN'), resetApp);
 apiRouter.patch('/admin/users/:id/role-shift', authenticateToken, requireRoles('ADMIN'), updateUserRoleShift);
 apiRouter.post('/admin/users/:id/reset-password', authenticateToken, requireRoles('ADMIN'), resetUserPassword);
 apiRouter.patch('/admin/users/:id/status', authenticateToken, requireRoles('ADMIN'), toggleUserStatus);

@@ -671,6 +671,52 @@ test('21. Permissions Matrix: GET, PUT roles, PUT overrides, GET /auth/permissio
   assert.strictEqual(resetJson.rolePermissions.OPERATOR.includes('CAN_CLOSE_SHIFT'), false);
 });
 
+test('22. POST /api/admin/reset-app: require admin password confirmation and perform full system reset', async () => {
+  // 1. Rejects request without password
+  const noPassRes = await fetch(`${baseUrl}/admin/reset-app`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${authToken}`
+    },
+    body: JSON.stringify({})
+  });
+  assert.strictEqual(noPassRes.status, 400);
+
+  // 2. Rejects request with incorrect password
+  const wrongPassRes = await fetch(`${baseUrl}/admin/reset-app`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${authToken}`
+    },
+    body: JSON.stringify({ password: 'WrongPassword123!' })
+  });
+  assert.strictEqual(wrongPassRes.status, 401);
+
+  // 3. Succeeds with correct admin password (91209966)
+  const resetRes = await fetch(`${baseUrl}/admin/reset-app`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${authToken}`
+    },
+    body: JSON.stringify({ password: '91209966' })
+  });
+  assert.strictEqual(resetRes.status, 200);
+  const resetJson = await resetRes.json() as any;
+  assert.strictEqual(resetJson.success, true);
+
+  // 4. Verify only admin user remains in users table
+  const usersRes = await fetch(`${baseUrl}/admin/users`, {
+    headers: { 'Authorization': `Bearer ${authToken}` }
+  });
+  assert.strictEqual(usersRes.status, 200);
+  const usersJson = await usersRes.json() as any;
+  assert.strictEqual(usersJson.count, 1);
+  assert.strictEqual(usersJson.data[0].role, 'ADMIN');
+});
+
 test.after(async () => {
   // Purge any test users or links created during testing and restore clean slate
   try {

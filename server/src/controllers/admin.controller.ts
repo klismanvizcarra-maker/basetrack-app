@@ -522,6 +522,109 @@ export function restoreDatabaseBackup(req: AuthenticatedRequest, res: Response) 
   }
 }
 
+export function resetApp(req: AuthenticatedRequest, res: Response) {
+  try {
+    const { password } = req.body;
+    if (!password || typeof password !== 'string' || !password.trim()) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Debe ingresar su contraseña de Administrador para autorizar el restablecimiento total.' 
+      });
+    }
+
+    const currentUserId = req.user?.userId;
+    const currentUsername = req.user?.username;
+
+    let adminUser = db.prepare('SELECT id, username, password_hash, role, full_name, email, document_id FROM users WHERE id = ?').get(currentUserId) as any;
+    if (!adminUser && currentUsername) {
+      adminUser = db.prepare('SELECT id, username, password_hash, role, full_name, email, document_id FROM users WHERE username = ?').get(currentUsername) as any;
+    }
+
+    if (!adminUser) {
+      return res.status(404).json({ success: false, message: 'Usuario Administrador no identificado.' });
+    }
+
+    if (adminUser.role !== 'ADMIN') {
+      return res.status(403).json({ success: false, message: 'Solo un usuario con rol ADMIN puede ejecutar esta acción.' });
+    }
+
+    const isMatch = bcrypt.compareSync(password.trim(), adminUser.password_hash);
+    if (!isMatch) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Contraseña incorrecta. Confirmación de reseteo denegada por seguridad.' 
+      });
+    }
+
+    // Execute complete database clean slate
+    db.exec('PRAGMA foreign_keys = OFF;');
+    db.exec('BEGIN TRANSACTION;');
+
+    try {
+      // 1. Wipe all operational reports, handovers, samples, checklists and assignments
+      db.prepare('DELETE FROM shift_handovers').run();
+      db.prepare('DELETE FROM pump_reports').run();
+      db.prepare('DELETE FROM pump_station_sheets').run();
+      db.prepare('DELETE FROM cyclone_reports').run();
+      db.prepare('DELETE FROM cyclone_station_samples').run();
+      db.prepare('DELETE FROM tailings_reports').run();
+      db.prepare('DELETE FROM maintenance_requests').run();
+      db.prepare('DELETE FROM vehicle_checklists').run();
+      db.prepare('DELETE FROM crew_area_assignments').run();
+      db.prepare('DELETE FROM supervisor_operators').run();
+      db.prepare('DELETE FROM crew_members').run();
+      db.prepare('DELETE FROM user_permission_overrides').run();
+      db.prepare('DELETE FROM audit_logs').run();
+      db.prepare('DELETE FROM sync_events').run();
+      db.prepare('DELETE FROM connected_devices').run();
+
+      // 2. Delete all users except the authorized administrator
+      db.prepare('DELETE FROM users WHERE id != ?').run(adminUser.id);
+
+      // 3. Keep 4 official supervisors in crew_members with clean state
+      const OFFICIAL_SUPERVISORS_DATA = [
+        { id: 'op-g1-sup', username: 'MiguelG', name: 'GONGORA ROJAS MIGUEL ALONSO', document_id: '41833717', shift: 'G1', email: 'miguelgongora@basetrack.com', radio: 'Canal 1 Operaciones / Control', phone: 'Ext. 4101', avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=MIGUELG' },
+        { id: 'op-g2-sup', username: 'EmilioA', name: 'ALIAGA CASTAÑEDA EMILIO URIEL', document_id: '46593500', shift: 'G2', email: 'emilioaliaga@basetrack.com', radio: 'Canal 1 Operaciones / Control', phone: 'Ext. 4102', avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=EMILIOA' },
+        { id: 'op-g3-sup', username: 'HugoA', name: 'ARI MAMANI HUGO ANDRES', document_id: '40132660', shift: 'G3', email: 'hugoari@basetrack.com', radio: 'Canal 1 Operaciones / Control', phone: 'Ext. 4103', avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=HUGOA' },
+        { id: 'op-g4-sup', username: 'DanteF', name: 'FERNANDEZ ASCURRA DANTE PACO', document_id: '18110964', shift: 'G4', email: 'dantefernandez@basetrack.com', radio: 'Canal 1 Operaciones / Control', phone: 'Ext. 4104', avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=DANTEF' }
+      ];
+
+      const insertCrew = db.prepare(`
+        INSERT OR REPLACE INTO crew_members (id, name, document_id, primary_role, shift_code, radio_channel, phone_extension, status, avatar_url)
+        VALUES (?, ?, ?, 'SUPERVISOR', ?, ?, ?, 'EN_TURNO', ?);
+      `);
+
+      for (const sup of OFFICIAL_SUPERVISORS_DATA) {
+        insertCrew.run(sup.id, sup.name, sup.document_id, sup.shift, sup.radio, sup.phone, sup.avatar);
+      }
+
+      db.exec('COMMIT;');
+    } catch (innerErr) {
+      db.exec('ROLLBACK;');
+      throw innerErr;
+    } finally {
+      db.exec('PRAGMA foreign_keys = ON;');
+    }
+
+    logAudit(
+      adminUser.id,
+      adminUser.username,
+      'RESET_APP',
+      'SYSTEM',
+      null,
+      `Restablecimiento total del sistema completado. Solicitado por ${adminUser.username} (${adminUser.full_name}).`,
+      req.ip || '127.0.0.1'
+    );
+
+    return res.json({
+      success: true,
+      message: 'Sistema restablecido completamente. Todos los datos, reportes y usuarios secundarios han sido limpiados.'
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: 'Error durante el restablecimiento: ' + error.message });
+  }
+}
+
 export function updateUserRoleShift(req: AuthenticatedRequest, res: Response) {
   try {
     const id = String(req.params.id || '');
