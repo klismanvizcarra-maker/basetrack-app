@@ -658,6 +658,11 @@ export const OFFICIAL_SUPERVISORS: OfficialSupervisor[] = [
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 14px;
+
+      @media (max-width: 640px) {
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }
     }
 
     .form-group {

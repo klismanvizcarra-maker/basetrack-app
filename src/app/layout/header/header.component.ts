@@ -310,8 +310,8 @@ import { ThemeService } from '../../core/theme/theme.service';
 
       @media (max-width: 768px) {
         height: auto;
-        min-height: 56px;
-        padding: max(6px, env(safe-area-inset-top, 0px)) 12px 6px 12px;
+        min-height: calc(56px + env(safe-area-inset-top, 0px));
+        padding: max(8px, calc(env(safe-area-inset-top, 0px) + 4px)) 12px 8px 12px;
       }
     }
 
@@ -583,6 +583,14 @@ import { ThemeService } from '../../core/theme/theme.service';
       padding: 16px;
       box-shadow: 0 16px 36px -4px rgba(15, 23, 42, 0.12), 0 0 1px rgba(0, 0, 0, 0.08);
       z-index: 1000;
+
+      @media (max-width: 600px) {
+        top: calc(58px + env(safe-area-inset-top, 0px));
+        right: 10px;
+        left: 10px;
+        width: auto;
+        max-width: calc(100vw - 20px);
+      }
     }
 
     .notif-header {
@@ -751,6 +759,13 @@ import { ThemeService } from '../../core/theme/theme.service';
       box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
       border: 1px solid #e2e8f0;
       overflow: hidden;
+
+      @media (max-width: 600px) {
+        max-height: calc(92dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+        border-radius: 20px 20px 0 0;
+        margin-top: auto;
+        margin-bottom: 0;
+      }
     }
 
     .sync-modal-head {

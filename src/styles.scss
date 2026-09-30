@@ -194,9 +194,23 @@ input, select, textarea {
   .crew-page,
   .dashboard-page,
   .tailings-page,
-  .maintenance-page {
+  .maintenance-page,
+  .shift-page,
+  .roster-page-container,
+  .profile-page,
+  .admin-page {
     padding-bottom: calc(85px + env(safe-area-inset-bottom, 16px)) !important;
   }
+}
+
+/* Mobile Touch Optimization for Tables & Horizontal Data (iOS & Android) */
+.table-responsive,
+.items-table-wrapper,
+.pumps-table-wrapper,
+.cyclones-table-wrapper,
+.tailings-table-wrapper {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
 }
 
 /* Custom Clean Scrollbar */

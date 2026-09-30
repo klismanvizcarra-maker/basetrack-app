@@ -311,14 +311,16 @@ import { ThemeService } from '../../core/theme/theme.service';
         top: 0;
         bottom: 0;
         left: 0;
-        width: 270px;
+        width: min(290px, 84vw);
+        padding-top: max(16px, calc(env(safe-area-inset-top, 0px) + 12px));
+        padding-bottom: max(16px, calc(env(safe-area-inset-bottom, 0px) + 12px));
         transform: translateX(-100%);
         z-index: 1100;
         box-shadow: none;
 
         &.mobile-open {
           transform: translateX(0);
-          box-shadow: 0 10px 30px rgba(15, 23, 42, 0.15);
+          box-shadow: 0 10px 30px rgba(15, 23, 42, 0.25);
         }
       }
     }

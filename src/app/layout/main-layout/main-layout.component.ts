@@ -21,7 +21,7 @@ import { LayoutService } from '../../core/layout/layout.service';
         </main>
       </div>
 
-      <!-- Mobile Bottom Navigation Bar (Linear / iOS Native App Experience) -->
+      <!-- Mobile Bottom Navigation Bar (Linear / iOS & Android Native App Experience) -->
       <nav class="mobile-bottom-bar" aria-label="Navegación Móvil Rápida">
         <a routerLink="/dashboard" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" class="bottom-nav-item">
           <div class="bottom-nav-icon-wrap">
@@ -36,25 +36,30 @@ import { LayoutService } from '../../core/layout/layout.service';
           <span class="bottom-nav-label">Dashboard</span>
         </a>
 
-        <a routerLink="/cyclones" routerLinkActive="active" class="bottom-nav-item">
+        <a routerLink="/shift-handover" routerLinkActive="active" class="bottom-nav-item">
           <div class="bottom-nav-icon-wrap">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-              <path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48 2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48 2.83-2.83"></path>
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
             </svg>
             <span class="active-indicator-dot"></span>
           </div>
-          <span class="bottom-nav-label">Ciclones</span>
+          <span class="bottom-nav-label">Relevo</span>
         </a>
 
-        <a routerLink="/pumps" routerLinkActive="active" class="bottom-nav-item">
+        <a routerLink="/vehicle-checklist" routerLinkActive="active" class="bottom-nav-item">
           <div class="bottom-nav-icon-wrap">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-              <circle cx="12" cy="12" r="9"></circle>
-              <path d="m14 10-4 4m0-4 4 4"></path>
+              <rect x="1" y="3" width="15" height="13" rx="2"></rect>
+              <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
+              <circle cx="5.5" cy="18.5" r="2.5"></circle>
+              <circle cx="18.5" cy="18.5" r="2.5"></circle>
             </svg>
             <span class="active-indicator-dot"></span>
           </div>
-          <span class="bottom-nav-label">Bombas</span>
+          <span class="bottom-nav-label">Camionetas</span>
         </a>
 
         <a routerLink="/crew" routerLinkActive="active" class="bottom-nav-item">
