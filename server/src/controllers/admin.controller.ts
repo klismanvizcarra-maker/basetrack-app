@@ -84,13 +84,8 @@ export function createUsersBulk(req: AuthenticatedRequest, res: Response) {
         }
 
         // Check if user already exists
-        const existing = checkExistingUser.get(username, email);
-        if (existing) {
-          skippedList.push({ username, email, reason: 'Usuario o correo ya registrado previamente' });
-          continue;
-        }
-
-        const userId = crypto.randomUUID();
+        const existing = checkExistingUser.get(username, email) as any;
+        let finalUserId = crypto.randomUUID();
         const hash = bcrypt.hashSync(password, 10);
 
         let primaryRole = 'OPERADOR_BOMBAS';
@@ -109,24 +104,57 @@ export function createUsersBulk(req: AuthenticatedRequest, res: Response) {
           else primaryRole = 'OPERADOR_BOMBAS';
         }
 
-        insertUser.run(
-          userId,
-          username,
-          email,
-          hash,
-          fullName,
-          ['ADMIN', 'SUPERVISOR', 'OPERATOR'].includes(role) ? role : 'OPERATOR',
-          shift,
-          avatar,
-          documentId,
-          radio,
-          phone,
-          primaryRole
-        );
+        if (existing) {
+          finalUserId = existing.id;
+          db.prepare(`
+            UPDATE users 
+            SET full_name = ?, role = ?, shift = ?, document_id = ?, radio_channel = ?, phone_extension = ?, primary_role = ?, avatar_url = ?
+            WHERE id = ?
+          `).run(
+            fullName,
+            ['ADMIN', 'SUPERVISOR', 'OPERATOR'].includes(role) ? role : 'OPERATOR',
+            shift,
+            documentId,
+            radio,
+            phone,
+            primaryRole,
+            avatar,
+            existing.id
+          );
+        } else {
+          insertUser.run(
+            finalUserId,
+            username,
+            email,
+            hash,
+            fullName,
+            ['ADMIN', 'SUPERVISOR', 'OPERATOR'].includes(role) ? role : 'OPERATOR',
+            shift,
+            avatar,
+            documentId,
+            radio,
+            phone,
+            primaryRole
+          );
+        }
 
-        // Also insert into crew_members if operator or supervisor and document not duplicate
-        const existingCrew = checkExistingCrewDoc.get(documentId);
-        if (!existingCrew) {
+        // Also upsert into crew_members if operator or supervisor
+        const existingCrew = checkExistingCrewDoc.get(documentId) as any;
+        if (existingCrew) {
+          db.prepare(`
+            UPDATE crew_members
+            SET name = ?, primary_role = ?, shift_code = ?, radio_channel = ?, phone_extension = ?, avatar_url = ?
+            WHERE document_id = ?
+          `).run(
+            fullName,
+            primaryRole,
+            shift,
+            radio,
+            phone,
+            avatar,
+            documentId
+          );
+        } else {
           insertCrew.run(
             crypto.randomUUID(),
             fullName,

@@ -712,9 +712,9 @@ export class CycloneReportPdfComponent implements OnInit {
   copiedText = false;
   todayDate: string = new Date().toISOString().split('T')[0];
   reportDate: string = new Date().toISOString().split('T')[0];
-  operatorName = 'Marck Vizcarra';
-  operatorDni = '91209966';
-  operatorRole = 'Administrador de Planta';
+  operatorName = '--- Vacante ---';
+  operatorDni = '---';
+  operatorRole = 'Operador de Ciclones';
   supervisorName = 'Marck Vizcarra';
   supervisorDni = '91209966';
   supervisorRole = 'Administrador de Guardia';

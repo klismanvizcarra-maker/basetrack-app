@@ -2041,7 +2041,7 @@ export class CrewManagementComponent implements OnInit {
 
   get activeSupervisorMember(): CrewMember | undefined {
     return this.crewService.allMembers().find(m => m.shift_code === this.selectedShift && m.primary_role === 'SUPERVISOR') ||
-           this.crewService.defaultMembers.find(m => m.shift_code === this.selectedShift && m.primary_role === 'SUPERVISOR');
+           CrewService.OFFICIAL_SUPERVISOR_MAP[this.selectedShift];
   }
 
   get otherSupervisors(): CrewMember[] {
@@ -2072,23 +2072,7 @@ export class CrewManagementComponent implements OnInit {
 
   get currentSquadOperators(): CrewMember[] {
     const all = this.crewService.allMembers();
-    const shiftOps = all.filter(m => m.shift_code === this.selectedShift && m.primary_role !== 'SUPERVISOR');
-    if (shiftOps.length >= 8) {
-      return shiftOps;
-    }
-    const defaultShiftStaff = this.crewService.defaultMembers.filter(m => m.shift_code === this.selectedShift && m.primary_role !== 'SUPERVISOR');
-    if (shiftOps.length > 0) {
-      const existingRoles = new Set(shiftOps.map(m => m.primary_role));
-      const merged = [...shiftOps];
-      for (const d of defaultShiftStaff) {
-        if (!existingRoles.has(d.primary_role)) {
-          merged.push(d);
-          existingRoles.add(d.primary_role);
-        }
-      }
-      return merged;
-    }
-    return defaultShiftStaff;
+    return all.filter(m => m.shift_code === this.selectedShift && m.primary_role !== 'SUPERVISOR');
   }
 
   get currentSquadMembers(): CrewMember[] {
@@ -2283,7 +2267,6 @@ export class CrewManagementComponent implements OnInit {
   getOperator(operatorId?: string | null): CrewMember | undefined {
     if (!operatorId) return undefined;
     return this.crewService.allMembers().find(m => m.id === operatorId) ||
-           this.crewService.defaultMembers.find(m => m.id === operatorId) ||
            this.crewService.crewMembers().find(m => m.id === operatorId);
   }
 

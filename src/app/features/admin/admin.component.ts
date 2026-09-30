@@ -4521,11 +4521,8 @@ export class AdminComponent implements OnInit {
         isValid = false;
         validationMsg = 'Falta usuario';
       } else if (this.users.some(u => u.username.toLowerCase() === username.toLowerCase())) {
-        isValid = false;
-        validationMsg = 'Usuario ya existe';
-      } else if (email && this.users.some(u => u.email.toLowerCase() === email.toLowerCase())) {
-        isValid = false;
-        validationMsg = 'Correo ya registrado';
+        isValid = true;
+        validationMsg = 'Actualización / Sincronización';
       }
 
       results.push({
@@ -4594,16 +4591,27 @@ export class AdminComponent implements OnInit {
     // Helper to register users locally and sync with crew members & supervisor_operators
     const applyLocalChanges = (isLocalFallback = false) => {
       for (const r of validRows) {
-        this.users.unshift({
-          id: 'u-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
-          username: r.username,
-          full_name: r.full_name,
-          email: r.email,
-          role: r.role,
-          shift: r.shift,
-          avatar_url: `https://api.dicebear.com/7.x/bottts/svg?seed=${r.username}`,
-          created_at: new Date().toISOString()
-        });
+        const existingIdx = this.users.findIndex(u => u.username.toLowerCase() === r.username.toLowerCase());
+        if (existingIdx >= 0) {
+          this.users[existingIdx] = {
+            ...this.users[existingIdx],
+            full_name: r.full_name,
+            email: r.email,
+            role: r.role,
+            shift: r.shift
+          };
+        } else {
+          this.users.unshift({
+            id: 'u-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
+            username: r.username,
+            full_name: r.full_name,
+            email: r.email,
+            role: r.role,
+            shift: r.shift,
+            avatar_url: `https://api.dicebear.com/7.x/bottts/svg?seed=${r.username}`,
+            created_at: new Date().toISOString()
+          });
+        }
       }
 
       if (typeof localStorage !== 'undefined') {
@@ -4615,17 +4623,30 @@ export class AdminComponent implements OnInit {
           const crewList = storedCrew ? JSON.parse(storedCrew) : [];
           for (const r of validRows) {
             if (r.role === 'OPERATOR' || r.role === 'SUPERVISOR') {
-              crewList.push({
-                id: 'crew-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
-                name: r.full_name,
-                document_id: r.document_id || ('DNI-' + Math.floor(10000000 + Math.random() * 90000000)),
-                primary_role: r.primary_role || (r.role === 'SUPERVISOR' ? 'SUPERVISOR' : 'OPERADOR_BOMBAS'),
-                shift_code: r.shift || 'G1',
-                radio_channel: r.radio_channel || 'Canal 1 Operaciones',
-                phone_extension: r.phone_extension || '',
-                status: 'EN_TURNO',
-                avatar_url: `https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=250&q=80`
-              });
+              const existingCrewIdx = crewList.findIndex((m: any) => m.name === r.full_name || (r.document_id && m.document_id === r.document_id));
+              if (existingCrewIdx >= 0) {
+                crewList[existingCrewIdx] = {
+                  ...crewList[existingCrewIdx],
+                  name: r.full_name,
+                  document_id: r.document_id || crewList[existingCrewIdx].document_id,
+                  primary_role: r.primary_role || crewList[existingCrewIdx].primary_role,
+                  shift_code: r.shift || crewList[existingCrewIdx].shift_code,
+                  radio_channel: r.radio_channel || crewList[existingCrewIdx].radio_channel,
+                  phone_extension: r.phone_extension || crewList[existingCrewIdx].phone_extension
+                };
+              } else {
+                crewList.push({
+                  id: 'crew-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
+                  name: r.full_name,
+                  document_id: r.document_id || ('DNI-' + Math.floor(10000000 + Math.random() * 90000000)),
+                  primary_role: r.primary_role || (r.role === 'SUPERVISOR' ? 'SUPERVISOR' : 'OPERADOR_BOMBAS'),
+                  shift_code: r.shift || 'G1',
+                  radio_channel: r.radio_channel || 'Canal 1 Operaciones',
+                  phone_extension: r.phone_extension || '',
+                  status: 'EN_TURNO',
+                  avatar_url: `https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=250&q=80`
+                });
+              }
             }
           }
           saveRealtimeData('crew_members', crewList);
@@ -5021,7 +5042,7 @@ export class AdminComponent implements OnInit {
     const fallbackGuards = this.crewService.loadCachedSupervisorOperators();
     if (!this.supervisorsList || this.supervisorsList.length === 0) {
       this.supervisorsList = fallbackGuards;
-      this.allAvailableOperators = this.crewService.defaultMembers.filter(m => m.primary_role !== 'SUPERVISOR');
+      this.allAvailableOperators = this.crewService.allMembers().filter(m => m.primary_role !== 'SUPERVISOR');
       if (!this.selectedSupervisor && fallbackGuards.length > 0) {
         this.selectedSupervisor = fallbackGuards[0];
       }
@@ -5032,7 +5053,7 @@ export class AdminComponent implements OnInit {
       this.supervisorsList = list;
       this.allAvailableOperators = (res?.all_operators && res.all_operators.length > 0) 
         ? res.all_operators 
-        : (this.allAvailableOperators.length > 0 ? this.allAvailableOperators : this.crewService.defaultMembers.filter(m => m.primary_role !== 'SUPERVISOR'));
+        : (this.crewService.allMembers().length > 0 ? this.crewService.allMembers().filter(m => m.primary_role !== 'SUPERVISOR') : this.allAvailableOperators);
       if (!this.selectedSupervisor && this.supervisorsList.length > 0) {
         this.selectedSupervisor = this.supervisorsList[0];
       } else if (this.selectedSupervisor) {

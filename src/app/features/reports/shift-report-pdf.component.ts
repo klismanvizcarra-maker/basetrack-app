@@ -1102,7 +1102,7 @@ export class ShiftReportPdfComponent implements OnInit, OnChanges {
       this.reportData = { ...this.handover };
     }
     const active = getCurrentActiveShift();
-    const isInvalidSup = (name?: string) => !name || name.includes('VIZCARRA CORI') || name.includes('Roberto Quispe') || name.includes('LLERENA CALLE') || name.includes('Marco Vel');
+    const isInvalidSup = (name?: string) => !name || name.includes('Roberto Quispe') || name.includes('Marco Vel') || name.includes('Marck Vizcarra');
 
     if (isInvalidSup(this.reportData.outgoing_supervisor)) {
       const shift = this.reportData.shift_code?.substring(0, 2) || active.activeGuard.code;
@@ -1392,7 +1392,7 @@ export class ShiftReportPdfComponent implements OnInit, OnChanges {
 
   // --- GETTERS: DYNAMIC SUPERVISORS & SIGNATURES ---
   get outgoingSupervisorName(): string {
-    const isInvalidSup = (name?: string) => !name || name.includes('VIZCARRA CORI') || name.includes('Roberto Quispe') || name.includes('LLERENA CALLE') || name.includes('Marco Vel');
+    const isInvalidSup = (name?: string) => !name || name.includes('Roberto Quispe') || name.includes('Marco Vel') || name.includes('Marck Vizcarra');
     if (!isInvalidSup(this.reportData.outgoing_supervisor)) {
       return this.reportData.outgoing_supervisor;
     }
@@ -1417,7 +1417,7 @@ export class ShiftReportPdfComponent implements OnInit, OnChanges {
   }
 
   get incomingSupervisorName(): string {
-    const isInvalidSup = (name?: string) => !name || name.includes('VIZCARRA CORI') || name.includes('Roberto Quispe') || name.includes('LLERENA CALLE') || name.includes('Marco Vel');
+    const isInvalidSup = (name?: string) => !name || name.includes('Roberto Quispe') || name.includes('Marco Vel') || name.includes('Marck Vizcarra');
     if (!isInvalidSup(this.reportData.incoming_supervisor)) {
       return this.reportData.incoming_supervisor;
     }
@@ -1427,7 +1427,7 @@ export class ShiftReportPdfComponent implements OnInit, OnChanges {
   }
 
   get incomingSupervisorDni(): string {
-    if (this.reportData.incoming_dni && this.reportData.incoming_dni !== '71491945') {
+    if (this.reportData.incoming_dni) {
       return this.reportData.incoming_dni;
     }
     const active = getCurrentActiveShift();

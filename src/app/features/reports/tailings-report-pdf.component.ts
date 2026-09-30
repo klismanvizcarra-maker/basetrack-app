@@ -699,25 +699,17 @@ export class TailingsReportPdfComponent implements OnInit {
   copiedText = false;
   todayDate: string = new Date().toISOString().split('T')[0];
   displayShift: string = 'G4';
-  operatorName = 'MONTES RODRIGUEZ DIEGO ALEXANDER';
-  operatorDni = '45437279';
+  operatorName = '--- Vacante ---';
+  operatorDni = '---';
   operatorRole = 'Operador de descarga 1';
   supervisorName = 'FERNANDEZ ASCURRA DANTE PACO';
   supervisorDni = '18110964';
   supervisorRole = 'Supervisor de guardia';
 
-  defaultItems: TailingsReport[] = [
-    { id: '1', station_tag: 'Spigot-01 Corona Principal', flow_rate_m3h: 380, solids_percentage: 58.5, dam_level_meters: 14.2, freeboard_meters: 3.8, piezometer_kpa: 142.6, turbidity_ntu: 12.4, pumping_line_status: 'NORMAL', operator_name: 'MONTES RODRIGUEZ DIEGO ALEXANDER', shift_code: 'G4', notes: 'Formación de playa este uniforme', created_at: '' },
-    { id: '2', station_tag: 'Spigot-02 Descarga Lateral', flow_rate_m3h: 370, solids_percentage: 59.0, dam_level_meters: 14.2, freeboard_meters: 3.8, piezometer_kpa: 139.8, turbidity_ntu: 11.8, pumping_line_status: 'NORMAL', operator_name: 'MONTES RODRIGUEZ DIEGO ALEXANDER', shift_code: 'G4', notes: 'Descarga controlada', created_at: '' },
-    { id: '3', station_tag: 'Espesador de Relaves E-01', flow_rate_m3h: 750, solids_percentage: 61.2, dam_level_meters: 14.0, freeboard_meters: 4.0, piezometer_kpa: 145.2, turbidity_ntu: 14.2, pumping_line_status: 'NORMAL', operator_name: 'MONTES RODRIGUEZ DIEGO ALEXANDER', shift_code: 'G4', notes: 'Dosificación de floculante a 18 g/t', created_at: '' },
-    { id: '4', station_tag: 'Balsa de Agua Recuperada', flow_rate_m3h: 740, solids_percentage: 0.1, dam_level_meters: 14.2, freeboard_meters: 3.8, piezometer_kpa: 128.5, turbidity_ntu: 9.6, pumping_line_status: 'NORMAL', operator_name: 'MONTES RODRIGUEZ DIEGO ALEXANDER', shift_code: 'G4', notes: 'Retorno continuo a planta concentradora', created_at: '' }
-  ];
+  defaultItems: TailingsReport[] = [];
 
   get displayItems(): TailingsReport[] {
-    if (this.items && this.items.length > 0) {
-      return this.items;
-    }
-    return this.defaultItems;
+    return this.items || [];
   }
 
   ngOnInit(): void {

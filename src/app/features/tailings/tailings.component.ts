@@ -433,7 +433,7 @@ export class TailingsComponent implements OnInit {
     const currentUser = this.authService.currentUser();
     const opName = (currentUser?.role === 'OPERATOR' && currentUser?.fullName)
       ? currentUser.fullName
-      : (this.crewService.getAssignedOperatorForPosition('DESCARGA_1', curShift)?.name || 'MONTES RODRIGUEZ DIEGO ALEXANDER');
+      : (this.crewService.getAssignedOperatorForPosition('DESCARGA_1', curShift)?.name || currentUser?.fullName || '--- Vacante ---');
 
     const report: TailingsReport = {
       id: 't-' + Date.now(),

@@ -949,8 +949,8 @@ export class PumpReportPdfComponent implements OnInit {
   downloadSuccess = false;
   copiedText = false;
   todayDate: string = new Date().toISOString().split('T')[0];
-  operatorName = 'MONTES RODRIGUEZ DIEGO ALEXANDER';
-  operatorDni = '45437279';
+  operatorName = '--- Vacante ---';
+  operatorDni = '---';
   operatorRole = 'Operador de bombas';
   supervisorName = 'FERNANDEZ ASCURRA DANTE PACO';
   supervisorDni = '18110964';
@@ -961,7 +961,7 @@ export class PumpReportPdfComponent implements OnInit {
   defaultSheet: PumpStationSheet = {
     report_date: new Date().toLocaleDateString('es-PE'),
     shift_code: 'G4',
-    operator_name: 'MONTES RODRIGUEZ DIEGO ALEXANDER',
+    operator_name: '--- Vacante ---',
     sentina_pumps: [
       { tag: 'PU001', status: 'Operativo' },
       { tag: 'PU002', status: 'Operativo' },

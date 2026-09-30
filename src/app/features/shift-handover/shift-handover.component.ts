@@ -258,6 +258,11 @@ export const OFFICIAL_SUPERVISORS: OfficialSupervisor[] = [
                   </button>
                 </td>
               </tr>
+              <tr *ngIf="handovers.length === 0">
+                <td colspan="8" style="text-align: center; padding: 32px; color: var(--text-muted);">
+                  No hay relevos de guardia registrados en la base de datos sincronizada.
+                </td>
+              </tr>
             </tbody>
           </table>
         </div>
@@ -995,7 +1000,7 @@ export class ShiftHandoverComponent implements OnInit {
     incoming_dni: '46593500',
     incoming_role: 'Supervisor de guardia',
     plant_status: 'Operación de planta en condiciones normales de proceso. Circuitos de molienda y flotación estables.',
-    tonnage_processed: 24500,
+    tonnage_processed: 0,
     safety_incidents: 'Cero accidentes laborales (LTI: 0). Charla de seguridad dictada.',
     pending_tasks: ''
   };
@@ -1081,10 +1086,8 @@ export class ShiftHandoverComponent implements OnInit {
     const inName = h.incoming_supervisor || '';
     const isMock = 
       outName.includes('Roberto Quispe') ||
-      outName.includes('VIZCARRA CORI') ||
       outName.includes('Marck Vizcarra') ||
       inName.includes('Marco Vel') ||
-      inName.includes('LLERENA CALLE') ||
       inName.includes('En espera de relevo') ||
       inName.includes('Marck Vizcarra') ||
       !h.incoming_supervisor ||
@@ -1097,71 +1100,29 @@ export class ShiftHandoverComponent implements OnInit {
     const cached = getRealtimeData<ShiftHandover[]>('shift_handovers', []);
     if (cached && cached.length > 0) {
       const validCached = cached.filter(h => !this.isInvalidLegacy(h));
-      if (validCached.length > 0) {
-        this.handovers = validCached;
-        this.latestHandover = this.handovers[0];
-      }
+      this.handovers = validCached;
+      this.latestHandover = validCached.length > 0 ? validCached[0] : null;
     }
 
     this.http.get<any>(`${getApiBaseUrl()}/shift-handover`).subscribe({
       next: (res) => {
         if (res.success && res.data && res.data.length > 0) {
           const cleanData = res.data.filter((h: any) => !this.isInvalidLegacy(h));
-          if (cleanData.length > 0) {
-            this.handovers = cleanData;
-            this.latestHandover = this.handovers[0];
-            saveRealtimeData('shift_handovers', this.handovers);
-          } else {
-            this.loadDefaultHandovers();
-          }
-        } else if (this.handovers.length === 0) {
-          this.loadDefaultHandovers();
+          this.handovers = cleanData;
+          this.latestHandover = cleanData.length > 0 ? cleanData[0] : null;
+          saveRealtimeData('shift_handovers', cleanData);
+        } else {
+          this.handovers = [];
+          this.latestHandover = null;
+          saveRealtimeData('shift_handovers', []);
         }
       },
       error: () => {
         if (this.handovers.length === 0) {
-          this.loadDefaultHandovers();
+          this.latestHandover = null;
         }
       }
     });
-  }
-
-  private loadDefaultHandovers(): void {
-    const shiftInfo = getCurrentActiveShift();
-    const todayStr = shiftInfo.dateStr || getLocalDateString();
-    const shiftType = shiftInfo.shiftName;
-    const outGuard = shiftInfo.activeGuard;
-    const inGuard = shiftInfo.nextGuard;
-
-    const outSup = this.crewService.getActiveSupervisorForShift(outGuard.code) ||
-                   this.officialSupervisors.find(s => s.shift === outGuard.code);
-    const inSup = this.crewService.getActiveSupervisorForShift(inGuard.code) ||
-                  this.officialSupervisors.find(s => s.shift === inGuard.code);
-
-    const activeHandover: ShiftHandover = {
-      id: 'sh-active-' + todayStr.replace(/-/g, ''),
-      shift_code: `${outGuard.code}_${shiftType}_${todayStr.slice(5).replace('-', '')}`,
-      date: todayStr,
-      shift_type: shiftType,
-      outgoing_supervisor: outSup?.name || outGuard.supervisorName || 'FERNANDEZ ASCURRA DANTE PACO',
-      outgoing_dni: (outSup as any)?.document_id || (outSup as any)?.dni || '18110964',
-      outgoing_role: 'Supervisor de guardia',
-      incoming_supervisor: inSup?.name || inGuard.supervisorName || 'ALIAGA CASTAÑEDA EMILIO URIEL',
-      incoming_dni: (inSup as any)?.document_id || (inSup as any)?.dni || '46593500',
-      incoming_role: 'Supervisor de guardia',
-      plant_status: 'Operación continua en condiciones estables de proceso. Circuitos de molienda SAG, flotación y espesamiento operando según parámetros de diseño.',
-      tonnage_processed: 24500,
-      safety_incidents: 'Cero incidentes ni accidentes (LTI: 0). Charla de seguridad de 5 minutos dictada.',
-      operational_highlights: 'Monitoreo continuo de presiones y densidades en ciclones y bombeo de pulpa.',
-      pending_tasks: 'Mantener control de nivel en presa de relaves y dosificación en planta de reactivos.',
-      assigned_crew: this.currentSquadStaff,
-      status: 'SUBMITTED',
-      created_at: new Date().toISOString()
-    };
-
-    this.handovers = [activeHandover];
-    this.latestHandover = activeHandover;
-    saveRealtimeData('shift_handovers', this.handovers);
   }
 
   openCreateModal(): void {
