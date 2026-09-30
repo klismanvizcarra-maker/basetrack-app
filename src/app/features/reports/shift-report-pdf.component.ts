@@ -1253,14 +1253,7 @@ export class ShiftReportPdfComponent implements OnInit, OnChanges {
       });
     }
 
-    return [
-      { systemName: 'Sentina Principal', tag: 'PP-101', badgeClass: 'badge-green', statusLabel: 'OPERANDO', currentAmps: '142 A', pressure: '34.5 PSI', observations: 'Vibración en rango permisible' },
-      { systemName: 'Sentina Principal', tag: 'PP-102', badgeClass: 'badge-slate', statusLabel: 'STANDBY', currentAmps: '0 A', pressure: '0 PSI', observations: 'Listo para respaldo automático' },
-      { systemName: 'Bombeo Intermedio', tag: 'PP-201', badgeClass: 'badge-green', statusLabel: 'OPERANDO', currentAmps: '158 A', pressure: '42.0 PSI', observations: 'Caudal sostenido a ciclones' },
-      { systemName: 'Bombeo Intermedio', tag: 'PP-202', badgeClass: 'badge-green', statusLabel: 'OPERANDO', currentAmps: '155 A', pressure: '41.2 PSI', observations: 'Operación continua normal' },
-      { systemName: 'Estación Torre 5', tag: 'PP-501', badgeClass: 'badge-green', statusLabel: 'OPERANDO', currentAmps: '110 A', pressure: '28.4 PSI', observations: 'Retorno de agua clara' },
-      { systemName: 'Línea Relaves', tag: 'TL-201', badgeClass: 'badge-green', statusLabel: 'OPERANDO', currentAmps: '168 A', pressure: '48.0 PSI', observations: 'Descarga estable hacia presa' }
-    ];
+    return [];
   }
 
   get pumpOperatingCount(): number {
@@ -1270,7 +1263,7 @@ export class ShiftReportPdfComponent implements OnInit, OnChanges {
     if (this.pumpSheet) {
       return (this.sentinaActiveCount + this.intermediaActiveCount + this.torre5ActiveCount);
     }
-    return 5;
+    return 0;
   }
 
   get pumpTotalCount(): number {
@@ -1284,7 +1277,7 @@ export class ShiftReportPdfComponent implements OnInit, OnChanges {
         (this.pumpSheet.torre5_pumps?.length || 10)
       );
     }
-    return 6;
+    return 0;
   }
 
   get pumpAvailabilityPercent(): number {
@@ -1329,14 +1322,14 @@ export class ShiftReportPdfComponent implements OnInit, OnChanges {
       };
     };
 
-    const avg1 = calc(s1, 44.8, 28.5, 69.2, 52.4);
-    const avg2 = calc(s2, 45.6, 29.5, 70.1, 64.5);
+    const avg1 = calc(s1, 0, 0, 0, 0);
+    const avg2 = calc(s2, 0, 0, 0, 0);
 
     return [
       {
         name: '1ra Estación (CY1/2)',
-        activeCount: '4 de 6 en línea',
-        pressure: '16.2 PSI',
+        activeCount: s1.length > 0 ? `${s1.length} registros` : 'Sin registros',
+        pressure: s1.length > 0 ? '16.2 PSI' : '---',
         solidsFeed: avg1.feed,
         solidsOf: avg1.of,
         solidsUf: avg1.uf,
@@ -1345,8 +1338,8 @@ export class ShiftReportPdfComponent implements OnInit, OnChanges {
       },
       {
         name: '2da Estación (CY3/4)',
-        activeCount: '5 de 6 en línea',
-        pressure: '18.5 PSI',
+        activeCount: s2.length > 0 ? `${s2.length} registros` : 'Sin registros',
+        pressure: s2.length > 0 ? '18.5 PSI' : '---',
         solidsFeed: avg2.feed,
         solidsOf: avg2.of,
         solidsUf: avg2.uf,
@@ -1357,7 +1350,7 @@ export class ShiftReportPdfComponent implements OnInit, OnChanges {
   }
 
   get liveMesh200Of(): number {
-    return this.cycloneStationRows[1]?.mesh200Of || 64.5;
+    return this.cycloneStationRows[1]?.mesh200Of || 0;
   }
 
   // --- GETTERS: TAILINGS METRICS ---
@@ -1394,7 +1387,7 @@ export class ShiftReportPdfComponent implements OnInit, OnChanges {
   }
 
   get liveTonnage(): number {
-    return this.reportData.tonnage_processed || 48250;
+    return this.reportData.tonnage_processed || 0;
   }
 
   // --- GETTERS: DYNAMIC SUPERVISORS & SIGNATURES ---
@@ -1406,7 +1399,7 @@ export class ShiftReportPdfComponent implements OnInit, OnChanges {
     const active = getCurrentActiveShift();
     const shift = this.reportData.shift_code?.substring(0, 2) || active.activeGuard.code;
     const sup = this.crewService.getActiveSupervisorForShift(shift);
-    return sup?.name || active.activeGuard.supervisorName;
+    return sup?.name || active.activeGuard.supervisorName || 'Marck Vizcarra';
   }
 
   get outgoingSupervisorDni(): string {
@@ -1416,7 +1409,7 @@ export class ShiftReportPdfComponent implements OnInit, OnChanges {
     const active = getCurrentActiveShift();
     const shift = this.reportData.shift_code?.substring(0, 2) || active.activeGuard.code;
     const sup = this.crewService.getActiveSupervisorForShift(shift);
-    return sup?.document_id || (shift === 'G4' ? '18110964' : '41833717');
+    return sup?.document_id || '91209966';
   }
 
   get outgoingSupervisorRole(): string {
@@ -1430,7 +1423,7 @@ export class ShiftReportPdfComponent implements OnInit, OnChanges {
     }
     const active = getCurrentActiveShift();
     const inSup = this.crewService.getActiveSupervisorForShift(active.nextGuard.code);
-    return inSup?.name || active.nextGuard.supervisorName;
+    return inSup?.name || active.nextGuard.supervisorName || 'Sin Asignar';
   }
 
   get incomingSupervisorDni(): string {
@@ -1439,7 +1432,7 @@ export class ShiftReportPdfComponent implements OnInit, OnChanges {
     }
     const active = getCurrentActiveShift();
     const inSup = this.crewService.getActiveSupervisorForShift(active.nextGuard.code);
-    return inSup?.document_id || (active.nextGuard.code === 'G2' ? '46593500' : '40132660');
+    return inSup?.document_id || '---';
   }
 
   get incomingSupervisorRole(): string {

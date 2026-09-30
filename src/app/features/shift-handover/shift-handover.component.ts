@@ -92,7 +92,7 @@ export const OFFICIAL_SUPERVISORS: OfficialSupervisor[] = [];
             <span class="cell-label">Supervisor Saliente (Entrega)</span>
             <span class="cell-value">{{ latestHandover.outgoing_supervisor }}</span>
             <span class="cell-sub" *ngIf="latestHandover.outgoing_dni || latestHandover.outgoing_role">
-              DNI: {{ latestHandover.outgoing_dni || '41833717' }} • {{ latestHandover.outgoing_role || 'Supervisor de guardia' }}
+              DNI: {{ latestHandover.outgoing_dni || '---' }} • {{ latestHandover.outgoing_role || 'Supervisor de guardia' }}
             </span>
           </div>
           <div class="banner-cell">
@@ -914,14 +914,14 @@ export class ShiftHandoverComponent implements OnInit {
   newHandover = {
     shift_code: 'G4_DIA_' + new Date().toISOString().slice(5, 10).replace('-', ''),
     shift_type: 'DIA' as 'DIA' | 'NOCHE',
-    outgoing_supervisor: 'FERNANDEZ ASCURRA DANTE PACO',
-    outgoing_dni: '18110964',
-    outgoing_role: 'Supervisor de guardia',
-    incoming_supervisor: 'ALIAGA CASTAÑEDA EMILIO URIEL',
-    incoming_dni: '46593500',
+    outgoing_supervisor: 'Marck Vizcarra',
+    outgoing_dni: '91209966',
+    outgoing_role: 'Administrador',
+    incoming_supervisor: '',
+    incoming_dni: '',
     incoming_role: 'Supervisor de guardia',
     plant_status: 'Operación de planta en condiciones normales de proceso. Circuitos de molienda y flotación estables.',
-    tonnage_processed: 24500,
+    tonnage_processed: 0,
     safety_incidents: 'Cero accidentes laborales (LTI: 0). Charla de seguridad dictada.',
     pending_tasks: ''
   };
@@ -1059,14 +1059,17 @@ export class ShiftHandoverComponent implements OnInit {
     const inGuard = shiftInfo.nextGuard;
     const shiftType = shiftInfo.shiftName;
 
+    const user = this.authService.currentUser();
     const outSup = this.officialSupervisors.find(s => s.shift === outGuard.code) ||
                    this.crewService.getActiveSupervisorForShift(outGuard.code);
-    if (outSup) {
+    if (outSup && outSup.name !== 'Sin Supervisor Asignado') {
       this.newHandover.outgoing_supervisor = outSup.name;
       this.newHandover.outgoing_dni = (outSup as any).dni || (outSup as any).document_id || '';
       this.newHandover.outgoing_role = 'Supervisor de guardia';
     } else {
-      this.newHandover.outgoing_supervisor = outGuard.supervisorName;
+      this.newHandover.outgoing_supervisor = user?.fullName || outGuard.supervisorName || 'Marck Vizcarra';
+      this.newHandover.outgoing_dni = (user as any)?.document_id || '91209966';
+      this.newHandover.outgoing_role = user?.role === 'ADMIN' ? 'Administrador' : 'Supervisor de guardia';
     }
 
     const inSup = this.officialSupervisors.find(s => s.shift === inGuard.code) ||
