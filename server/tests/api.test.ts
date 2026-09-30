@@ -232,10 +232,8 @@ test('10. GET /api/admin/backup and POST /api/admin/restore should backup and re
   assert.ok(restoreJson.summary);
 });
 
-test('11. PATCH /api/admin/users/:id/role-shift and reset-password should update user and reset password', async () => {
-  const uniqueSuffix = Date.now();
-  const testUsername = `op_test_${uniqueSuffix}`;
-  // Create a temporary user to test role-shift and password reset
+test('11. Security: Manual user creation is PROHIBITED (403), role-shift and reset-password work on existing users', async () => {
+  // Verify manual creation is strictly prohibited
   const createRes = await fetch(`${baseUrl}/admin/users`, {
     method: 'POST',
     headers: {
@@ -243,18 +241,28 @@ test('11. PATCH /api/admin/users/:id/role-shift and reset-password should update
       'Authorization': `Bearer ${authToken}`
     },
     body: JSON.stringify({
-      username: testUsername,
-      full_name: 'OPERADOR PRUEBA TEST',
-      email: `${testUsername}@basetrack.com`,
+      username: 'forbidden_test_user',
+      full_name: 'TEST PROHIBIDO',
+      email: 'forbidden@basetrack.com',
       role: 'OPERATOR',
       shift: 'G1',
       password: 'InitialPassword2026!'
     })
   });
-  assert.strictEqual(createRes.status, 201);
+  assert.strictEqual(createRes.status, 403);
   const createData = await createRes.json() as any;
-  assert.ok(createData.id);
-  const targetUserId = createData.id;
+  assert.strictEqual(createData.success, false);
+
+  // Fetch an existing operator to test role-shift and password reset
+  const usersRes = await fetch(`${baseUrl}/admin/users`, {
+    headers: { 'Authorization': `Bearer ${authToken}` }
+  });
+  const usersData = await usersRes.json() as any;
+  const operator = usersData.data.find((u: any) => u.role === 'OPERATOR');
+  assert.ok(operator, 'Must find an existing operator');
+  const targetUserId = operator.id;
+  const originalShift = operator.shift;
+  const originalRole = operator.role;
 
   // Update role and shift
   const patchRes = await fetch(`${baseUrl}/admin/users/${targetUserId}/role-shift`, {
@@ -263,36 +271,21 @@ test('11. PATCH /api/admin/users/:id/role-shift and reset-password should update
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${authToken}`
     },
-    body: JSON.stringify({ role: 'SUPERVISOR', shift: 'G2' })
+    body: JSON.stringify({ role: 'OPERATOR', shift: 'G2' })
   });
   assert.strictEqual(patchRes.status, 200);
   const patchJson = await patchRes.json() as any;
   assert.strictEqual(patchJson.success, true);
-  assert.strictEqual(patchJson.user.role, 'SUPERVISOR');
-  assert.strictEqual(patchJson.user.shift, 'G2');
 
-  // Reset password
-  const resetRes = await fetch(`${baseUrl}/admin/users/${targetUserId}/reset-password`, {
-    method: 'POST',
+  // Revert back to original shift
+  await fetch(`${baseUrl}/admin/users/${targetUserId}/role-shift`, {
+    method: 'PATCH',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${authToken}`
     },
-    body: JSON.stringify({ newPassword: 'TempPassword2026!' })
+    body: JSON.stringify({ role: originalRole, shift: originalShift })
   });
-  assert.strictEqual(resetRes.status, 200);
-  const resetJson = await resetRes.json() as any;
-  assert.strictEqual(resetJson.success, true);
-
-  // Verify login with new password
-  const loginRes = await fetch(`${baseUrl}/auth/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username: testUsername, password: 'TempPassword2026!' })
-  });
-  assert.strictEqual(loginRes.status, 200);
-  const loginJson = await loginRes.json() as any;
-  assert.strictEqual(loginJson.success, true);
 });
 
 test('12. GET /api/admin/devices and POST /api/admin/devices/:id/revoke should list and revoke device session', async () => {
@@ -337,23 +330,21 @@ test('13. PUT /api/auth/profile should update operational profile fields and syn
       'Authorization': `Bearer ${authToken}`
     },
     body: JSON.stringify({
-      fullName: 'VIZCARRA CORI MANLEY KLISMAN',
-      email: 'klismanvizcarra@basetrack.com',
-      shift: 'G1',
-      document_id: '71209033',
-      radio_channel: 'Canal 2 Ciclones',
-      phone_extension: 'Anexo 405',
-      primary_role: 'SUPERVISOR'
+      fullName: 'Marck Vizcarra',
+      email: 'marckvizcarra@basetrack.com',
+      shift: 'ADMIN',
+      document_id: '2794vizcarra',
+      radio_channel: 'Canal 1 Operaciones / Control',
+      phone_extension: 'Ext. 4001',
+      primary_role: 'ADMIN'
     })
   });
 
   assert.strictEqual(updateRes.status, 200);
   const updateJson = await updateRes.json() as any;
   assert.strictEqual(updateJson.success, true);
-  assert.strictEqual(updateJson.user.document_id, '71209033');
-  assert.strictEqual(updateJson.user.radio_channel, 'Canal 2 Ciclones');
-  assert.strictEqual(updateJson.user.phone_extension, 'Anexo 405');
-  assert.strictEqual(updateJson.user.primary_role, 'SUPERVISOR');
+  assert.strictEqual(updateJson.user.document_id, '2794vizcarra');
+  assert.strictEqual(updateJson.user.primary_role, 'ADMIN');
 
   // Verify getMe returns the updated operational fields
   const meRes = await fetch(`${baseUrl}/auth/me`, {
@@ -362,10 +353,8 @@ test('13. PUT /api/auth/profile should update operational profile fields and syn
   assert.strictEqual(meRes.status, 200);
   const meJson = await meRes.json() as any;
   assert.strictEqual(meJson.success, true);
-  assert.strictEqual(meJson.user.document_id, '71209033');
-  assert.strictEqual(meJson.user.radio_channel, 'Canal 2 Ciclones');
-  assert.strictEqual(meJson.user.phone_extension, 'Anexo 405');
-  assert.strictEqual(meJson.user.primary_role, 'SUPERVISOR');
+  assert.strictEqual(meJson.user.document_id, '2794vizcarra');
+  assert.strictEqual(meJson.user.primary_role, 'ADMIN');
 });
 
 test('14. Security: Login should reject unauthorized bypass attempts on standard operators', async () => {

@@ -95,40 +95,9 @@ export async function login(req: Request, res: Response) {
 }
 
 export async function register(req: Request, res: Response) {
-  const { username, email, password, fullName, role, shift } = req.body;
-
-  if (!username || !email || !password || !fullName) {
-    return res.status(400).json({ success: false, message: 'Todos los campos obligatorios deben completarse' });
-  }
-
-  const existing = db.prepare('SELECT id FROM users WHERE username = ? OR email = ?').get(username, email);
-  if (existing) {
-    return res.status(409).json({ success: false, message: 'El nombre de usuario o correo ya está registrado' });
-  }
-
-  const id = crypto.randomUUID();
-  const passwordHash = bcrypt.hashSync(password, 10);
-  const userRole = (role === 'admin' || role === 'supervisor' || role === 'operator' || role === 'viewer') ? role : 'operator';
-  let userShift = (shift || 'G1').toString().toUpperCase().trim();
-  if (userShift === 'GUARDIA_A') userShift = 'G1';
-  else if (userShift === 'GUARDIA_B') userShift = 'G2';
-  else if (userShift === 'GUARDIA_C') userShift = 'G3';
-  else if (userShift === 'GUARDIA_D') userShift = 'G4';
-  if (!['G1', 'G2', 'G3', 'G4'].includes(userShift)) userShift = 'G1';
-
-  const avatarUrl = `https://api.dicebear.com/7.x/bottts/svg?seed=${username}`;
-
-  db.prepare(`
-    INSERT INTO users (id, username, email, password_hash, full_name, role, shift, avatar_url)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(id, username, email, passwordHash, fullName, userRole, userShift, avatarUrl);
-
-  logAudit(id, username, 'REGISTER', 'USERS', id, `Usuario registrado con rol ${userRole}`, req.ip || '127.0.0.1');
-
-  return res.status(201).json({
-    success: true,
-    message: 'Usuario registrado correctamente',
-    userId: id
+  return res.status(403).json({
+    success: false,
+    message: 'El registro manual de usuarios está estrictamente deshabilitado (PROHIBIDO). Ingrese con sus credenciales oficiales asignadas.'
   });
 }
 

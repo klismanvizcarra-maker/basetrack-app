@@ -29,40 +29,10 @@ export function getAllUsers(req: Request, res: Response) {
 }
 
 export function createUserByAdmin(req: AuthenticatedRequest, res: Response) {
-  try {
-    const { username, email, password, full_name, role, shift } = req.body;
-
-    if (!username || !email || !password || !full_name) {
-      return res.status(400).json({ success: false, message: 'Todos los campos son obligatorios' });
-    }
-
-    const existing = db.prepare('SELECT id FROM users WHERE username = ? OR email = ?').get(username, email);
-    if (existing) {
-      return res.status(409).json({ success: false, message: 'El usuario o correo ya existe' });
-    }
-
-    const id = crypto.randomUUID();
-    const hash = bcrypt.hashSync(password, 10);
-    const avatarUrl = `https://api.dicebear.com/7.x/bottts/svg?seed=${username}`;
-
-    let cleanShift = (shift || 'G1').toString().toUpperCase();
-    if (cleanShift === 'GUARDIA_A') cleanShift = 'G1';
-    else if (cleanShift === 'GUARDIA_B') cleanShift = 'G2';
-    else if (cleanShift === 'GUARDIA_C') cleanShift = 'G3';
-    else if (cleanShift === 'GUARDIA_D') cleanShift = 'G4';
-    if (!['G1', 'G2', 'G3', 'G4'].includes(cleanShift)) cleanShift = 'G1';
-
-    db.prepare(`
-      INSERT INTO users (id, username, email, password_hash, full_name, role, shift, avatar_url)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(id, username, email, hash, full_name, role || 'OPERATOR', cleanShift, avatarUrl);
-
-    logAudit(req.user?.userId || null, req.user?.username || 'admin', 'CREATE_USER', 'USERS', id, `Creación de usuario ${username} (${role})`, req.ip || '127.0.0.1');
-
-    return res.status(201).json({ success: true, message: 'Usuario creado exitosamente', id });
-  } catch (error: any) {
-    return res.status(500).json({ success: false, message: error.message });
-  }
+  return res.status(403).json({
+    success: false,
+    message: 'La creación manual de usuarios está estrictamente deshabilitada (PROHIBIDO). La plataforma opera exclusivamente con la nómina oficial del personal de planta cargada por CSV.'
+  });
 }
 
 export function createUsersBulk(req: AuthenticatedRequest, res: Response) {
@@ -303,6 +273,7 @@ export function restoreDatabaseBackup(req: AuthenticatedRequest, res: Response) 
 
     const summary: Record<string, number> = {};
 
+    db.exec('PRAGMA foreign_keys = OFF;');
     db.exec('BEGIN IMMEDIATE;');
     try {
       // 1. Crew members
@@ -345,8 +316,8 @@ export function restoreDatabaseBackup(req: AuthenticatedRequest, res: Response) 
         `);
         let count = 0;
         for (const a of data.crew_area_assignments) {
-          if (a.id && a.shift_code && a.operator_id) {
-            stmt.run(a.id, normalizeShift(a.shift_code), a.shift_date, a.shift_type || 'DIA', a.position_key, a.position_title, a.operator_id, a.backup_operator_id || null, a.epp_verified ? 1 : 0, a.safety_talk_completed ? 1 : 0, a.radio_channel || null, a.station_location || null, a.notes || null, a.updated_at || null);
+          if (a.id && a.shift_code) {
+            stmt.run(a.id, normalizeShift(a.shift_code), a.shift_date, a.shift_type || 'DIA', a.position_key, a.position_title, a.operator_id || null, a.backup_operator_id || null, a.epp_verified ? 1 : 0, a.safety_talk_completed ? 1 : 0, a.radio_channel || null, a.station_location || null, a.notes || null, a.updated_at || null);
             count++;
           }
         }
@@ -499,6 +470,8 @@ export function restoreDatabaseBackup(req: AuthenticatedRequest, res: Response) 
     } catch (innerErr) {
       db.exec('ROLLBACK;');
       throw innerErr;
+    } finally {
+      db.exec('PRAGMA foreign_keys = ON;');
     }
 
     logAudit(
@@ -855,7 +828,9 @@ export function getSupervisorOperators(req: AuthenticatedRequest, res: Response)
     const supervisorsWithOperators = supervisors.map(sup => {
       const assigned = allAssignments.filter(a => 
         a.supervisor_id === sup.id || 
-        a.supervisor_id === sup.username
+        a.supervisor_id === sup.username ||
+        a.supervisor_id === `op-${(sup.shift || '').toLowerCase()}-sup` ||
+        (a.shift_code && a.shift_code === sup.shift)
       );
 
       const uniqueAssignedMap = new Map<string, any>();
@@ -1069,7 +1044,8 @@ export function getMyOperators(req: AuthenticatedRequest, res: Response) {
 
     let operators: any[] = [];
 
-    // Buscar operadores vinculados en supervisor_operators
+    // Buscar operadores vinculados en supervisor_operators o por guardia de la nómina oficial
+    const supCode = `op-${userShift.toLowerCase()}-sup`;
     operators = db.prepare(`
       SELECT DISTINCT
         m.id,
@@ -1081,21 +1057,17 @@ export function getMyOperators(req: AuthenticatedRequest, res: Response) {
         m.phone_extension,
         m.status,
         m.avatar_url
-      FROM supervisor_operators so
-      JOIN crew_members m ON so.operator_id = m.id
-      WHERE (so.supervisor_id = ? OR so.supervisor_id = ?)
+      FROM crew_members m
+      WHERE m.primary_role != 'SUPERVISOR'
+        AND (
+          m.shift_code = ?
+          OR m.id IN (
+            SELECT operator_id FROM supervisor_operators 
+            WHERE supervisor_id = ? OR supervisor_id = ? OR supervisor_id = ? OR shift_code = ?
+          )
+        )
       ORDER BY m.name ASC
-    `).all(targetSupervisor, supervisorUsername) as any[];
-
-    // Fallback: Si no tiene registros en la tabla, filtrar por su guardia
-    if (operators.length === 0 && userRole !== 'OPERATOR') {
-      operators = db.prepare(`
-        SELECT id, name, document_id, primary_role, shift_code, radio_channel, phone_extension, status, avatar_url
-        FROM crew_members
-        WHERE shift_code = ? AND primary_role != 'SUPERVISOR'
-        ORDER BY name ASC
-      `).all(userShift) as any[];
-    }
+    `).all(userShift, targetSupervisor, supervisorUsername, supCode, userShift) as any[];
 
     return res.json({
       success: true,

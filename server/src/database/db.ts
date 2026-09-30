@@ -788,20 +788,35 @@ export function initDatabase() {
       }
     }
 
-    // 6. Auto-link 8 operators to each official supervisor in supervisor_operators
-    db.prepare('DELETE FROM supervisor_operators WHERE supervisor_id NOT IN (?, ?, ?, ?)').run(
-      'op-g1-sup', 'op-g2-sup', 'op-g3-sup', 'op-g4-sup'
-    );
+    // 6. Purge any test accounts or leftover mock entries
+    db.prepare("DELETE FROM users WHERE username LIKE 'op_test_%' OR username LIKE '%test%' OR full_name LIKE '%TEST%' OR full_name LIKE '%PRUEBA%' OR email LIKE '%@test.com'").run();
+    db.prepare("DELETE FROM crew_members WHERE id LIKE 'op_test_%' OR name LIKE '%TEST%' OR name LIKE '%PRUEBA%'").run();
+    db.prepare("DELETE FROM supervisor_operators WHERE supervisor_id LIKE 'op_test_%' OR operator_id LIKE 'op_test_%'").run();
+
+    // 7. Auto-link 8 operators to each official supervisor in supervisor_operators
+    db.prepare('DELETE FROM supervisor_operators').run();
     const insertSupOp = db.prepare(`
       INSERT OR IGNORE INTO supervisor_operators (id, supervisor_id, operator_id, shift_code)
       VALUES (?, ?, ?, ?);
     `);
     for (const op of ALL_32_OPERATORS) {
-      const supId = `op-${op.shift_code.toLowerCase()}-sup`;
-      insertSupOp.run(crypto.randomUUID(), supId, op.id, op.shift_code);
+      const supCode = `op-${op.shift_code.toLowerCase()}-sup`;
+      const supData = OFFICIAL_SUPERVISORS_DATA.find(s => s.shift === op.shift_code);
+      const userSup = supData ? db.prepare('SELECT id, username FROM users WHERE document_id = ?').get(supData.document_id) as any : null;
+
+      // Link by crew supervisor id (e.g. op-g1-sup)
+      insertSupOp.run(crypto.randomUUID(), supCode, op.id, op.shift_code);
+      // Link by user id (UUID)
+      if (userSup?.id) {
+        insertSupOp.run(crypto.randomUUID(), userSup.id, op.id, op.shift_code);
+      }
+      // Link by username (e.g. MiguelG)
+      if (userSup?.username) {
+        insertSupOp.run(crypto.randomUUID(), userSup.username, op.id, op.shift_code);
+      }
     }
 
-    // 7. Strict Whitelist Purge: Delete any account in users/crew_members that is not Marckv and not among the 36 CSV staff
+    // 8. Strict Whitelist Purge: Delete any account in users/crew_members that is not Marckv and not among the 36 CSV staff
     const validStaffDnis = [
       ...OFFICIAL_SUPERVISORS_DATA.map(s => s.document_id),
       ...ALL_32_OPERATORS.map(o => o.document_id)
@@ -818,6 +833,20 @@ export function initDatabase() {
       DELETE FROM crew_members 
       WHERE document_id NOT IN (${crewPlaceholders});
     `).run(...validStaffDnis);
+
+    // Clean up any orphan assignments whose operator_id or backup_operator_id is not in crew_members
+    db.prepare(`
+      UPDATE crew_area_assignments 
+      SET operator_id = NULL 
+      WHERE operator_id IS NOT NULL 
+        AND operator_id NOT IN (SELECT id FROM crew_members);
+    `).run();
+    db.prepare(`
+      UPDATE crew_area_assignments 
+      SET backup_operator_id = NULL 
+      WHERE backup_operator_id IS NOT NULL 
+        AND backup_operator_id NOT IN (SELECT id FROM crew_members);
+    `).run();
 
     db.exec('PRAGMA foreign_keys = ON;');
     console.log('[Database] Synchronized: exactly 1 Administrator (Marckv) and 36 Plant Staff.');

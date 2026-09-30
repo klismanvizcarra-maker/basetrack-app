@@ -111,13 +111,6 @@ const DEFAULT_LOGS: AuditLog[] = [
             </svg>
             Restaurar Backup JSON
           </button>
-          <button class="btn btn-primary" (click)="isCreateUserModalOpen = true">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-              <line x1="12" y1="5" x2="12" y2="19"></line>
-              <line x1="5" y1="12" x2="19" y2="12"></line>
-            </svg>
-            Nuevo Usuario
-          </button>
         </div>
       </div>
 
@@ -944,63 +937,6 @@ const DEFAULT_LOGS: AuditLog[] = [
 
       </div>
     </div>
-
-    <!-- Modal Create User -->
-      <app-modal [isOpen]="isCreateUserModalOpen" [title]="'Crear Nuevo Usuario Operacional'" (close)="isCreateUserModalOpen = false">
-        <form (ngSubmit)="saveUser()" class="modal-form">
-          <div *ngIf="isVercelDeployment && !hasCustomCloudBackend" class="modal-notice-box">
-            <span class="notice-icon">⚠️</span>
-            <div class="notice-text">
-              <strong>Modo Vercel Local:</strong> Sin un Servidor Cloud conectado, este usuario sólo se guardará en la memoria de este navegador. Para que otros celulares o computadoras puedan ingresar, conecta tu backend cloud en <em>Administración &gt; Servidor Cloud</em>.
-            </div>
-          </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label>Nombre de Usuario</label>
-              <input type="text" [(ngModel)]="newUser.username" name="username" required />
-            </div>
-            <div class="form-group">
-              <label>Rol en Planta</label>
-              <select [(ngModel)]="newUser.role" name="role">
-                <option value="OPERATOR">Operador de Turno (OPERATOR)</option>
-                <option value="SUPERVISOR">Supervisor de Guardia (SUPERVISOR)</option>
-                <option value="ADMIN">Jefe de Planta / Administrador (ADMIN)</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label>Nombre y Apellidos</label>
-            <input type="text" [(ngModel)]="newUser.full_name" name="fullName" required />
-          </div>
-
-          <div class="form-row">
-            <div class="form-group">
-              <label>Correo Corporativo</label>
-              <input type="email" [(ngModel)]="newUser.email" name="email" required />
-            </div>
-            <div class="form-group">
-              <label>Guardia Asignada</label>
-              <select [(ngModel)]="newUser.shift" name="shift">
-                <option value="G1">Guardia G1</option>
-                <option value="G2">Guardia G2</option>
-                <option value="G3">Guardia G3</option>
-                <option value="G4">Guardia G4</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label>Contraseña Temporal</label>
-            <input type="password" [(ngModel)]="newUser.password" name="password" required />
-          </div>
-
-          <div footer class="modal-buttons">
-            <button type="button" class="btn btn-secondary" (click)="isCreateUserModalOpen = false">Cancelar</button>
-            <button type="submit" class="btn btn-primary">Registrar Usuario</button>
-          </div>
-        </form>
-      </app-modal>
 
       <!-- Modal Bulk Import Users (Organizado por Guardias y Supervisores) -->
       <app-modal
@@ -4219,11 +4155,25 @@ export class AdminComponent implements OnInit {
         const storedUsers = localStorage.getItem('basetrack_admin_users');
         if (storedUsers) {
           const parsed = JSON.parse(storedUsers);
-          // Si contiene usuarios obsoletos o 'admin' / Carlos Mendoza, refrescar con la lista real de 15 operadores
-          const hasOldMockUsers = Array.isArray(parsed) && parsed.some((u: any) => u.username === 'KlismanV' || u.username === 'CarlosP' || u.username === 'WalterQ' || u.username === 'admin' || u.username === 'supervisor_a');
+          const hasOldMockUsers = Array.isArray(parsed) && parsed.some((u: any) => 
+            u.username === 'KlismanV' || 
+            u.username === 'CarlosP' || 
+            u.username === 'WalterQ' || 
+            u.username === 'admin' || 
+            u.username === 'supervisor_a' ||
+            u.username?.startsWith('op_test_') ||
+            u.full_name?.includes('TEST') ||
+            u.full_name?.includes('PRUEBA') ||
+            (u.email && u.email.includes('@test.com'))
+          );
           const marckExists = Array.isArray(parsed) && parsed.some((u: any) => u.username === 'Marckv');
           if (Array.isArray(parsed) && !hasOldMockUsers && marckExists) {
-            this.users = parsed;
+            this.users = parsed.filter((u: any) => 
+              !u.username?.startsWith('op_test_') &&
+              !u.full_name?.includes('TEST') &&
+              !u.full_name?.includes('PRUEBA') &&
+              (u.username === 'Marckv' || u.role !== 'ADMIN')
+            );
           } else {
             this.users = [...DEFAULT_USERS];
             localStorage.setItem('basetrack_admin_users', JSON.stringify(DEFAULT_USERS));
@@ -4266,7 +4216,12 @@ export class AdminComponent implements OnInit {
     this.http.get<any>(`${getApiBaseUrl()}/admin/users`).subscribe({
       next: (res) => {
         if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
-          this.users = res.data;
+          this.users = res.data.filter((u: any) => 
+            !u.username?.startsWith('op_test_') &&
+            !u.full_name?.includes('TEST') &&
+            !u.full_name?.includes('PRUEBA') &&
+            (u.username === 'Marckv' || u.role !== 'ADMIN')
+          );
           if (typeof localStorage !== 'undefined') {
             localStorage.setItem('basetrack_admin_users', JSON.stringify(this.users));
           }
@@ -4295,68 +4250,8 @@ export class AdminComponent implements OnInit {
   }
 
   saveUser(): void {
-    if (!this.newUser.username || !this.newUser.full_name) return;
-
-    const createdUser: UserItem = {
-      id: 'u-' + Date.now(),
-      username: this.newUser.username,
-      full_name: this.newUser.full_name,
-      email: this.newUser.email || `${this.newUser.username}@basetrack.mining.com`,
-      role: this.newUser.role,
-      shift: this.newUser.shift,
-      avatar_url: `https://api.dicebear.com/7.x/bottts/svg?seed=${this.newUser.username}`,
-      created_at: new Date().toISOString()
-    };
-
-    this.users.unshift(createdUser);
-    saveRealtimeData('admin_users', this.users);
-    this.saveUsersToStorage();
-
-    // Save to users registry so the new user can authenticate
-    const registry = getRealtimeData<Record<string, any>>('users_registry', {});
-    registry[createdUser.username.toLowerCase()] = {
-      id: createdUser.id,
-      username: createdUser.username,
-      email: createdUser.email,
-      fullName: createdUser.full_name,
-      role: createdUser.role,
-      shift: createdUser.shift,
-      avatarUrl: createdUser.avatar_url,
-      password: this.newUser.password || 'Password123!'
-    };
-    saveRealtimeData('users_registry', registry);
-
+    alert('La creación manual de usuarios está estrictamente deshabilitada (PROHIBIDO). La plataforma opera exclusivamente con la nómina oficial del CSV.');
     this.isCreateUserModalOpen = false;
-
-    this.http.post<any>(`${getApiBaseUrl()}/admin/users`, this.newUser).subscribe({
-      next: (res) => {
-        if (res && res.id) {
-          createdUser.id = res.id;
-          saveRealtimeData('admin_users', this.users);
-          this.saveUsersToStorage();
-          this.backupSuccessMessage = `✅ Usuario @${createdUser.username} creado exitosamente y sincronizado en la nube.`;
-          setTimeout(() => this.backupSuccessMessage = '', 6000);
-        }
-      },
-      error: () => {
-        console.log('[Admin] Usuario creado localmente en modo contingencia.');
-        if (this.isVercelDeployment && !this.hasCustomCloudBackend) {
-          this.backupSuccessMessage = `⚠️ Usuario @${createdUser.username} guardado en este navegador. Para que otros celulares/dispositivos puedan ingresar, conecta tu Servidor Cloud en 'Servidor Cloud'.`;
-        } else {
-          this.backupSuccessMessage = `⚠️ Usuario @${createdUser.username} guardado en modo local (servidor no disponible).`;
-        }
-        setTimeout(() => this.backupSuccessMessage = '', 8000);
-      }
-    });
-
-    this.newUser = {
-      username: '',
-      full_name: '',
-      email: '',
-      password: '',
-      role: 'OPERATOR',
-      shift: 'G1'
-    };
   }
 
   exportBackup(): void {

@@ -166,7 +166,7 @@ export function seed() {
 
   // 4.1 Cyclone Station Samples (Granulometry & Metallurgical Balance)
   const stationSamplesCount = (db.prepare('SELECT COUNT(*) as count FROM cyclone_station_samples').get() as { count: number }).count;
-  if (stationSamplesCount <= 8) {
+  if (stationSamplesCount < 24) {
     console.log('[Seed] Seeding complete cyclone station samples (1ra & 2da Estación Ciclones)...');
     const insertSample = db.prepare(`
       INSERT INTO cyclone_station_samples (
@@ -215,7 +215,7 @@ export function seed() {
 
     const today = new Date().toISOString().split('T')[0];
     // Eliminar previos incompletos si hay menos de 24
-    if (stationSamplesCount > 0 && stationSamplesCount <= 8) {
+    if (stationSamplesCount > 0 && stationSamplesCount < 24) {
       db.prepare('DELETE FROM cyclone_station_samples').run();
     }
 
