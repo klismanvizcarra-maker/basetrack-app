@@ -21,7 +21,7 @@ export interface CachedData {
 })
 export class IndexedDbService {
   private readonly dbName = 'basetrack_db';
-  private readonly dbVersion = 2;
+  private readonly dbVersion = 3;
   private db: IDBDatabase | null = null;
   private isAvailable = typeof window !== 'undefined' && 'indexedDB' in window;
 
@@ -112,12 +112,24 @@ export class IndexedDbService {
 
     try {
       const db = await this.initDb();
-      return new Promise((resolve, reject) => {
-        const tx = db.transaction('sync_queue', 'readwrite');
-        const store = tx.objectStore('sync_queue');
-        const req = store.put(queueItem);
-        req.onsuccess = () => resolve();
-        req.onerror = () => reject(req.error);
+      if (!db.objectStoreNames.contains('sync_queue')) {
+        this.addToLocalStorageQueue(queueItem);
+        return;
+      }
+      return new Promise((resolve) => {
+        try {
+          const tx = db.transaction('sync_queue', 'readwrite');
+          const store = tx.objectStore('sync_queue');
+          const req = store.put(queueItem);
+          req.onsuccess = () => resolve();
+          req.onerror = () => {
+            this.addToLocalStorageQueue(queueItem);
+            resolve();
+          };
+        } catch {
+          this.addToLocalStorageQueue(queueItem);
+          resolve();
+        }
       });
     } catch {
       this.addToLocalStorageQueue(queueItem);
@@ -131,16 +143,23 @@ export class IndexedDbService {
 
     try {
       const db = await this.initDb();
-      return new Promise((resolve, reject) => {
-        const tx = db.transaction('sync_queue', 'readonly');
-        const store = tx.objectStore('sync_queue');
-        const req = store.getAll();
-        req.onsuccess = () => {
-          const items: SyncQueueItem[] = req.result || [];
-          items.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-          resolve(items);
-        };
-        req.onerror = () => reject(req.error);
+      if (!db.objectStoreNames.contains('sync_queue')) {
+        return this.getLocalStorageQueue();
+      }
+      return new Promise((resolve) => {
+        try {
+          const tx = db.transaction('sync_queue', 'readonly');
+          const store = tx.objectStore('sync_queue');
+          const req = store.getAll();
+          req.onsuccess = () => {
+            const items: SyncQueueItem[] = req.result || [];
+            items.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+            resolve(items);
+          };
+          req.onerror = () => resolve(this.getLocalStorageQueue());
+        } catch {
+          resolve(this.getLocalStorageQueue());
+        }
       });
     } catch {
       return this.getLocalStorageQueue();
@@ -155,12 +174,24 @@ export class IndexedDbService {
 
     try {
       const db = await this.initDb();
-      return new Promise((resolve, reject) => {
-        const tx = db.transaction('sync_queue', 'readwrite');
-        const store = tx.objectStore('sync_queue');
-        const req = store.delete(id);
-        req.onsuccess = () => resolve();
-        req.onerror = () => reject(req.error);
+      if (!db.objectStoreNames.contains('sync_queue')) {
+        this.removeFromLocalStorageQueue(id);
+        return;
+      }
+      return new Promise((resolve) => {
+        try {
+          const tx = db.transaction('sync_queue', 'readwrite');
+          const store = tx.objectStore('sync_queue');
+          const req = store.delete(id);
+          req.onsuccess = () => resolve();
+          req.onerror = () => {
+            this.removeFromLocalStorageQueue(id);
+            resolve();
+          };
+        } catch {
+          this.removeFromLocalStorageQueue(id);
+          resolve();
+        }
       });
     } catch {
       this.removeFromLocalStorageQueue(id);
@@ -173,9 +204,18 @@ export class IndexedDbService {
     if (!item) return;
 
     item.retryCount += 1;
-    if (this.isAvailable && this.db) {
-      const tx = this.db.transaction('sync_queue', 'readwrite');
-      tx.objectStore('sync_queue').put(item);
+    if (this.isAvailable && this.db && this.db.objectStoreNames.contains('sync_queue')) {
+      try {
+        const tx = this.db.transaction('sync_queue', 'readwrite');
+        tx.objectStore('sync_queue').put(item);
+      } catch {
+        const lsQueue = this.getLocalStorageQueue();
+        const idx = lsQueue.findIndex(i => i.id === id);
+        if (idx !== -1) {
+          lsQueue[idx].retryCount += 1;
+          localStorage.setItem('basetrack_offline_queue', JSON.stringify(lsQueue));
+        }
+      }
     } else {
       const lsQueue = this.getLocalStorageQueue();
       const idx = lsQueue.findIndex(i => i.id === id);
@@ -187,10 +227,11 @@ export class IndexedDbService {
   }
 
   async clearQueue(): Promise<void> {
-    if (this.isAvailable) {
-      const db = await this.initDb();
-      const tx = db.transaction('sync_queue', 'readwrite');
-      tx.objectStore('sync_queue').clear();
+    if (this.isAvailable && this.db && this.db.objectStoreNames.contains('sync_queue')) {
+      try {
+        const tx = this.db.transaction('sync_queue', 'readwrite');
+        tx.objectStore('sync_queue').clear();
+      } catch {}
     }
     if (typeof localStorage !== 'undefined') {
       localStorage.removeItem('basetrack_offline_queue');
@@ -209,9 +250,11 @@ export class IndexedDbService {
     if (this.isAvailable) {
       try {
         const db = await this.initDb();
-        const tx = db.transaction('offline_cache', 'readwrite');
-        tx.objectStore('offline_cache').put(entry);
-        return;
+        if (db.objectStoreNames.contains('offline_cache')) {
+          const tx = db.transaction('offline_cache', 'readwrite');
+          tx.objectStore('offline_cache').put(entry);
+          return;
+        }
       } catch (e) {
         console.warn('[IndexedDB] setCache fallback to localStorage', e);
       }
@@ -230,12 +273,18 @@ export class IndexedDbService {
     if (this.isAvailable) {
       try {
         const db = await this.initDb();
-        return new Promise((resolve) => {
-          const tx = db.transaction('offline_cache', 'readonly');
-          const req = tx.objectStore('offline_cache').get(key);
-          req.onsuccess = () => resolve(req.result ? req.result.data : null);
-          req.onerror = () => resolve(null);
-        });
+        if (db.objectStoreNames.contains('offline_cache')) {
+          return new Promise((resolve) => {
+            try {
+              const tx = db.transaction('offline_cache', 'readonly');
+              const req = tx.objectStore('offline_cache').get(key);
+              req.onsuccess = () => resolve(req.result ? req.result.data : null);
+              req.onerror = () => resolve(null);
+            } catch {
+              resolve(null);
+            }
+          });
+        }
       } catch {
         // fallback to localStorage
       }

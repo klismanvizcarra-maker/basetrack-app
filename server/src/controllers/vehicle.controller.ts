@@ -135,8 +135,22 @@ export function createVehicleChecklist(req: AuthenticatedRequest, res: Response)
     const checkDate = date || new Date().toISOString().slice(0, 10);
     const checkTime = time || new Date().toTimeString().slice(0, 5);
 
+    if (photo_url && typeof photo_url === 'string' && photo_url.length > 3 * 1024 * 1024) {
+      return res.status(400).json({
+        success: false,
+        message: 'La fotografía adjunta no debe exceder los 3MB.'
+      });
+    }
+
     const id = crypto.randomUUID();
     const itemsJson = typeof items === 'string' ? items : JSON.stringify(items || []);
+
+    if (itemsJson.length > 200000) {
+      return res.status(400).json({
+        success: false,
+        message: 'El detalle de items inspeccionados excede el tamaño máximo permitido.'
+      });
+    }
 
     db.prepare(`
       INSERT INTO vehicle_checklists (

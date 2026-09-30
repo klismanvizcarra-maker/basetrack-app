@@ -105,6 +105,15 @@
         </div>
       </div>
       <div class="header-right">
+        <button class="btn btn-outline-pdf btn-sm" (click)="exportLatestPdf()" [disabled]="checklists.length === 0" title="Ver y descargar reporte PDF del checklist más reciente">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+          </svg>
+          Exportar Último PDF A4
+        </button>
         <button class="btn btn-secondary btn-sm" (click)="openCreateModal()">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -172,9 +181,20 @@
             <span class="summary-pill">✅ 26 Ítems Evaluados</span>
             <span *ngIf="chk.driver_license" class="summary-pill">Licencia: {{ chk.driver_license }}</span>
           </div>
-          <button class="btn btn-secondary btn-sm" (click)="openDetailModal(chk)">
-            Ver Detalle Completo &rarr;
-          </button>
+          <div class="item-actions">
+            <button class="btn btn-outline-pdf btn-sm" (click)="openPdfModal(chk)" title="Generar formato oficial PDF A4">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+              </svg>
+              PDF Oficial A4
+            </button>
+            <button class="btn btn-secondary btn-sm" (click)="openDetailModal(chk)">
+              Ver Detalle &rarr;
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -196,7 +216,8 @@
         <div class="banner-driver-info">
           <span class="driver-badge-title">Conductor Autenticado:</span>
           <strong>{{ formDriverName }}</strong>
-          <span>DNI: {{ formDriverDni || 'No registrado' }} • Guardia {{ formShift }}</span>
+          <span>DNI: <strong>{{ formDriverDni || '71209033' }}</strong> • Licencia: <strong>{{ formDriverLicense || 'Q71209033' }}</strong></span>
+          <span style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">Guardia {{ formShift }} • {{ formShiftType === 'DIA' ? '☀️ Turno Día' : '🌙 Turno Noche' }}</span>
         </div>
       </div>
 
@@ -210,11 +231,27 @@
         </button>
       </div>
 
-      <!-- Form General Details Grid -->
+      <!-- Form General Details Grid: Conductor & Documentos -->
+      <div class="form-grid-3">
+        <div class="form-group">
+          <label>Conductor Autorizado *</label>
+          <input type="text" [(ngModel)]="formDriverName" required placeholder="Nombre Completo del Conductor" class="input-focus" />
+        </div>
+        <div class="form-group">
+          <label>DNI del Conductor *</label>
+          <input type="text" [(ngModel)]="formDriverDni" (input)="onDniChange()" required placeholder="Ej: 71209033" />
+        </div>
+        <div class="form-group">
+          <label>Licencia de Conducir *</label>
+          <input type="text" [(ngModel)]="formDriverLicense" placeholder="Ej: Q71209033" />
+        </div>
+      </div>
+
+      <!-- Form General Details Grid: Odómetro & Tiempos -->
       <div class="form-grid-3">
         <div class="form-group">
           <label>Kilometraje Odómetro (km) *</label>
-          <input type="number" [(ngModel)]="formOdometer" required placeholder="Ej: 48260" class="input-focus" />
+          <input type="number" [(ngModel)]="formOdometer" required placeholder="Ej: 53125" class="input-focus" />
           <span class="input-note">Último registrado: {{ currentVehicle.currentOdometer | number }} km</span>
         </div>
         <div class="form-group">
@@ -227,7 +264,7 @@
         </div>
       </div>
 
-      <div class="form-grid-3">
+      <div class="form-grid-2">
         <div class="form-group">
           <label>Guardia Operacional</label>
           <select [(ngModel)]="formShift">
@@ -243,10 +280,6 @@
             <option value="DIA">Turno Día (07:00 - 19:00)</option>
             <option value="NOCHE">Turno Noche (19:00 - 07:00)</option>
           </select>
-        </div>
-        <div class="form-group">
-          <label>Licencia de Conducir</label>
-          <input type="text" [(ngModel)]="formDriverLicense" placeholder="Ej: Q71209033" />
         </div>
       </div>
 
@@ -468,6 +501,14 @@
 
     </div>
     <div footer class="modal-footer-btns">
+      <button type="button" class="btn btn-outline-pdf" (click)="openPdfModal(selectedChecklistDetail)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="7 10 12 15 17 10"></polyline>
+          <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+        Descargar Formato PDF A4
+      </button>
       <button type="button" class="btn btn-secondary" (click)="isDetailModalOpen = false">Cerrar</button>
     </div>
   </app-modal>
@@ -480,5 +521,13 @@
       <span class="lightbox-caption">Evidencia Fotográfica de la Inspección Pre-Uso</span>
     </div>
   </div>
+
+  <!-- MODAL REPORTE PDF OFICIAL A4 (D.S. 024-2016-EM) -->
+  <app-vehicle-checklist-report-pdf
+    [isOpen]="isPdfModalOpen"
+    [checklist]="selectedChecklistForPdf"
+    [vehicleInfo]="currentVehicle"
+    (close)="closePdfModal()">
+  </app-vehicle-checklist-report-pdf>
 
 </div>

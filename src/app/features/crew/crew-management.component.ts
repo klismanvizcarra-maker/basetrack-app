@@ -2,10 +2,11 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
-import { CrewService, CrewMember, CrewAreaAssignment, PositionKey, CrewPositionMeta } from '../../core/services/crew.service';
+import { CrewService, CrewMember, CrewAreaAssignment, PositionKey, CrewPositionMeta, sanitizeOfficialName } from '../../core/services/crew.service';
 import { AuthService } from '../../core/auth/auth.service';
+import { PermissionsService } from '../../core/auth/permissions.service';
 import { ModalComponent } from '../../shared/ui/modal.component';
-import { getRosterForDate, getCurrentActiveShift, DayRoster, GuardInfo } from '../../shared/utils/roster.util';
+import { getRosterForDate, getCurrentActiveShift, getLocalDateString, DayRoster, GuardInfo } from '../../shared/utils/roster.util';
 
 @Component({
   selector: 'app-crew-management',
@@ -28,7 +29,7 @@ import { getRosterForDate, getCurrentActiveShift, DayRoster, GuardInfo } from '.
           </p>
         </div>
 
-        <div class="top-actions-cluster">
+        <div class="top-actions-cluster" *ngIf="permissionsService.canManageCrew()">
           <button type="button" class="btn btn-secondary" (click)="openCreatePositionModal()" title="Crear y agregar una nueva posición operativa al tablero">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
               <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
@@ -36,6 +37,21 @@ import { getRosterForDate, getCurrentActiveShift, DayRoster, GuardInfo } from '.
               <line x1="8" y1="12" x2="16" y2="12"></line>
             </svg>
             <span>Nueva Posición</span>
+          </button>
+
+          <button type="button" class="btn btn-secondary" (click)="clearAllAssignments()" title="Limpiar todos los puestos operativos para inicio de guardia">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <path d="M3 6h18"></path>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+            <span>Limpiar Tablero</span>
+          </button>
+
+          <button type="button" class="btn btn-secondary" (click)="autoAssignDefaultStaff()" title="Auto-asignar a cada operador en su posición habitual de planta">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+            </svg>
+            <span>Auto-Asignar</span>
           </button>
 
           <button type="button" class="btn btn-secondary" (click)="validateAllEppAndTalk()" title="Validar EPP y Charla de 5 min en todas las posiciones">
@@ -53,6 +69,15 @@ import { getRosterForDate, getCurrentActiveShift, DayRoster, GuardInfo } from '.
             </svg>
             <span>Nuevo Operador</span>
           </button>
+        </div>
+
+        <!-- Aviso para operadores en modo solo lectura -->
+        <div class="readonly-crew-notice glass-panel" *ngIf="!permissionsService.canManageCrew()">
+          <span class="notice-lock-icon">🔒</span>
+          <div class="notice-texts">
+            <span class="notice-title">Pizarra Informativa de Guardia</span>
+            <span class="notice-sub">Modo Solo Lectura • Asignación de puestos exclusiva de Supervisión</span>
+          </div>
         </div>
       </div>
 
@@ -122,8 +147,8 @@ import { getRosterForDate, getCurrentActiveShift, DayRoster, GuardInfo } from '.
             <span class="kpi-val">{{ activeCrewCount }} en turno</span>
           </div>
           <div class="kpi-mini-item">
-            <span class="kpi-label">Cumplimiento EPP</span>
-            <span class="kpi-val text-success">{{ eppCompliancePercent }}%</span>
+            <span class="kpi-label">Puestos Cubiertos</span>
+            <span class="kpi-val text-success">{{ coverageCount }} / {{ positionsList.length }}</span>
           </div>
         </div>
       </div>
@@ -164,7 +189,7 @@ import { getRosterForDate, getCurrentActiveShift, DayRoster, GuardInfo } from '.
               <line x1="2" y1="12" x2="22" y2="12"></line>
               <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
             </svg>
-            <span>{{ showOnlyMyOperators ? '⭐ Cuadrilla Asignada' : '🌐 Toda la Planta' }}</span>
+            <span>{{ showOnlyMyOperators ? 'Cuadrilla Asignada' : '🌐 Toda la Planta' }}</span>
           </button>
         </div>
       </div>
@@ -214,59 +239,58 @@ import { getRosterForDate, getCurrentActiveShift, DayRoster, GuardInfo } from '.
             <label class="operator-field-label">
               {{ pos.key === 'SUPERVISOR' ? 'Supervisor de guardia Asignado:' : 'Operador Titular Asignado:' }}
             </label>
-            <div class="operator-dropdown-wrapper">
-              <select
-                class="operator-select"
-                [ngModel]="getAssignment(pos.key)?.operator_id"
-                (ngModelChange)="onAssignOperator(pos.key, $event)"
-              >
-                <option [ngValue]="null">-- Sin Operador Asignado (Vacante) --</option>
-                
-                <!-- For SUPERVISOR position -->
-                <ng-container *ngIf="pos.key === 'SUPERVISOR'">
-                  <optgroup [label]="'⭐ Supervisión de Guardia ' + selectedShift">
-                    <option 
-                      *ngIf="activeSupervisorMember" 
-                      [value]="activeSupervisorMember.id"
-                      [disabled]="isOperatorAssignedElsewhere(activeSupervisorMember.id, pos.key)">
-                      ⭐ {{ activeSupervisorMember.name }} (Supervisor de guardia)
-                      {{ isOperatorAssignedElsewhere(activeSupervisorMember.id, pos.key) ? ' — [Asignado en: ' + getOperatorAssignedPositionTitle(activeSupervisorMember.id, pos.key) + ']' : '' }}
-                    </option>
-                  </optgroup>
-                  <optgroup *ngIf="!showOnlyMyOperators" label="Otros Supervisores de Planta">
-                    <option 
-                      *ngFor="let s of otherSupervisors" 
-                      [value]="s.id"
-                      [disabled]="isOperatorAssignedElsewhere(s.id, pos.key)">
-                      {{ s.name }} (Supervisor - {{ s.shift_code }})
-                      {{ isOperatorAssignedElsewhere(s.id, pos.key) ? ' — [Asignado en: ' + getOperatorAssignedPositionTitle(s.id, pos.key) + ']' : '' }}
-                    </option>
-                  </optgroup>
-                </ng-container>
+            <select
+              class="operator-select"
+              [disabled]="!permissionsService.canManageCrew()"
+              [class.select-disabled]="!permissionsService.canManageCrew()"
+              [ngModel]="getAssignment(pos.key)?.operator_id"
+              (ngModelChange)="onAssignOperator(pos.key, $event)"
+            >
+              <option [ngValue]="null">-- Sin Operador Asignado --</option>
+              
+              <!-- For SUPERVISOR position -->
+              <ng-container *ngIf="pos.key === 'SUPERVISOR'">
+                <optgroup [label]="'Supervisión de Guardia ' + selectedShift">
+                  <option 
+                    *ngIf="activeSupervisorMember" 
+                    [value]="activeSupervisorMember.id">
+                    {{ activeSupervisorMember.name }}
+                  </option>
+                </optgroup>
+                <optgroup [label]="'Cuadrilla Asignada (' + currentSquadOperators.length + ')'">
+                  <option 
+                    *ngFor="let m of currentSquadOperators" 
+                    [value]="m.id">
+                    {{ m.name }}
+                  </option>
+                </optgroup>
+                <optgroup *ngIf="!showOnlyMyOperators && otherSupervisors.length > 0" label="Otros Supervisores de Planta">
+                  <option 
+                    *ngFor="let s of otherSupervisors" 
+                    [value]="s.id">
+                    {{ s.name }}
+                  </option>
+                </optgroup>
+              </ng-container>
 
-                <!-- For OPERATOR positions -->
-                <ng-container *ngIf="pos.key !== 'SUPERVISOR'">
-                  <optgroup [label]="'⭐ Cuadrilla Asignada (' + currentSquadOperators.length + ' de ' + activeSupervisorDisplayName + ')'">
-                    <option 
-                      *ngFor="let m of currentSquadOperators" 
-                      [value]="m.id"
-                      [disabled]="isOperatorAssignedElsewhere(m.id, pos.key)">
-                      ⭐ {{ m.name }} ({{ formatRoleName(m.primary_role) }})
-                      {{ isOperatorAssignedElsewhere(m.id, pos.key) ? ' — [Ocupado en: ' + getOperatorAssignedPositionTitle(m.id, pos.key) + ']' : '' }}
-                    </option>
-                  </optgroup>
-                  <optgroup *ngIf="!showOnlyMyOperators" label="Otros Operadores de Planta">
-                    <option 
-                      *ngFor="let m of nonSquadMembers" 
-                      [value]="m.id"
-                      [disabled]="isOperatorAssignedElsewhere(m.id, pos.key)">
-                      {{ m.name }} ({{ formatRoleName(m.primary_role) }} - {{ m.shift_code }})
-                      {{ isOperatorAssignedElsewhere(m.id, pos.key) ? ' — [Ocupado en: ' + getOperatorAssignedPositionTitle(m.id, pos.key) + ']' : '' }}
-                    </option>
-                  </optgroup>
-                </ng-container>
-              </select>
-            </div>
+              <!-- For OPERATOR positions -->
+              <ng-container *ngIf="pos.key !== 'SUPERVISOR'">
+                <optgroup [label]="'Cuadrilla Asignada (' + currentSquadOperators.length + ')'">
+                  <option 
+                    *ngFor="let m of currentSquadOperators" 
+                    [value]="m.id">
+                    {{ m.name }}
+                  </option>
+                </optgroup>
+                <optgroup *ngIf="!showOnlyMyOperators" label="Otros Operadores de Planta">
+                  <option 
+                    *ngFor="let m of nonSquadMembers" 
+                    [value]="m.id">
+                    {{ m.name }}
+                  </option>
+                </optgroup>
+              </ng-container>
+            </select>
 
             <!-- Operator Profile Snapshot -->
             <div class="operator-snapshot" *ngIf="getOperator(getAssignment(pos.key)?.operator_id) as op">
@@ -279,61 +303,6 @@ import { getRosterForDate, getCurrentActiveShift, DayRoster, GuardInfo } from '.
                 {{ op.status === 'EN_TURNO' ? 'En Puesto' : op.status }}
               </span>
             </div>
-          </div>
-
-          <!-- Backup / Relevo Operator Selector -->
-          <div class="pos-backup-select-box" *ngIf="pos.key !== 'RELEVO' && pos.key !== 'SUPERVISOR'">
-            <label class="operator-field-label">Operador de Soporte / Relevo:</label>
-            <select
-              class="operator-select-sm"
-              [ngModel]="getAssignment(pos.key)?.backup_operator_id"
-              (ngModelChange)="onAssignBackup(pos.key, $event)"
-            >
-              <option [ngValue]="null">-- Sin Relevo Asignado --</option>
-              <optgroup [label]="'⭐ Cuadrilla Asignada (' + currentSquadOperators.length + ')'">
-                <option *ngFor="let m of currentSquadOperators" [value]="m.id">
-                  ⭐ {{ m.name }} ({{ formatRoleName(m.primary_role) }})
-                </option>
-              </optgroup>
-              <optgroup *ngIf="!showOnlyMyOperators" label="Otros Operadores de Planta">
-                <option *ngFor="let m of nonSquadMembers" [value]="m.id">
-                  {{ m.name }} ({{ formatRoleName(m.primary_role) }} - {{ m.shift_code }})
-                </option>
-              </optgroup>
-            </select>
-          </div>
-
-          <!-- Check-in Toggles (EPP & 5 Min Safety Talk) -->
-          <div class="pos-checks-row">
-            <button
-              type="button"
-              class="check-pill"
-              [class.checked]="getAssignment(pos.key)?.epp_verified === 1"
-              (click)="toggleEpp(pos.key)"
-              title="Confirmar inspección de EPP completo (Casco, lentes, botas, respirador, chaleco)"
-            >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                <polyline points="22 4 12 14.01 9 11.01"></polyline>
-              </svg>
-              <span>🦺 EPP Verificado</span>
-            </button>
-
-            <button
-              type="button"
-              class="check-pill"
-              [class.checked]="getAssignment(pos.key)?.safety_talk_completed === 1"
-              (click)="toggleSafetyTalk(pos.key)"
-              title="Confirmar participación en Charla de 5 minutos de inicio de guardia"
-            >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                <polyline points="14 2 14 8 20 8"></polyline>
-                <line x1="16" y1="13" x2="8" y2="13"></line>
-                <line x1="16" y1="17" x2="8" y2="17"></line>
-              </svg>
-              <span>📋 Charla 5 Min</span>
-            </button>
           </div>
 
           <!-- Card Footer & Module Link -->
@@ -398,7 +367,7 @@ import { getRosterForDate, getCurrentActiveShift, DayRoster, GuardInfo } from '.
               [class.active]="rosterFilter === 'SQUAD'"
               (click)="rosterFilter = 'SQUAD'"
             >
-              ⭐ Mi Cuadrilla ({{ currentSquadMembers.length }})
+              Mi Cuadrilla ({{ currentSquadMembers.length }})
             </button>
             <button
               type="button"
@@ -530,7 +499,7 @@ import { getRosterForDate, getCurrentActiveShift, DayRoster, GuardInfo } from '.
             <input
               type="text"
               class="form-control"
-              placeholder="Ej. Juan Pérez Huamán"
+              placeholder="Ej. VILCAMIZA PEVE JORGE RICARDO"
               [(ngModel)]="newOperator.name"
               name="name"
               required
@@ -717,14 +686,14 @@ import { getRosterForDate, getCurrentActiveShift, DayRoster, GuardInfo } from '.
             name="pos_operator"
           >
             <option value="">-- Sin asignar por ahora --</option>
-            <optgroup [label]="'⭐ Cuadrilla Asignada (' + currentSquadOperators.length + ' de ' + activeSupervisorDisplayName + ')'">
+            <optgroup [label]="'Cuadrilla Asignada (' + currentSquadOperators.length + ')'">
               <option *ngFor="let m of currentSquadOperators" [value]="m.id">
-                ⭐ {{ m.name }} ({{ formatRoleName(m.primary_role) }})
+                {{ m.name }}
               </option>
             </optgroup>
             <optgroup label="Otros Operadores de Planta">
               <option *ngFor="let m of nonSquadMembers" [value]="m.id">
-                {{ m.name }} ({{ formatRoleName(m.primary_role) }} - {{ m.shift_code }})
+                {{ m.name }}
               </option>
             </optgroup>
           </select>
@@ -1441,6 +1410,44 @@ import { getRosterForDate, getCurrentActiveShift, DayRoster, GuardInfo } from '.
         border-color: var(--border-focus, #3b82f6);
         box-shadow: 0 0 0 3px var(--primary-glow, rgba(59, 130, 246, 0.2));
       }
+
+      &.select-disabled, &:disabled {
+        background: var(--bg-card-subtle, #f1f5f9);
+        color: var(--text-primary);
+        cursor: not-allowed;
+        opacity: 0.9;
+        border-style: dashed;
+      }
+    }
+
+    .readonly-crew-notice {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 16px;
+      border-radius: var(--radius-md);
+      background: rgba(3, 23, 149, 0.05);
+      border: 1px solid rgba(3, 23, 149, 0.2);
+
+      .notice-lock-icon {
+        font-size: 1.3rem;
+      }
+
+      .notice-texts {
+        display: flex;
+        flex-direction: column;
+
+        .notice-title {
+          font-size: 0.82rem;
+          font-weight: 800;
+          color: var(--primary-purple);
+        }
+
+        .notice-sub {
+          font-size: 0.72rem;
+          color: var(--text-muted);
+        }
+      }
     }
 
     .operator-select-sm {
@@ -1950,10 +1957,11 @@ import { getRosterForDate, getCurrentActiveShift, DayRoster, GuardInfo } from '.
 export class CrewManagementComponent implements OnInit {
   authService = inject(AuthService);
   crewService = inject(CrewService);
+  permissionsService = inject(PermissionsService);
 
   selectedShift: 'G1' | 'G2' | 'G3' | 'G4' | string = 'G1';
   selectedShiftType: 'DIA' | 'NOCHE' = 'DIA';
-  selectedDate: string = new Date().toISOString().split('T')[0];
+  selectedDate: string = getLocalDateString();
   rosterFilter: 'SQUAD' | 'SHIFT' | 'ALL' | 'EN_TURNO' | 'DESCANSO' = 'SQUAD';
   showOnlyMyOperators: boolean = true;
 
@@ -2043,17 +2051,17 @@ export class CrewManagementComponent implements OnInit {
   get activeSupervisorDisplayName(): string {
     const supMember = this.activeSupervisorMember;
     if (supMember) {
-      return supMember.name;
+      return sanitizeOfficialName(supMember.name);
     }
     const currentUser = this.authService.currentUser();
     if (currentUser?.role === 'SUPERVISOR' && currentUser.shift === this.selectedShift) {
-      return currentUser.fullName || currentUser.username;
+      return sanitizeOfficialName(currentUser.fullName || currentUser.username);
     }
     switch (this.selectedShift) {
-      case 'G1': return 'VIZCARRA CORI MANLEY KLISMAN';
-      case 'G2': return 'LLERENA CALLE-BRACAMONTE VICTOR ALEJANDRO II';
-      case 'G3': return 'MENDOZA QUISPE HÉCTOR';
-      case 'G4': return 'ORTEGA RAMÍREZ CESAR';
+      case 'G1': return 'GONGORA ROJAS MIGUEL ALONSO';
+      case 'G2': return 'ALIAGA CASTAÑEDA EMILIO URIEL';
+      case 'G3': return 'ARI MAMANI HUGO ANDRES';
+      case 'G4': return 'FERNANDEZ ASCURRA DANTE PACO';
       default: return currentUser?.fullName || 'Supervisor de Planta';
     }
   }
@@ -2121,7 +2129,7 @@ export class CrewManagementComponent implements OnInit {
 
   ngOnInit(): void {
     const active = getCurrentActiveShift();
-    this.selectedDate = new Date().toISOString().split('T')[0];
+    this.selectedDate = active.dateStr;
     this.selectedShiftType = active.shiftName;
     this.selectedShift = active.activeGuard.code;
 
@@ -2155,90 +2163,72 @@ export class CrewManagementComponent implements OnInit {
   getAssignment(key: PositionKey): CrewAreaAssignment | undefined {
     const existing = this.crewService.activeAssignments().find(a => a.position_key === key && a.shift_code === this.selectedShift);
     if (existing) {
-      // Si la posición fue explícitamente vaciada
-      if (existing.operator_id === null || existing.operator_id === '') {
-        return existing;
-      }
-      if (existing.operator_id) {
-        return existing;
-      }
+      return existing;
     }
-
-    // Always synthesize default operator for this position and shift
-    const staff = this.crewService.getOfficialShiftStaff(this.selectedShift);
-    let titular: CrewMember = staff.bombas;
-    let backup: CrewMember | null = staff.miscelaneos;
-
-    switch (key) {
-      case 'SUPERVISOR':
-        titular = staff.supervisor;
-        backup = null;
-        break;
-      case 'SALA_CONTROL':
-        titular = staff.controlRoom;
-        backup = staff.miscelaneos;
-        break;
-      case 'BOMBAS':
-        titular = staff.bombas;
-        break;
-      case 'CICLONES_1':
-        titular = staff.ciclones1;
-        break;
-      case 'CICLONES_2':
-        titular = staff.ciclones2;
-        break;
-      case 'DISTRIBUIDOR':
-        titular = staff.distribuidor;
-        break;
-      case 'DESCARGA_1':
-        titular = staff.descarga1;
-        break;
-      case 'DESCARGA_2':
-        titular = staff.descarga2;
-        break;
-      case 'MISCELANEOS':
-        titular = staff.miscelaneos;
-        backup = null;
-        break;
-    }
-
-    // Regla de unicidad operativa: Si el titular por defecto ya está ocupando otra posición en este turno,
-    // esta posición queda vacante (null) para que no se duplique al operador.
-    const isOccupiedElsewhere = this.crewService.activeAssignments().some(
-      a => a.position_key !== key && a.operator_id === titular.id && a.shift_code === this.selectedShift
-    );
-    const resolvedOperatorId = isOccupiedElsewhere ? null : titular.id;
-    const resolvedOperatorName = isOccupiedElsewhere ? undefined : titular.name;
-    const resolvedOperatorAvatar = isOccupiedElsewhere ? undefined : titular.avatar_url;
-    const resolvedOperatorRole = isOccupiedElsewhere ? undefined : titular.primary_role;
 
     const posMeta = this.positionsList.find(p => p.key === key);
+    const staff = this.crewService.getOfficialShiftStaff(this.selectedShift);
+
+    // De acuerdo al rol y horario, para inicio de guardia el supervisor asignado lidera la guardia,
+    // mientras que todas las posiciones operativas arrancan limpias (vacantes) listas para asignar.
+    const isSupervisor = key === 'SUPERVISOR';
+    const defaultOperatorId = isSupervisor ? staff.supervisor?.id : null;
+    const defaultOperator = isSupervisor ? staff.supervisor : null;
+
     return {
-      id: existing?.id || `assign-${key.toString().toLowerCase()}-${this.selectedShift}-${this.selectedShiftType}`,
+      id: `assign-${key.toString().toLowerCase()}-${this.selectedShift}-${this.selectedShiftType}`,
       shift_code: this.selectedShift,
       shift_date: this.selectedDate,
       shift_type: this.selectedShiftType,
       position_key: key,
       position_title: posMeta?.title || key,
-      operator_id: resolvedOperatorId,
-      operator_name: resolvedOperatorName,
-      operator_avatar: resolvedOperatorAvatar,
-      operator_role: resolvedOperatorRole,
-      operator_phone: isOccupiedElsewhere ? undefined : titular.phone_extension,
-      operator_default_radio: isOccupiedElsewhere ? undefined : titular.radio_channel,
-      backup_operator_id: backup ? backup.id : null,
-      backup_name: backup ? backup.name : undefined,
-      epp_verified: existing?.epp_verified ?? 1,
-      safety_talk_completed: existing?.safety_talk_completed ?? 1,
-      radio_channel: existing?.radio_channel || posMeta?.defaultRadio,
-      station_location: existing?.station_location || posMeta?.defaultLocation,
-      notes: existing?.notes || posMeta?.description
+      operator_id: defaultOperatorId,
+      operator_name: defaultOperator?.name,
+      operator_avatar: defaultOperator?.avatar_url,
+      operator_role: defaultOperator?.primary_role,
+      operator_phone: isSupervisor ? staff.supervisor?.phone_extension : undefined,
+      operator_default_radio: isSupervisor ? staff.supervisor?.radio_channel : posMeta?.defaultRadio,
+      backup_operator_id: null,
+      backup_name: undefined,
+      epp_verified: isSupervisor ? 1 : 0,
+      safety_talk_completed: isSupervisor ? 1 : 0,
+      radio_channel: posMeta?.defaultRadio,
+      station_location: posMeta?.defaultLocation,
+      notes: posMeta?.description
     };
+  }
+
+  clearAllAssignments(): void {
+    const list = this.crewService.positions();
+    for (const p of list) {
+      if (p.key !== 'SUPERVISOR') {
+        this.onAssignOperator(p.key, null);
+        this.onAssignBackup(p.key, null);
+      }
+    }
+  }
+
+  autoAssignDefaultStaff(): void {
+    const staff = this.crewService.getOfficialShiftStaff(this.selectedShift);
+    const roleMapping: Record<string, string> = {
+      'SALA_CONTROL': staff.controlRoom.id,
+      'BOMBAS': staff.bombas.id,
+      'CICLONES_1': staff.ciclones1.id,
+      'CICLONES_2': staff.ciclones2.id,
+      'DISTRIBUIDOR': staff.distribuidor.id,
+      'DESCARGA_1': staff.descarga1.id,
+      'DESCARGA_2': staff.descarga2.id,
+      'MISCELANEOS': staff.miscelaneos.id
+    };
+
+    for (const [key, opId] of Object.entries(roleMapping)) {
+      this.onAssignOperator(key, opId);
+    }
   }
 
   isOperatorAssignedElsewhere(operatorId?: string | null, currentPosKey?: PositionKey): boolean {
     if (!operatorId) return false;
-    for (const p of this.positionsList) {
+    for (const p of this.crewService.positions()) {
       if (p.key !== currentPosKey) {
         const a = this.getAssignment(p.key);
         if (a && a.operator_id === operatorId) {
@@ -2247,6 +2237,34 @@ export class CrewManagementComponent implements OnInit {
       }
     }
     return false;
+  }
+
+  getAvailableSquadOperators(posKey: PositionKey): CrewMember[] {
+    const list = this.currentSquadOperators.filter(m => !this.isOperatorAssignedElsewhere(m.id, posKey));
+    const currentAssign = this.getAssignment(posKey);
+    if (currentAssign?.operator_id) {
+      const currentOp = this.getOperator(currentAssign.operator_id);
+      if (currentOp && !list.some(m => m.id === currentOp.id) && currentOp.shift_code === this.selectedShift) {
+        list.unshift(currentOp);
+      }
+    }
+    return list;
+  }
+
+  getAvailableNonSquadMembers(posKey: PositionKey): CrewMember[] {
+    const list = this.nonSquadMembers.filter(m => !this.isOperatorAssignedElsewhere(m.id, posKey));
+    const currentAssign = this.getAssignment(posKey);
+    if (currentAssign?.operator_id) {
+      const currentOp = this.getOperator(currentAssign.operator_id);
+      if (currentOp && !list.some(m => m.id === currentOp.id) && currentOp.shift_code !== this.selectedShift) {
+        list.unshift(currentOp);
+      }
+    }
+    return list;
+  }
+
+  getAvailableOtherSupervisors(posKey: PositionKey): CrewMember[] {
+    return this.otherSupervisors.filter(s => !this.isOperatorAssignedElsewhere(s.id, posKey));
   }
 
   getOperatorAssignedPositionTitle(operatorId?: string | null, currentPosKey?: PositionKey): string {

@@ -598,6 +598,12 @@
         color: var(--text-secondary);
       }
     }
+
+    .item-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
   }
 }
 
@@ -697,6 +703,7 @@
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 12px;
+  margin-bottom: 12px;
 
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
@@ -733,6 +740,46 @@
     .input-note {
       font-size: 0.7rem;
       color: var(--text-muted);
+    }
+  }
+}
+
+.form-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    label {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--text-secondary);
+    }
+
+    input, select {
+      padding: 10px 12px;
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      font-size: 0.9rem;
+      background: var(--bg-input);
+      color: var(--text-primary);
+      width: 100%;
+
+      &:focus {
+        border-color: var(--border-focus, #3b82f6);
+        outline: none;
+        box-shadow: 0 0 0 2px var(--primary-glow, rgba(59, 130, 246, 0.25));
+      }
     }
   }
 }
@@ -1383,6 +1430,19 @@
 
     &:hover {
       background: rgba(16, 185, 129, 0.25);
+    }
+  }
+
+  &.btn-outline-pdf {
+    background: rgba(2, 132, 199, 0.12);
+    border-color: rgba(2, 132, 199, 0.4);
+    color: #0284c7;
+
+    &:hover {
+      background: rgba(2, 132, 199, 0.22);
+      border-color: #0284c7;
+      color: #38bdf8;
+      transform: translateY(-1px);
     }
   }
 }

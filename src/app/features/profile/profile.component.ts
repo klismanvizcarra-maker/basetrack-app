@@ -185,7 +185,7 @@ import { ThemeService } from '../../core/theme/theme.service';
                   type="text"
                   [(ngModel)]="profileForm.fullName"
                   name="fullName"
-                  placeholder="Ej. VIZCARRA CORI MANLEY KLISMAN"
+                  placeholder="Ej. Marck Vizcarra"
                   required
                 />
               </div>
@@ -197,7 +197,7 @@ import { ThemeService } from '../../core/theme/theme.service';
                     type="email"
                     [(ngModel)]="profileForm.email"
                     name="email"
-                    placeholder="klismanvizcarra@basetrack.com"
+                    placeholder="marckvizcarra@basetrack.com"
                     required
                   />
                 </div>

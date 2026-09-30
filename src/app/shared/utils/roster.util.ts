@@ -30,44 +30,86 @@ export const GUARDS_CATALOG: Record<GuardCode, GuardInfo> = {
   G1: {
     code: 'G1',
     name: 'Guardia 1',
-    supervisorName: 'VIZCARRA CORI KLISMAN',
-    supervisorUser: 'KlismanV',
+    supervisorName: 'GONGORA ROJAS MIGUEL ALONSO',
+    supervisorUser: 'MIGUELG',
     colorHex: '#1d4ed8', // Azul Cobalto
     bgLight: '#eff6ff',
     badgeBorder: '#93c5fd',
-    avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80'
+    avatarUrl: 'https://api.dicebear.com/7.x/bottts/svg?seed=MIGUELG'
   },
   G2: {
     code: 'G2',
     name: 'Guardia 2',
-    supervisorName: 'LLERENA CALLE-BRACAMONTE VÍCTOR ALEJANDRO',
-    supervisorUser: 'VictorA',
+    supervisorName: 'ALIAGA CASTAÑEDA EMILIO URIEL',
+    supervisorUser: 'EMILIOA',
     colorHex: '#059669', // Verde Esmeralda
     bgLight: '#ecfdf5',
     badgeBorder: '#6ee7b7',
-    avatarUrl: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&w=120&q=80'
+    avatarUrl: 'https://api.dicebear.com/7.x/bottts/svg?seed=EMILIOA'
   },
   G3: {
     code: 'G3',
     name: 'Guardia 3',
-    supervisorName: 'MENDOZA QUISPE HÉCTOR HUGO',
-    supervisorUser: 'HectorM',
+    supervisorName: 'ARI MAMANI HUGO ANDRES',
+    supervisorUser: 'HUGOA',
     colorHex: '#d97706', // Ámbar Minero
     bgLight: '#fffbeb',
     badgeBorder: '#fcd34d',
-    avatarUrl: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=120&q=80'
+    avatarUrl: 'https://api.dicebear.com/7.x/bottts/svg?seed=HUGOA'
   },
   G4: {
     code: 'G4',
     name: 'Guardia 4',
-    supervisorName: 'ORTEGA RAMÍREZ CESAR',
-    supervisorUser: 'CesarO',
+    supervisorName: 'FERNANDEZ ASCURRA DANTE PACO',
+    supervisorUser: 'DANTEF',
     colorHex: '#7c3aed', // Púrpura Industrial
     bgLight: '#f5f3ff',
     badgeBorder: '#c4b5fd',
-    avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=120&q=80'
+    avatarUrl: 'https://api.dicebear.com/7.x/bottts/svg?seed=DANTEF'
   }
 };
+
+/**
+ * Permite actualizar dinámicamente el catálogo de guardias con supervisores cargados desde API o lote.
+ */
+export function updateGuardsCatalog(supervisors: Partial<Record<GuardCode, Partial<GuardInfo>>>): void {
+  (Object.keys(supervisors) as GuardCode[]).forEach(code => {
+    if (GUARDS_CATALOG[code] && supervisors[code]) {
+      const s = supervisors[code]!;
+      if (s.supervisorName) GUARDS_CATALOG[code].supervisorName = s.supervisorName;
+      if (s.supervisorUser) GUARDS_CATALOG[code].supervisorUser = s.supervisorUser;
+      if (s.avatarUrl) GUARDS_CATALOG[code].avatarUrl = s.avatarUrl;
+    }
+  });
+}
+
+// Cargar automáticamente supervisores guardados en almacenamiento local si existen
+if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+  try {
+    const rawCrew = localStorage.getItem('basetrack_crew_members');
+    if (rawCrew) {
+      const parsed = JSON.parse(rawCrew);
+      if (Array.isArray(parsed)) {
+        const foundSups: Partial<Record<GuardCode, Partial<GuardInfo>>> = {};
+        parsed.forEach((m: any) => {
+          const shift = (m.shift_code || m.shift) as GuardCode;
+          if (['G1', 'G2', 'G3', 'G4'].includes(shift) && m.primary_role === 'SUPERVISOR') {
+            foundSups[shift] = {
+              supervisorName: m.name || m.full_name,
+              supervisorUser: m.username || m.name,
+              avatarUrl: m.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${m.name}`
+            };
+          }
+        });
+        if (Object.keys(foundSups).length > 0) {
+          updateGuardsCatalog(foundSups);
+        }
+      }
+    }
+  } catch (e) {
+    // Ignorar error de parseo local
+  }
+}
 
 export interface GuardDailyStatus {
   guard: GuardInfo;
@@ -254,11 +296,27 @@ export function getMonthRoster(year: number, monthIndex: number): MonthRoster {
 }
 
 /**
+ * Retorna la fecha local en formato YYYY-MM-DD sin desplazamiento UTC
+ */
+export function getLocalDateString(d: Date = new Date()): string {
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+/**
  * Determina cuál guardia está activamente en planta en este instante según la hora local.
  * Turno Día: 07:00:00 a 18:59:59
  * Turno Noche: 19:00:00 a 06:59:59
  */
-export function getCurrentActiveShift(): { activeGuard: GuardInfo; nextGuard: GuardInfo; shiftName: 'DIA' | 'NOCHE' } {
+export function getCurrentActiveShift(): {
+  activeGuard: GuardInfo;
+  nextGuard: GuardInfo;
+  shiftName: 'DIA' | 'NOCHE';
+  referenceDate: Date;
+  dateStr: string;
+} {
   const now = new Date();
   const currentHour = now.getHours();
   const isDayShift = currentHour >= 7 && currentHour < 19;
@@ -269,13 +327,16 @@ export function getCurrentActiveShift(): { activeGuard: GuardInfo; nextGuard: Gu
     referenceDate.setDate(referenceDate.getDate() - 1);
   }
 
+  const dateStr = getLocalDateString(referenceDate);
   const dayRoster = getRosterForDate(referenceDate);
 
   if (isDayShift) {
     return {
       activeGuard: dayRoster.dayShiftGuard,
       nextGuard: dayRoster.nightShiftGuard,
-      shiftName: 'DIA'
+      shiftName: 'DIA',
+      referenceDate,
+      dateStr
     };
   } else {
     // Si estamos en noche, la activa es nightShiftGuard y la siguiente es la del día siguiente
@@ -285,7 +346,9 @@ export function getCurrentActiveShift(): { activeGuard: GuardInfo; nextGuard: Gu
     return {
       activeGuard: dayRoster.nightShiftGuard,
       nextGuard: nextRoster.dayShiftGuard,
-      shiftName: 'NOCHE'
+      shiftName: 'NOCHE',
+      referenceDate,
+      dateStr
     };
   }
 }

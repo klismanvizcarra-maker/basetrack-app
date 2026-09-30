@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { login, register, getMe, updateProfile, changePassword } from '../controllers/auth.controller.js';
 import { getDashboardMetrics } from '../controllers/dashboard.controller.js';
 import { getAllPumps, getPumpById, createPumpReport, updatePumpStatus, getPumpOperationalSheet, savePumpOperationalSheet } from '../controllers/pumps.controller.js';
-import { getAllCyclones, createCycloneReport, getStationSamples, createStationSample, deleteStationSample } from '../controllers/cyclones.controller.js';
+import { getAllCyclones, createCycloneReport, getStationSamples, createStationSample, updateStationSample, deleteStationSample } from '../controllers/cyclones.controller.js';
 import { getAllTailings, createTailingsReport } from '../controllers/tailings.controller.js';
 import { getAllShiftHandovers, createShiftHandover, acceptShiftHandover } from '../controllers/shift.controller.js';
 import { getAllMaintenanceRequests, createMaintenanceRequest, updateMaintenanceStatus } from '../controllers/maintenance.controller.js';
@@ -18,16 +18,23 @@ import {
   toggleUserStatus,
   getConnectedDevices,
   revokeDeviceSession,
+  deleteDeviceSession,
+  purgeStaleDevices,
   getSupervisorOperators,
   assignOperatorToSupervisor,
   removeOperatorFromSupervisor,
   autoAssignByShift,
-  getMyOperators
+  getMyOperators,
+  getPermissionsMatrix,
+  updateRolePermissions,
+  updateUserPermissionOverrides,
+  resetPermissionsMatrix,
+  getMyPermissions
 } from '../controllers/admin.controller.js';
 import { getCrewMembers, createCrewMember, updateCrewMember, deleteCrewMember, getAreaAssignments, saveAreaAssignment, checkinAreaAssignment, getCrewPositions, createCrewPosition, deleteCrewPosition } from '../controllers/crew.controller.js';
 import { pushEvents, pullEvents, getSyncStatus } from '../controllers/sync.controller.js';
 import { getVehiclesSummary, getVehicleChecklists, createVehicleChecklist } from '../controllers/vehicle.controller.js';
-import { authenticateToken, requireRoles } from '../middlewares/auth.middleware.js';
+import { authenticateToken, requireRoles, requirePermission } from '../middlewares/auth.middleware.js';
 
 export const apiRouter = Router();
 
@@ -54,37 +61,39 @@ apiRouter.get('/dashboard/metrics', getDashboardMetrics);
 
 // 4. Pumps Telemetry & Operational Sheet Routes
 apiRouter.get('/pumps/operational-sheet', getPumpOperationalSheet);
-apiRouter.post('/pumps/operational-sheet', authenticateToken, savePumpOperationalSheet);
+apiRouter.post('/pumps/operational-sheet', authenticateToken, requirePermission('CAN_RECORD_DATA'), savePumpOperationalSheet);
 apiRouter.get('/pumps', getAllPumps);
 apiRouter.get('/pumps/:id', getPumpById);
-apiRouter.post('/pumps', authenticateToken, createPumpReport);
-apiRouter.patch('/pumps/:id/status', authenticateToken, updatePumpStatus);
+apiRouter.post('/pumps', authenticateToken, requirePermission('CAN_RECORD_DATA'), createPumpReport);
+apiRouter.patch('/pumps/:id/status', authenticateToken, requirePermission('CAN_RECORD_DATA'), updatePumpStatus);
 
 // 5. Cyclones Routes
 apiRouter.get('/cyclones', getAllCyclones);
-apiRouter.post('/cyclones', authenticateToken, createCycloneReport);
+apiRouter.post('/cyclones', authenticateToken, requirePermission('CAN_RECORD_DATA'), createCycloneReport);
 apiRouter.get('/cyclones/station-samples', getStationSamples);
-apiRouter.post('/cyclones/station-samples', authenticateToken, createStationSample);
-apiRouter.delete('/cyclones/station-samples/:id', authenticateToken, deleteStationSample);
+apiRouter.post('/cyclones/station-samples', authenticateToken, requirePermission('CAN_RECORD_DATA'), createStationSample);
+apiRouter.put('/cyclones/station-samples/:id', authenticateToken, requirePermission('CAN_RECORD_DATA'), updateStationSample);
+apiRouter.delete('/cyclones/station-samples/:id', authenticateToken, requirePermission('CAN_DELETE_RECORDS'), deleteStationSample);
 
 // 6. Tailings & Dam Routes
 apiRouter.get('/tailings', getAllTailings);
-apiRouter.post('/tailings', authenticateToken, createTailingsReport);
+apiRouter.post('/tailings', authenticateToken, requirePermission('CAN_RECORD_DATA'), createTailingsReport);
 
 // 7. Shift Handover Routes
 apiRouter.get('/shift-handover', getAllShiftHandovers);
-apiRouter.post('/shift-handover', authenticateToken, createShiftHandover);
-apiRouter.patch('/shift-handover/:id/accept', authenticateToken, acceptShiftHandover);
+apiRouter.post('/shift-handover', authenticateToken, requirePermission('CAN_CLOSE_SHIFT'), createShiftHandover);
+apiRouter.patch('/shift-handover/:id/accept', authenticateToken, requirePermission('CAN_CLOSE_SHIFT'), acceptShiftHandover);
 
 // 8. Maintenance Routes
 apiRouter.get('/maintenance', getAllMaintenanceRequests);
-apiRouter.post('/maintenance', authenticateToken, createMaintenanceRequest);
-apiRouter.patch('/maintenance/:id/status', authenticateToken, updateMaintenanceStatus);
+apiRouter.post('/maintenance', authenticateToken, requirePermission('CAN_RECORD_DATA'), createMaintenanceRequest);
+apiRouter.patch('/maintenance/:id/status', authenticateToken, requirePermission('CAN_RECORD_DATA'), updateMaintenanceStatus);
 
 // 9. Admin & Backups
 apiRouter.get('/admin/users', authenticateToken, requireRoles('ADMIN', 'SUPERVISOR'), getAllUsers);
 apiRouter.post('/admin/users', authenticateToken, requireRoles('ADMIN'), createUserByAdmin);
 apiRouter.post('/admin/users/bulk', authenticateToken, requireRoles('ADMIN'), createUsersBulk);
+apiRouter.post('/admin/bulk-upload', authenticateToken, requireRoles('ADMIN'), createUsersBulk);
 apiRouter.get('/admin/audit-logs', authenticateToken, requireRoles('ADMIN'), getAuditLogs);
 apiRouter.get('/admin/backup', authenticateToken, requireRoles('ADMIN'), getDatabaseBackup);
 apiRouter.post('/admin/restore', authenticateToken, requireRoles('ADMIN'), restoreDatabaseBackup);
@@ -93,6 +102,8 @@ apiRouter.post('/admin/users/:id/reset-password', authenticateToken, requireRole
 apiRouter.patch('/admin/users/:id/status', authenticateToken, requireRoles('ADMIN'), toggleUserStatus);
 apiRouter.get('/admin/devices', authenticateToken, requireRoles('ADMIN', 'SUPERVISOR'), getConnectedDevices);
 apiRouter.post('/admin/devices/:deviceId/revoke', authenticateToken, requireRoles('ADMIN'), revokeDeviceSession);
+apiRouter.delete('/admin/devices/:deviceId', authenticateToken, requireRoles('ADMIN'), deleteDeviceSession);
+apiRouter.post('/admin/devices/purge-stale', authenticateToken, requireRoles('ADMIN'), purgeStaleDevices);
 apiRouter.get('/admin/supervisor-operators', authenticateToken, requireRoles('ADMIN', 'SUPERVISOR'), getSupervisorOperators);
 apiRouter.post('/admin/supervisor-operators', authenticateToken, requireRoles('ADMIN', 'SUPERVISOR'), assignOperatorToSupervisor);
 apiRouter.delete('/admin/supervisor-operators/:supervisor_id/:operator_id', authenticateToken, requireRoles('ADMIN', 'SUPERVISOR'), removeOperatorFromSupervisor);
@@ -100,18 +111,25 @@ apiRouter.post('/admin/supervisor-operators/assign', authenticateToken, requireR
 apiRouter.post('/admin/supervisor-operators/remove', authenticateToken, requireRoles('ADMIN', 'SUPERVISOR'), removeOperatorFromSupervisor);
 apiRouter.post('/admin/supervisor-operators/auto-assign', authenticateToken, requireRoles('ADMIN', 'SUPERVISOR'), autoAssignByShift);
 
+// Matriz de Permisos & Seguridad (RBAC Híbrido + Excepciones)
+apiRouter.get('/admin/permissions', authenticateToken, requireRoles('ADMIN', 'SUPERVISOR'), getPermissionsMatrix);
+apiRouter.put('/admin/permissions/roles', authenticateToken, requireRoles('ADMIN'), updateRolePermissions);
+apiRouter.put('/admin/permissions/users/:userId', authenticateToken, requireRoles('ADMIN'), updateUserPermissionOverrides);
+apiRouter.post('/admin/permissions/reset', authenticateToken, requireRoles('ADMIN'), resetPermissionsMatrix);
+apiRouter.get('/auth/permissions', authenticateToken, getMyPermissions);
+
 // 10. Crew & Area Assignments Routes (Gestión de Cuadrilla y Asignación por Área)
 apiRouter.get('/crew/members', getCrewMembers);
 apiRouter.get('/crew/my-operators', authenticateToken, getMyOperators);
-apiRouter.post('/crew/members', authenticateToken, createCrewMember);
-apiRouter.put('/crew/members/:id', authenticateToken, updateCrewMember);
-apiRouter.delete('/crew/members/:id', authenticateToken, deleteCrewMember);
+apiRouter.post('/crew/members', authenticateToken, requirePermission('CAN_MANAGE_CREW'), createCrewMember);
+apiRouter.put('/crew/members/:id', authenticateToken, requirePermission('CAN_MANAGE_CREW'), updateCrewMember);
+apiRouter.delete('/crew/members/:id', authenticateToken, requireRoles('ADMIN'), deleteCrewMember);
 apiRouter.get('/crew/assignments', getAreaAssignments);
-apiRouter.post('/crew/assignments', authenticateToken, saveAreaAssignment);
-apiRouter.patch('/crew/assignments/:id/checkin', authenticateToken, checkinAreaAssignment);
+apiRouter.post('/crew/assignments', authenticateToken, requirePermission('CAN_MANAGE_CREW'), saveAreaAssignment);
+apiRouter.patch('/crew/assignments/:id/checkin', authenticateToken, requirePermission('CAN_RECORD_DATA'), checkinAreaAssignment);
 apiRouter.get('/crew/positions', getCrewPositions);
-apiRouter.post('/crew/positions', authenticateToken, createCrewPosition);
-apiRouter.delete('/crew/positions/:key', authenticateToken, deleteCrewPosition);
+apiRouter.post('/crew/positions', authenticateToken, requirePermission('CAN_MANAGE_CREW'), createCrewPosition);
+apiRouter.delete('/crew/positions/:key', authenticateToken, requireRoles('ADMIN'), deleteCrewPosition);
 
 // 11. Cloud Realtime Sync Routes (Sincronización Multi-Dispositivo)
 apiRouter.post('/sync/push', pushEvents);
@@ -121,5 +139,5 @@ apiRouter.get('/sync/status', getSyncStatus);
 // 12. Vehicle Pre-Use Checklists (Checklists Pre-Uso de Camionetas)
 apiRouter.get('/vehicles/summary', getVehiclesSummary);
 apiRouter.get('/vehicles/checklists', getVehicleChecklists);
-apiRouter.post('/vehicles/checklists', authenticateToken, createVehicleChecklist);
+apiRouter.post('/vehicles/checklists', authenticateToken, requirePermission('CAN_FILL_VEHICLES'), createVehicleChecklist);
 

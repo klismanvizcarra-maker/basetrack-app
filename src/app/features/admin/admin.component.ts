@@ -10,6 +10,7 @@ import { OfflineSyncService } from '../../core/offline/offline-sync.service';
 import { CloudSyncService } from '../../core/services/cloud-sync.service';
 import { getRealtimeData, saveRealtimeData } from '../../core/storage/local-store.util';
 import { CrewService, SupervisorData, CrewMember, SupervisorOperatorItem } from '../../core/services/crew.service';
+import { PermissionsService, ALL_PERMISSIONS, DEFAULT_ROLE_PERMISSIONS, PermissionKey, PermissionDefinition } from '../../core/auth/permissions.service';
 
 export interface UserItem {
   id: string;
@@ -47,412 +48,28 @@ export interface AuditLog {
 }
 
 const DEFAULT_USERS: UserItem[] = [
-  // GUARDIA 1 (G1) - 1 Supervisor + 7 Operadores
   {
-    id: 'u-klismanv',
-    username: 'KlismanV',
-    email: 'klismanvizcarra@basetrack.com',
-    full_name: 'VIZCARRA CORI MANLEY KLISMAN',
+    id: 'u-marckv',
+    username: 'Marckv',
+    email: 'marckvizcarra@basetrack.com',
+    full_name: 'Marck Vizcarra',
     role: 'ADMIN',
-    shift: 'G1',
-    document_id: '71209033',
+    shift: 'ADMIN',
+    document_id: '2794vizcarra',
     avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80',
-    created_at: '2026-09-17T08:00:00.000Z'
-  },
-  {
-    id: 'u-carlosp',
-    username: 'CarlosP',
-    email: 'carlosp@basetrack.mining.com',
-    full_name: 'PILCO APAZA CARLOS EDUARDO',
-    role: 'OPERATOR',
-    shift: 'G1',
-    document_id: '42324277',
-    avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=120&q=80',
-    created_at: '2026-09-17T08:00:00.000Z'
-  },
-  {
-    id: 'u-jorgev',
-    username: 'JorgeV',
-    email: 'jorgev@basetrack.mining.com',
-    full_name: 'VILCAMIZA PEVE JORGE RICARDO',
-    role: 'OPERATOR',
-    shift: 'G1',
-    document_id: '41748219',
-    avatar_url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=120&q=80',
-    created_at: '2026-09-17T08:00:00.000Z'
-  },
-  {
-    id: 'u-vilmar',
-    username: 'VilmaR',
-    email: 'vilmar@basetrack.mining.com',
-    full_name: 'ROSADO FALCON VILMA LUCIA',
-    role: 'OPERATOR',
-    shift: 'G1',
-    document_id: '45564062',
-    avatar_url: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=120&q=80',
-    created_at: '2026-09-17T08:00:00.000Z'
-  },
-  {
-    id: 'u-jhoferp',
-    username: 'JhoferP',
-    email: 'jhoferp@basetrack.mining.com',
-    full_name: 'PARI COAYLA JHOFER LUIS',
-    role: 'OPERATOR',
-    shift: 'G1',
-    document_id: '74924255',
-    avatar_url: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=120&q=80',
-    created_at: '2026-09-17T08:00:00.000Z'
-  },
-  {
-    id: 'u-diegom',
-    username: 'DiegoM',
-    email: 'diegom@basetrack.mining.com',
-    full_name: 'MONTES RODRIGUEZ DIEGO ALEXANDER',
-    role: 'OPERATOR',
-    shift: 'G1',
-    document_id: '45437279',
-    avatar_url: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=120&q=80',
-    created_at: '2026-09-17T08:00:00.000Z'
-  },
-  {
-    id: 'u-ronalm',
-    username: 'RonalM',
-    email: 'ronalm@basetrack.mining.com',
-    full_name: 'MAMANI MIRANDA RONAL',
-    role: 'OPERATOR',
-    shift: 'G1',
-    document_id: '72958467',
-    avatar_url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=120&q=80',
-    created_at: '2026-09-17T08:00:00.000Z'
-  },
-  {
-    id: 'u-anthonyj',
-    username: 'AnthonyJ',
-    email: 'anthonyj@basetrack.mining.com',
-    full_name: 'MAMANI CUTIPA ANTHONY JESUS SMIT',
-    role: 'OPERATOR',
-    shift: 'G1',
-    document_id: '72297288',
-    avatar_url: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=120&q=80',
-    created_at: '2026-09-17T08:00:00.000Z'
-  },
-
-  // GUARDIA 2 (G2) - 1 Supervisor + 7 Operadores
-  {
-    id: 'u-victora',
-    username: 'VictorA',
-    email: 'victorllerena@basetrack.com',
-    full_name: 'LLERENA CALLE-BRACAMONTE VICTOR ALEJANDRO II',
-    role: 'SUPERVISOR',
-    shift: 'G2',
-    document_id: '71491945',
-    avatar_url: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&w=120&q=80',
-    created_at: '2026-09-17T08:00:00.000Z'
-  },
-  {
-    id: 'u-edsonh',
-    username: 'EdsonH',
-    email: 'edsonh@basetrack.mining.com',
-    full_name: 'HILARI CABRERA EDSON EUSEBIO',
-    role: 'OPERATOR',
-    shift: 'G2',
-    document_id: '40824273',
-    avatar_url: 'https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?auto=format&fit=crop&w=120&q=80',
-    created_at: '2026-09-17T08:00:00.000Z'
-  },
-  {
-    id: 'u-emilioa',
-    username: 'EmilioA',
-    email: 'emilioa@basetrack.mining.com',
-    full_name: 'ALIAGA CASTAÑEDA EMILIO URIEL',
-    role: 'OPERATOR',
-    shift: 'G2',
-    document_id: '46593500',
-    avatar_url: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=120&q=80',
-    created_at: '2026-09-17T08:00:00.000Z'
-  },
-  {
-    id: 'u-luisa',
-    username: 'LuisA',
-    email: 'luisa@basetrack.mining.com',
-    full_name: 'CASCASI FLORES LUIS ANTONIO',
-    role: 'OPERATOR',
-    shift: 'G2',
-    document_id: '43132072',
-    avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=120&q=80',
-    created_at: '2026-09-17T08:00:00.000Z'
-  },
-  {
-    id: 'u-valeriec',
-    username: 'ValerieC',
-    email: 'valeriec@basetrack.mining.com',
-    full_name: 'CAYO GOMEZ VALERIE JAZMINE',
-    role: 'OPERATOR',
-    shift: 'G2',
-    document_id: '71719330',
-    avatar_url: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=120&q=80',
-    created_at: '2026-09-17T08:00:00.000Z'
-  },
-  {
-    id: 'u-pedroi',
-    username: 'PedroI',
-    email: 'pedroi@basetrack.mining.com',
-    full_name: 'CHOQUE MANZANO PEDRO IVAN',
-    role: 'OPERATOR',
-    shift: 'G2',
-    document_id: '75555937',
-    avatar_url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=120&q=80',
-    created_at: '2026-09-17T08:00:00.000Z'
-  },
-  {
-    id: 'u-paulc',
-    username: 'PaulC',
-    email: 'paulc@basetrack.mining.com',
-    full_name: 'CRUZ APAZA PAUL',
-    role: 'OPERATOR',
-    shift: 'G2',
-    document_id: '44428468',
-    avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80',
-    created_at: '2026-09-17T08:00:00.000Z'
-  },
-  {
-    id: 'u-carlosb',
-    username: 'CarlosB',
-    email: 'carlosbarrios@basetrack.com',
-    full_name: 'BARRIOS HUAMÁN CARLOS',
-    role: 'OPERATOR',
-    shift: 'G2',
-    document_id: '72190458',
-    avatar_url: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=120&q=80',
-    created_at: '2026-09-17T08:00:00.000Z'
-  },
-
-  // GUARDIA 3 (G3) - 1 Supervisor + 7 Operadores
-  {
-    id: 'u-hectorm',
-    username: 'HectorM',
-    email: 'hectormendoza@basetrack.com',
-    full_name: 'MENDOZA QUISPE HÉCTOR',
-    role: 'SUPERVISOR',
-    shift: 'G3',
-    document_id: '41920394',
-    avatar_url: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=120&q=80',
-    created_at: '2026-09-17T08:00:00.000Z'
-  },
-  {
-    id: 'u-marcoc',
-    username: 'MarcoC',
-    email: 'marcochavez@basetrack.com',
-    full_name: 'CHÁVEZ ROJAS MARCO ANTONIO',
-    role: 'OPERATOR',
-    shift: 'G3',
-    document_id: '70491823',
-    avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=120&q=80',
-    created_at: '2026-09-17T08:00:00.000Z'
-  },
-  {
-    id: 'u-angelt',
-    username: 'AngelT',
-    email: 'angeltorres@basetrack.com',
-    full_name: 'TORRES FLORES ÁNGEL',
-    role: 'OPERATOR',
-    shift: 'G3',
-    document_id: '43920194',
-    avatar_url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=120&q=80',
-    created_at: '2026-09-17T08:00:00.000Z'
-  },
-  {
-    id: 'u-juang',
-    username: 'JuanG',
-    email: 'juangutierrez@basetrack.com',
-    full_name: 'GUTIÉRREZ VERA JUAN CARLOS',
-    role: 'OPERATOR',
-    shift: 'G3',
-    document_id: '71829304',
-    avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80',
-    created_at: '2026-09-17T08:00:00.000Z'
-  },
-  {
-    id: 'u-renatoq',
-    username: 'RenatoQ',
-    email: 'renatoquispe@basetrack.com',
-    full_name: 'QUISPE APAZA RENATO',
-    role: 'OPERATOR',
-    shift: 'G3',
-    document_id: '45819203',
-    avatar_url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=120&q=80',
-    created_at: '2026-09-17T08:00:00.000Z'
-  },
-  {
-    id: 'u-edgarh',
-    username: 'EdgarH',
-    email: 'edgarhuaman@basetrack.com',
-    full_name: 'HUAMÁN CARBAJAL EDGAR',
-    role: 'OPERATOR',
-    shift: 'G3',
-    document_id: '74829104',
-    avatar_url: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=120&q=80',
-    created_at: '2026-09-17T08:00:00.000Z'
-  },
-  {
-    id: 'u-gabriels',
-    username: 'GabrielS',
-    email: 'gabrielsalas@basetrack.com',
-    full_name: 'SALAS VÁSQUEZ GABRIEL',
-    role: 'OPERATOR',
-    shift: 'G3',
-    document_id: '42910293',
-    avatar_url: 'https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?auto=format&fit=crop&w=120&q=80',
-    created_at: '2026-09-17T08:00:00.000Z'
-  },
-  {
-    id: 'u-wilberf',
-    username: 'WilberF',
-    email: 'wilberfernandez@basetrack.com',
-    full_name: 'FERNÁNDEZ COSI WILBER',
-    role: 'OPERATOR',
-    shift: 'G3',
-    document_id: '73910293',
-    avatar_url: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=120&q=80',
-    created_at: '2026-09-17T08:00:00.000Z'
-  },
-
-  // GUARDIA 4 (G4) - 1 Supervisor + 7 Operadores
-  {
-    id: 'u-cesaro',
-    username: 'CesarO',
-    email: 'cesarortega@basetrack.com',
-    full_name: 'ORTEGA RAMÍREZ CESAR',
-    role: 'SUPERVISOR',
-    shift: 'G4',
-    document_id: '40918239',
-    avatar_url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=120&q=80',
-    created_at: '2026-09-17T08:00:00.000Z'
-  },
-  {
-    id: 'u-oswaldoc',
-    username: 'OswaldoC',
-    email: 'oswaldocampos@basetrack.com',
-    full_name: 'CAMPOS ZEA OSWALDO',
-    role: 'OPERATOR',
-    shift: 'G4',
-    document_id: '72910394',
-    avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80',
-    created_at: '2026-09-17T08:00:00.000Z'
-  },
-  {
-    id: 'u-julios',
-    username: 'JulioS',
-    email: 'juliosuarez@basetrack.com',
-    full_name: 'SUÁREZ MAMANI JULIO',
-    role: 'OPERATOR',
-    shift: 'G4',
-    document_id: '44819203',
-    avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=120&q=80',
-    created_at: '2026-09-17T08:00:00.000Z'
-  },
-  {
-    id: 'u-enriqued',
-    username: 'EnriqueD',
-    email: 'enriquedelgado@basetrack.com',
-    full_name: 'DELGADO PACHECO ENRIQUE',
-    role: 'OPERATOR',
-    shift: 'G4',
-    document_id: '71920394',
-    avatar_url: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=120&q=80',
-    created_at: '2026-09-17T08:00:00.000Z'
-  },
-  {
-    id: 'u-samuelt',
-    username: 'SamuelT',
-    email: 'samueltito@basetrack.com',
-    full_name: 'TITO CONDORI SAMUEL',
-    role: 'OPERATOR',
-    shift: 'G4',
-    document_id: '46819203',
-    avatar_url: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=120&q=80',
-    created_at: '2026-09-17T08:00:00.000Z'
-  },
-  {
-    id: 'u-alonsoc',
-    username: 'AlonsoC',
-    email: 'alonsocornejo@basetrack.com',
-    full_name: 'CORNEJO NINA ALONSO',
-    role: 'OPERATOR',
-    shift: 'G4',
-    document_id: '75910293',
-    avatar_url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=120&q=80',
-    created_at: '2026-09-17T08:00:00.000Z'
-  },
-  {
-    id: 'u-oscarv',
-    username: 'OscarV',
-    email: 'oscarvillalba@basetrack.com',
-    full_name: 'VILLALBA ZAPATA OSCAR',
-    role: 'OPERATOR',
-    shift: 'G4',
-    document_id: '43819203',
-    avatar_url: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=120&q=80',
-    created_at: '2026-09-17T08:00:00.000Z'
-  },
-  {
-    id: 'u-christianz',
-    username: 'ChristianZ',
-    email: 'christianz@basetrack.com',
-    full_name: 'ZAMORA PÉREZ CHRISTIAN',
-    role: 'OPERATOR',
-    shift: 'G4',
-    document_id: '72819203',
-    avatar_url: 'https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?auto=format&fit=crop&w=120&q=80',
-    created_at: '2026-09-17T08:00:00.000Z'
+    created_at: '2026-09-29T08:00:00.000Z'
   }
 ];
 
 const DEFAULT_LOGS: AuditLog[] = [
   {
     id: 'l-1',
-    username: 'KlismanV',
+    username: 'Marckv',
     action: 'LOGIN',
     entity: 'AUTH',
-    details: 'Inicio de sesión administrativo verificado con éxito',
+    details: 'Inicio de sesion administrativo verificado con exito',
     ip_address: '192.168.1.104',
-    timestamp: '2026-09-17 13:40:10'
-  },
-  {
-    id: 'l-2',
-    username: 'KlismanV',
-    action: 'SHIFT_HANDOVER',
-    entity: 'OPERATIONS',
-    details: 'Aprobación formal relevo de guardia Turno A a Turno B',
-    ip_address: '192.168.1.112',
-    timestamp: '2026-09-17 12:10:24'
-  },
-  {
-    id: 'l-3',
-    username: 'CarlosP',
-    action: 'CYCLONES_SAMPLE',
-    entity: 'STATION_02',
-    details: 'Registro de muestra metalúrgica: OF 18.2% / UF 72.4%',
-    ip_address: '192.168.1.115',
-    timestamp: '2026-09-17 11:20:18'
-  },
-  {
-    id: 'l-4',
-    username: 'KlismanV',
-    action: 'BACKUP_EXPORT',
-    entity: 'DATABASE',
-    details: 'Exportación manual de snapshot seguro SQLite',
-    ip_address: '192.168.1.104',
-    timestamp: '2026-09-17 10:15:00'
-  },
-  {
-    id: 'l-5',
-    username: 'EmilioA',
-    action: 'PUMP_STATUS',
-    entity: 'SLURRY_PUMPS',
-    details: 'Transición bomba PP-102 a modo STANDBY preventivo',
-    ip_address: '192.168.1.120',
-    timestamp: '2026-09-17 09:35:02'
+    timestamp: '2026-09-29 08:00:00'
   }
 ];
 
@@ -558,6 +175,17 @@ const DEFAULT_LOGS: AuditLog[] = [
           <span class="tab-title">Trazabilidad SCADA</span>
           <span class="tab-badge">{{ logs.length }}</span>
         </button>
+
+        <button 
+          type="button" 
+          class="nav-tab-btn" 
+          [class.active]="activeAdminTab === 'PERMISSIONS_MATRIX'" 
+          (click)="activeAdminTab = 'PERMISSIONS_MATRIX'"
+        >
+          <span class="tab-icon">🔐</span>
+          <span class="tab-title">Matriz de Permisos</span>
+          <span class="tab-badge">RBAC Híbrido</span>
+        </button>
       </div>
 
       <!-- APARTADO 1: GUARDIAS (Gestión de Personal G1 - G4) -->
@@ -581,6 +209,14 @@ const DEFAULT_LOGS: AuditLog[] = [
               >
                 <span>📅 Ver Roster & Rol 8x8</span>
               </a>
+              <button 
+                type="button" 
+                class="btn btn-secondary btn-sm" 
+                (click)="openBulkModal(selectedSupervisor?.shift || 'TODAS')"
+                title="Cargar dotación de personal organizada por guardia y supervisor"
+              >
+                <span>📥 Cargar Dotación por Lote</span>
+              </button>
               <button 
                 type="button" 
                 class="btn btn-secondary btn-sm" 
@@ -803,13 +439,75 @@ const DEFAULT_LOGS: AuditLog[] = [
             </div>
           </div>
           <div class="head-actions">
-            <button class="btn btn-secondary btn-sm" (click)="loadConnectedDevices()" [disabled]="isLoadingDevices">
+            <button class="btn btn-secondary btn-sm" (click)="confirmPurgeStaleDevices()" [disabled]="isPurgingDevices" title="Limpiar terminales inactivas > 5 días o con sesión revocada">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
+              {{ isPurgingDevices ? 'Depurando...' : 'Depurar Inactivos' }}
+            </button>
+            <button class="btn btn-primary btn-sm" (click)="loadConnectedDevices()" [disabled]="isLoadingDevices">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M23 4v6h-6"></path>
                 <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
               </svg>
               {{ isLoadingDevices ? 'Consultando...' : 'Refrescar Terminales' }}
             </button>
+          </div>
+        </div>
+
+        <!-- Fleet Metric Cards (KPIs) -->
+        <div class="fleet-kpi-grid">
+          <div class="fleet-kpi-card" [class.active-filter]="deviceFilter === 'ALL'" (click)="deviceFilter = 'ALL'" title="Mostrar todos los dispositivos">
+            <span class="kpi-icon">💻</span>
+            <div class="kpi-info">
+              <span class="kpi-label">Total Terminales</span>
+              <span class="kpi-number">{{ fleetStats.total }}</span>
+            </div>
+          </div>
+          <div class="fleet-kpi-card kpi-online" [class.active-filter]="deviceFilter === 'ONLINE'" (click)="deviceFilter = 'ONLINE'" title="Filtrar sólo en línea">
+            <span class="kpi-icon">🟢</span>
+            <div class="kpi-info">
+              <span class="kpi-label">En Línea (Activos)</span>
+              <span class="kpi-number">{{ fleetStats.online }}</span>
+            </div>
+          </div>
+          <div class="fleet-kpi-card kpi-inactive" [class.active-filter]="deviceFilter === 'INACTIVE'" (click)="deviceFilter = 'INACTIVE'" title="Filtrar dispositivos inactivos">
+            <span class="kpi-icon">⚪</span>
+            <div class="kpi-info">
+              <span class="kpi-label">Inactivos / Reposo</span>
+              <span class="kpi-number">{{ fleetStats.inactive }}</span>
+            </div>
+          </div>
+          <div class="fleet-kpi-card kpi-revoked" [class.active-filter]="deviceFilter === 'REVOKED'" (click)="deviceFilter = 'REVOKED'" title="Filtrar sesiones revocadas">
+            <span class="kpi-icon">🔴</span>
+            <div class="kpi-info">
+              <span class="kpi-label">Sesiones Revocadas</span>
+              <span class="kpi-number">{{ fleetStats.revoked }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Fleet Search and Filters Bar -->
+        <div class="fleet-toolbar">
+          <div class="fleet-search-box">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input 
+              type="text" 
+              [(ngModel)]="deviceSearchQuery" 
+              placeholder="Buscar por terminal, usuario, IP o navegador..." 
+              class="fleet-search-input"
+            />
+            <button *ngIf="deviceSearchQuery" (click)="deviceSearchQuery = ''" class="btn-clear-search" title="Limpiar búsqueda">✕</button>
+          </div>
+          <div class="fleet-filter-pills">
+            <button class="pill-btn" [class.active]="deviceFilter === 'ALL'" (click)="deviceFilter = 'ALL'">Todos ({{ fleetStats.total }})</button>
+            <button class="pill-btn" [class.active]="deviceFilter === 'ONLINE'" (click)="deviceFilter = 'ONLINE'">🟢 En Línea ({{ fleetStats.online }})</button>
+            <button class="pill-btn" [class.active]="deviceFilter === 'INACTIVE'" (click)="deviceFilter = 'INACTIVE'">⚪ Inactivos ({{ fleetStats.inactive }})</button>
+            <button class="pill-btn" [class.active]="deviceFilter === 'REVOKED'" (click)="deviceFilter = 'REVOKED'">🔴 Revocados ({{ fleetStats.revoked }})</button>
           </div>
         </div>
 
@@ -827,12 +525,15 @@ const DEFAULT_LOGS: AuditLog[] = [
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let dev of connectedDevices">
+              <tr *ngFor="let dev of filteredDevices" [class.row-current-device]="isCurrentDevice(dev.device_id)">
                 <td>
                   <div class="device-cell">
                     <span class="device-type-badge">{{ getDeviceIcon(dev.device_name, dev.user_agent) }}</span>
                     <div>
-                      <strong>{{ dev.device_name || 'Terminal Operativa' }}</strong>
+                      <div class="device-name-row">
+                        <strong>{{ dev.device_name || 'Terminal Operativa' }}</strong>
+                        <span class="current-device-badge" *ngIf="isCurrentDevice(dev.device_id)">⭐ Este Terminal (Actual)</span>
+                      </div>
                       <div class="device-sub-id">{{ dev.device_id }}</div>
                     </div>
                   </div>
@@ -841,10 +542,17 @@ const DEFAULT_LOGS: AuditLog[] = [
                   <span class="user-chip" *ngIf="dev.username">👤 {{ dev.username }}</span>
                   <span class="text-muted" *ngIf="!dev.username">Esperando usuario</span>
                 </td>
-                <td><code>{{ dev.ip_address || '127.0.0.1' }}</code></td>
-                <td><span class="ua-text" [title]="dev.user_agent || ''">{{ simplifyUserAgent(dev.user_agent) }}</span></td>
                 <td>
-                  <span class="time-relative">{{ formatRelativeTime(dev.last_seen) }}</span>
+                  <div class="ip-cell">
+                    <code>{{ formatIpAddress(dev.ip_address) }}</code>
+                    <span class="ip-tag" *ngIf="isLocalIp(dev.ip_address)">Red Local</span>
+                  </div>
+                </td>
+                <td>
+                  <span class="ua-badge" [title]="dev.user_agent || ''">{{ simplifyUserAgent(dev.user_agent) }}</span>
+                </td>
+                <td>
+                  <span class="time-relative" [title]="dev.last_seen || ''">{{ formatRelativeTime(dev.last_seen) }}</span>
                 </td>
                 <td>
                   <span class="pulse-dot-wrapper">
@@ -855,24 +563,43 @@ const DEFAULT_LOGS: AuditLog[] = [
                   </span>
                 </td>
                 <td style="text-align: right;">
-                  <button 
-                    *ngIf="!dev.is_revoked" 
-                    class="btn btn-action-danger" 
-                    (click)="confirmRevokeDevice(dev)"
-                    title="Cerrar sesión remotamente en esta terminal"
-                  >
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                      <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                    </svg>
-                    Revocar Sesión
-                  </button>
-                  <span *ngIf="dev.is_revoked" class="badge badge-danger">Sesión Terminada</span>
+                  <div class="device-actions-cell">
+                    <button 
+                      *ngIf="!dev.is_revoked" 
+                      class="btn btn-action-danger" 
+                      (click)="confirmRevokeDevice(dev)"
+                      [title]="isCurrentDevice(dev.device_id) ? 'Advertencia: Esta es tu sesión actual' : 'Cerrar sesión remotamente en esta terminal'"
+                    >
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                      </svg>
+                      Revocar Sesión
+                    </button>
+                    <span *ngIf="dev.is_revoked" class="badge badge-danger">Sesión Terminada</span>
+                    
+                    <button 
+                      *ngIf="dev.is_revoked || !dev.is_online" 
+                      class="btn btn-action-delete" 
+                      (click)="confirmDeleteDevice(dev)"
+                      [disabled]="deletingDeviceId === dev.device_id"
+                      title="Desvincular y eliminar terminal de la flota"
+                    >
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                      </svg>
+                    </button>
+                  </div>
                 </td>
               </tr>
-              <tr *ngIf="connectedDevices.length === 0">
-                <td colspan="7" style="text-align: center; padding: 24px; color: var(--text-muted);">
-                  Detectando terminales activas en la red de planta...
+              <tr *ngIf="filteredDevices.length === 0">
+                <td colspan="7" style="text-align: center; padding: 32px 16px; color: var(--text-muted);">
+                  <div class="empty-fleet-state">
+                    <span style="font-size: 2rem; display: block; margin-bottom: 8px;">🔍</span>
+                    <strong>No se encontraron terminales con el filtro o término especificado</strong>
+                    <p style="font-size: 0.8rem; margin-top: 4px; color: #94a3b8;">Prueba cambiando el filtro de estado o la búsqueda.</p>
+                  </div>
                 </td>
               </tr>
             </tbody>
@@ -987,7 +714,7 @@ const DEFAULT_LOGS: AuditLog[] = [
                       [class.btn-icon-success]="u.is_active === 0"
                       (click)="toggleUserStatus(u)" 
                       [title]="u.is_active === 0 ? 'Activar Cuenta' : 'Suspender Cuenta'"
-                      [disabled]="u.username === 'KlismanV'"
+                      [disabled]="u.username === 'Marckv'"
                     >
                       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path>
@@ -1046,6 +773,175 @@ const DEFAULT_LOGS: AuditLog[] = [
             </tbody>
           </table>
         </div>
+      </div>
+
+      <!-- APARTADO 5: MATRIZ DE PERMISOS & SEGURIDAD (RBAC HÍBRIDO + EXCEPCIONES) -->
+      <div class="permissions-matrix-section animate-fade-in" *ngIf="activeAdminTab === 'PERMISSIONS_MATRIX'">
+        
+        <!-- Header Banner Card -->
+        <div class="section-card glass-panel header-banner-card">
+          <div class="card-head">
+            <div class="head-with-icon">
+              <span class="fleet-icon">🔐</span>
+              <div>
+                <h3>Matriz de Permisos & Control de Accesos (RBAC Híbrido)</h3>
+                <p class="section-sub">Configuración de capacidades por rol del sistema y excepciones especiales por usuario</p>
+              </div>
+            </div>
+            <div class="head-actions">
+              <button type="button" class="btn btn-secondary btn-sm" (click)="resetPermissionsToDefault()" title="Restablecer matriz a los valores predeterminados de fábrica">
+                ↺ Restaurar Valores por Defecto
+              </button>
+              <button type="button" class="btn btn-primary btn-sm" (click)="saveRolePermissionsMatrix()">
+                💾 Guardar Matriz de Roles
+              </button>
+            </div>
+          </div>
+
+          <!-- Notification alert if saved -->
+          <div *ngIf="permissionsSaveMessage" class="backup-alert glass-panel animate-fade-in" style="margin-top: 10px;">
+            <span>{{ permissionsSaveMessage }}</span>
+          </div>
+        </div>
+
+        <!-- 1. Tabla de Permisos por Rol -->
+        <div class="section-card glass-panel" style="margin-top: 16px;">
+          <div class="card-head">
+            <div>
+              <h4>1. Permisos Predeterminados por Rol del Sistema</h4>
+              <p class="section-sub">Define las capacidades base que aplican a todos los usuarios de cada rol</p>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="data-table permissions-table">
+              <thead>
+                <tr>
+                  <th style="width: 34%;">Capacidad / Permiso</th>
+                  <th style="width: 18%;">Categoría</th>
+                  <th style="width: 16%; text-align: center;">OPERADOR</th>
+                  <th style="width: 16%; text-align: center;">SUPERVISOR</th>
+                  <th style="width: 16%; text-align: center;">ADMINISTRADOR</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let perm of allPermissionsList">
+                  <td>
+                    <div class="perm-info">
+                      <strong class="perm-label">{{ perm.label }}</strong>
+                      <span class="perm-desc">{{ perm.description }}</span>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="badge" [class.badge-primary]="perm.category === 'OPERACIONES'" [class.badge-warning]="perm.category === 'GESTIÓN'" [class.badge-danger]="perm.category === 'SEGURIDAD'">
+                      {{ perm.category }}
+                    </span>
+                  </td>
+                  
+                  <!-- Checkbox OPERATOR -->
+                  <td style="text-align: center;">
+                    <label class="matrix-checkbox-wrap">
+                      <input 
+                        type="checkbox" 
+                        [checked]="isRolePermitted('OPERATOR', perm.key)" 
+                        (change)="toggleRolePerm('OPERATOR', perm.key, $event)" 
+                      />
+                      <span class="matrix-custom-check"></span>
+                    </label>
+                  </td>
+
+                  <!-- Checkbox SUPERVISOR -->
+                  <td style="text-align: center;">
+                    <label class="matrix-checkbox-wrap">
+                      <input 
+                        type="checkbox" 
+                        [checked]="isRolePermitted('SUPERVISOR', perm.key)" 
+                        (change)="toggleRolePerm('SUPERVISOR', perm.key, $event)" 
+                      />
+                      <span class="matrix-custom-check"></span>
+                    </label>
+                  </td>
+
+                  <!-- Checkbox ADMIN (Always enabled / locked) -->
+                  <td style="text-align: center;">
+                    <label class="matrix-checkbox-wrap">
+                      <input 
+                        type="checkbox" 
+                        [checked]="true" 
+                        disabled 
+                      />
+                      <span class="matrix-custom-check admin-locked" title="El rol Administrador siempre cuenta con acceso absoluto"></span>
+                    </label>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 2. Excepciones y Permisos Especiales por Usuario -->
+        <div class="section-card glass-panel" style="margin-top: 16px;">
+          <div class="card-head">
+            <div>
+              <h4>2. Excepciones & Permisos Especiales por Usuario</h4>
+              <p class="section-sub">Otorga o revoca permisos específicos a un trabajador sin alterar el rol de los demás</p>
+            </div>
+            
+            <div class="user-select-box">
+              <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-secondary); margin-right: 8px;">Seleccionar Trabajador:</label>
+              <select class="form-select user-override-select" [(ngModel)]="selectedOverrideUserId">
+                <option value="">-- Selecciona un usuario para personalizar --</option>
+                <option *ngFor="let u of users" [value]="u.id">
+                  {{ u.full_name }} ({{ u.role }} - Guardia {{ u.shift }})
+                </option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Si seleccionó un usuario -->
+          <div *ngIf="selectedOverrideUser" class="user-override-panel animate-fade-in">
+            <div class="user-override-badge">
+              <img [src]="selectedOverrideUser.avatar_url || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=80&q=80'" class="override-avatar" />
+              <div class="override-user-meta">
+                <strong>{{ selectedOverrideUser.full_name }}</strong>
+                <span>DNI: {{ selectedOverrideUser.document_id || '---' }} • Rol Base: <span class="role-pill">{{ selectedOverrideUser.role }}</span> • Guardia {{ selectedOverrideUser.shift }}</span>
+              </div>
+              <button type="button" class="btn btn-secondary btn-sm" (click)="clearUserOverrides(selectedOverrideUser.id)" *ngIf="hasCustomOverrides(selectedOverrideUser.id)">
+                Quitar Excepciones
+              </button>
+            </div>
+
+            <div class="override-switches-grid">
+              <div *ngFor="let perm of allPermissionsList" class="override-switch-card">
+                <div class="switch-texts">
+                  <strong>{{ perm.label }}</strong>
+                  <span class="switch-sub">{{ perm.description }}</span>
+                  <span class="source-tag" [class.is-custom]="isOverridden(selectedOverrideUser.id, perm.key)">
+                    {{ isOverridden(selectedOverrideUser.id, perm.key) ? '⭐ Excepción Asignada' : 'Por Rol Base (' + selectedOverrideUser.role + ')' }}
+                  </span>
+                </div>
+                <div class="switch-toggle-box">
+                  <label class="toggle-switch">
+                    <input 
+                      type="checkbox" 
+                      [checked]="isEffectiveUserPermitted(selectedOverrideUser, perm.key)"
+                      (change)="toggleUserOverride(selectedOverrideUser.id, perm.key, $event)"
+                    />
+                    <span class="slider round"></span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <div *ngIf="!selectedOverrideUser" class="empty-override-state">
+            <span class="empty-icon">👤</span>
+            <p>Selecciona un trabajador en el desplegable superior para otorgarle o revocarle permisos específicos de forma individual.</p>
+          </div>
+
+        </div>
+
       </div>
     </div>
 
@@ -1106,15 +1002,84 @@ const DEFAULT_LOGS: AuditLog[] = [
         </form>
       </app-modal>
 
-      <!-- Modal Bulk Import Users -->
+      <!-- Modal Bulk Import Users (Organizado por Guardias y Supervisores) -->
       <app-modal
         [isOpen]="isBulkModalOpen"
-        [title]="'Carga Masiva de Personal por Lote (Excel / CSV)'"
+        [title]="'Carga Masiva de Personal por Lote (Por Guardia y Supervisor)'"
         [showFooter]="true"
         (close)="isBulkModalOpen = false"
       >
         <div class="bulk-modal-container">
-          <!-- Mode Tabs -->
+          <!-- 1. Guardia Objetivo & Ámbito de Carga -->
+          <div class="bulk-scope-card">
+            <div class="scope-row">
+              <div class="scope-select-wrap">
+                <label class="scope-label">🎯 Guardia Destino:</label>
+                <select 
+                  class="scope-select"
+                  [(ngModel)]="bulkTargetShift"
+                  (ngModelChange)="onTargetShiftChange($event)"
+                >
+                  <option value="TODAS">🌟 Todas las Guardias (G1 a G4 - Planta Completa)</option>
+                  <option value="G1">🛡️ Guardia 1 (G1) - Sup. Klisman Vizcarra</option>
+                  <option value="G2">🛡️ Guardia 2 (G2) - Sup. Víctor Llerena</option>
+                  <option value="G3">🛡️ Guardia 3 (G3) - Sup. Héctor Mendoza</option>
+                  <option value="G4">🛡️ Guardia 4 (G4) - Sup. César Ortega</option>
+                </select>
+              </div>
+
+              <!-- Quick Template Download Buttons -->
+              <div class="scope-actions">
+                <button
+                  type="button"
+                  class="btn-tpl"
+                  (click)="downloadTemplateCsv('TARGET')"
+                  title="Descargar plantilla CSV con 1 Supervisor + 7 Operadores para la guardia seleccionada"
+                >
+                  ⬇️ Plantilla {{ bulkTargetShift === 'TODAS' ? 'Guardia G1' : 'Guardia ' + bulkTargetShift }}
+                </button>
+                <button
+                  type="button"
+                  class="btn-tpl btn-tpl-primary"
+                  (click)="downloadTemplateCsv('ALL')"
+                  title="Descargar plantilla maestra completa de las 4 guardias oficiales (32 colaboradores)"
+                >
+                  ⬇️ Plantilla Maestra (32 Puestos G1-G4)
+                </button>
+              </div>
+            </div>
+
+            <!-- Target Guard Supervisor Info Banner -->
+            <div class="guard-sup-banner" *ngIf="bulkTargetShift !== 'TODAS'">
+              <div class="sup-avatar-badge">
+                <img [src]="getSupervisorForShift(bulkTargetShift).avatar" alt="Supervisor" />
+                <span class="sup-crown">👑</span>
+              </div>
+              <div class="sup-banner-info">
+                <div class="sup-title">
+                  <strong>Supervisor Responsable: {{ getSupervisorForShift(bulkTargetShift).name }}</strong>
+                  <span class="badge badge-emerald">Jefatura {{ bulkTargetShift }}</span>
+                </div>
+                <div class="sup-meta">
+                  <span>DNI: <strong>{{ getSupervisorForShift(bulkTargetShift).dni }}</strong></span>
+                  <span>Usuario: <code>@{{ getSupervisorForShift(bulkTargetShift).username }}</code></span>
+                  <span>Correo: {{ getSupervisorForShift(bulkTargetShift).email }}</span>
+                </div>
+                <div class="sup-note">
+                  ℹ️ Los operadores cargados se asignarán a la <strong>Guardia {{ bulkTargetShift }}</strong> y se vincularán automáticamente bajo este supervisor.
+                </div>
+              </div>
+            </div>
+
+            <div class="guard-all-banner" *ngIf="bulkTargetShift === 'TODAS'">
+              <span class="banner-icon">📋</span>
+              <div>
+                <strong>Modo Multiguardia Activo:</strong> Se cargará la dotación para G1, G2, G3 y G4. Cada operador se vinculará automáticamente al supervisor de su respectiva guardia (1 Supervisor + 7 Operadores por guardia = 32 puestos oficiales).
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. Mode Tabs (CSV vs Paste) -->
           <div class="bulk-mode-tabs">
             <button
               type="button"
@@ -1130,15 +1095,7 @@ const DEFAULT_LOGS: AuditLog[] = [
               [class.active]="bulkTab === 'PASTE'"
               (click)="bulkTab = 'PASTE'"
             >
-              📋 Pegar desde Excel
-            </button>
-            <button
-              type="button"
-              class="download-tpl-btn"
-              (click)="downloadTemplateCsv()"
-              title="Descargar archivo modelo con encabezados y datos de ejemplo"
-            >
-              ⬇️ Descargar Plantilla CSV
+              📋 Pegar desde Excel / Hojas de Cálculo
             </button>
           </div>
 
@@ -1150,7 +1107,8 @@ const DEFAULT_LOGS: AuditLog[] = [
                 <polyline points="17 8 12 3 7 8"></polyline>
                 <line x1="12" y1="3" x2="12" y2="15"></line>
               </svg>
-              <p class="dropzone-text">Selecciona o arrastra tu archivo <strong>.csv</strong> con la nómina</p>
+              <p class="dropzone-text">Selecciona o arrastra el archivo <strong>.csv</strong> con la nómina organizada</p>
+              <span class="dropzone-sub">Formato compatible: UTF-8, delimitado por comas (,) o punto y coma (;)</span>
               <input
                 type="file"
                 accept=".csv,.txt"
@@ -1165,59 +1123,142 @@ const DEFAULT_LOGS: AuditLog[] = [
           <!-- Tab 2: Copy-Paste from Excel -->
           <div class="bulk-input-section" *ngIf="bulkTab === 'PASTE'">
             <label class="form-label" style="font-size: 0.8rem; font-weight: 700; color: var(--text-secondary);">
-              Pega las celdas copiadas directamente de tu Excel o Google Sheets:
+              Pega las celdas copiadas directamente de Excel o Google Sheets:
             </label>
             <textarea
               class="paste-textarea"
               rows="5"
               [(ngModel)]="pastedText"
               (ngModelChange)="parsePastedText()"
-              placeholder="Ejemplo:&#10;jperez&#9;Juan Pérez Huamán&#9;juan.perez@mina.com&#9;OPERATOR&#9;G1&#9;70412893&#9;Canal 3 Bombas&#10;mcondori&#9;Manuel Condori Ramos&#9;manuel.condori@mina.com&#9;OPERATOR&#9;G1&#9;42819304&#9;Canal 2 Ciclones"
+              placeholder="Ejemplo:&#10;op_g1_bombas&#9;Carlos Barrios Huamán&#9;carlos@mina.com&#9;Basetrack2026!&#9;OPERATOR&#9;G1&#9;70412891&#9;Canal 3 Bombas&#9;Ext. 4102&#9;OPERADOR_BOMBAS&#10;op_g1_ciclon1&#9;Fabián Morales Arce&#9;fabian@mina.com&#9;Basetrack2026!&#9;OPERATOR&#9;G1&#9;70412892&#9;Canal 2 Ciclones&#9;Ext. 4103&#9;OPERADOR_CICLONES_1"
             ></textarea>
-            <span class="textarea-hint">El sistema detecta automáticamente tabulaciones (Excel) o comas (CSV). Contraseña por defecto: <code>Basetrack2026!</code></span>
+            <span class="textarea-hint">Detecta automáticamente tabulaciones de Excel. Si falta la columna de guardia, se usará la guardia seleccionada: <strong>{{ bulkTargetShift }}</strong>.</span>
           </div>
 
-          <!-- Preview & Validation Table -->
+          <!-- 3. Previsualización Organizada por Guardia y Supervisor -->
           <div class="bulk-preview-section" *ngIf="parsedBulkUsers.length > 0">
             <div class="preview-head">
-              <h4>Previsualización ({{ parsedBulkUsers.length }} Filas Detectadas)</h4>
-              <div class="preview-stats">
-                <span class="stat-badge stat-valid">✓ {{ validBulkCount }} Listos</span>
-                <span class="stat-badge stat-invalid" *ngIf="invalidBulkCount > 0">⚠️ {{ invalidBulkCount }} Observados</span>
+              <div class="head-title-wrap">
+                <h4>Nómina Detectada ({{ parsedBulkUsers.length }} Filas)</h4>
+                <div class="preview-stats">
+                  <span class="stat-badge stat-valid">✓ {{ validBulkCount }} Listos</span>
+                  <span class="stat-badge stat-invalid" *ngIf="invalidBulkCount > 0">⚠️ {{ invalidBulkCount }} Observados</span>
+                </div>
+              </div>
+
+              <!-- Filtro de Guardia en Previsualización -->
+              <div class="preview-shift-chips">
+                <button
+                  type="button"
+                  class="shift-chip"
+                  [class.active]="bulkPreviewFilterShift === 'TODAS'"
+                  (click)="bulkPreviewFilterShift = 'TODAS'"
+                >
+                  Todas ({{ parsedBulkUsers.length }})
+                </button>
+                <button
+                  *ngFor="let s of ['G1', 'G2', 'G3', 'G4']"
+                  type="button"
+                  class="shift-chip"
+                  [class.active]="bulkPreviewFilterShift === s"
+                  (click)="setBulkPreviewFilterShift(s)"
+                >
+                  🛡️ {{ s }} ({{ getParsedUsersForShift(s).length }})
+                </button>
               </div>
             </div>
 
-            <div class="preview-table-wrapper">
-              <table class="preview-table">
-                <thead>
-                  <tr>
-                    <th>ESTADO</th>
-                    <th>USUARIO</th>
-                    <th>NOMBRE COMPLETO</th>
-                    <th>CORREO</th>
-                    <th>ROL</th>
-                    <th>GUARDIA</th>
-                    <th>DNI</th>
-                    <th>CANAL RADIO</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr *ngFor="let row of parsedBulkUsers" [class.row-invalid]="!row.isValid">
-                    <td>
-                      <span class="status-indicator" [class.valid]="row.isValid" [class.invalid]="!row.isValid">
-                        {{ row.isValid ? '✓ Listo' : '⚠️ ' + row.validationMsg }}
+            <!-- Previsualización por cada Guardia -->
+            <div class="preview-guards-accordion">
+              <div *ngFor="let shift of visibleShiftsInPreview" class="guard-accordion-item">
+                <div class="guard-accordion-head">
+                  <div class="accordion-head-left">
+                    <span class="guard-badge">🛡️ Guardia {{ shift }}</span>
+                    <span class="guard-sup-name">
+                      Supervisor Oficial: <strong>{{ getSupervisorForShift(shift).name }}</strong>
+                    </span>
+                  </div>
+                  <div class="accordion-head-right">
+                    <span class="dotation-pill" [class.complete]="getParsedOperatorsForShift(shift).length >= 7">
+                      Dotación: {{ getParsedOperatorsForShift(shift).length }}/7 Operadores
+                      {{ getParsedSupervisorForShift(shift) ? '+ 1 Supervisor' : '' }}
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Supervisor Row / Banner -->
+                <div class="accordion-supervisor-block">
+                  <div class="sup-card-mini" *ngIf="getParsedSupervisorForShift(shift) as sup">
+                    <span class="sup-tag">👑 SUPERVISOR REGISTRADO EN ARCHIVO</span>
+                    <div class="sup-row-content">
+                      <span class="sup-avatar">👑</span>
+                      <div class="sup-info">
+                        <strong>{{ sup.full_name }}</strong>
+                        <span class="sup-sub">@{{ sup.username }} | DNI: {{ sup.document_id || '---' }} | {{ sup.email }}</span>
+                      </div>
+                      <span class="status-indicator" [class.valid]="sup.isValid" [class.invalid]="!sup.isValid">
+                        {{ sup.isValid ? '✓ Listo' : '⚠️ ' + sup.validationMsg }}
                       </span>
-                    </td>
-                    <td><strong>{{ row.username }}</strong></td>
-                    <td>{{ row.full_name }}</td>
-                    <td>{{ row.email }}</td>
-                    <td><span class="badge badge-slate">{{ row.role }}</span></td>
-                    <td><span class="badge badge-slate">{{ row.shift }}</span></td>
-                    <td><code>{{ row.document_id || '---' }}</code></td>
-                    <td>{{ row.radio_channel || '---' }}</td>
-                  </tr>
-                </tbody>
-              </table>
+                    </div>
+                  </div>
+
+                  <div class="sup-card-mini existing" *ngIf="!getParsedSupervisorForShift(shift)">
+                    <span class="sup-tag">👑 SUPERVISOR OFICIAL EXISTENTE (ASIGNADO)</span>
+                    <div class="sup-row-content">
+                      <img [src]="getSupervisorForShift(shift).avatar" class="sup-avatar-img" />
+                      <div class="sup-info">
+                        <strong>{{ getSupervisorForShift(shift).name }}</strong>
+                        <span class="sup-sub">@{{ getSupervisorForShift(shift).username }} | DNI: {{ getSupervisorForShift(shift).dni }} | {{ getSupervisorForShift(shift).email }}</span>
+                      </div>
+                      <span class="badge badge-emerald">Jefe Activo (Auto-vincular)</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Operators Table -->
+                <div class="accordion-operators-block">
+                  <div class="preview-table-wrapper">
+                    <table class="preview-table">
+                      <thead>
+                        <tr>
+                          <th>ESTADO</th>
+                          <th>PUESTO OPERACIONAL</th>
+                          <th>NOMBRE COMPLETO</th>
+                          <th>DNI</th>
+                          <th>USUARIO</th>
+                          <th>CORREO</th>
+                          <th>CANAL RADIO</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr *ngFor="let op of getParsedOperatorsForShift(shift)" [class.row-invalid]="!op.isValid">
+                          <td>
+                            <span class="status-indicator" [class.valid]="op.isValid" [class.invalid]="!op.isValid">
+                              {{ op.isValid ? '✓ Listo' : '⚠️ ' + op.validationMsg }}
+                            </span>
+                          </td>
+                          <td>
+                            <span class="op-position-pill">
+                              <span class="pos-icon">{{ formatPrimaryRole(op.primary_role).icon }}</span>
+                              <span class="pos-label">{{ formatPrimaryRole(op.primary_role).label }}</span>
+                            </span>
+                          </td>
+                          <td><strong>{{ op.full_name }}</strong></td>
+                          <td><code>{{ op.document_id || '---' }}</code></td>
+                          <td>{{ op.username }}</td>
+                          <td>{{ op.email }}</td>
+                          <td>{{ op.radio_channel || '---' }}</td>
+                        </tr>
+                        <tr *ngIf="getParsedOperatorsForShift(shift).length === 0">
+                          <td colspan="7" class="text-center text-muted" style="padding: 12px;">
+                            Sin operadores detectados para Guardia {{ shift }}.
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -1232,7 +1273,10 @@ const DEFAULT_LOGS: AuditLog[] = [
             [disabled]="validBulkCount === 0 || isImporting"
             (click)="executeBulkImport()"
           >
-            {{ isImporting ? 'Importando...' : 'Confirmar e Importar ' + validBulkCount + ' Usuarios' }}
+            <span *ngIf="!isImporting">
+              🚀 Confirmar e Importar {{ validBulkCount }} Trabajadores (Vincular a Guardias)
+            </span>
+            <span *ngIf="isImporting">Importando y vinculando a supervisores...</span>
           </button>
         </div>
       </app-modal>
@@ -2495,11 +2539,190 @@ const DEFAULT_LOGS: AuditLog[] = [
       width: 100%;
     }
 
-    /* Bulk Import Modal Styles */
+    /* Bulk Import Modal Styles (Organizado por Guardias y Supervisores) */
     .bulk-modal-container {
       display: flex;
       flex-direction: column;
       gap: 14px;
+    }
+
+    .bulk-scope-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: var(--radius-lg);
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .scope-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .scope-select-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1;
+      min-width: 280px;
+    }
+
+    .scope-label {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: #031795;
+      white-space: nowrap;
+    }
+
+    .scope-select {
+      flex: 1;
+      padding: 7px 12px;
+      border-radius: var(--radius-md);
+      border: 1.5px solid #cbd5e1;
+      background: #ffffff;
+      font-weight: 700;
+      font-size: 0.84rem;
+      color: var(--text-primary);
+      outline: none;
+      transition: var(--transition-smooth);
+
+      &:focus {
+        border-color: #031795;
+        box-shadow: 0 0 0 3px rgba(3, 23, 149, 0.15);
+      }
+    }
+
+    .scope-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .btn-tpl {
+      background: #ffffff;
+      border: 1.5px dashed #031795;
+      color: #031795;
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: var(--transition-smooth);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+
+      &:hover {
+        background: #eef2ff;
+      }
+
+      &.btn-tpl-primary {
+        background: #031795;
+        color: #ffffff;
+        border-style: solid;
+
+        &:hover {
+          background: #021069;
+        }
+      }
+    }
+
+    .guard-sup-banner {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: #ffffff;
+      border: 1px solid #e0e7ff;
+      border-radius: var(--radius-md);
+      padding: 10px 14px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+
+    .sup-avatar-badge {
+      position: relative;
+      width: 44px;
+      height: 44px;
+      flex-shrink: 0;
+
+      img {
+        width: 100%;
+        height: 100%;
+        border-radius: var(--radius-full);
+        object-fit: cover;
+        border: 2px solid #031795;
+      }
+
+      .sup-crown {
+        position: absolute;
+        bottom: -4px;
+        right: -4px;
+        font-size: 0.85rem;
+        background: #ffffff;
+        border-radius: var(--radius-full);
+        box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+        padding: 1px;
+      }
+    }
+
+    .sup-banner-info {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      flex: 1;
+
+      .sup-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.86rem;
+        color: #0f172a;
+      }
+
+      .sup-meta {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 0.74rem;
+        color: var(--text-muted);
+        flex-wrap: wrap;
+
+        code {
+          background: #f1f5f9;
+          padding: 1px 4px;
+          border-radius: 4px;
+          color: #031795;
+        }
+      }
+
+      .sup-note {
+        font-size: 0.72rem;
+        color: #047857;
+        margin-top: 2px;
+      }
+    }
+
+    .guard-all-banner {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: var(--radius-md);
+      padding: 8px 12px;
+      font-size: 0.75rem;
+      color: #1e40af;
+      line-height: 1.35;
+
+      .banner-icon {
+        font-size: 1.1rem;
+        flex-shrink: 0;
+      }
     }
 
     .bulk-mode-tabs {
@@ -2535,23 +2758,6 @@ const DEFAULT_LOGS: AuditLog[] = [
       }
     }
 
-    .download-tpl-btn {
-      margin-left: auto;
-      background: none;
-      border: 1px dashed #031795;
-      color: #031795;
-      padding: 5px 10px;
-      border-radius: var(--radius-sm);
-      font-size: 0.75rem;
-      font-weight: 700;
-      cursor: pointer;
-      transition: var(--transition-smooth);
-
-      &:hover {
-        background: #eef2ff;
-      }
-    }
-
     .bulk-input-section {
       display: flex;
       flex-direction: column;
@@ -2577,9 +2783,14 @@ const DEFAULT_LOGS: AuditLog[] = [
     }
 
     .dropzone-text {
-      font-size: 0.82rem;
+      font-size: 0.84rem;
       color: var(--text-secondary);
       margin: 0;
+    }
+
+    .dropzone-sub {
+      font-size: 0.72rem;
+      color: var(--text-muted);
     }
 
     .file-input-hidden {
@@ -2589,7 +2800,7 @@ const DEFAULT_LOGS: AuditLog[] = [
     .paste-textarea {
       width: 100%;
       padding: 10px 12px;
-      border: 1px solid var(--border-subtle);
+      border: 1.5px solid var(--border-subtle);
       border-radius: var(--radius-md);
       font-family: monospace;
       font-size: 0.8rem;
@@ -2612,11 +2823,11 @@ const DEFAULT_LOGS: AuditLog[] = [
     .bulk-preview-section {
       border: 1px solid var(--border-subtle);
       border-radius: var(--radius-md);
-      padding: 12px;
+      padding: 14px;
       background: #ffffff;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 12px;
     }
 
     .preview-head {
@@ -2624,14 +2835,175 @@ const DEFAULT_LOGS: AuditLog[] = [
       justify-content: space-between;
       align-items: center;
       flex-wrap: wrap;
-      gap: 8px;
+      gap: 10px;
+      border-bottom: 1px solid #f1f5f9;
+      padding-bottom: 10px;
 
-      h4 {
-        margin: 0;
-        font-size: 0.85rem;
-        font-weight: 700;
-        color: var(--text-primary);
+      .head-title-wrap {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+
+        h4 {
+          margin: 0;
+          font-size: 0.88rem;
+          font-weight: 700;
+          color: var(--text-primary);
+        }
       }
+    }
+
+    .preview-shift-chips {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+
+      .shift-chip {
+        border: 1px solid #cbd5e1;
+        background: #f8fafc;
+        color: var(--text-secondary);
+        padding: 3px 10px;
+        border-radius: var(--radius-full);
+        font-size: 0.72rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: var(--transition-smooth);
+
+        &:hover {
+          background: #e2e8f0;
+          color: var(--text-primary);
+        }
+
+        &.active {
+          background: #031795;
+          color: #ffffff;
+          border-color: #031795;
+        }
+      }
+    }
+
+    .preview-guards-accordion {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      max-height: 380px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .guard-accordion-item {
+      border: 1.5px solid #e2e8f0;
+      border-radius: var(--radius-md);
+      background: #ffffff;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    }
+
+    .guard-accordion-head {
+      background: #f8fafc;
+      border-bottom: 1px solid #e2e8f0;
+      padding: 10px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+
+      .accordion-head-left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+
+        .guard-badge {
+          background: #031795;
+          color: #ffffff;
+          font-size: 0.74rem;
+          font-weight: 800;
+          padding: 3px 8px;
+          border-radius: var(--radius-sm);
+          letter-spacing: 0.5px;
+        }
+
+        .guard-sup-name {
+          font-size: 0.8rem;
+          color: var(--text-primary);
+        }
+      }
+
+      .dotation-pill {
+        font-size: 0.72rem;
+        font-weight: 700;
+        padding: 3px 10px;
+        border-radius: var(--radius-full);
+        background: #fef3c7;
+        color: #92400e;
+
+        &.complete {
+          background: #ecfdf5;
+          color: #065f46;
+        }
+      }
+    }
+
+    .accordion-supervisor-block {
+      padding: 10px 14px;
+      background: #faf5ff;
+      border-bottom: 1px solid #f3e8ff;
+
+      .sup-card-mini {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+
+        &.existing {
+          background: transparent;
+        }
+
+        .sup-tag {
+          font-size: 0.65rem;
+          font-weight: 800;
+          color: #7e22ce;
+          letter-spacing: 0.5px;
+        }
+
+        .sup-row-content {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+
+          .sup-avatar {
+            font-size: 1.2rem;
+          }
+
+          .sup-avatar-img {
+            width: 28px;
+            height: 28px;
+            border-radius: var(--radius-full);
+            object-fit: cover;
+            border: 1.5px solid #7e22ce;
+          }
+
+          .sup-info {
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+            flex: 1;
+
+            strong {
+              font-size: 0.82rem;
+              color: var(--text-primary);
+            }
+
+            .sup-sub {
+              font-size: 0.72rem;
+              color: var(--text-muted);
+            }
+          }
+        }
+      }
+    }
+
+    .accordion-operators-block {
+      padding: 0;
     }
 
     .preview-stats {
@@ -2657,7 +3029,7 @@ const DEFAULT_LOGS: AuditLog[] = [
     }
 
     .preview-table-wrapper {
-      max-height: 200px;
+      max-height: 220px;
       overflow-y: auto;
       overflow-x: auto;
     }
@@ -2671,7 +3043,7 @@ const DEFAULT_LOGS: AuditLog[] = [
         position: sticky;
         top: 0;
         background: #f8fafc;
-        padding: 6px 8px;
+        padding: 7px 10px;
         text-align: left;
         font-size: 0.68rem;
         font-weight: 700;
@@ -2681,13 +3053,30 @@ const DEFAULT_LOGS: AuditLog[] = [
       }
 
       td {
-        padding: 6px 8px;
+        padding: 7px 10px;
         border-bottom: 1px solid #f1f5f9;
         white-space: nowrap;
       }
 
       &.row-invalid {
         background: #fff7ed;
+      }
+    }
+
+    .op-position-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: #eff6ff;
+      border: 1px solid #dbeafe;
+      border-radius: var(--radius-full);
+      padding: 2px 8px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #1d4ed8;
+
+      .pos-icon {
+        font-size: 0.85rem;
       }
     }
 
@@ -2848,6 +3237,234 @@ const DEFAULT_LOGS: AuditLog[] = [
       }
     }
 
+    /* Fleet KPI Summary Cards */
+    .fleet-kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .fleet-kpi-card {
+      background: rgba(255, 255, 255, 0.7);
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+        border-color: #cbd5e1;
+      }
+
+      &.active-filter {
+        border-color: #031795;
+        background: #f8faff;
+        box-shadow: 0 0 0 2px rgba(3, 23, 149, 0.15);
+      }
+
+      &.kpi-online.active-filter {
+        border-color: #10b981;
+        background: #f0fdf4;
+        box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.18);
+      }
+
+      &.kpi-inactive.active-filter {
+        border-color: #64748b;
+        background: #f8fafc;
+        box-shadow: 0 0 0 2px rgba(100, 116, 139, 0.15);
+      }
+
+      &.kpi-revoked.active-filter {
+        border-color: #ef4444;
+        background: #fef2f2;
+        box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.18);
+      }
+
+      .kpi-icon {
+        font-size: 1.5rem;
+        line-height: 1;
+      }
+
+      .kpi-info {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .kpi-label {
+        font-size: 0.72rem;
+        font-weight: 600;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+
+      .kpi-number {
+        font-size: 1.35rem;
+        font-weight: 800;
+        color: #0f172a;
+        line-height: 1.2;
+      }
+    }
+
+    /* Fleet Toolbar: Search & Filter Pills */
+    .fleet-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+      padding: 10px 14px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+    }
+
+    .fleet-search-box {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 6px 12px;
+      flex: 1;
+      min-width: 260px;
+      max-width: 480px;
+      color: #64748b;
+
+      &:focus-within {
+        border-color: #031795;
+        box-shadow: 0 0 0 2px rgba(3, 23, 149, 0.12);
+      }
+
+      .fleet-search-input {
+        border: none;
+        outline: none;
+        width: 100%;
+        font-size: 0.82rem;
+        color: #0f172a;
+        background: transparent;
+      }
+
+      .btn-clear-search {
+        background: none;
+        border: none;
+        color: #94a3b8;
+        font-size: 0.8rem;
+        cursor: pointer;
+        padding: 0 4px;
+        line-height: 1;
+
+        &:hover {
+          color: #ef4444;
+        }
+      }
+    }
+
+    .fleet-filter-pills {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+
+      .pill-btn {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 20px;
+        padding: 5px 12px;
+        font-size: 0.74rem;
+        font-weight: 600;
+        color: #475569;
+        cursor: pointer;
+        transition: all 0.15s ease;
+
+        &:hover {
+          background: #f1f5f9;
+          border-color: #cbd5e1;
+        }
+
+        &.active {
+          background: #031795;
+          color: #ffffff;
+          border-color: #031795;
+          box-shadow: 0 2px 4px rgba(3, 23, 149, 0.2);
+        }
+      }
+    }
+
+    .row-current-device {
+      background-color: rgba(238, 242, 255, 0.45) !important;
+      border-left: 3px solid #031795;
+    }
+
+    .device-name-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .current-device-badge {
+      display: inline-flex;
+      align-items: center;
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: #031795;
+      background: #e0e7ff;
+      border: 1px solid #c7d2fe;
+      border-radius: 12px;
+      padding: 1px 8px;
+      letter-spacing: 0.02em;
+    }
+
+    .ip-cell {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+
+      code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 0.8rem;
+        background: #f1f5f9;
+        padding: 2px 6px;
+        border-radius: 4px;
+        color: #334155;
+      }
+
+      .ip-tag {
+        font-size: 0.65rem;
+        font-weight: 600;
+        background: #f0fdf4;
+        color: #166534;
+        border: 1px solid #bbf7d0;
+        border-radius: 4px;
+        padding: 1px 5px;
+      }
+    }
+
+    .ua-badge {
+      font-size: 0.76rem;
+      font-weight: 500;
+      color: #334155;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      padding: 3px 8px;
+      border-radius: 6px;
+      display: inline-block;
+      max-width: 190px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
     .btn-action-danger {
       background: #fef2f2;
       color: #dc2626;
@@ -2865,6 +3482,37 @@ const DEFAULT_LOGS: AuditLog[] = [
       &:hover {
         background: #fee2e2;
         border-color: #f87171;
+      }
+    }
+
+    .device-actions-cell {
+      display: inline-flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+
+      .btn-action-delete {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        color: #64748b;
+        border-radius: 6px;
+        padding: 6px;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.15s ease;
+
+        &:hover {
+          background: #fef2f2;
+          color: #ef4444;
+          border-color: #fecaca;
+        }
+
+        &:disabled {
+          opacity: 0.4;
+          cursor: not-allowed;
+        }
       }
     }
 
@@ -3053,6 +3701,224 @@ const DEFAULT_LOGS: AuditLog[] = [
         background: #10b981;
       }
     }
+
+    /* PERMISSIONS MATRIX STYLING */
+    .permissions-table {
+      .perm-info {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+
+        .perm-label {
+          font-size: 0.85rem;
+          color: var(--text-primary);
+        }
+
+        .perm-desc {
+          font-size: 0.73rem;
+          color: var(--text-muted);
+        }
+      }
+
+      .matrix-checkbox-wrap {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        position: relative;
+
+        input[type="checkbox"] {
+          width: 18px;
+          height: 18px;
+          cursor: pointer;
+          accent-color: #031795;
+        }
+
+        .admin-locked {
+          opacity: 0.7;
+        }
+      }
+    }
+
+    .user-select-box {
+      display: flex;
+      align-items: center;
+
+      .user-override-select {
+        min-width: 320px;
+        padding: 6px 12px;
+        border-radius: var(--radius-md);
+        background: var(--bg-card);
+        border: 1.5px solid var(--border-subtle);
+        color: var(--text-primary);
+        font-weight: 600;
+        font-size: 0.85rem;
+      }
+    }
+
+    .user-override-panel {
+      margin-top: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .user-override-badge {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: var(--bg-card-subtle);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 12px 16px;
+
+      .override-avatar {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid var(--primary-purple);
+      }
+
+      .override-user-meta {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+
+        strong {
+          font-size: 0.95rem;
+          color: var(--text-primary);
+        }
+
+        span {
+          font-size: 0.78rem;
+          color: var(--text-muted);
+        }
+
+        .role-pill {
+          font-weight: 800;
+          color: var(--primary-purple);
+        }
+      }
+    }
+
+    .override-switches-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 12px;
+    }
+
+    .override-switch-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      transition: all 0.2s;
+
+      &:hover {
+        border-color: var(--primary-purple);
+        background: var(--bg-card-hover);
+      }
+
+      .switch-texts {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        flex: 1;
+
+        strong {
+          font-size: 0.84rem;
+          color: var(--text-primary);
+        }
+
+        .switch-sub {
+          font-size: 0.72rem;
+          color: var(--text-muted);
+          line-height: 1.25;
+        }
+
+        .source-tag {
+          font-size: 0.65rem;
+          font-weight: 700;
+          color: var(--text-muted);
+          margin-top: 4px;
+
+          &.is-custom {
+            color: #d97706;
+          }
+        }
+      }
+
+      .toggle-switch {
+        position: relative;
+        display: inline-block;
+        width: 38px;
+        height: 22px;
+        flex-shrink: 0;
+
+        input {
+          opacity: 0;
+          width: 0;
+          height: 0;
+        }
+
+        .slider {
+          position: absolute;
+          cursor: pointer;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background-color: #cbd5e1;
+          transition: 0.3s;
+          border-radius: 22px;
+
+          &:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: 0.3s;
+            border-radius: 50%;
+          }
+        }
+
+        input:checked + .slider {
+          background-color: #031795;
+        }
+
+        input:checked + .slider:before {
+          transform: translateX(16px);
+        }
+      }
+    }
+
+    .empty-override-state {
+      padding: 30px;
+      text-align: center;
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+
+      .empty-icon {
+        font-size: 2.2rem;
+      }
+
+      p {
+        font-size: 0.85rem;
+        margin: 0;
+      }
+    }
   `]
 })
 export class AdminComponent implements OnInit {
@@ -3061,9 +3927,92 @@ export class AdminComponent implements OnInit {
   offlineSync = inject(OfflineSyncService);
   cloudSync = inject(CloudSyncService);
   crewService = inject(CrewService);
+  permissionsService = inject(PermissionsService);
 
   // Navegación por Apartados en Administrador
-  activeAdminTab: 'SUPERVISORS_CREW' | 'USERS_ROLES' | 'TERMINALS_SYNC' | 'AUDIT_LOGS' = 'SUPERVISORS_CREW';
+  activeAdminTab: 'SUPERVISORS_CREW' | 'USERS_ROLES' | 'TERMINALS_SYNC' | 'AUDIT_LOGS' | 'PERMISSIONS_MATRIX' = 'SUPERVISORS_CREW';
+
+  // Matriz de Permisos & Seguridad
+  allPermissionsList = ALL_PERMISSIONS;
+  selectedOverrideUserId = '';
+  permissionsSaveMessage = '';
+
+  isRolePermitted(role: 'ADMIN' | 'SUPERVISOR' | 'OPERATOR', key: PermissionKey): boolean {
+    if (role === 'ADMIN') return true;
+    const rolePerms = this.permissionsService.rolePermissionsSignal()[role] || DEFAULT_ROLE_PERMISSIONS[role] || [];
+    return rolePerms.includes(key);
+  }
+
+  toggleRolePerm(role: 'SUPERVISOR' | 'OPERATOR', key: PermissionKey, event: Event): void {
+    const checkbox = event.target as HTMLInputElement;
+    const current = [...(this.permissionsService.rolePermissionsSignal()[role] || DEFAULT_ROLE_PERMISSIONS[role] || [])];
+    let updated: PermissionKey[];
+    if (checkbox.checked) {
+      updated = Array.from(new Set([...current, key]));
+    } else {
+      updated = current.filter(k => k !== key);
+    }
+    this.permissionsService.updateRolePermission(role, updated).subscribe();
+  }
+
+  saveRolePermissionsMatrix(): void {
+    this.permissionsSaveMessage = '✅ Matriz de permisos por rol guardada y sincronizada correctamente.';
+    setTimeout(() => this.permissionsSaveMessage = '', 4000);
+  }
+
+  resetPermissionsToDefault(): void {
+    if (confirm('¿Confirma restaurar la matriz de permisos y excepciones a los valores de fábrica?')) {
+      this.permissionsService.resetToDefaults().subscribe(() => {
+        this.permissionsSaveMessage = '🔄 Matriz restaurada a valores por defecto de fábrica.';
+        setTimeout(() => this.permissionsSaveMessage = '', 4000);
+      });
+    }
+  }
+
+  get selectedOverrideUser(): UserItem | null {
+    if (!this.selectedOverrideUserId) return null;
+    return this.users.find(u => u.id === this.selectedOverrideUserId) || null;
+  }
+
+  isEffectiveUserPermitted(user: UserItem, key: PermissionKey): boolean {
+    if (user.role === 'ADMIN') return true;
+    const overrides = this.permissionsService.userOverridesSignal()[user.id];
+    if (overrides && typeof overrides[key] === 'boolean') {
+      return overrides[key];
+    }
+    return this.isRolePermitted(user.role as any, key);
+  }
+
+  isOverridden(userId: string, key: PermissionKey): boolean {
+    const overrides = this.permissionsService.userOverridesSignal()[userId];
+    return !!overrides && typeof overrides[key] === 'boolean';
+  }
+
+  isInheritedFromRole(role: string, key: PermissionKey): boolean {
+    return this.isRolePermitted(role as any, key);
+  }
+
+  toggleUserOverride(userId: string, key: PermissionKey, event: Event): void {
+    const checkbox = event.target as HTMLInputElement;
+    const currentOverrides = { ...(this.permissionsService.userOverridesSignal()[userId] || {}) };
+    currentOverrides[key] = checkbox.checked;
+    this.permissionsService.updateUserOverride(userId, currentOverrides).subscribe(() => {
+      this.permissionsSaveMessage = '✅ Excepción de permiso guardada para el usuario.';
+      setTimeout(() => this.permissionsSaveMessage = '', 3500);
+    });
+  }
+
+  clearUserOverrides(userId: string): void {
+    this.permissionsService.updateUserOverride(userId, {}).subscribe(() => {
+      this.permissionsSaveMessage = 'Excepciones removidas; el usuario hereda los permisos de su rol.';
+      setTimeout(() => this.permissionsSaveMessage = '', 3500);
+    });
+  }
+
+  hasCustomOverrides(userId: string): boolean {
+    const overrides = this.permissionsService.userOverridesSignal()[userId];
+    return !!overrides && Object.keys(overrides).length > 0;
+  }
 
   // Supervisores y Operadores (Apartado Nuevo)
   supervisorsList: SupervisorData[] = [];
@@ -3082,9 +4031,11 @@ export class AdminComponent implements OnInit {
   isCreateUserModalOpen = false;
   backupSuccessMessage = '';
 
-  // Bulk Import State
+  // Bulk Import State (Organizado por Guardias y Supervisores)
   isBulkModalOpen = false;
   bulkTab: 'CSV' | 'PASTE' = 'CSV';
+  bulkTargetShift: 'TODAS' | 'G1' | 'G2' | 'G3' | 'G4' = 'TODAS';
+  bulkPreviewFilterShift: 'TODAS' | 'G1' | 'G2' | 'G3' | 'G4' = 'TODAS';
   pastedText = '';
   isImporting = false;
   parsedBulkUsers: any[] = [];
@@ -3097,6 +4048,49 @@ export class AdminComponent implements OnInit {
   // Connected Devices / Fleet Manager (Punto 5)
   connectedDevices: ConnectedDevice[] = [];
   isLoadingDevices = false;
+  deviceFilter: 'ALL' | 'ONLINE' | 'INACTIVE' | 'REVOKED' = 'ALL';
+  deviceSearchQuery = '';
+  isPurgingDevices = false;
+  deletingDeviceId: string | null = null;
+
+  get currentDeviceId(): string {
+    return this.cloudSync?.deviceId || '';
+  }
+
+  isCurrentDevice(deviceId?: string): boolean {
+    return !!deviceId && this.currentDeviceId === deviceId;
+  }
+
+  get fleetStats() {
+    const total = this.connectedDevices.length;
+    const online = this.connectedDevices.filter(d => d.is_online && !d.is_revoked).length;
+    const inactive = this.connectedDevices.filter(d => !d.is_online && !d.is_revoked).length;
+    const revoked = this.connectedDevices.filter(d => d.is_revoked).length;
+    return { total, online, inactive, revoked };
+  }
+
+  get filteredDevices(): ConnectedDevice[] {
+    let list = this.connectedDevices;
+    if (this.deviceFilter === 'ONLINE') {
+      list = list.filter(d => d.is_online && !d.is_revoked);
+    } else if (this.deviceFilter === 'INACTIVE') {
+      list = list.filter(d => !d.is_online && !d.is_revoked);
+    } else if (this.deviceFilter === 'REVOKED') {
+      list = list.filter(d => d.is_revoked);
+    }
+
+    if (this.deviceSearchQuery.trim()) {
+      const q = this.deviceSearchQuery.toLowerCase().trim();
+      list = list.filter(d => 
+        (d.device_name || '').toLowerCase().includes(q) ||
+        (d.device_id || '').toLowerCase().includes(q) ||
+        (d.username || '').toLowerCase().includes(q) ||
+        (d.ip_address || '').toLowerCase().includes(q) ||
+        (d.user_agent || '').toLowerCase().includes(q)
+      );
+    }
+    return list;
+  }
 
   // Modal: Edit User Role & Shift (Punto 1)
   isEditUserModalOpen = false;
@@ -3226,9 +4220,9 @@ export class AdminComponent implements OnInit {
         if (storedUsers) {
           const parsed = JSON.parse(storedUsers);
           // Si contiene usuarios obsoletos o 'admin' / Carlos Mendoza, refrescar con la lista real de 15 operadores
-          const hasOldMockUsers = Array.isArray(parsed) && parsed.some((u: any) => u.username === 'admin' || u.username === 'supervisor_a' || u.username === 'operador_bombas' || u.id === 'u-admin');
-          const klismanIsAdmin = Array.isArray(parsed) && parsed.some((u: any) => u.username === 'KlismanV' && u.role === 'ADMIN');
-          if (Array.isArray(parsed) && parsed.length >= 15 && !hasOldMockUsers && klismanIsAdmin) {
+          const hasOldMockUsers = Array.isArray(parsed) && parsed.some((u: any) => u.username === 'KlismanV' || u.username === 'CarlosP' || u.username === 'WalterQ' || u.username === 'admin' || u.username === 'supervisor_a');
+          const marckExists = Array.isArray(parsed) && parsed.some((u: any) => u.username === 'Marckv');
+          if (Array.isArray(parsed) && !hasOldMockUsers && marckExists) {
             this.users = parsed;
           } else {
             this.users = [...DEFAULT_USERS];
@@ -3441,11 +4435,14 @@ export class AdminComponent implements OnInit {
     reader.readAsText(file);
   }
 
-  openBulkModal(): void {
+  openBulkModal(preselectedShift: string = 'TODAS'): void {
     this.isBulkModalOpen = true;
     this.bulkTab = 'CSV';
     this.pastedText = '';
     this.parsedBulkUsers = [];
+    const validShift = ['G1', 'G2', 'G3', 'G4'].includes(preselectedShift) ? (preselectedShift as any) : 'TODAS';
+    this.bulkTargetShift = validShift;
+    this.bulkPreviewFilterShift = validShift;
   }
 
   get validBulkCount(): number {
@@ -3456,21 +4453,86 @@ export class AdminComponent implements OnInit {
     return this.parsedBulkUsers.filter(u => !u.isValid).length;
   }
 
-  downloadTemplateCsv(): void {
-    const headers = 'username,full_name,email,password,role,shift,document_id,radio_channel,phone_extension\n';
-    const rows = [
-      'cbarrios,Carlos Barrios Huamán,carlos.barrios@mina.com,Basetrack2026!,OPERATOR,G1,72190458,Canal 3 Bombas,Ext. 4102',
-      'fmorales,Fabián Morales Arce,fabian.morales@mina.com,Basetrack2026!,OPERATOR,G1,45819203,Canal 2 Ciclones,Ext. 4105',
-      'arios,Álvaro Rios Gutiérrez,alvaro.rios@mina.com,Basetrack2026!,OPERATOR,G2,46820194,Canal 4 Presa,Ext. 4109',
-      'smedina,Santiago Medina Solís,santiago.medina@mina.com,Basetrack2026!,OPERATOR,G3,74910283,Canal 1 Operaciones,Ext. 4112',
-      'respinoza,Raúl Espinoza Pinto,raul.espinoza@mina.com,Basetrack2026!,OPERATOR,G4,72839102,Canal 5 Relevo/Móvil,Ext. 4115'
-    ].join('\n');
+  getSupervisorForShift(shift: string): { name: string; username: string; dni: string; email: string; avatar: string; role: string } {
+    const s = this.supervisorsList.find(sup => sup.shift === shift);
+    if (s) {
+      return {
+        name: s.full_name,
+        username: s.username,
+        dni: (s as any).document_id || (s as any).dni || '71209033',
+        email: s.email,
+        avatar: s.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${s.username}`,
+        role: s.role || 'SUPERVISOR'
+      };
+    }
+    const defaults: Record<string, any> = {
+      G1: { name: 'Supervisor Guardia 1', username: 'supervisor_g1', dni: '70010010', email: 'sup.g1@basetrack.com', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80', role: 'SUPERVISOR' },
+      G2: { name: 'Supervisor Guardia 2', username: 'supervisor_g2', dni: '70010020', email: 'sup.g2@basetrack.com', avatar: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&w=250&q=80', role: 'SUPERVISOR' },
+      G3: { name: 'Supervisor Guardia 3', username: 'supervisor_g3', dni: '70010030', email: 'sup.g3@basetrack.com', avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=250&q=80', role: 'SUPERVISOR' },
+      G4: { name: 'Supervisor Guardia 4', username: 'supervisor_g4', dni: '70010040', email: 'sup.g4@basetrack.com', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=250&q=80', role: 'SUPERVISOR' }
+    };
+    return defaults[shift] || defaults['G1'];
+  }
 
-    const blob = new Blob([headers + rows], { type: 'text/csv;charset=utf-8;' });
+  setBulkPreviewFilterShift(shift: string): void {
+    const valid = ['TODAS', 'G1', 'G2', 'G3', 'G4'].includes(shift) ? (shift as any) : 'TODAS';
+    this.bulkPreviewFilterShift = valid;
+  }
+
+  onTargetShiftChange(newShift: 'TODAS' | 'G1' | 'G2' | 'G3' | 'G4'): void {
+    this.bulkTargetShift = newShift;
+    this.bulkPreviewFilterShift = newShift;
+    if (newShift !== 'TODAS' && this.parsedBulkUsers.length > 0) {
+      for (const u of this.parsedBulkUsers) {
+        u.shift = newShift;
+      }
+    }
+  }
+
+  downloadTemplateCsv(mode: 'ALL' | 'TARGET' = 'TARGET'): void {
+    const headers = 'username,full_name,email,password,role,shift,document_id,radio_channel,phone_extension,primary_role\n';
+
+    const generateGuardRows = (shiftCode: string, supUser: string, supName: string, supDni: string, supExt: string) => {
+      const idx = shiftCode.replace('G', '');
+      return [
+        `# --- GUARDIA ${shiftCode}: 1 SUPERVISOR + 7 OPERADORES ---`,
+        `${supUser},${supName},${supUser.toLowerCase()}@basetrack.com,Basetrack2026!,SUPERVISOR,${shiftCode},${supDni},Canal 1 Operaciones,${supExt},SUPERVISOR`,
+        `op_${shiftCode.toLowerCase()}_bombas,Operador Bombas ${shiftCode},bombas.${shiftCode.toLowerCase()}@mina.com,Basetrack2026!,OPERATOR,${shiftCode},700100${idx}1,Canal 3 Bombas,Ext. 4102,OPERADOR_BOMBAS`,
+        `op_${shiftCode.toLowerCase()}_ciclon1,Operador Ciclones 1 ${shiftCode},ciclon1.${shiftCode.toLowerCase()}@mina.com,Basetrack2026!,OPERATOR,${shiftCode},700100${idx}2,Canal 2 Ciclones,Ext. 4103,OPERADOR_CICLONES_1`,
+        `op_${shiftCode.toLowerCase()}_ciclon2,Operador Ciclones 2 ${shiftCode},ciclon2.${shiftCode.toLowerCase()}@mina.com,Basetrack2026!,OPERATOR,${shiftCode},700100${idx}3,Canal 2 Ciclones,Ext. 4104,OPERADOR_CICLONES_2`,
+        `op_${shiftCode.toLowerCase()}_distrib,Operador Distribuidor ${shiftCode},distribuidor.${shiftCode.toLowerCase()}@mina.com,Basetrack2026!,OPERATOR,${shiftCode},700100${idx}4,Canal 1 Operaciones,Ext. 4105,OPERADOR_DISTRIBUIDOR`,
+        `op_${shiftCode.toLowerCase()}_desc1,Operador Descarga 1 ${shiftCode},descarga1.${shiftCode.toLowerCase()}@mina.com,Basetrack2026!,OPERATOR,${shiftCode},700100${idx}5,Canal 4 Relaves,Ext. 4106,OPERADOR_DESCARGA_1`,
+        `op_${shiftCode.toLowerCase()}_desc2,Operador Descarga 2 ${shiftCode},descarga2.${shiftCode.toLowerCase()}@mina.com,Basetrack2026!,OPERATOR,${shiftCode},700100${idx}6,Canal 4 Relaves,Ext. 4107,OPERADOR_DESCARGA_2`,
+        `op_${shiftCode.toLowerCase()}_misc,Operador Misceláneos ${shiftCode},miscelaneos.${shiftCode.toLowerCase()}@mina.com,Basetrack2026!,OPERATOR,${shiftCode},700100${idx}7,Canal 5 Relevo/Móvil,Ext. 4108,OPERADOR_MISCELANEOS`
+      ];
+    };
+
+    let contentRows: string[] = [];
+    let filename = '';
+
+    if (mode === 'TARGET' && this.bulkTargetShift !== 'TODAS') {
+      const shift = this.bulkTargetShift;
+      const sup = this.getSupervisorForShift(shift);
+      contentRows = generateGuardRows(shift, sup.username, sup.name, sup.dni, 'Ext. 4101');
+      filename = `plantilla_nomina_guardia_${shift}_basetrack.csv`;
+    } else {
+      contentRows = [
+        ...generateGuardRows('G1', 'supervisor_g1', 'Supervisor Guardia 1', '70010010', 'Ext. 4101'),
+        '',
+        ...generateGuardRows('G2', 'supervisor_g2', 'Supervisor Guardia 2', '70010020', 'Ext. 4201'),
+        '',
+        ...generateGuardRows('G3', 'HectorM', 'MENDOZA QUISPE HÉCTOR', '41920394', 'Ext. 4301'),
+        '',
+        ...generateGuardRows('G4', 'CesarO', 'ORTEGA RAMÍREZ CESAR', '40918239', 'Ext. 4401')
+      ];
+      filename = 'plantilla_maestra_4guardias_basetrack.csv';
+    }
+
+    const blob = new Blob([headers + contentRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'plantilla_usuarios_basetrack.csv';
+    a.download = filename;
     a.click();
     window.URL.revokeObjectURL(url);
   }
@@ -3497,7 +4559,7 @@ export class AdminComponent implements OnInit {
   }
 
   private parseCsvContent(content: string): void {
-    const lines = content.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+    const lines = content.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0 && !l.startsWith('#'));
     if (lines.length === 0) {
       this.parsedBulkUsers = [];
       return;
@@ -3523,17 +4585,39 @@ export class AdminComponent implements OnInit {
 
       const username = parts[0] || '';
       const full_name = parts[1] || username;
-      const email = parts[2] || (username ? `${username}@basetrack.mining.com` : '');
+      const email = parts[2] || (username ? `${username.toLowerCase()}@basetrack.com` : '');
       const password = parts[3] || 'Basetrack2026!';
       const rawRole = (parts[4] || 'OPERATOR').toUpperCase();
       const role = ['ADMIN', 'SUPERVISOR', 'OPERATOR'].includes(rawRole) ? rawRole : 'OPERATOR';
-      const rawShift = (parts[5] || 'G1').toUpperCase();
-      const shift = ['G1', 'G2', 'G3', 'G4', 'GUARDIA_A', 'GUARDIA_B', 'GUARDIA_C'].includes(rawShift)
-        ? (rawShift.startsWith('GUARDIA_') ? rawShift.replace('GUARDIA_A', 'G1').replace('GUARDIA_B', 'G2').replace('GUARDIA_C', 'G3') : rawShift)
-        : 'G1';
+      
+      let rawShift = (parts[5] || '').toUpperCase();
+      if (!rawShift && this.bulkTargetShift !== 'TODAS') {
+        rawShift = this.bulkTargetShift;
+      }
+      if (rawShift.startsWith('GUARDIA_')) {
+        rawShift = rawShift.replace('GUARDIA_A', 'G1').replace('GUARDIA_B', 'G2').replace('GUARDIA_C', 'G3').replace('GUARDIA_D', 'G4');
+      }
+      const shift = ['G1', 'G2', 'G3', 'G4'].includes(rawShift) ? rawShift : (this.bulkTargetShift !== 'TODAS' ? this.bulkTargetShift : 'G1');
+      
       const document_id = parts[6] || '';
       const radio_channel = parts[7] || 'Canal 1 Operaciones';
       const phone_extension = parts[8] || '';
+
+      let primary_role = parts[9] || '';
+      if (role === 'SUPERVISOR') {
+        primary_role = 'SUPERVISOR';
+      } else if (!primary_role) {
+        const lower = full_name.toLowerCase();
+        if (lower.includes('ciclon 2') || lower.includes('ciclones 2')) primary_role = 'OPERADOR_CICLONES_2';
+        else if (lower.includes('ciclon') || lower.includes('ciclones')) primary_role = 'OPERADOR_CICLONES_1';
+        else if (lower.includes('distribuidor')) primary_role = 'OPERADOR_DISTRIBUIDOR';
+        else if (lower.includes('descarga 2')) primary_role = 'OPERADOR_DESCARGA_2';
+        else if (lower.includes('descarga') || lower.includes('relave') || lower.includes('presa')) primary_role = 'OPERADOR_DESCARGA_1';
+        else if (lower.includes('misc') || lower.includes('reactivo')) primary_role = 'OPERADOR_MISCELANEOS';
+        else primary_role = 'OPERADOR_BOMBAS';
+      }
+
+      const isSupervisor = role === 'SUPERVISOR' || primary_role === 'SUPERVISOR';
 
       let isValid = true;
       let validationMsg = '';
@@ -3559,6 +4643,8 @@ export class AdminComponent implements OnInit {
         document_id,
         radio_channel,
         phone_extension,
+        primary_role,
+        isSupervisor,
         isValid,
         validationMsg
       });
@@ -3567,13 +4653,50 @@ export class AdminComponent implements OnInit {
     this.parsedBulkUsers = results;
   }
 
+  get visibleShiftsInPreview(): string[] {
+    if (this.bulkPreviewFilterShift !== 'TODAS') {
+      return [this.bulkPreviewFilterShift];
+    }
+    const detectedShifts = Array.from(new Set(this.parsedBulkUsers.map(u => u.shift)));
+    const list = ['G1', 'G2', 'G3', 'G4'].filter(s => detectedShifts.includes(s));
+    return list.length > 0 ? list : (this.bulkTargetShift !== 'TODAS' ? [this.bulkTargetShift] : ['G1']);
+  }
+
+  getParsedUsersForShift(shift: string): any[] {
+    return this.parsedBulkUsers.filter(u => u.shift === shift);
+  }
+
+  getParsedSupervisorForShift(shift: string): any | null {
+    const list = this.getParsedUsersForShift(shift);
+    return list.find(u => u.isSupervisor) || null;
+  }
+
+  getParsedOperatorsForShift(shift: string): any[] {
+    const list = this.getParsedUsersForShift(shift);
+    return list.filter(u => !u.isSupervisor);
+  }
+
+  formatPrimaryRole(roleKey: string): { label: string; icon: string } {
+    const map: Record<string, { label: string; icon: string }> = {
+      SUPERVISOR: { label: 'Supervisor de Guardia', icon: '👑' },
+      OPERADOR_BOMBAS: { label: 'Operador de Bombas', icon: '🌊' },
+      OPERADOR_CICLONES_1: { label: 'Operador Ciclones 1', icon: '🌪️' },
+      OPERADOR_CICLONES_2: { label: 'Operador Ciclones 2', icon: '🌀' },
+      OPERADOR_DISTRIBUIDOR: { label: 'Operador Distribuidor', icon: '⚡' },
+      OPERADOR_DESCARGA_1: { label: 'Operador Descarga 1', icon: '🚜' },
+      OPERADOR_DESCARGA_2: { label: 'Operador Descarga 2', icon: '🏗️' },
+      OPERADOR_MISCELANEOS: { label: 'Operador Misceláneos', icon: '🛠️' }
+    };
+    return map[roleKey] || { label: (roleKey || 'Operador').replace(/_/g, ' '), icon: '👷' };
+  }
+
   executeBulkImport(): void {
     const validRows = this.parsedBulkUsers.filter(r => r.isValid);
     if (validRows.length === 0) return;
 
     this.isImporting = true;
 
-    // Helper to register users locally and sync with crew members
+    // Helper to register users locally and sync with crew members & supervisor_operators
     const applyLocalChanges = (isLocalFallback = false) => {
       for (const r of validRows) {
         this.users.unshift({
@@ -3597,24 +4720,11 @@ export class AdminComponent implements OnInit {
           const crewList = storedCrew ? JSON.parse(storedCrew) : [];
           for (const r of validRows) {
             if (r.role === 'OPERATOR' || r.role === 'SUPERVISOR') {
-              let primaryRole = 'OPERADOR_BOMBAS';
-              const nameLower = (r.full_name || '').toLowerCase();
-              if (nameLower.includes('ciclon 1') || nameLower.includes('ciclones 1')) primaryRole = 'OPERADOR_CICLONES_1';
-              else if (nameLower.includes('ciclon 2') || nameLower.includes('ciclones 2')) primaryRole = 'OPERADOR_CICLONES_2';
-              else if (nameLower.includes('ciclon')) primaryRole = 'OPERADOR_CICLONES_1';
-              else if (nameLower.includes('distribuidor')) primaryRole = 'OPERADOR_DISTRIBUIDOR';
-              else if (nameLower.includes('descarga 1')) primaryRole = 'OPERADOR_DESCARGA_1';
-              else if (nameLower.includes('descarga 2')) primaryRole = 'OPERADOR_DESCARGA_2';
-              else if (nameLower.includes('descarga') || nameLower.includes('relave') || nameLower.includes('presa')) primaryRole = 'OPERADOR_DESCARGA_1';
-              else if (nameLower.includes('misc') || nameLower.includes('reactivo')) primaryRole = 'OPERADOR_MISCELANEOS';
-              else if (nameLower.includes('bomba')) primaryRole = 'OPERADOR_BOMBAS';
-              else if (r.role === 'SUPERVISOR') primaryRole = 'SUPERVISOR';
-
               crewList.push({
                 id: 'crew-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
                 name: r.full_name,
                 document_id: r.document_id || ('DNI-' + Math.floor(10000000 + Math.random() * 90000000)),
-                primary_role: primaryRole,
+                primary_role: r.primary_role || (r.role === 'SUPERVISOR' ? 'SUPERVISOR' : 'OPERADOR_BOMBAS'),
                 shift_code: r.shift || 'G1',
                 radio_channel: r.radio_channel || 'Canal 1 Operaciones',
                 phone_extension: r.phone_extension || '',
@@ -3647,20 +4757,23 @@ export class AdminComponent implements OnInit {
 
     const bulkEndpoint = `${getApiBaseUrl()}/admin/users/bulk`;
     this.http.post<any>(bulkEndpoint, { users: validRows })
-      .pipe(timeout(3000))
+      .pipe(timeout(3500))
       .subscribe({
         next: (res) => {
           this.isImporting = false;
           this.isBulkModalOpen = false;
           const count = res?.count || validRows.length;
+          const autoLinked = res?.totalAutoLinked || 0;
 
           applyLocalChanges(false);
 
-          this.backupSuccessMessage = `¡Carga masiva exitosa! Se importaron ${count} trabajadores a la plataforma y cuadrilla.`;
-          setTimeout(() => this.backupSuccessMessage = '', 6000);
+          this.backupSuccessMessage = `¡Carga masiva exitosa! Se importaron ${count} trabajadores y se vincularon ${autoLinked} operadores a sus supervisores.`;
+          setTimeout(() => this.backupSuccessMessage = '', 7000);
 
           this.loadUsers();
           this.loadLogs();
+          this.loadSupervisorsAndOperators();
+          this.crewService.loadCrew().subscribe();
         },
         error: (err) => {
           this.isImporting = false;
@@ -3674,11 +4787,16 @@ export class AdminComponent implements OnInit {
             bulkEndpoint,
             'POST',
             { users: validRows },
-            `Carga por lote: ${validRows.length} trabajadores`
+            `Carga por lote organizada: ${validRows.length} trabajadores`
           );
 
-          this.backupSuccessMessage = `¡Carga por lote completada! (${validRows.length} trabajadores registrados y sincronizados).`;
-          setTimeout(() => this.backupSuccessMessage = '', 6000);
+          this.backupSuccessMessage = `¡Carga por lote completada! (${validRows.length} trabajadores registrados y vinculados por guardia).`;
+          setTimeout(() => this.backupSuccessMessage = '', 7000);
+
+          this.loadUsers();
+          this.loadLogs();
+          this.loadSupervisorsAndOperators();
+          this.crewService.loadCrew().subscribe();
         }
       });
   }
@@ -3703,12 +4821,12 @@ export class AdminComponent implements OnInit {
         if (this.connectedDevices.length === 0) {
           this.connectedDevices = [
             {
-              device_id: 'DEV-LOCAL-CURRENT',
+              device_id: this.currentDeviceId || 'dev_current_local',
               device_name: 'Estación Central (Actual)',
               user_id: 'u-klismanv',
               username: 'KlismanV',
-              ip_address: '192.168.1.105',
-              user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : 'Basetrack Browser',
+              ip_address: '127.0.0.1',
+              user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : 'Chrome / Windows',
               last_seen: new Date().toISOString(),
               is_revoked: 0,
               is_online: 1
@@ -3720,7 +4838,13 @@ export class AdminComponent implements OnInit {
   }
 
   confirmRevokeDevice(dev: ConnectedDevice): void {
-    if (!confirm(`¿Estás seguro de revocar la sesión para la terminal "${dev.device_name || dev.device_id}"?\nEl usuario ${dev.username || ''} será deslogueado remotamente de inmediato.`)) {
+    const isSelf = this.isCurrentDevice(dev.device_id);
+    let msg = `¿Estás seguro de revocar la sesión para la terminal "${dev.device_name || dev.device_id}"?\nEl usuario ${dev.username || ''} será deslogueado remotamente de inmediato.`;
+    if (isSelf) {
+      msg = `⚠️ ADVERTENCIA CRÍTICA:\nEsta es tu terminal y sesión ACTUAL en este equipo.\nSi revocas esta sesión, serás deslogueado inmediatamente de la aplicación.\n\n¿Estás absolutamente seguro de continuar?`;
+    }
+
+    if (!confirm(msg)) {
       return;
     }
 
@@ -3741,13 +4865,78 @@ export class AdminComponent implements OnInit {
     });
   }
 
+  confirmDeleteDevice(dev: ConnectedDevice): void {
+    if (!confirm(`¿Confirma desvincular y eliminar la terminal "${dev.device_name || dev.device_id}" del registro de flota?`)) {
+      return;
+    }
+
+    this.deletingDeviceId = dev.device_id;
+    this.http.delete<any>(`${getApiBaseUrl()}/admin/devices/${dev.device_id}`).subscribe({
+      next: () => {
+        this.deletingDeviceId = null;
+        this.connectedDevices = this.connectedDevices.filter(d => d.device_id !== dev.device_id);
+        this.backupSuccessMessage = `Terminal "${dev.device_name || dev.device_id}" eliminada de la flota.`;
+        setTimeout(() => this.backupSuccessMessage = '', 4000);
+      },
+      error: (err) => {
+        this.deletingDeviceId = null;
+        console.warn('[Admin] Fallo al eliminar en backend, actualizando local:', err);
+        this.connectedDevices = this.connectedDevices.filter(d => d.device_id !== dev.device_id);
+        this.backupSuccessMessage = `Terminal desvinculada del monitor de flota.`;
+        setTimeout(() => this.backupSuccessMessage = '', 4000);
+      }
+    });
+  }
+
+  confirmPurgeStaleDevices(): void {
+    if (!confirm('¿Desea depurar todas las terminales obsoletas (inactivas por más de 5 días o con sesión revocada)?\nEsta acción limpiará el monitor de flota.')) {
+      return;
+    }
+
+    this.isPurgingDevices = true;
+    this.http.post<any>(`${getApiBaseUrl()}/admin/devices/purge-stale`, {}).subscribe({
+      next: (res) => {
+        this.isPurgingDevices = false;
+        this.loadConnectedDevices();
+        this.backupSuccessMessage = res?.message || 'Depuración de flota completada exitosamente.';
+        setTimeout(() => this.backupSuccessMessage = '', 5000);
+      },
+      error: (err) => {
+        this.isPurgingDevices = false;
+        console.warn('[Admin] Fallo en purge backend, aplicando depuración local:', err);
+        this.connectedDevices = this.connectedDevices.filter(d => !d.is_revoked && (d.is_online || this.isRecentDevice(d.last_seen)));
+        this.backupSuccessMessage = 'Depuración local de flota completada.';
+        setTimeout(() => this.backupSuccessMessage = '', 4000);
+      }
+    });
+  }
+
+  private isRecentDevice(timestamp?: string): boolean {
+    if (!timestamp) return false;
+    try {
+      const diffSec = (Date.now() - new Date(timestamp).getTime()) / 1000;
+      return diffSec < 5 * 86400; // Menos de 5 días
+    } catch {
+      return false;
+    }
+  }
+
   simplifyUserAgent(ua?: string | null): string {
     if (!ua) return 'Terminal Web';
+    const lower = ua.toLowerCase();
+    if (lower.startsWith('node') || lower.includes('axios') || lower.includes('node-fetch') || lower.includes('undici')) {
+      return 'Script API / Node.js';
+    }
+    if (lower.includes('curl') || lower.includes('postman')) {
+      return 'Cliente API Externa';
+    }
     if (ua.includes('Edg/')) return 'Edge / Windows';
-    if (ua.includes('Chrome/')) return ua.includes('Android') ? 'Chrome / Android' : 'Chrome / Windows';
+    if (ua.includes('Chrome/')) {
+      return ua.includes('Android') ? 'Chrome / Android' : 'Chrome / Windows';
+    }
     if (ua.includes('Firefox/')) return 'Firefox';
     if (ua.includes('Safari/') && !ua.includes('Chrome')) return 'Safari / iOS';
-    return ua.substring(0, 24) + '...';
+    return ua.length > 22 ? ua.substring(0, 22) + '...' : ua;
   }
 
   getDeviceIcon(name?: string, ua?: string | null): string {
@@ -3755,6 +4944,7 @@ export class AdminComponent implements OnInit {
     if (text.includes('tablet') || text.includes('pad')) return '📱';
     if (text.includes('android') || text.includes('iphone') || text.includes('mobile')) return '📲';
     if (text.includes('laptop') || text.includes('portatil')) return '💻';
+    if (text.includes('node') || text.includes('script') || text.includes('api')) return '⚙️';
     return '🖥️';
   }
 
@@ -3767,10 +4957,23 @@ export class AdminComponent implements OnInit {
       const diffMin = Math.floor(diffSec / 60);
       if (diffMin < 60) return `Hace ${diffMin} min`;
       const diffHours = Math.floor(diffMin / 60);
-      return `Hace ${diffHours} h`;
+      if (diffHours < 24) return `Hace ${diffHours} h`;
+      const diffDays = Math.floor(diffHours / 24);
+      return diffDays === 1 ? 'Hace 1 día' : `Hace ${diffDays} días`;
     } catch {
       return timestamp;
     }
+  }
+
+  formatIpAddress(ip?: string | null): string {
+    if (!ip || ip === '::1' || ip === '::ffff:127.0.0.1') return '127.0.0.1';
+    return ip.replace('::ffff:', '');
+  }
+
+  isLocalIp(ip?: string | null): boolean {
+    if (!ip) return true;
+    const clean = this.formatIpAddress(ip);
+    return clean === '127.0.0.1' || clean.startsWith('192.168.') || clean.startsWith('10.') || clean.startsWith('172.');
   }
 
   // ==========================================
@@ -3858,7 +5061,7 @@ export class AdminComponent implements OnInit {
   }
 
   toggleUserStatus(u: UserItem): void {
-    if (u.username === 'KlismanV') {
+    if (u.username === 'Marckv') {
       alert('La cuenta de Administrador Principal no puede ser desactivada.');
       return;
     }

@@ -2,7 +2,9 @@ import { Component, Input, Output, EventEmitter, OnInit, inject } from '@angular
 import { CommonModule } from '@angular/common';
 import { PumpStationSheet, PumpReport } from '../pumps/pumps.component';
 import { PdfExportService } from '../../core/services/pdf-export.service';
+import { CrewService } from '../../core/services/crew.service';
 import { copyToClipboard } from '../../core/utils/clipboard.util';
+import { getCurrentActiveShift } from '../../shared/utils/roster.util';
 
 @Component({
   selector: 'app-pump-report-pdf',
@@ -265,13 +267,19 @@ import { copyToClipboard } from '../../core/utils/clipboard.util';
             <div class="signature-box">
               <div class="sig-line"></div>
               <span class="sig-name">{{ activeSheet.operator_name || operatorName }}</span>
-              <span class="sig-role">Operador Titular de Sala de Bombas</span>
+              <div class="sign-meta-block">
+                <span class="sign-dni">DNI: <strong>{{ operatorDni }}</strong></span>
+                <span class="sig-role">{{ operatorRole }}</span>
+              </div>
               <span class="sig-stamp">REG. OPERACIONES CONFORME</span>
             </div>
             <div class="signature-box">
               <div class="sig-line"></div>
-              <span class="sig-name">ING. SUPERVISOR DE TURNO</span>
-              <span class="sig-role">Supervisor de Planta Concentradora</span>
+              <span class="sig-name">{{ supervisorName }}</span>
+              <div class="sign-meta-block">
+                <span class="sign-dni">DNI: <strong>{{ supervisorDni }}</strong></span>
+                <span class="sig-role">{{ supervisorRole }}</span>
+              </div>
               <span class="sig-stamp">VALIDADO Y AUDITADO</span>
             </div>
           </div>
@@ -715,7 +723,7 @@ import { copyToClipboard } from '../../core/utils/clipboard.util';
       font-size: 6.8pt;
 
       .th-dark-green {
-        background: #064e3b;
+        background: #031795;
         color: #ffffff;
       }
 
@@ -829,6 +837,20 @@ import { copyToClipboard } from '../../core/utils/clipboard.util';
           font-weight: 600;
         }
 
+        .sign-meta-block {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 1px;
+          margin: 1px 0;
+        }
+
+        .sign-dni {
+          font-size: 6.3pt;
+          color: #1e293b;
+          font-weight: 600;
+        }
+
         .sig-stamp {
           font-size: 5.6pt;
           font-weight: 800;
@@ -903,6 +925,7 @@ import { copyToClipboard } from '../../core/utils/clipboard.util';
 })
 export class PumpReportPdfComponent implements OnInit {
   private pdfService = inject(PdfExportService);
+  private crewService = inject(CrewService);
 
   @Input() sheet: PumpStationSheet | null = null;
   @Input() pumps: PumpReport[] = [];
@@ -926,14 +949,19 @@ export class PumpReportPdfComponent implements OnInit {
   downloadSuccess = false;
   copiedText = false;
   todayDate: string = new Date().toISOString().split('T')[0];
-  operatorName = 'VIZCARRA CORI MANLEY KLISMAN';
+  operatorName = 'MONTES RODRIGUEZ DIEGO ALEXANDER';
+  operatorDni = '45437279';
+  operatorRole = 'Operador de bombas';
+  supervisorName = 'FERNANDEZ ASCURRA DANTE PACO';
+  supervisorDni = '18110964';
+  supervisorRole = 'Supervisor de guardia';
 
   readonly maxRowsArray = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
 
   defaultSheet: PumpStationSheet = {
     report_date: new Date().toLocaleDateString('es-PE'),
-    shift_code: 'G1',
-    operator_name: 'VIZCARRA CORI MANLEY KLISMAN',
+    shift_code: 'G4',
+    operator_name: 'MONTES RODRIGUEZ DIEGO ALEXANDER',
     sentina_pumps: [
       { tag: 'PU001', status: 'Operativo' },
       { tag: 'PU002', status: 'Operativo' },
@@ -964,19 +992,19 @@ export class PumpReportPdfComponent implements OnInit {
       { tag: 'PU029', status: 'Operativo' },
       { tag: 'PU030', status: 'Operativo' }
     ],
-    levels: { orca: '---', espejo: '---', captacion: '---' },
+    levels: { orca: '', espejo: '', captacion: '' },
     main_indicators: {
-      nivel_sentina: '---', bombeo_turno_intermedia: '---', nivel_tko02: '---',
-      aforador: '---', cortafugas: '---', ph_aforador: '---', ph_cortafugas: '---',
-      h_embalas: '---', dique_almacenamiento: '---', drenaje_dique: '---',
-      agua_a_car: '---', anticrustante: '---', torre5_cortafugas: '---',
+      nivel_sentina: '', bombeo_turno_intermedia: '', nivel_tko02: '',
+      aforador: '', cortafugas: '', ph_aforador: '', ph_cortafugas: '',
+      h_embalas: '', dique_almacenamiento: '', drenaje_dique: '',
+      agua_a_car: '', anticrustante: '', torre5_cortafugas: '',
       torre5_status1: 'Stand by', torre5_status2: 'Stand by'
     },
     pozas_sentina: [
-      { poza: 'S-QCOR.R_02', medida_ini: 'n/d', flujo_ini: 'n/d', medida_fin: 'n/d', flujo_fin: 'n/d', horas: 'n/d', acc: '---' },
-      { poza: 'S-QCOR.R_03', medida_ini: 'n/d', flujo_ini: 'n/d', medida_fin: 'n/d', flujo_fin: 'n/d', horas: 'n/d', acc: '---' }
+      { poza: 'S-QCOR.R_02', medida_ini: '', flujo_ini: '', medida_fin: '', flujo_fin: '', horas: '', acc: '' },
+      { poza: 'S-QCOR.R_03', medida_ini: '', flujo_ini: '', medida_fin: '', flujo_fin: '', horas: '', acc: '' }
     ],
-    additional_obs: { notas: '---', af_cantera: '---', escorrentia: '---', ph_c5_1: '---', ph_c5_2: '---' }
+    additional_obs: { notas: '', af_cantera: '', escorrentia: '', ph_c5_1: '', ph_c5_2: '' }
   };
 
   get activeSheet(): PumpStationSheet {
@@ -1008,11 +1036,31 @@ export class PumpReportPdfComponent implements OnInit {
     if (this.sheet?.report_date) {
       this.todayDate = this.sheet.report_date;
     }
+    const currentShift = getCurrentActiveShift();
+    const shift = this.activeSheet?.shift_code || currentShift.activeGuard.code;
+    const assignedOp = this.crewService.getAssignedOperatorForPosition('BOMBAS', shift);
+    if (assignedOp) {
+      this.operatorName = assignedOp.name;
+      this.operatorDni = assignedOp.document_id;
+      this.operatorRole = 'Operador de bombas';
+    }
+    const sup = this.crewService.getActiveSupervisorForShift(shift);
+    if (sup) {
+      this.supervisorName = sup.name;
+      this.supervisorDni = sup.document_id;
+      this.supervisorRole = 'Supervisor de guardia';
+    }
     const userStr = localStorage.getItem('basetrack_user');
     if (userStr) {
       try {
         const u = JSON.parse(userStr);
-        if (u.name) this.operatorName = u.name;
+        if (u.fullName || u.name) {
+          const name = u.fullName || u.name;
+          if (u.role === 'SUPERVISOR') {
+            this.supervisorName = name;
+            if (u.document_id) this.supervisorDni = u.document_id;
+          }
+        }
       } catch (e) {}
     }
   }

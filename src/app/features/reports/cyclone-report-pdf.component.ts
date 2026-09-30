@@ -2,7 +2,9 @@ import { Component, Input, Output, EventEmitter, OnInit, inject } from '@angular
 import { CommonModule } from '@angular/common';
 import { StationSample, GeneralAverages } from '../cyclones/cyclones.component';
 import { PdfExportService } from '../../core/services/pdf-export.service';
+import { CrewService } from '../../core/services/crew.service';
 import { copyToClipboard } from '../../core/utils/clipboard.util';
+import { getCurrentActiveShift } from '../../shared/utils/roster.util';
 
 @Component({
   selector: 'app-cyclone-report-pdf',
@@ -176,14 +178,20 @@ import { copyToClipboard } from '../../core/utils/clipboard.util';
           <div class="signatures-grid">
             <div class="signature-box">
               <div class="sig-line"></div>
-              <span class="sig-name">PILCO APAZA CARLOS EDUARDO</span>
-              <span class="sig-role">Operador Titular de Baterías de Ciclones</span>
+              <span class="sig-name">{{ operatorName }}</span>
+              <div class="sign-meta-block">
+                <span class="sign-dni">DNI: <strong>{{ operatorDni }}</strong></span>
+                <span class="sign-role">{{ operatorRole }}</span>
+              </div>
               <span class="sig-stamp">MUESTREO CONFORME</span>
             </div>
             <div class="signature-box">
               <div class="sig-line"></div>
-              <span class="sig-name">ING. METALURGISTA DE TURNO</span>
-              <span class="sig-role">Supervisión Metalúrgica / Jefe de Guardia</span>
+              <span class="sig-name">{{ supervisorName }}</span>
+              <div class="sign-meta-block">
+                <span class="sign-dni">DNI: <strong>{{ supervisorDni }}</strong></span>
+                <span class="sign-role">{{ supervisorRole }}</span>
+              </div>
               <span class="sig-stamp">AUDITADO Y APROBADO</span>
             </div>
           </div>
@@ -590,6 +598,20 @@ import { copyToClipboard } from '../../core/utils/clipboard.util';
         font-weight: 600;
       }
 
+      .sign-meta-block {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1px;
+        margin: 1px 0;
+      }
+
+      .sign-dni {
+        font-size: 6.6pt;
+        color: #1e293b;
+        font-weight: 600;
+      }
+
       .sig-stamp {
         font-size: 6pt;
         font-weight: 800;
@@ -663,6 +685,7 @@ import { copyToClipboard } from '../../core/utils/clipboard.util';
 })
 export class CycloneReportPdfComponent implements OnInit {
   private pdfService = inject(PdfExportService);
+  private crewService = inject(CrewService);
 
   @Input() samples: StationSample[] = [];
   @Input() station: string = '2DA ESTACIÓN CICLONES';
@@ -687,16 +710,22 @@ export class CycloneReportPdfComponent implements OnInit {
   isDownloading = false;
   downloadSuccess = false;
   copiedText = false;
+  todayDate: string = new Date().toISOString().split('T')[0];
   reportDate: string = new Date().toISOString().split('T')[0];
-  operatorName = 'VIZCARRA CORI MANLEY KLISMAN';
+  operatorName = 'PILCO APAZA CARLOS EDUARDO';
+  operatorDni = '42324277';
+  operatorRole = 'Operador de ciclones 1';
+  supervisorName = 'FERNANDEZ ASCURRA DANTE PACO';
+  supervisorDni = '18110964';
+  supervisorRole = 'Supervisor de guardia';
 
   defaultSamples: StationSample[] = [
-    { id: '1', station: '2DA ESTACIÓN', sample_time: '08:00', battery_tag: 'Nido CY-03', solids_feed: 54.2, solids_of: 36.8, solids_uf: 72.4, mesh200_feed: 48.2, mesh200_of: 64.8, mesh200_uf: 28.5, shift_code: 'G-A', date: '' },
-    { id: '2', station: '2DA ESTACIÓN', sample_time: '10:00', battery_tag: 'Nido CY-03', solids_feed: 55.0, solids_of: 37.1, solids_uf: 72.8, mesh200_feed: 47.9, mesh200_of: 65.2, mesh200_uf: 28.1, shift_code: 'G-A', date: '' },
-    { id: '3', station: '2DA ESTACIÓN', sample_time: '12:00', battery_tag: 'Nido CY-03', solids_feed: 53.8, solids_of: 36.4, solids_uf: 71.9, mesh200_feed: 49.0, mesh200_of: 64.5, mesh200_uf: 29.0, shift_code: 'G-A', date: '' },
-    { id: '4', station: '2DA ESTACIÓN', sample_time: '14:00', battery_tag: 'Nido CY-04', solids_feed: 54.5, solids_of: 36.9, solids_uf: 72.5, mesh200_feed: 48.5, mesh200_of: 64.9, mesh200_uf: 28.6, shift_code: 'G-A', date: '' },
-    { id: '5', station: '2DA ESTACIÓN', sample_time: '16:00', battery_tag: 'Nido CY-04', solids_feed: 54.1, solids_of: 36.5, solids_uf: 72.1, mesh200_feed: 48.8, mesh200_of: 65.4, mesh200_uf: 28.2, shift_code: 'G-A', date: '' },
-    { id: '6', station: '2DA ESTACIÓN', sample_time: '18:00', battery_tag: 'Nido CY-04', solids_feed: 54.8, solids_of: 37.0, solids_uf: 72.6, mesh200_feed: 48.1, mesh200_of: 64.7, mesh200_uf: 28.8, shift_code: 'G-A', date: '' }
+    { id: '1', station: '2DA ESTACIÓN', sample_time: '08:00', battery_tag: 'Nido CY-03', solids_feed: 54.2, solids_of: 36.8, solids_uf: 72.4, mesh200_feed: 48.2, mesh200_of: 64.8, mesh200_uf: 28.5, shift_code: 'G4', date: '' },
+    { id: '2', station: '2DA ESTACIÓN', sample_time: '10:00', battery_tag: 'Nido CY-03', solids_feed: 55.0, solids_of: 37.1, solids_uf: 72.8, mesh200_feed: 47.9, mesh200_of: 65.2, mesh200_uf: 28.1, shift_code: 'G4', date: '' },
+    { id: '3', station: '2DA ESTACIÓN', sample_time: '12:00', battery_tag: 'Nido CY-03', solids_feed: 53.8, solids_of: 36.4, solids_uf: 71.9, mesh200_feed: 49.0, mesh200_of: 64.5, mesh200_uf: 29.0, shift_code: 'G4', date: '' },
+    { id: '4', station: '2DA ESTACIÓN', sample_time: '14:00', battery_tag: 'Nido CY-04', solids_feed: 54.5, solids_of: 36.9, solids_uf: 72.5, mesh200_feed: 48.5, mesh200_of: 64.9, mesh200_uf: 28.6, shift_code: 'G4', date: '' },
+    { id: '5', station: '2DA ESTACIÓN', sample_time: '16:00', battery_tag: 'Nido CY-04', solids_feed: 54.1, solids_of: 36.5, solids_uf: 72.1, mesh200_feed: 48.8, mesh200_of: 65.4, mesh200_uf: 28.2, shift_code: 'G4', date: '' },
+    { id: '6', station: '2DA ESTACIÓN', sample_time: '18:00', battery_tag: 'Nido CY-04', solids_feed: 54.8, solids_of: 37.0, solids_uf: 72.6, mesh200_feed: 48.1, mesh200_of: 64.7, mesh200_uf: 28.8, shift_code: 'G4', date: '' }
   ];
 
   get displaySamples(): StationSample[] {
@@ -736,11 +765,32 @@ export class CycloneReportPdfComponent implements OnInit {
     if (this.samples.length > 0 && this.samples[0].date) {
       this.reportDate = this.samples[0].date;
     }
+    const currentActive = getCurrentActiveShift();
+    const posKey = this.station.includes('2DA') ? 'CICLONES_2' : 'CICLONES_1';
+    const shift = this.shiftCode || currentActive.activeGuard.code;
+    const assignedOp = this.crewService.getAssignedOperatorForPosition(posKey, shift);
+    if (assignedOp) {
+      this.operatorName = assignedOp.name;
+      this.operatorDni = assignedOp.document_id;
+      this.operatorRole = posKey === 'CICLONES_2' ? 'Operador de ciclones 2' : 'Operador de ciclones 1';
+    }
+    const sup = this.crewService.getActiveSupervisorForShift(shift);
+    if (sup) {
+      this.supervisorName = sup.name;
+      this.supervisorDni = sup.document_id;
+      this.supervisorRole = 'Supervisor de guardia';
+    }
     const userStr = localStorage.getItem('basetrack_user');
     if (userStr) {
       try {
         const u = JSON.parse(userStr);
-        if (u.name) this.operatorName = u.name;
+        if (u.fullName || u.name) {
+          const name = u.fullName || u.name;
+          if (u.role === 'SUPERVISOR') {
+            this.supervisorName = name;
+            if (u.document_id) this.supervisorDni = u.document_id;
+          }
+        }
       } catch (e) {}
     }
   }

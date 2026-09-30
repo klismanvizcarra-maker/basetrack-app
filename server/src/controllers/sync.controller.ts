@@ -11,8 +11,20 @@ export interface SyncEventItem {
 export function upsertConnectedDevice(req: Request, deviceId?: string, userId?: string, username?: string, deviceName?: string) {
   try {
     if (!deviceId) return;
-    const ip = req.ip || req.socket.remoteAddress || '127.0.0.1';
-    const userAgent = (req.headers['user-agent'] || 'Basetrack Client').substring(0, 200);
+    let ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || 
+             (req.headers['x-real-ip'] as string) || 
+             req.ip || 
+             req.socket.remoteAddress || 
+             '127.0.0.1';
+
+    if (ip === '::1' || ip === '::ffff:127.0.0.1') {
+      ip = '127.0.0.1';
+    } else if (ip.startsWith('::ffff:')) {
+      ip = ip.replace('::ffff:', '');
+    }
+
+    const rawUserAgent = (req.headers['user-agent'] || 'Basetrack Client').substring(0, 200);
+    const userAgent = rawUserAgent.toLowerCase().startsWith('node') ? 'Node.js (API Client)' : rawUserAgent;
     const dName = deviceName || (req.headers['x-device-name'] as string) || (req.query['deviceName'] as string) || 'Terminal Operativa';
     const uName = username || (req as any).user?.username || null;
     const uId = userId || (req as any).user?.userId || null;
@@ -50,7 +62,19 @@ export async function pushEvents(req: Request, res: Response) {
       });
     }
 
-    upsertConnectedDevice(req, deviceId, userId, username, deviceName);
+    if (events.length > 500) {
+      return res.status(400).json({
+        success: false,
+        message: 'Lote de sincronización excede el límite máximo (máximo 500 eventos por petición)'
+      });
+    }
+
+    const safeDeviceId = String(deviceId).slice(0, 100);
+    const safeUserId = userId ? String(userId).slice(0, 100) : null;
+    const safeUsername = username ? String(username).slice(0, 100) : undefined;
+    const safeDeviceName = deviceName ? String(deviceName).slice(0, 150) : undefined;
+
+    upsertConnectedDevice(req, safeDeviceId, safeUserId, safeUsername, safeDeviceName);
 
     const insertStmt = db.prepare(`
       INSERT INTO sync_events (device_id, user_id, entity, action, payload, timestamp)
@@ -66,10 +90,15 @@ export async function pushEvents(req: Request, res: Response) {
           payloadStr = typeof item.payload === 'string' ? item.payload : JSON.stringify(item.payload);
         }
 
-        const devId = String(deviceId || 'unknown_device');
-        const uId = userId ? String(userId) : null;
-        const ent = String(item.entity || 'general');
-        const act = String(item.action || 'UPDATE');
+        // Limit payload size to 500KB per event to prevent DB bloat/Denial of Service
+        if (payloadStr.length > 500000) {
+          payloadStr = JSON.stringify({ error: 'Payload size exceeded 500KB limit' });
+        }
+
+        const devId = safeDeviceId;
+        const uId = safeUserId;
+        const ent = String(item.entity || 'general').slice(0, 100);
+        const act = String(item.action || 'UPDATE').slice(0, 50);
         const ts = Number(item.timestamp) || Date.now();
 
         const result = insertStmt.run(

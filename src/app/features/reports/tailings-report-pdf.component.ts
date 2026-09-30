@@ -2,7 +2,9 @@ import { Component, Input, Output, EventEmitter, OnInit, inject } from '@angular
 import { CommonModule } from '@angular/common';
 import { TailingsReport } from '../tailings/tailings.component';
 import { PdfExportService } from '../../core/services/pdf-export.service';
+import { CrewService } from '../../core/services/crew.service';
 import { copyToClipboard } from '../../core/utils/clipboard.util';
+import { getCurrentActiveShift } from '../../shared/utils/roster.util';
 
 @Component({
   selector: 'app-tailings-report-pdf',
@@ -62,10 +64,10 @@ import { copyToClipboard } from '../../core/utils/clipboard.util';
             </div>
 
             <div class="doc-meta-box">
-              <div class="meta-row"><strong>CÓDIGO:</strong> <span>REP-DES-G1</span></div>
+              <div class="meta-row"><strong>CÓDIGO:</strong> <span>REP-DES-{{ displayShift }}</span></div>
               <div class="meta-row"><strong>FECHA:</strong> <span>{{ todayDate }}</span></div>
               <div class="meta-row"><strong>SISTEMA:</strong> <span>LÍNEA HDPE & PRESA PRINCIPAL</span></div>
-              <div class="meta-row"><strong>OPERADOR:</strong> <span>VILCAMIZA PEVE JORGE RICARDO</span></div>
+              <div class="meta-row"><strong>OPERADOR:</strong> <span>{{ operatorName }}</span></div>
             </div>
           </div>
 
@@ -166,14 +168,20 @@ import { copyToClipboard } from '../../core/utils/clipboard.util';
           <div class="signatures-grid">
             <div class="signature-box">
               <div class="sig-line"></div>
-              <span class="sig-name">VILCAMIZA PEVE JORGE RICARDO</span>
-              <span class="sig-role">Operador Titular de Presa & Descarga</span>
+              <span class="sig-name">{{ operatorName }}</span>
+              <div class="sign-meta-block">
+                <span class="sign-dni">DNI: <strong>{{ operatorDni }}</strong></span>
+                <span class="sign-role">{{ operatorRole }}</span>
+              </div>
               <span class="sig-stamp">INSPECCIÓN CONFORME</span>
             </div>
             <div class="signature-box">
               <div class="sig-line"></div>
-              <span class="sig-name">ING. SUPERVISOR DE RELAVES</span>
-              <span class="sig-role">Supervisión Geotécnica & Presa</span>
+              <span class="sig-name">{{ supervisorName }}</span>
+              <div class="sign-meta-block">
+                <span class="sign-dni">DNI: <strong>{{ supervisorDni }}</strong></span>
+                <span class="sign-role">{{ supervisorRole }}</span>
+              </div>
               <span class="sig-stamp">AUDITADO Y APROBADO</span>
             </div>
           </div>
@@ -580,6 +588,20 @@ import { copyToClipboard } from '../../core/utils/clipboard.util';
         font-weight: 600;
       }
 
+      .sign-meta-block {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1px;
+        margin: 1px 0;
+      }
+
+      .sign-dni {
+        font-size: 6.6pt;
+        color: #1e293b;
+        font-weight: 600;
+      }
+
       .sig-stamp {
         font-size: 6pt;
         font-weight: 800;
@@ -653,6 +675,7 @@ import { copyToClipboard } from '../../core/utils/clipboard.util';
 })
 export class TailingsReportPdfComponent implements OnInit {
   private pdfService = inject(PdfExportService);
+  private crewService = inject(CrewService);
 
   @Input() items: TailingsReport[] = [];
   
@@ -675,13 +698,19 @@ export class TailingsReportPdfComponent implements OnInit {
   downloadSuccess = false;
   copiedText = false;
   todayDate: string = new Date().toISOString().split('T')[0];
-  operatorName = 'VILCAMIZA PEVE JORGE RICARDO';
+  displayShift: string = 'G4';
+  operatorName = 'MONTES RODRIGUEZ DIEGO ALEXANDER';
+  operatorDni = '45437279';
+  operatorRole = 'Operador de descarga 1';
+  supervisorName = 'FERNANDEZ ASCURRA DANTE PACO';
+  supervisorDni = '18110964';
+  supervisorRole = 'Supervisor de guardia';
 
   defaultItems: TailingsReport[] = [
-    { id: '1', station_tag: 'Spigot-01 Corona Principal', flow_rate_m3h: 380, solids_percentage: 58.5, dam_level_meters: 14.2, freeboard_meters: 3.8, piezometer_kpa: 142.6, turbidity_ntu: 12.4, pumping_line_status: 'NORMAL', operator_name: 'VILCAMIZA P.', shift_code: 'G-A', notes: 'Formación de playa este uniforme', created_at: '' },
-    { id: '2', station_tag: 'Spigot-02 Descarga Lateral', flow_rate_m3h: 370, solids_percentage: 59.0, dam_level_meters: 14.2, freeboard_meters: 3.8, piezometer_kpa: 139.8, turbidity_ntu: 11.8, pumping_line_status: 'NORMAL', operator_name: 'VILCAMIZA P.', shift_code: 'G-A', notes: 'Descarga controlada', created_at: '' },
-    { id: '3', station_tag: 'Espesador de Relaves E-01', flow_rate_m3h: 750, solids_percentage: 61.2, dam_level_meters: 14.0, freeboard_meters: 4.0, piezometer_kpa: 145.2, turbidity_ntu: 14.2, pumping_line_status: 'NORMAL', operator_name: 'VILCAMIZA P.', shift_code: 'G-A', notes: 'Dosificación de floculante a 18 g/t', created_at: '' },
-    { id: '4', station_tag: 'Balsa de Agua Recuperada', flow_rate_m3h: 740, solids_percentage: 0.1, dam_level_meters: 14.2, freeboard_meters: 3.8, piezometer_kpa: 128.5, turbidity_ntu: 9.6, pumping_line_status: 'NORMAL', operator_name: 'VILCAMIZA P.', shift_code: 'G-A', notes: 'Retorno continuo a planta concentradora', created_at: '' }
+    { id: '1', station_tag: 'Spigot-01 Corona Principal', flow_rate_m3h: 380, solids_percentage: 58.5, dam_level_meters: 14.2, freeboard_meters: 3.8, piezometer_kpa: 142.6, turbidity_ntu: 12.4, pumping_line_status: 'NORMAL', operator_name: 'MONTES RODRIGUEZ DIEGO ALEXANDER', shift_code: 'G4', notes: 'Formación de playa este uniforme', created_at: '' },
+    { id: '2', station_tag: 'Spigot-02 Descarga Lateral', flow_rate_m3h: 370, solids_percentage: 59.0, dam_level_meters: 14.2, freeboard_meters: 3.8, piezometer_kpa: 139.8, turbidity_ntu: 11.8, pumping_line_status: 'NORMAL', operator_name: 'MONTES RODRIGUEZ DIEGO ALEXANDER', shift_code: 'G4', notes: 'Descarga controlada', created_at: '' },
+    { id: '3', station_tag: 'Espesador de Relaves E-01', flow_rate_m3h: 750, solids_percentage: 61.2, dam_level_meters: 14.0, freeboard_meters: 4.0, piezometer_kpa: 145.2, turbidity_ntu: 14.2, pumping_line_status: 'NORMAL', operator_name: 'MONTES RODRIGUEZ DIEGO ALEXANDER', shift_code: 'G4', notes: 'Dosificación de floculante a 18 g/t', created_at: '' },
+    { id: '4', station_tag: 'Balsa de Agua Recuperada', flow_rate_m3h: 740, solids_percentage: 0.1, dam_level_meters: 14.2, freeboard_meters: 3.8, piezometer_kpa: 128.5, turbidity_ntu: 9.6, pumping_line_status: 'NORMAL', operator_name: 'MONTES RODRIGUEZ DIEGO ALEXANDER', shift_code: 'G4', notes: 'Retorno continuo a planta concentradora', created_at: '' }
   ];
 
   get displayItems(): TailingsReport[] {
@@ -692,11 +721,34 @@ export class TailingsReportPdfComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    const shift = (this.items && this.items.length > 0 && this.items[0].shift_code)
+      ? this.items[0].shift_code
+      : getCurrentActiveShift().activeGuard.code;
+    this.displayShift = shift;
+
+    const assignedOp = this.crewService.getAssignedOperatorForPosition('DESCARGA_1', shift);
+    if (assignedOp) {
+      this.operatorName = assignedOp.name;
+      this.operatorDni = assignedOp.document_id;
+      this.operatorRole = 'Operador de descarga 1';
+    }
+    const sup = this.crewService.getActiveSupervisorForShift(shift);
+    if (sup) {
+      this.supervisorName = sup.name;
+      this.supervisorDni = sup.document_id;
+      this.supervisorRole = 'Supervisor de guardia';
+    }
     const userStr = localStorage.getItem('basetrack_user');
     if (userStr) {
       try {
         const u = JSON.parse(userStr);
-        if (u.name) this.operatorName = u.name;
+        if (u.fullName || u.name) {
+          const name = u.fullName || u.name;
+          if (u.role === 'SUPERVISOR') {
+            this.supervisorName = name;
+            if (u.document_id) this.supervisorDni = u.document_id;
+          }
+        }
       } catch (e) {}
     }
   }
@@ -732,8 +784,8 @@ export class TailingsReportPdfComponent implements OnInit {
 
   copyExecutiveSummary(): void {
     const summary = `📋 *BASETRACK - REPORTE OFICIAL DE PRESA DE RELAVES (1 HOJA)*
-📅 Fecha: ${this.todayDate} | Guardia: G1
-👤 Operador: VILCAMIZA PEVE JORGE RICARDO
+📅 Fecha: ${this.todayDate} | Guardia: ${this.displayShift}
+👤 Operador: ${this.operatorName}
 🌊 Borde Libre: 3.8m (Margen Seguro > 2.5m) | Cota Espejo: 4,120.4 msnm
 📉 Presión Piezométrica: 142.6 kPa (Línea Freática Conforme)
 💧 Agua Recuperada: 740 m³/h | Turbidez: 12.4 NTU

@@ -54,7 +54,7 @@ export function getDashboardMetrics(req: Request, res: Response) {
           {
             id: 'tonnage',
             title: 'Tonelaje Procesado',
-            value: `${latestShift ? (latestShift.tonnage_processed / 1000).toFixed(1) : '48.2'} kTon`,
+            value: `${latestShift ? (latestShift.tonnage_processed / 1000).toFixed(1) : '24.5'} kTon`,
             trend: '+2.8%',
             isPositive: true,
             icon: 'weight'

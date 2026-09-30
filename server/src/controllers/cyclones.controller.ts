@@ -199,3 +199,103 @@ export function deleteStationSample(req: AuthenticatedRequest, res: Response) {
   }
 }
 
+export function updateStationSample(req: AuthenticatedRequest, res: Response) {
+  try {
+    const id = String(req.params.id);
+    const {
+      station,
+      sample_time,
+      battery_tag,
+      solids_feed,
+      solids_of,
+      solids_uf,
+      mesh200_feed,
+      mesh200_of,
+      mesh200_uf,
+      shift_code,
+      date
+    } = req.body;
+
+    const existing = db.prepare('SELECT id FROM cyclone_station_samples WHERE id = ?').get(id) as any;
+
+    if (!existing) {
+      const finalShift = req.user?.shift || shift_code || 'G1';
+      const finalDate = date || new Date().toISOString().split('T')[0];
+
+      db.prepare(`
+        INSERT INTO cyclone_station_samples (
+          id, station, sample_time, battery_tag,
+          solids_feed, solids_of, solids_uf,
+          mesh200_feed, mesh200_of, mesh200_uf,
+          shift_code, date
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        id,
+        station || '2DA ESTACIÓN CICLONES',
+        sample_time || '20:00',
+        battery_tag || 'CY3',
+        Number(solids_feed || 0),
+        Number(solids_of || 0),
+        Number(solids_uf || 0),
+        Number(mesh200_feed || 0),
+        Number(mesh200_of || 0),
+        Number(mesh200_uf || 0),
+        finalShift,
+        finalDate
+      );
+
+      logAudit(
+        req.user?.userId || null,
+        req.user?.username || 'system',
+        'CREATE',
+        'CYCLONE_STATION_SAMPLE',
+        id,
+        `Muestra creada vía edición directa ${station} ${sample_time} ${battery_tag}`,
+        req.ip || '127.0.0.1'
+      );
+
+      return res.status(201).json({ success: true, message: 'Muestra creada exitosamente', id });
+    }
+
+    db.prepare(`
+      UPDATE cyclone_station_samples
+      SET station = COALESCE(?, station),
+          sample_time = COALESCE(?, sample_time),
+          battery_tag = COALESCE(?, battery_tag),
+          solids_feed = ?,
+          solids_of = ?,
+          solids_uf = ?,
+          mesh200_feed = ?,
+          mesh200_of = ?,
+          mesh200_uf = ?
+      WHERE id = ?
+    `).run(
+      station,
+      sample_time,
+      battery_tag,
+      Number(solids_feed || 0),
+      Number(solids_of || 0),
+      Number(solids_uf || 0),
+      Number(mesh200_feed || 0),
+      Number(mesh200_of || 0),
+      Number(mesh200_uf || 0),
+      id
+    );
+
+    logAudit(
+      req.user?.userId || null,
+      req.user?.username || 'system',
+      'UPDATE',
+      'CYCLONE_STATION_SAMPLE',
+      id,
+      `Actualizada muestra ${sample_time} ${battery_tag}`,
+      req.ip || '127.0.0.1'
+    );
+
+    return res.json({ success: true, message: 'Muestra actualizada exitosamente', id });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+

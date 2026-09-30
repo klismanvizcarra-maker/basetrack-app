@@ -7,6 +7,12 @@ export const authGuard: CanActivateFn = (route, state) => {
   const router = inject(Router);
 
   if (authService.isAuthenticated()) {
+    const token = authService.getToken();
+    if (token && authService.isTokenExpired(token)) {
+      authService.logout();
+      return router.createUrlTree(['/auth/login'], { queryParams: { returnUrl: state.url, expired: '1' } });
+    }
+
     const requiredRoles = route.data?.['roles'] as string[] | undefined;
     if (requiredRoles && requiredRoles.length > 0) {
       // Super Admin (KlismanV / admin) has unconditional access to all administration routes

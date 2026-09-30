@@ -2,6 +2,8 @@ import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, tap, catchError, of, map, timeout } from 'rxjs';
 import { OfflineSyncService } from '../offline/offline-sync.service';
+import { updateGuardsCatalog } from '../../shared/utils/roster.util';
+import { getRealtimeData } from '../storage/local-store.util';
 
 export type PositionKey = 'SUPERVISOR' | 'SALA_CONTROL' | 'BOMBAS' | 'CICLONES_1' | 'CICLONES_2' | 'DISTRIBUIDOR' | 'DESCARGA_1' | 'DESCARGA_2' | 'MISCELANEOS' | string;
 
@@ -10,7 +12,7 @@ export interface CrewMember {
   name: string;
   document_id: string;
   primary_role: 'SUPERVISOR' | 'OPERADOR_SALA_CONTROL' | 'OPERADOR_BOMBAS' | 'OPERADOR_CICLONES_1' | 'OPERADOR_CICLONES_2' | 'OPERADOR_DISTRIBUIDOR' | 'OPERADOR_DESCARGA_1' | 'OPERADOR_DESCARGA_2' | 'OPERADOR_MISCELANEOS' | string;
-  shift_code: 'G1' | 'G2' | 'G3' | 'G4' | 'GUARDIA_A' | 'GUARDIA_B' | 'GUARDIA_C' | string;
+  shift_code: 'G1' | 'G2' | 'G3' | 'G4' | string;
   radio_channel: string;
   phone_extension?: string;
   status: 'EN_TURNO' | 'DESCANSO' | 'VACACIONES' | 'PERMISO' | 'CAPACITACION';
@@ -81,6 +83,16 @@ export interface SupervisorData {
   is_active: number;
   operators: SupervisorOperatorItem[];
   operators_count: number;
+}
+
+export function sanitizeOfficialName(name: string): string {
+  if (!name) return name;
+  return name
+    .replace(/CASTA[^\w\s]*EDA/gi, 'CASTAÑEDA')
+    .replace(/CASTAEDA/gi, 'CASTAÑEDA')
+    .replace(/RAM[^\w\s]*REZ/gi, 'RAMÍREZ')
+    .replace(/SU[^\w\s]*REZ/gi, 'SUÁREZ')
+    .replace(/PE[^\w\s]*A/gi, 'PEÑA');
 }
 
 import { getApiBaseUrl } from '../constants/api.config';
@@ -207,51 +219,99 @@ export class CrewService {
     }
   ];
 
-  // Default fallback seeds when offline or first load (32 Official Staff in 4 Shifts)
+  // Official supervisors dictionary by shift
+  public static readonly OFFICIAL_SUPERVISOR_MAP: Record<string, CrewMember> = {
+    G1: {
+      id: 'sup-g1-official',
+      name: 'GONGORA ROJAS MIGUEL ALONSO',
+      document_id: '41833717',
+      primary_role: 'SUPERVISOR',
+      shift_code: 'G1',
+      radio_channel: 'Canal 1 Operaciones / Control',
+      phone_extension: 'Ext. 4101',
+      status: 'EN_TURNO',
+      avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=MIGUELG'
+    },
+    G2: {
+      id: 'sup-g2-official',
+      name: 'ALIAGA CASTAÑEDA EMILIO URIEL',
+      document_id: '46593500',
+      primary_role: 'SUPERVISOR',
+      shift_code: 'G2',
+      radio_channel: 'Canal 1 Operaciones / Control',
+      phone_extension: 'Ext. 4102',
+      status: 'EN_TURNO',
+      avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=EMILIOA'
+    },
+    G3: {
+      id: 'sup-g3-official',
+      name: 'ARI MAMANI HUGO ANDRES',
+      document_id: '40132660',
+      primary_role: 'SUPERVISOR',
+      shift_code: 'G3',
+      radio_channel: 'Canal 1 Operaciones / Control',
+      phone_extension: 'Ext. 4103',
+      status: 'EN_TURNO',
+      avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=HUGOA'
+    },
+    G4: {
+      id: 'sup-g4-official',
+      name: 'FERNANDEZ ASCURRA DANTE PACO',
+      document_id: '18110964',
+      primary_role: 'SUPERVISOR',
+      shift_code: 'G4',
+      radio_channel: 'Canal 1 Operaciones / Control',
+      phone_extension: 'Ext. 4104',
+      status: 'EN_TURNO',
+      avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=DANTEF'
+    }
+  };
+
+  // Default fallback seeds when offline or first load (36 Official Staff: 4 Shifts x 9 Positions)
   public readonly defaultMembers: CrewMember[] = [
-    // Guardia 1 (G1) - 1 Supervisor de guardia + 8 Operadores
-    { id: 'op-klisman-g1', name: 'VIZCARRA CORI MANLEY KLISMAN', document_id: '71209033', primary_role: 'SUPERVISOR', shift_code: 'G1', radio_channel: 'Canal 1 Operaciones / Control', phone_extension: 'Ext. 4125', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80' },
-    { id: 'op-ctrl-g1', name: 'QUISPE CASTILLO WALTER', document_id: '46298104', primary_role: 'OPERADOR_SALA_CONTROL', shift_code: 'G1', radio_channel: 'Canal 1 Operaciones / Control', phone_extension: 'Ext. 4110', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=250&q=80' },
-    { id: 'op-carlos-g1', name: 'PILCO APAZA CARLOS EDUARDO', document_id: '42324277', primary_role: 'OPERADOR_BOMBAS', shift_code: 'G1', radio_channel: 'Canal 3 Bombas', phone_extension: 'Ext. 4122', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=250&q=80' },
-    { id: 'op-jorge-g1', name: 'VILCAMIZA PEVE JORGE RICARDO', document_id: '41748219', primary_role: 'OPERADOR_CICLONES_1', shift_code: 'G1', radio_channel: 'Canal 2 Ciclones', phone_extension: 'Ext. 4124', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=250&q=80' },
-    { id: 'op-vilma-g1', name: 'ROSADO FALCON VILMA LUCIA', document_id: '45564062', primary_role: 'OPERADOR_CICLONES_2', shift_code: 'G1', radio_channel: 'Canal 2 Ciclones', phone_extension: 'Ext. 4123', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=250&q=80' },
-    { id: 'op-jhofer-g1', name: 'PARI COAYLA JHOFER LUIS', document_id: '74924255', primary_role: 'OPERADOR_DISTRIBUIDOR', shift_code: 'G1', radio_channel: 'Canal 6 Distribuidor / Flujo', phone_extension: 'Ext. 4121', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=250&q=80' },
-    { id: 'op-diego-g1', name: 'MONTES RODRIGUEZ DIEGO ALEXANDER', document_id: '45437279', primary_role: 'OPERADOR_DESCARGA_1', shift_code: 'G1', radio_channel: 'Canal 4 Presa / Descarga', phone_extension: 'Ext. 4120', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=250&q=80' },
-    { id: 'op-ronal-g1', name: 'MAMANI MIRANDA RONAL', document_id: '72958467', primary_role: 'OPERADOR_DESCARGA_2', shift_code: 'G1', radio_channel: 'Canal 4 Presa / Descarga', phone_extension: 'Ext. 4119', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=250&q=80' },
-    { id: 'op-anthony-g1', name: 'MAMANI CUTIPA ANTHONY JESUS SMIT', document_id: '72297288', primary_role: 'OPERADOR_MISCELANEOS', shift_code: 'G1', radio_channel: 'Canal 5 Auxiliares / Planta', phone_extension: 'Ext. 4118', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=250&q=80' },
+    // --- GUARDIA 1 (G1) ---
+    { id: 'op-g1-sup', name: 'GONGORA ROJAS MIGUEL ALONSO', document_id: '41833717', primary_role: 'SUPERVISOR', shift_code: 'G1', radio_channel: 'Canal 1 Operaciones / Control', phone_extension: 'Ext. 4101', status: 'EN_TURNO', avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=MIGUELG' },
+    { id: 'op-g1-ctrl', name: 'PARI COAYLA JHOFER LUIS', document_id: '74924255', primary_role: 'OPERADOR_SALA_CONTROL', shift_code: 'G1', radio_channel: 'Canal 1 Operaciones / Control', phone_extension: 'Ext. 4121', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=250&q=80' },
+    { id: 'op-g1-bombas', name: 'MONTES RODRIGUEZ DIEGO ALEXANDER', document_id: '45437279', primary_role: 'OPERADOR_BOMBAS', shift_code: 'G1', radio_channel: 'Canal 3 Bombas', phone_extension: 'Ext. 4120', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=250&q=80' },
+    { id: 'op-g1-cyc1', name: 'PILCO APAZA CARLOS EDUARDO', document_id: '42324277', primary_role: 'OPERADOR_CICLONES_1', shift_code: 'G1', radio_channel: 'Canal 2 Ciclones', phone_extension: 'Ext. 4122', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80' },
+    { id: 'op-g1-cyc2', name: 'MAMANI MIRANDA RONAL', document_id: '72958467', primary_role: 'OPERADOR_CICLONES_2', shift_code: 'G1', radio_channel: 'Canal 2 Ciclones', phone_extension: 'Ext. 4119', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?auto=format&fit=crop&w=250&q=80' },
+    { id: 'op-g1-dist', name: 'HILARI CABRERA EDSON EUSEBIO', document_id: '40824273', primary_role: 'OPERADOR_DISTRIBUIDOR', shift_code: 'G1', radio_channel: 'Canal 6 Distribuidor / Flujo', phone_extension: 'Ext. 4116', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=250&q=80' },
+    { id: 'op-g1-desc1', name: 'VILCAMIZA PEVE JORGE RICARDO', document_id: '41748219', primary_role: 'OPERADOR_DESCARGA_1', shift_code: 'G1', radio_channel: 'Canal 4 Presa / Descarga', phone_extension: 'Ext. 4124', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=250&q=80' },
+    { id: 'op-g1-desc2', name: 'MAMANI CUTIPA ANTHONY JESUS SMIT', document_id: '72297288', primary_role: 'OPERADOR_DESCARGA_2', shift_code: 'G1', radio_channel: 'Canal 4 Presa / Descarga', phone_extension: 'Ext. 4118', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=250&q=80' },
+    { id: 'op-g1-misc', name: 'ROSADO FALCON VILMA LUCIA', document_id: '45564062', primary_role: 'OPERADOR_MISCELANEOS', shift_code: 'G1', radio_channel: 'Canal 5 Auxiliares / Planta', phone_extension: 'Ext. 4123', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=250&q=80' },
 
-    // Guardia 2 (G2) - 1 Supervisor de guardia + 8 Operadores
-    { id: 'op-victor-g2', name: 'LLERENA CALLE-BRACAMONTE VICTOR ALEJANDRO II', document_id: '71491945', primary_role: 'SUPERVISOR', shift_code: 'G2', radio_channel: 'Canal 1 Operaciones / Control', phone_extension: 'Ext. 4117', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&w=250&q=80' },
-    { id: 'op-ctrl-g2', name: 'FLORES HUANCA ROBERTO CARLOS', document_id: '43829105', primary_role: 'OPERADOR_SALA_CONTROL', shift_code: 'G2', radio_channel: 'Canal 1 Operaciones / Control', phone_extension: 'Ext. 4101', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80' },
-    { id: 'op-edson-g2', name: 'HILARI CABRERA EDSON EUSEBIO', document_id: '40824273', primary_role: 'OPERADOR_BOMBAS', shift_code: 'G2', radio_channel: 'Canal 3 Bombas', phone_extension: 'Ext. 4116', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?auto=format&fit=crop&w=250&q=80' },
-    { id: 'op-emilio-g2', name: 'ALIAGA CASTAÑEDA EMILIO URIEL', document_id: '46593500', primary_role: 'OPERADOR_CICLONES_1', shift_code: 'G2', radio_channel: 'Canal 2 Ciclones', phone_extension: 'Ext. 4102', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=250&q=80' },
-    { id: 'op-luis-g2', name: 'CASCASI FLORES LUIS ANTONIO', document_id: '43132072', primary_role: 'OPERADOR_CICLONES_2', shift_code: 'G2', radio_channel: 'Canal 2 Ciclones', phone_extension: 'Ext. 4105', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=250&q=80' },
-    { id: 'op-valerie-g2', name: 'CAYO GOMEZ VALERIE JAZMINE', document_id: '71719330', primary_role: 'OPERADOR_DISTRIBUIDOR', shift_code: 'G2', radio_channel: 'Canal 6 Distribuidor / Flujo', phone_extension: 'Ext. 4109', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=250&q=80' },
-    { id: 'op-pedro-g2', name: 'CHOQUE MANZANO PEDRO IVAN', document_id: '75555937', primary_role: 'OPERADOR_DESCARGA_1', shift_code: 'G2', radio_channel: 'Canal 4 Presa / Descarga', phone_extension: 'Ext. 4112', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=250&q=80' },
-    { id: 'op-paul-g2', name: 'CRUZ APAZA PAUL', document_id: '44428468', primary_role: 'OPERADOR_DESCARGA_2', shift_code: 'G2', radio_channel: 'Canal 4 Presa / Descarga', phone_extension: 'Ext. 4115', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80' },
-    { id: 'op-carlos-g2', name: 'BARRIOS HUAMÁN CARLOS', document_id: '72190458', primary_role: 'OPERADOR_MISCELANEOS', shift_code: 'G2', radio_channel: 'Canal 5 Auxiliares / Planta', phone_extension: 'Ext. 4130', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=250&q=80' },
+    // --- GUARDIA 2 (G2) ---
+    { id: 'op-g2-sup', name: 'ALIAGA CASTAÑEDA EMILIO URIEL', document_id: '46593500', primary_role: 'SUPERVISOR', shift_code: 'G2', radio_channel: 'Canal 1 Operaciones / Control', phone_extension: 'Ext. 4102', status: 'EN_TURNO', avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=EMILIOA' },
+    { id: 'op-g2-ctrl', name: 'CRUZ APAZA PAUL', document_id: '44428468', primary_role: 'OPERADOR_SALA_CONTROL', shift_code: 'G2', radio_channel: 'Canal 1 Operaciones / Control', phone_extension: 'Ext. 4115', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80' },
+    { id: 'op-g2-bombas', name: 'CASCASI FLORES LUIS ANTONIO', document_id: '43132072', primary_role: 'OPERADOR_BOMBAS', shift_code: 'G2', radio_channel: 'Canal 3 Bombas', phone_extension: 'Ext. 4105', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=250&q=80' },
+    { id: 'op-g2-cyc1', name: 'CHOQUE MANZANO PEDRO IVAN', document_id: '75555937', primary_role: 'OPERADOR_CICLONES_1', shift_code: 'G2', radio_channel: 'Canal 2 Ciclones', phone_extension: 'Ext. 4112', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=250&q=80' },
+    { id: 'op-g2-cyc2', name: 'CAYO GOMEZ VALERIE JAZMINE', document_id: '71719330', primary_role: 'OPERADOR_CICLONES_2', shift_code: 'G2', radio_channel: 'Canal 2 Ciclones', phone_extension: 'Ext. 4109', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=250&q=80' },
+    { id: 'op-g2-dist', name: 'MAMANI CONDORI MARCOS', document_id: '44921034', primary_role: 'OPERADOR_DISTRIBUIDOR', shift_code: 'G2', radio_channel: 'Canal 6 Distribuidor / Flujo', phone_extension: 'Ext. 4113', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?auto=format&fit=crop&w=250&q=80' },
+    { id: 'op-g2-desc1', name: 'QUISPE FLORES ALBERTO', document_id: '45129038', primary_role: 'OPERADOR_DESCARGA_1', shift_code: 'G2', radio_channel: 'Canal 4 Presa / Descarga', phone_extension: 'Ext. 4114', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=250&q=80' },
+    { id: 'op-g2-desc2', name: 'TICONA NINA SERGIO', document_id: '46719203', primary_role: 'OPERADOR_DESCARGA_2', shift_code: 'G2', radio_channel: 'Canal 4 Presa / Descarga', phone_extension: 'Ext. 4110', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=250&q=80' },
+    { id: 'op-g2-misc', name: 'FLORES HUAMAN DANIEL', document_id: '71829340', primary_role: 'OPERADOR_MISCELANEOS', shift_code: 'G2', radio_channel: 'Canal 5 Auxiliares / Planta', phone_extension: 'Ext. 4111', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=250&q=80' },
 
-    // Guardia 3 (G3) - 1 Supervisor de guardia + 8 Operadores
-    { id: 'op-sup-g3', name: 'MENDOZA QUISPE HÉCTOR', document_id: '41920394', primary_role: 'SUPERVISOR', shift_code: 'G3', radio_channel: 'Canal 1 Operaciones / Control', phone_extension: 'Ext. 4140', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=250&q=80' },
-    { id: 'op-ctrl-g3', name: 'CONDORI CALLATA LUIS MIGUEL', document_id: '71839204', primary_role: 'OPERADOR_SALA_CONTROL', shift_code: 'G3', radio_channel: 'Canal 1 Operaciones / Control', phone_extension: 'Ext. 4139', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=250&q=80' },
-    { id: 'op-bmb-g3', name: 'CHÁVEZ ROJAS MARCO ANTONIO', document_id: '70491823', primary_role: 'OPERADOR_BOMBAS', shift_code: 'G3', radio_channel: 'Canal 3 Bombas', phone_extension: 'Ext. 4141', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=250&q=80' },
-    { id: 'op-cyc1-g3', name: 'TORRES FLORES ÁNGEL', document_id: '43920194', primary_role: 'OPERADOR_CICLONES_1', shift_code: 'G3', radio_channel: 'Canal 2 Ciclones', phone_extension: 'Ext. 4142', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=250&q=80' },
-    { id: 'op-cyc2-g3', name: 'GUTIÉRREZ VERA JUAN CARLOS', document_id: '71829304', primary_role: 'OPERADOR_CICLONES_2', shift_code: 'G3', radio_channel: 'Canal 2 Ciclones', phone_extension: 'Ext. 4143', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80' },
-    { id: 'op-dist-g3', name: 'QUISPE APAZA RENATO', document_id: '45819203', primary_role: 'OPERADOR_DISTRIBUIDOR', shift_code: 'G3', radio_channel: 'Canal 6 Distribuidor / Flujo', phone_extension: 'Ext. 4144', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=250&q=80' },
-    { id: 'op-des1-g3', name: 'HUAMÁN CARBAJAL EDGAR', document_id: '74829104', primary_role: 'OPERADOR_DESCARGA_1', shift_code: 'G3', radio_channel: 'Canal 4 Presa / Descarga', phone_extension: 'Ext. 4145', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=250&q=80' },
-    { id: 'op-des2-g3', name: 'SALAS VÁSQUEZ GABRIEL', document_id: '42910293', primary_role: 'OPERADOR_DESCARGA_2', shift_code: 'G3', radio_channel: 'Canal 4 Presa / Descarga', phone_extension: 'Ext. 4146', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?auto=format&fit=crop&w=250&q=80' },
-    { id: 'op-misc-g3', name: 'FERNÁNDEZ COSI WILBER', document_id: '73910293', primary_role: 'OPERADOR_MISCELANEOS', shift_code: 'G3', radio_channel: 'Canal 5 Auxiliares / Planta', phone_extension: 'Ext. 4147', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=250&q=80' },
+    // --- GUARDIA 3 (G3) ---
+    { id: 'op-g3-sup', name: 'ARI MAMANI HUGO ANDRES', document_id: '40132660', primary_role: 'SUPERVISOR', shift_code: 'G3', radio_channel: 'Canal 1 Operaciones / Control', phone_extension: 'Ext. 4103', status: 'EN_TURNO', avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=HUGOA' },
+    { id: 'op-g3-ctrl', name: 'ZEA MAMANI WALTER', document_id: '41920384', primary_role: 'OPERADOR_SALA_CONTROL', shift_code: 'G3', radio_channel: 'Canal 1 Operaciones / Control', phone_extension: 'Ext. 4131', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80' },
+    { id: 'op-g3-bombas', name: 'CHURA MAMANI JORGE LUIS', document_id: '42910293', primary_role: 'OPERADOR_BOMBAS', shift_code: 'G3', radio_channel: 'Canal 3 Bombas', phone_extension: 'Ext. 4132', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=250&q=80' },
+    { id: 'op-g3-cyc1', name: 'SUCA APAZA MARIO', document_id: '43819204', primary_role: 'OPERADOR_CICLONES_1', shift_code: 'G3', radio_channel: 'Canal 2 Ciclones', phone_extension: 'Ext. 4133', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=250&q=80' },
+    { id: 'op-g3-cyc2', name: 'HUANCA QUISPE ELVIS', document_id: '72109283', primary_role: 'OPERADOR_CICLONES_2', shift_code: 'G3', radio_channel: 'Canal 2 Ciclones', phone_extension: 'Ext. 4134', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=250&q=80' },
+    { id: 'op-g3-dist', name: 'CALISAYA CONDORI NESTOR', document_id: '40918204', primary_role: 'OPERADOR_DISTRIBUIDOR', shift_code: 'G3', radio_channel: 'Canal 6 Distribuidor / Flujo', phone_extension: 'Ext. 4135', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=250&q=80' },
+    { id: 'op-g3-desc1', name: 'MAMANI QUISPE VICTOR', document_id: '44109283', primary_role: 'OPERADOR_DESCARGA_1', shift_code: 'G3', radio_channel: 'Canal 4 Presa / Descarga', phone_extension: 'Ext. 4136', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=250&q=80' },
+    { id: 'op-g3-desc2', name: 'RAMOS COAQUIRA GUIDO', document_id: '73192039', primary_role: 'OPERADOR_DESCARGA_2', shift_code: 'G3', radio_channel: 'Canal 4 Presa / Descarga', phone_extension: 'Ext. 4137', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=250&q=80' },
+    { id: 'op-g3-misc', name: 'PARI MAMANI HERNAN', document_id: '42109384', primary_role: 'OPERADOR_MISCELANEOS', shift_code: 'G3', radio_channel: 'Canal 5 Auxiliares / Planta', phone_extension: 'Ext. 4138', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=250&q=80' },
 
-    // Guardia 4 (G4) - 1 Supervisor de guardia + 8 Operadores
-    { id: 'op-sup-g4', name: 'ORTEGA RAMÍREZ CESAR', document_id: '40918239', primary_role: 'SUPERVISOR', shift_code: 'G4', radio_channel: 'Canal 1 Operaciones / Control', phone_extension: 'Ext. 4160', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=250&q=80' },
-    { id: 'op-ctrl-g4', name: 'MAMANI QUISPE RICHARD DANIEL', document_id: '74910295', primary_role: 'OPERADOR_SALA_CONTROL', shift_code: 'G4', radio_channel: 'Canal 1 Operaciones / Control', phone_extension: 'Ext. 4159', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=250&q=80' },
-    { id: 'op-bmb-g4', name: 'CAMPOS ZEA OSWALDO', document_id: '72910394', primary_role: 'OPERADOR_BOMBAS', shift_code: 'G4', radio_channel: 'Canal 3 Bombas', phone_extension: 'Ext. 4161', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80' },
-    { id: 'op-cyc1-g4', name: 'SUÁREZ MAMANI JULIO', document_id: '44819203', primary_role: 'OPERADOR_CICLONES_1', shift_code: 'G4', radio_channel: 'Canal 2 Ciclones', phone_extension: 'Ext. 4162', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=250&q=80' },
-    { id: 'op-cyc2-g4', name: 'DELGADO PACHECO ENRIQUE', document_id: '71920394', primary_role: 'OPERADOR_CICLONES_2', shift_code: 'G4', radio_channel: 'Canal 2 Ciclones', phone_extension: 'Ext. 4163', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=250&q=80' },
-    { id: 'op-dist-g4', name: 'TITO CONDORI SAMUEL', document_id: '46819203', primary_role: 'OPERADOR_DISTRIBUIDOR', shift_code: 'G4', radio_channel: 'Canal 6 Distribuidor / Flujo', phone_extension: 'Ext. 4164', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=250&q=80' },
-    { id: 'op-des1-g4', name: 'CORNEJO NINA ALONSO', document_id: '75910293', primary_role: 'OPERADOR_DESCARGA_1', shift_code: 'G4', radio_channel: 'Canal 4 Presa / Descarga', phone_extension: 'Ext. 4165', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=250&q=80' },
-    { id: 'op-des2-g4', name: 'VILLALBA ZAPATA OSCAR', document_id: '43819203', primary_role: 'OPERADOR_DESCARGA_2', shift_code: 'G4', radio_channel: 'Canal 4 Presa / Descarga', phone_extension: 'Ext. 4166', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=250&q=80' },
-    { id: 'op-misc-g4', name: 'ZAMORA PÉREZ CHRISTIAN', document_id: '72819203', primary_role: 'OPERADOR_MISCELANEOS', shift_code: 'G4', radio_channel: 'Canal 5 Auxiliares / Planta', phone_extension: 'Ext. 4167', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?auto=format&fit=crop&w=250&q=80' }
+    // --- GUARDIA 4 (G4) ---
+    { id: 'op-g4-sup', name: 'FERNANDEZ ASCURRA DANTE PACO', document_id: '18110964', primary_role: 'SUPERVISOR', shift_code: 'G4', radio_channel: 'Canal 1 Operaciones / Control', phone_extension: 'Ext. 4104', status: 'EN_TURNO', avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=DANTEF' },
+    { id: 'op-g4-ctrl', name: 'ORTEGA RAMÍREZ CESAR', document_id: '40918239', primary_role: 'OPERADOR_SALA_CONTROL', shift_code: 'G4', radio_channel: 'Canal 1 Operaciones / Control', phone_extension: 'Ext. 4141', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80' },
+    { id: 'op-g4-bombas', name: 'CAMPOS ZEA OSWALDO', document_id: '72910394', primary_role: 'OPERADOR_BOMBAS', shift_code: 'G4', radio_channel: 'Canal 3 Bombas', phone_extension: 'Ext. 4142', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=250&q=80' },
+    { id: 'op-g4-cyc1', name: 'SUÁREZ MAMANI JULIO', document_id: '44819203', primary_role: 'OPERADOR_CICLONES_1', shift_code: 'G4', radio_channel: 'Canal 2 Ciclones', phone_extension: 'Ext. 4143', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=250&q=80' },
+    { id: 'op-g4-cyc2', name: 'CORNEJO NINA ALONSO', document_id: '75910293', primary_role: 'OPERADOR_CICLONES_2', shift_code: 'G4', radio_channel: 'Canal 2 Ciclones', phone_extension: 'Ext. 4144', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=250&q=80' },
+    { id: 'op-g4-dist', name: 'MAMANI YUCRA EDWIN', document_id: '43910293', primary_role: 'OPERADOR_DISTRIBUIDOR', shift_code: 'G4', radio_channel: 'Canal 6 Distribuidor / Flujo', phone_extension: 'Ext. 4145', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=250&q=80' },
+    { id: 'op-g4-desc1', name: 'CANAZA MAMANI JAIME', document_id: '42019283', primary_role: 'OPERADOR_DESCARGA_1', shift_code: 'G4', radio_channel: 'Canal 4 Presa / Descarga', phone_extension: 'Ext. 4146', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=250&q=80' },
+    { id: 'op-g4-desc2', name: 'QUISPE TICONA FREDY', document_id: '71920394', primary_role: 'OPERADOR_DESCARGA_2', shift_code: 'G4', radio_channel: 'Canal 4 Presa / Descarga', phone_extension: 'Ext. 4147', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=250&q=80' },
+    { id: 'op-g4-misc', name: 'ALVAREZ CHURA GABRIEL', document_id: '45192038', primary_role: 'OPERADOR_MISCELANEOS', shift_code: 'G4', radio_channel: 'Canal 5 Auxiliares / Planta', phone_extension: 'Ext. 4148', status: 'EN_TURNO', avatar_url: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=250&q=80' }
   ];
 
   // Reactive State Signals
@@ -394,6 +454,7 @@ export class CrewService {
         if (res?.success && res.data?.length > 0) {
           const clean = res.data.map(m => ({
             ...m,
+            name: sanitizeOfficialName(m.name),
             shift_code: m.shift_code === 'GUARDIA_A' ? 'G1' :
                         m.shift_code === 'GUARDIA_B' ? 'G2' :
                         m.shift_code === 'GUARDIA_C' ? 'G3' :
@@ -403,6 +464,21 @@ export class CrewService {
           const filtered = normShift ? clean.filter(m => m.shift_code === normShift) : clean;
           this.crewMembers.set(filtered);
           this.saveCache('basetrack_crew_members', clean);
+
+          // Sincronizar catálogo de roster con supervisores reales
+          const foundSups: any = {};
+          clean.forEach(m => {
+            if (['G1', 'G2', 'G3', 'G4'].includes(m.shift_code) && m.primary_role === 'SUPERVISOR') {
+              foundSups[m.shift_code] = {
+                supervisorName: sanitizeOfficialName(m.name),
+                supervisorUser: m.name,
+                avatarUrl: m.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${m.name}`
+              };
+            }
+          });
+          if (Object.keys(foundSups).length > 0) {
+            updateGuardsCatalog(foundSups);
+          }
         } else {
           this.loadCachedMembers(normShift);
         }
@@ -634,6 +710,13 @@ export class CrewService {
   // 3. SUPERVISOR & OPERATORS MANAGEMENT
   // ==========================================
   loadSupervisorOperators(): Observable<{ success: boolean; supervisors: SupervisorData[]; all_operators: CrewMember[] }> {
+    const user = getRealtimeData<any>('currentUser', null);
+    if (user && user.role !== 'ADMIN' && user.role !== 'SUPERVISOR') {
+      const cached = this.loadCachedSupervisorOperators();
+      this.supervisorsWithOperators.set(cached);
+      return of({ success: true, supervisors: cached, all_operators: this.allMembers() });
+    }
+
     const url = `${getApiBaseUrl()}/admin/supervisor-operators`;
     return this.http.get<{ success: boolean; supervisors: SupervisorData[]; all_operators: CrewMember[] }>(url).pipe(
       timeout(4000),
@@ -756,43 +839,32 @@ export class CrewService {
         const c = localStorage.getItem('basetrack_supervisor_operators');
         if (c) {
           const parsed = JSON.parse(c);
-          if (Array.isArray(parsed) && parsed.length >= 4) return parsed;
+          const hasOld = Array.isArray(parsed) && parsed.some((s: any) => 
+            s.username === 'KlismanV' || 
+            s.username === 'VictorA' ||
+            s.username?.startsWith('op_test_') ||
+            s.username?.startsWith('sup_g1_') ||
+            s.full_name?.includes('TEST') ||
+            s.full_name?.includes('PRUEBA')
+          );
+          if (hasOld) {
+            localStorage.removeItem('basetrack_supervisor_operators');
+            return [];
+          }
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return parsed.map((s: any) => ({
+              ...s,
+              full_name: sanitizeOfficialName(s.full_name),
+              operators: (s.operators || []).map((o: any) => ({
+                ...o,
+                operator_name: sanitizeOfficialName(o.operator_name)
+              }))
+            }));
+          }
         }
       } catch {}
     }
-
-    // Default 4 Guardias (G1 - G4) with their 7 official operators
-    const guards = [
-      { id: 'u-klismanv', username: 'KlismanV', email: 'klismanvizcarra@basetrack.com', full_name: 'VIZCARRA CORI MANLEY KLISMAN', role: 'ADMIN', shift: 'G1', avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80' },
-      { id: 'u-victora', username: 'VictorA', email: 'victorllerena@basetrack.com', full_name: 'LLERENA CALLE-BRACAMONTE VICTOR ALEJANDRO II', role: 'SUPERVISOR', shift: 'G2', avatar_url: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&w=250&q=80' },
-      { id: 'u-hectorm', username: 'HectorM', email: 'hectormendoza@basetrack.com', full_name: 'MENDOZA QUISPE HÉCTOR', role: 'SUPERVISOR', shift: 'G3', avatar_url: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=250&q=80' },
-      { id: 'u-cesaro', username: 'CesarO', email: 'cesarortega@basetrack.com', full_name: 'ORTEGA RAMÍREZ CESAR', role: 'SUPERVISOR', shift: 'G4', avatar_url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=250&q=80' }
-    ];
-
-    const allOps = this.defaultMembers.filter(m => m.primary_role !== 'SUPERVISOR');
-    return guards.map(g => {
-      const shiftOps = allOps.filter(o => o.shift_code === g.shift);
-      const opsMapped: SupervisorOperatorItem[] = shiftOps.map(op => ({
-        assignment_id: `cached-${g.id}-${op.id}`,
-        supervisor_id: g.id,
-        operator_id: op.id,
-        shift_code: g.shift,
-        operator_name: op.name,
-        document_id: op.document_id,
-        primary_role: op.primary_role,
-        radio_channel: op.radio_channel,
-        phone_extension: op.phone_extension,
-        operator_status: op.status,
-        operator_avatar: op.avatar_url
-      }));
-
-      return {
-        ...g,
-        is_active: 1,
-        operators: opsMapped,
-        operators_count: opsMapped.length
-      };
-    });
+    return [];
   }
 
   private loadCachedMyOperators(): CrewMember[] {
@@ -801,11 +873,26 @@ export class CrewService {
         const c = localStorage.getItem('basetrack_my_operators');
         if (c) {
           const parsed = JSON.parse(c);
-          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+          const hasOld = Array.isArray(parsed) && parsed.some((m: any) => 
+            m.document_id === '71209033' || 
+            m.document_id === '42324277' ||
+            m.name?.includes('TEST') ||
+            m.name?.includes('PRUEBA')
+          );
+          if (hasOld) {
+            localStorage.removeItem('basetrack_my_operators');
+            return [];
+          }
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return parsed.map((m: any) => ({
+              ...m,
+              name: sanitizeOfficialName(m.name)
+            }));
+          }
         }
       } catch {}
     }
-    return this.defaultMembers.filter(m => m.shift_code === 'G1' && m.primary_role !== 'SUPERVISOR');
+    return [];
   }
 
   private loadCachedMembers(shift?: string): void {
@@ -823,16 +910,26 @@ export class CrewService {
       let list = this.defaultMembers;
       if (cached) {
         const parsed = JSON.parse(cached);
-        const hasOldMocks = Array.isArray(parsed) && parsed.some((m: any) => m.name === 'Juan Pérez Huamán' || m.document_id === '70412893');
-        if (Array.isArray(parsed) && parsed.length >= 15 && !hasOldMocks) {
+        const hasOldMocks = Array.isArray(parsed) && parsed.some((m: any) => 
+          m.id?.includes('klisman') || 
+          m.id?.includes('op-carlos') || 
+          m.document_id === '71209033' || 
+          m.document_id === '42324277' ||
+          m.name?.includes('TEST') ||
+          m.name?.includes('PRUEBA')
+        );
+        if (Array.isArray(parsed) && !hasOldMocks) {
           list = parsed.map((m: any) => ({
             ...m,
+            name: sanitizeOfficialName(m.name),
             shift_code: m.shift_code === 'GUARDIA_A' ? 'G1' :
                         m.shift_code === 'GUARDIA_B' ? 'G2' :
                         m.shift_code === 'GUARDIA_C' ? 'G3' :
                         m.shift_code === 'GUARDIA_D' ? 'G4' : (m.shift_code || 'G1')
           }));
-          this.saveCache('basetrack_crew_members', list);
+        } else {
+          list = [];
+          localStorage.removeItem('basetrack_crew_members');
         }
       }
       this.allMembers.set(list);
@@ -945,12 +1042,12 @@ export class CrewService {
         shift_type: shiftType,
         position_key: 'SUPERVISOR',
         position_title: 'Supervisor de guardia',
-        operator_id: staff.supervisor.id,
-        operator_name: staff.supervisor.name,
-        operator_avatar: staff.supervisor.avatar_url,
+        operator_id: staff.supervisor?.id || null,
+        operator_name: staff.supervisor?.name,
+        operator_avatar: staff.supervisor?.avatar_url,
         operator_role: 'SUPERVISOR',
-        operator_phone: staff.supervisor.phone_extension || 'Ext. 4125',
-        operator_default_radio: staff.supervisor.radio_channel || 'Canal 1 Operaciones / Control',
+        operator_phone: staff.supervisor?.phone_extension || 'Ext. 4125',
+        operator_default_radio: staff.supervisor?.radio_channel || 'Canal 1 Operaciones / Control',
         backup_operator_id: null,
         epp_verified: 1,
         safety_talk_completed: 1,
@@ -965,16 +1062,16 @@ export class CrewService {
         shift_type: shiftType,
         position_key: 'SALA_CONTROL',
         position_title: 'Operador sala de control',
-        operator_id: staff.controlRoom.id,
-        operator_name: staff.controlRoom.name,
-        operator_avatar: staff.controlRoom.avatar_url,
-        operator_role: 'OPERADOR_SALA_CONTROL',
-        operator_phone: staff.controlRoom.phone_extension || 'Ext. 4110',
-        operator_default_radio: staff.controlRoom.radio_channel || 'Canal 1 Operaciones / Control',
-        backup_operator_id: staff.miscelaneos.id,
-        backup_name: staff.miscelaneos.name,
-        epp_verified: 1,
-        safety_talk_completed: 1,
+        operator_id: null,
+        operator_name: undefined,
+        operator_avatar: undefined,
+        operator_role: undefined,
+        operator_phone: undefined,
+        operator_default_radio: undefined,
+        backup_operator_id: null,
+        backup_name: undefined,
+        epp_verified: 0,
+        safety_talk_completed: 0,
         radio_channel: 'Canal 1 Operaciones / Control',
         station_location: 'Sala de Control DCS / SCADA',
         notes: 'Operación de consolas DCS/SCADA, monitoreo de variables de proceso, enclavamientos y alarmas'
@@ -986,16 +1083,16 @@ export class CrewService {
         shift_type: shiftType,
         position_key: 'BOMBAS',
         position_title: 'Operador de bombas',
-        operator_id: staff.bombas.id,
-        operator_name: staff.bombas.name,
-        operator_avatar: staff.bombas.avatar_url,
-        operator_role: 'OPERADOR_BOMBAS',
-        operator_phone: staff.bombas.phone_extension || 'Ext. 4122',
-        operator_default_radio: staff.bombas.radio_channel || 'Canal 3 Bombas',
-        backup_operator_id: staff.miscelaneos.id,
-        backup_name: staff.miscelaneos.name,
-        epp_verified: 1,
-        safety_talk_completed: 1,
+        operator_id: null,
+        operator_name: undefined,
+        operator_avatar: undefined,
+        operator_role: undefined,
+        operator_phone: undefined,
+        operator_default_radio: undefined,
+        backup_operator_id: null,
+        backup_name: undefined,
+        epp_verified: 0,
+        safety_talk_completed: 0,
         radio_channel: 'Canal 3 Bombas',
         station_location: 'Sala de Bombas Slurry PP-101 a PP-104 & Sentinas',
         notes: 'Monitoreo de flujo, amperaje y presión en bombas y pozas'
@@ -1007,16 +1104,16 @@ export class CrewService {
         shift_type: shiftType,
         position_key: 'CICLONES_1',
         position_title: 'Operador de ciclones 1',
-        operator_id: staff.ciclones1.id,
-        operator_name: staff.ciclones1.name,
-        operator_avatar: staff.ciclones1.avatar_url,
-        operator_role: 'OPERADOR_CICLONES_1',
-        operator_phone: staff.ciclones1.phone_extension || 'Ext. 4124',
-        operator_default_radio: staff.ciclones1.radio_channel || 'Canal 2 Ciclones',
-        backup_operator_id: staff.miscelaneos.id,
-        backup_name: staff.miscelaneos.name,
-        epp_verified: 1,
-        safety_talk_completed: 1,
+        operator_id: null,
+        operator_name: undefined,
+        operator_avatar: undefined,
+        operator_role: undefined,
+        operator_phone: undefined,
+        operator_default_radio: undefined,
+        backup_operator_id: null,
+        backup_name: undefined,
+        epp_verified: 0,
+        safety_talk_completed: 0,
         radio_channel: 'Canal 2 Ciclones',
         station_location: '1ra Estación Baterías de Ciclones D-10',
         notes: 'Muestreo metalúrgico horario en 1ra estación, presiones y mallas'
@@ -1028,16 +1125,16 @@ export class CrewService {
         shift_type: shiftType,
         position_key: 'CICLONES_2',
         position_title: 'Operador de ciclones 2',
-        operator_id: staff.ciclones2.id,
-        operator_name: staff.ciclones2.name,
-        operator_avatar: staff.ciclones2.avatar_url,
-        operator_role: 'OPERADOR_CICLONES_2',
-        operator_phone: staff.ciclones2.phone_extension || 'Ext. 4123',
-        operator_default_radio: staff.ciclones2.radio_channel || 'Canal 2 Ciclones',
-        backup_operator_id: staff.miscelaneos.id,
-        backup_name: staff.miscelaneos.name,
-        epp_verified: 1,
-        safety_talk_completed: 1,
+        operator_id: null,
+        operator_name: undefined,
+        operator_avatar: undefined,
+        operator_role: undefined,
+        operator_phone: undefined,
+        operator_default_radio: undefined,
+        backup_operator_id: null,
+        backup_name: undefined,
+        epp_verified: 0,
+        safety_talk_completed: 0,
         radio_channel: 'Canal 2 Ciclones',
         station_location: '2da Estación Baterías de Ciclones D-10',
         notes: 'Planilla metalúrgica, % de sólidos y granulometría de malla -200'
@@ -1049,16 +1146,16 @@ export class CrewService {
         shift_type: shiftType,
         position_key: 'DISTRIBUIDOR',
         position_title: 'Operador de distribuidor',
-        operator_id: staff.distribuidor.id,
-        operator_name: staff.distribuidor.name,
-        operator_avatar: staff.distribuidor.avatar_url,
-        operator_role: 'OPERADOR_DISTRIBUIDOR',
-        operator_phone: staff.distribuidor.phone_extension || 'Ext. 4121',
-        operator_default_radio: staff.distribuidor.radio_channel || 'Canal 6 Distribuidor / Flujo',
-        backup_operator_id: staff.miscelaneos.id,
-        backup_name: staff.miscelaneos.name,
-        epp_verified: 1,
-        safety_talk_completed: 1,
+        operator_id: null,
+        operator_name: undefined,
+        operator_avatar: undefined,
+        operator_role: undefined,
+        operator_phone: undefined,
+        operator_default_radio: undefined,
+        backup_operator_id: null,
+        backup_name: undefined,
+        epp_verified: 0,
+        safety_talk_completed: 0,
         radio_channel: 'Canal 6 Distribuidor / Flujo',
         station_location: 'Cajón Distribuidor & Repartición de Carga',
         notes: 'Distribución uniforme de carga y flujo hacia líneas de clasificación'
@@ -1070,16 +1167,16 @@ export class CrewService {
         shift_type: shiftType,
         position_key: 'DESCARGA_1',
         position_title: 'Operador de descarga 1',
-        operator_id: staff.descarga1.id,
-        operator_name: staff.descarga1.name,
-        operator_avatar: staff.descarga1.avatar_url,
-        operator_role: 'OPERADOR_DESCARGA_1',
-        operator_phone: staff.descarga1.phone_extension || 'Ext. 4120',
-        operator_default_radio: staff.descarga1.radio_channel || 'Canal 4 Presa / Descarga',
-        backup_operator_id: staff.miscelaneos.id,
-        backup_name: staff.miscelaneos.name,
-        epp_verified: 1,
-        safety_talk_completed: 1,
+        operator_id: null,
+        operator_name: undefined,
+        operator_avatar: undefined,
+        operator_role: undefined,
+        operator_phone: undefined,
+        operator_default_radio: undefined,
+        backup_operator_id: null,
+        backup_name: undefined,
+        epp_verified: 0,
+        safety_talk_completed: 0,
         radio_channel: 'Canal 4 Presa / Descarga',
         station_location: 'Línea HDPE de Impulsión & Estación Relaves',
         notes: 'Supervisión de presiones en línea HDPE y flujo de pulpa espesada'
@@ -1091,16 +1188,16 @@ export class CrewService {
         shift_type: shiftType,
         position_key: 'DESCARGA_2',
         position_title: 'Operador de descarga 2',
-        operator_id: staff.descarga2.id,
-        operator_name: staff.descarga2.name,
-        operator_avatar: staff.descarga2.avatar_url,
-        operator_role: 'OPERADOR_DESCARGA_2',
-        operator_phone: staff.descarga2.phone_extension || 'Ext. 4119',
-        operator_default_radio: staff.descarga2.radio_channel || 'Canal 4 Presa / Descarga',
-        backup_operator_id: staff.miscelaneos.id,
-        backup_name: staff.miscelaneos.name,
-        epp_verified: 1,
-        safety_talk_completed: 1,
+        operator_id: null,
+        operator_name: undefined,
+        operator_avatar: undefined,
+        operator_role: undefined,
+        operator_phone: undefined,
+        operator_default_radio: undefined,
+        backup_operator_id: null,
+        backup_name: undefined,
+        epp_verified: 0,
+        safety_talk_completed: 0,
         radio_channel: 'Canal 4 Presa / Descarga',
         station_location: 'Presa Principal de Relaves & Muro de Contención',
         notes: 'Inspección de vertederos, nivel de laguna, borde libre y piezómetros'
@@ -1112,15 +1209,15 @@ export class CrewService {
         shift_type: shiftType,
         position_key: 'MISCELANEOS',
         position_title: 'Operador de misceláneos',
-        operator_id: staff.miscelaneos.id,
-        operator_name: staff.miscelaneos.name,
-        operator_avatar: staff.miscelaneos.avatar_url,
-        operator_role: 'OPERADOR_MISCELANEOS',
-        operator_phone: staff.miscelaneos.phone_extension || 'Ext. 4118',
-        operator_default_radio: staff.miscelaneos.radio_channel || 'Canal 5 Auxiliares / Planta',
+        operator_id: null,
+        operator_name: undefined,
+        operator_avatar: undefined,
+        operator_role: undefined,
+        operator_phone: undefined,
+        operator_default_radio: undefined,
         backup_operator_id: null,
-        epp_verified: 1,
-        safety_talk_completed: 1,
+        epp_verified: 0,
+        safety_talk_completed: 0,
         radio_channel: 'Canal 5 Auxiliares / Planta',
         station_location: 'Planta de Reactivos, Floculante & Servicios Auxiliares',
         notes: 'Preparación de reactivos, apoyo en espesadores e inspección general'
@@ -1129,6 +1226,57 @@ export class CrewService {
 
     this.activeAssignments.set(defaults);
     this.saveCache(`basetrack_assignments_${date}_${normShift}_${shiftType}`, defaults);
+  }
+
+  public getAssignedOperatorForPosition(positionKey: string, shiftCode?: string): CrewMember | undefined {
+    const raw = shiftCode || (typeof localStorage !== 'undefined' ? localStorage.getItem('basetrack_active_shift') : null) || 'G1';
+    const normShift = raw === 'GUARDIA_A' ? 'G1' :
+                      raw === 'GUARDIA_B' ? 'G2' :
+                      raw === 'GUARDIA_C' ? 'G3' :
+                      raw === 'GUARDIA_D' ? 'G4' : raw;
+
+    const assign = this.activeAssignments().find(a => a.position_key === positionKey && (!a.shift_code || a.shift_code === normShift));
+    if (assign && assign.operator_id) {
+      const found = this.allMembers().find(m => m.id === assign.operator_id) ||
+                    this.defaultMembers.find(m => m.id === assign.operator_id);
+      if (found) return found;
+    }
+
+    const staff = this.getOfficialShiftStaff(normShift);
+    const map: Record<string, CrewMember> = {
+      'SUPERVISOR': staff.supervisor,
+      'SALA_CONTROL': staff.controlRoom,
+      'BOMBAS': staff.bombas,
+      'CICLONES_1': staff.ciclones1,
+      'CICLONES_2': staff.ciclones2,
+      'DISTRIBUIDOR': staff.distribuidor,
+      'DESCARGA_1': staff.descarga1,
+      'DESCARGA_2': staff.descarga2,
+      'MISCELANEOS': staff.miscelaneos
+    };
+    if (map[positionKey]) return map[positionKey];
+
+    // Fallback directly to defaultMembers by shift and role
+    const fallback = this.defaultMembers.find(m => m.shift_code === normShift && (m.primary_role === positionKey || m.primary_role.includes(positionKey)));
+    if (fallback) return fallback;
+
+    if (positionKey === 'SUPERVISOR') {
+      return CrewService.OFFICIAL_SUPERVISOR_MAP[normShift] || CrewService.OFFICIAL_SUPERVISOR_MAP['G1'];
+    }
+    return undefined;
+  }
+
+  public getActiveSupervisorForShift(shiftCode?: string): CrewMember {
+    const raw = shiftCode || (typeof localStorage !== 'undefined' ? localStorage.getItem('basetrack_active_shift') : null) || 'G1';
+    const normShift = raw === 'GUARDIA_A' ? 'G1' :
+                      raw === 'GUARDIA_B' ? 'G2' :
+                      raw === 'GUARDIA_C' ? 'G3' :
+                      raw === 'GUARDIA_D' ? 'G4' : raw;
+    const staff = this.getOfficialShiftStaff(normShift);
+    if (staff && staff.supervisor && staff.supervisor.name) {
+      return staff.supervisor;
+    }
+    return CrewService.OFFICIAL_SUPERVISOR_MAP[normShift] || CrewService.OFFICIAL_SUPERVISOR_MAP['G1'];
   }
 
   private saveCache(key: string, data: any): void {

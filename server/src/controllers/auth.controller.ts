@@ -16,12 +16,12 @@ export async function login(req: Request, res: Response) {
   const cleanUser = String(username || '').trim();
   const cleanPass = String(password || '').trim();
 
-  // Resilient lookup: admin, klismanv or DNI 71209033 resolves to KlismanV (Official Administrator)
+  // Resilient lookup: admin, marckv or DNI/credential 2794vizcarra resolves to Marckv (Official Administrator)
   let user: any = null;
-  const isTargetingAdmin = ['admin', 'klismanv', '71209033'].includes(cleanUser.toLowerCase());
+  const isTargetingAdmin = ['admin', 'marckv', '2794vizcarra'].includes(cleanUser.toLowerCase());
 
   if (isTargetingAdmin) {
-    user = db.prepare('SELECT * FROM users WHERE LOWER(username) = ?').get('klismanv') as any;
+    user = db.prepare('SELECT * FROM users WHERE LOWER(username) = ?').get('marckv') as any;
     if (!user) {
       user = db.prepare('SELECT * FROM users WHERE LOWER(username) = ?').get('admin') as any;
     }
@@ -37,11 +37,13 @@ export async function login(req: Request, res: Response) {
   }
 
   if (!user) {
-    return res.status(401).json({ success: false, message: 'Usuario no encontrado' });
+    return res.status(401).json({ success: false, message: 'Credenciales incorrectas' });
   }
 
-  const validAdminPasswords = ['admin', 'admin123', '71209033', 'Password123!', 'Basetrack2026!'];
-  const isAdminUser = user.role === 'ADMIN' || isTargetingAdmin || user.username === 'KlismanV';
+  // Security check: Verify that user account has not been suspended
+  if (user.is_active === 0 || user.is_active === false) {
+    return res.status(403).json({ success: false, message: 'La cuenta ha sido suspendida. Contacte al Administrador.' });
+  }
 
   let match = false;
   try {
@@ -50,18 +52,16 @@ export async function login(req: Request, res: Response) {
     match = false;
   }
 
-  // Fallback for legacy plaintext password, or authorized admin master credentials
+  // Fallback for legacy plaintext password upgrade
   if (!match && user.password_hash === cleanPass) {
     match = true;
     try {
       db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(bcrypt.hashSync(cleanPass, 10), user.id);
     } catch {}
-  } else if (!match && isAdminUser && validAdminPasswords.includes(cleanPass)) {
-    match = true;
   }
 
   if (!match) {
-    return res.status(401).json({ success: false, message: 'Contraseña incorrecta' });
+    return res.status(401).json({ success: false, message: 'Credenciales incorrectas' });
   }
 
   const token = generateToken({
@@ -85,7 +85,11 @@ export async function login(req: Request, res: Response) {
       fullName: user.full_name,
       role: user.role,
       shift: user.shift,
-      avatarUrl: user.avatar_url
+      avatarUrl: user.avatar_url,
+      document_id: user.document_id,
+      radio_channel: user.radio_channel,
+      phone_extension: user.phone_extension,
+      primary_role: user.primary_role
     }
   });
 }
@@ -173,12 +177,7 @@ export async function updateProfile(req: AuthenticatedRequest, res: Response) {
     const username = req.user.username;
 
     // Check if user exists by ID or username
-    let user = db.prepare('SELECT * FROM users WHERE id = ? OR username = ?').get(userId, username) as any;
-
-    if (!user) {
-      // Fallback: If user is demo token, find KlismanV
-      user = db.prepare('SELECT * FROM users WHERE username = ? OR username = ?').get('KlismanV', 'admin') as any;
-    }
+    const user = db.prepare('SELECT * FROM users WHERE id = ? OR username = ?').get(userId, username) as any;
 
     if (!user) {
       return res.status(404).json({ success: false, message: 'Usuario no encontrado en la base de datos' });
@@ -293,10 +292,7 @@ export async function changePassword(req: AuthenticatedRequest, res: Response) {
     const userId = req.user.userId;
     const username = req.user.username;
 
-    let user = db.prepare('SELECT * FROM users WHERE id = ? OR username = ?').get(userId, username) as any;
-    if (!user) {
-      user = db.prepare('SELECT * FROM users WHERE username = ?').get('admin') as any;
-    }
+    const user = db.prepare('SELECT * FROM users WHERE id = ? OR username = ?').get(userId, username) as any;
 
     if (!user) {
       return res.status(404).json({ success: false, message: 'Usuario no encontrado' });

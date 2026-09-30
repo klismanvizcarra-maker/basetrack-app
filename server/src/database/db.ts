@@ -7,8 +7,12 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const dbPath = process.env.DB_PATH || './data/basetrack.db';
-const resolvedPath = path.resolve(process.cwd(), dbPath);
+import { fileURLToPath } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const defaultDbPath = path.resolve(__dirname, '../../data/basetrack.db');
+const resolvedPath = process.env.DB_PATH ? path.resolve(process.env.DB_PATH) : defaultDbPath;
 const dbDir = path.dirname(resolvedPath);
 
 if (!fs.existsSync(dbDir)) {
@@ -192,7 +196,7 @@ export function initDatabase() {
       shift_type TEXT NOT NULL CHECK(shift_type IN ('DIA', 'NOCHE')),
       position_key TEXT NOT NULL,
       position_title TEXT NOT NULL,
-      operator_id TEXT NOT NULL,
+      operator_id TEXT,
       backup_operator_id TEXT,
       epp_verified INTEGER NOT NULL DEFAULT 1,
       safety_talk_completed INTEGER NOT NULL DEFAULT 1,
@@ -273,6 +277,19 @@ export function initDatabase() {
       UNIQUE(supervisor_id, operator_id)
     );
 
+    -- Role Permissions & User Overrides
+    CREATE TABLE IF NOT EXISTS role_permissions (
+      role TEXT PRIMARY KEY,
+      permissions TEXT NOT NULL,
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS user_permission_overrides (
+      user_id TEXT PRIMARY KEY,
+      permissions TEXT NOT NULL,
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
     -- Indexes for performance
     CREATE INDEX IF NOT EXISTS idx_pumps_tag ON pump_reports(tag);
     CREATE INDEX IF NOT EXISTS idx_pumps_created ON pump_reports(created_at);
@@ -324,6 +341,43 @@ export function initDatabase() {
     }
   } catch (e) {
     console.warn('[Database] crew_area_assignments migration check:', e);
+  }
+
+  // Safe migration: make operator_id nullable in crew_area_assignments if it was previously NOT NULL
+  try {
+    const cols = db.prepare("PRAGMA table_info(crew_area_assignments)").all() as any[];
+    const opCol = cols.find(c => c.name === 'operator_id');
+    if (opCol && opCol.notnull === 1) {
+      db.exec(`
+        PRAGMA foreign_keys=off;
+        CREATE TABLE IF NOT EXISTS crew_area_assignments_v3 (
+          id TEXT PRIMARY KEY,
+          shift_code TEXT NOT NULL,
+          shift_date TEXT NOT NULL,
+          shift_type TEXT NOT NULL CHECK(shift_type IN ('DIA', 'NOCHE')),
+          position_key TEXT NOT NULL,
+          position_title TEXT NOT NULL,
+          operator_id TEXT,
+          backup_operator_id TEXT,
+          epp_verified INTEGER NOT NULL DEFAULT 1,
+          safety_talk_completed INTEGER NOT NULL DEFAULT 1,
+          radio_channel TEXT,
+          station_location TEXT,
+          notes TEXT,
+          updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+          FOREIGN KEY(operator_id) REFERENCES crew_members(id),
+          FOREIGN KEY(backup_operator_id) REFERENCES crew_members(id)
+        );
+        INSERT OR IGNORE INTO crew_area_assignments_v3 SELECT * FROM crew_area_assignments;
+        DROP TABLE crew_area_assignments;
+        ALTER TABLE crew_area_assignments_v3 RENAME TO crew_area_assignments;
+        CREATE INDEX IF NOT EXISTS idx_crew_assignments ON crew_area_assignments(shift_date, shift_code, shift_type);
+        PRAGMA foreign_keys=on;
+      `);
+      console.log('[Database] Migrated crew_area_assignments to allow nullable operator_id (vacant positions).');
+    }
+  } catch (e) {
+    console.warn('[Database] crew_area_assignments nullable migration check:', e);
   }
 
   // Safe migration: add is_active column to users table if not present
@@ -481,79 +535,112 @@ export function initDatabase() {
     console.warn('[Database] Global shift update migration:', e);
   }
 
-  // Baseline initialization: supervisor_operators and 4 supervisors (G1-G4)
+  // UTF-8 Integrity repair for staff names with tildes and accents (e.g. CASTAÑEDA, RAMÍREZ, SUÁREZ)
   try {
-    const defaultSupervisors = [
-      { username: 'KlismanV', fullName: 'VIZCARRA CORI MANLEY KLISMAN', dni: '71209033', role: 'ADMIN', shift: 'G1', email: 'klismanvizcarra@basetrack.com', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80' },
-      { username: 'VictorA', fullName: 'LLERENA CALLE-BRACAMONTE VICTOR ALEJANDRO II', dni: '71491945', role: 'SUPERVISOR', shift: 'G2', email: 'victorllerena@basetrack.com', avatar: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&w=250&q=80' },
-      { username: 'HectorM', fullName: 'MENDOZA QUISPE HÉCTOR', dni: '41920394', role: 'SUPERVISOR', shift: 'G3', email: 'hectormendoza@basetrack.com', avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=250&q=80' },
-      { username: 'CesarO', fullName: 'ORTEGA RAMÍREZ CESAR', dni: '40918239', role: 'SUPERVISOR', shift: 'G4', email: 'cesarortega@basetrack.com', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=250&q=80' }
-    ];
+    db.exec(`
+      UPDATE crew_members SET name = 'ALIAGA CASTAÑEDA EMILIO URIEL' WHERE name LIKE '%CASTA%EDA%' AND name != 'ALIAGA CASTAÑEDA EMILIO URIEL';
+      UPDATE users SET full_name = 'ALIAGA CASTAÑEDA EMILIO URIEL' WHERE full_name LIKE '%CASTA%EDA%' AND full_name != 'ALIAGA CASTAÑEDA EMILIO URIEL';
+      UPDATE shift_handovers SET incoming_supervisor = 'ALIAGA CASTAÑEDA EMILIO URIEL' WHERE incoming_supervisor LIKE '%CASTA%EDA%' AND incoming_supervisor != 'ALIAGA CASTAÑEDA EMILIO URIEL';
+      UPDATE shift_handovers SET outgoing_supervisor = 'ALIAGA CASTAÑEDA EMILIO URIEL' WHERE outgoing_supervisor LIKE '%CASTA%EDA%' AND outgoing_supervisor != 'ALIAGA CASTAÑEDA EMILIO URIEL';
 
-    const findUser = db.prepare('SELECT id, username, shift, role FROM users WHERE LOWER(username) = LOWER(?) OR LOWER(email) = LOWER(?)');
-    const insertSup = db.prepare(`
-      INSERT INTO users (id, username, email, password_hash, full_name, role, shift, avatar_url, is_active, document_id, primary_role)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, 'SUPERVISOR')
+      UPDATE crew_members SET name = 'ORTEGA RAMÍREZ CESAR' WHERE name LIKE '%ORTEGA RAM%REZ%' AND name != 'ORTEGA RAMÍREZ CESAR';
+      UPDATE users SET full_name = 'ORTEGA RAMÍREZ CESAR' WHERE full_name LIKE '%ORTEGA RAM%REZ%' AND full_name != 'ORTEGA RAMÍREZ CESAR';
+
+      UPDATE crew_members SET name = 'SUÁREZ MAMANI JULIO' WHERE name LIKE '%SU%REZ MAMANI%' AND name != 'SUÁREZ MAMANI JULIO';
+      UPDATE users SET full_name = 'SUÁREZ MAMANI JULIO' WHERE full_name LIKE '%SU%REZ MAMANI%' AND full_name != 'SUÁREZ MAMANI JULIO';
     `);
-    const updateSup = db.prepare(`
-      UPDATE users SET role = ?, shift = ?, full_name = ?, is_active = 1 WHERE id = ?
-    `);
-
-    for (const sup of defaultSupervisors) {
-      const existing = findUser.get(sup.username, sup.email) as any;
-      if (!existing) {
-        insertSup.run(
-          crypto.randomUUID(),
-          sup.username,
-          sup.email,
-          bcrypt.hashSync(sup.dni, 10),
-          sup.fullName,
-          sup.role,
-          sup.shift,
-          sup.avatar,
-          sup.dni
-        );
-      } else {
-        if (existing.role !== sup.role || existing.shift !== sup.shift) {
-          updateSup.run(sup.role, sup.shift, sup.fullName, existing.id);
-        }
-      }
-    }
-
-    // Ensure CarlosP is OPERATOR in G1 and clean legacy supervisor_a test user
-    try {
-      db.prepare("UPDATE users SET role = 'OPERATOR', shift = 'G1' WHERE username = 'CarlosP'").run();
-      db.prepare("DELETE FROM users WHERE username = 'supervisor_a'").run();
-      db.prepare("DELETE FROM supervisor_operators WHERE supervisor_id IN (SELECT id FROM users WHERE username = 'CarlosP') OR supervisor_id = 'CarlosP'").run();
-      db.prepare("DELETE FROM supervisor_operators WHERE supervisor_id = 'supervisor_a' OR supervisor_id LIKE '%supervisor_a%'").run();
-    } catch {}
-
-    const insertSupOp = db.prepare(`
-      INSERT OR IGNORE INTO supervisor_operators (id, supervisor_id, operator_id, shift_code)
-      VALUES (?, ?, ?, ?)
-    `);
-
-    const supervisors = db.prepare(`
-      SELECT id, username, shift, full_name FROM users WHERE role IN ('SUPERVISOR', 'ADMIN')
-    `).all() as Array<{ id: string; username: string; shift: string; full_name: string }>;
-
-    for (const sup of supervisors) {
-      const shift = sup.shift || 'G1';
-      const ops = db.prepare(`
-        SELECT id FROM crew_members 
-        WHERE shift_code = ? AND primary_role != 'SUPERVISOR'
-      `).all(shift) as Array<{ id: string }>;
-
-      for (const op of ops) {
-        insertSupOp.run(crypto.randomUUID(), sup.id, op.id, shift);
-        if (sup.username) {
-          insertSupOp.run(crypto.randomUUID(), sup.username, op.id, shift);
-        }
-      }
-    }
-    console.log('[Database] supervisor_operators initialized for all 4 guards (G1-G4).');
   } catch (e) {
-    console.warn('[Database] supervisor_operators init check:', e);
+    console.warn('[Database] UTF-8 repair error:', e);
+  }
+
+  // Migration: Add supervisor DNI and position role columns to shift_handovers
+  try {
+    db.prepare("ALTER TABLE shift_handovers ADD COLUMN outgoing_dni TEXT").run();
+  } catch {}
+  try {
+    db.prepare("ALTER TABLE shift_handovers ADD COLUMN outgoing_role TEXT").run();
+  } catch {}
+  try {
+    db.prepare("ALTER TABLE shift_handovers ADD COLUMN incoming_dni TEXT").run();
+  } catch {}
+  try {
+    db.prepare("ALTER TABLE shift_handovers ADD COLUMN incoming_role TEXT").run();
+  } catch {}
+
+  // Administrator initialization: Ensure Marckv exists as sole administrator
+  try {
+    const marckUser = db.prepare('SELECT id FROM users WHERE LOWER(username) = ?').get('marckv') as any;
+    if (!marckUser) {
+      db.prepare(`
+        INSERT INTO users (id, username, email, password_hash, full_name, role, shift, avatar_url, is_active, document_id, primary_role)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, 'ADMIN')
+      `).run(
+        crypto.randomUUID(),
+        'Marckv',
+        'marckvizcarra@basetrack.com',
+        bcrypt.hashSync('2794vizcarra', 10),
+        'Marck Vizcarra',
+        'ADMIN',
+        'ADMIN',
+        'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80',
+        '2794vizcarra'
+      );
+      console.log('[Database] Administrator Marckv created successfully.');
+    }
+
+    // Auto-repair document_id for users from crew_members or known staff
+    db.prepare(`
+      UPDATE users 
+      SET document_id = '71209033' 
+      WHERE (LOWER(username) = 'klismanv' OR full_name LIKE '%VIZCARRA CORI%' OR full_name LIKE '%KLISMAN%') 
+        AND (document_id IS NULL OR document_id = '');
+    `).run();
+    db.prepare(`
+      UPDATE users 
+      SET document_id = '2794vizcarra' 
+      WHERE LOWER(username) = 'marckv' 
+        AND (document_id IS NULL OR document_id = '');
+    `).run();
+    db.prepare(`
+      UPDATE users 
+      SET document_id = (SELECT document_id FROM crew_members WHERE crew_members.name = users.full_name LIMIT 1) 
+      WHERE (document_id IS NULL OR document_id = '') 
+        AND EXISTS (SELECT 1 FROM crew_members WHERE crew_members.name = users.full_name AND document_id IS NOT NULL AND document_id != '');
+    `).run();
+  } catch (e) {
+    console.warn('[Database] Administrator check error:', e);
+  }
+
+  // Initialize role_permissions defaults if not populated
+  try {
+    const count = (db.prepare('SELECT COUNT(*) as cnt FROM role_permissions').get() as { cnt: number })?.cnt || 0;
+    if (count === 0) {
+      const stmt = db.prepare("INSERT OR REPLACE INTO role_permissions (role, permissions, updated_at) VALUES (?, ?, datetime('now'))");
+      stmt.run('ADMIN', JSON.stringify([
+        'CAN_VIEW_OPERATIONS',
+        'CAN_RECORD_DATA',
+        'CAN_FILL_VEHICLES',
+        'CAN_MANAGE_CREW',
+        'CAN_CLOSE_SHIFT',
+        'CAN_DELETE_RECORDS',
+        'CAN_ACCESS_ADMIN'
+      ]));
+      stmt.run('SUPERVISOR', JSON.stringify([
+        'CAN_VIEW_OPERATIONS',
+        'CAN_RECORD_DATA',
+        'CAN_FILL_VEHICLES',
+        'CAN_MANAGE_CREW',
+        'CAN_CLOSE_SHIFT'
+      ]));
+      stmt.run('OPERATOR', JSON.stringify([
+        'CAN_VIEW_OPERATIONS',
+        'CAN_RECORD_DATA',
+        'CAN_FILL_VEHICLES'
+      ]));
+      console.log('[Database] Default role_permissions matrix seeded successfully.');
+    }
+  } catch (e) {
+    console.warn('[Database] Error initializing role_permissions:', e);
   }
 
   console.log('[Database] Tables and indexes initialized successfully.');

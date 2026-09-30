@@ -7,6 +7,9 @@ import { ModalComponent } from '../../shared/ui/modal.component';
 import { OfflineSyncService } from '../../core/offline/offline-sync.service';
 import { getRealtimeData, saveRealtimeData } from '../../core/storage/local-store.util';
 import { TailingsReportPdfComponent } from '../reports/tailings-report-pdf.component';
+import { AuthService } from '../../core/auth/auth.service';
+import { CrewService } from '../../core/services/crew.service';
+import { getCurrentActiveShift } from '../../shared/utils/roster.util';
 
 export interface TailingsReport {
   id: string;
@@ -43,7 +46,7 @@ export interface TailingsReport {
               <line x1="16" y1="13" x2="8" y2="13"></line>
               <line x1="16" y1="17" x2="8" y2="17"></line>
             </svg>
-            <span class="btn-text">Exportar PDF (1 Hoja)</span>
+            <span class="btn-text">Exportar PDF</span>
           </button>
           <button class="btn btn-primary" (click)="isCreateModalOpen = true">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
@@ -374,6 +377,8 @@ export interface TailingsReport {
 export class TailingsComponent implements OnInit {
   private http = inject(HttpClient);
   offlineSync = inject(OfflineSyncService);
+  private crewService = inject(CrewService);
+  private authService = inject(AuthService);
 
   tailings: TailingsReport[] = [];
   isCreateModalOpen = false;
@@ -419,12 +424,15 @@ export class TailingsComponent implements OnInit {
   }
 
   private loadDefaultTailings(): void {
+    const curShift = getCurrentActiveShift().activeGuard.code;
+    const op1 = this.crewService.getAssignedOperatorForPosition('DESCARGA_1', curShift)?.name || 'MONTES RODRIGUEZ DIEGO ALEXANDER';
+    const op2 = this.crewService.getAssignedOperatorForPosition('DESCARGA_2', curShift)?.name || 'PILCO APAZA CARLOS EDUARDO';
     this.tailings = [
       {
         id: 't-1', station_tag: 'PRESA-SECTOR-NORTE', flow_rate_m3h: 2150,
         solids_percentage: 64.8, dam_level_meters: 4120.4, freeboard_meters: 3.8,
         piezometer_kpa: 142.6, turbidity_ntu: 12.4, pumping_line_status: 'NORMAL',
-        operator_name: 'VIZCARRA CORI MANLEY KLISMAN', shift_code: 'G1',
+        operator_name: op1, shift_code: curShift,
         notes: 'Espesador de relaves con torque al 48%. Nivel freático en muro dentro de rango seguro.',
         created_at: new Date().toISOString()
       },
@@ -432,7 +440,7 @@ export class TailingsComponent implements OnInit {
         id: 't-2', station_tag: 'ESP-RELAVES-01', flow_rate_m3h: 1980,
         solids_percentage: 63.5, dam_level_meters: 4119.8, freeboard_meters: 4.2,
         piezometer_kpa: 138.0, turbidity_ntu: 10.1, pumping_line_status: 'NORMAL',
-        operator_name: 'PILCO APAZA CARLOS EDUARDO', shift_code: 'G1',
+        operator_name: op2, shift_code: curShift,
         notes: 'Dosificación de floculante aniónico optimizada. Sobrenadante clarificado.',
         created_at: new Date().toISOString()
       }
@@ -441,6 +449,12 @@ export class TailingsComponent implements OnInit {
   }
 
   saveTailings(): void {
+    const curShift = getCurrentActiveShift().activeGuard.code;
+    const currentUser = this.authService.currentUser();
+    const opName = (currentUser?.role === 'OPERATOR' && currentUser?.fullName)
+      ? currentUser.fullName
+      : (this.crewService.getAssignedOperatorForPosition('DESCARGA_1', curShift)?.name || 'MONTES RODRIGUEZ DIEGO ALEXANDER');
+
     const report: TailingsReport = {
       id: 't-' + Date.now(),
       station_tag: this.newTailings.station_tag,
@@ -451,8 +465,8 @@ export class TailingsComponent implements OnInit {
       piezometer_kpa: this.newTailings.piezometer_kpa,
       turbidity_ntu: this.newTailings.turbidity_ntu,
       pumping_line_status: this.newTailings.pumping_line_status as any,
-      operator_name: 'VIZCARRA CORI MANLEY KLISMAN',
-      shift_code: 'G1',
+      operator_name: opName,
+      shift_code: curShift,
       notes: this.newTailings.notes,
       created_at: new Date().toISOString()
     };
@@ -462,18 +476,24 @@ export class TailingsComponent implements OnInit {
     saveRealtimeData('tailings_reports', this.tailings);
     this.isCreateModalOpen = false;
 
+    const payload = {
+      ...this.newTailings,
+      operator_name: opName,
+      shift_code: curShift
+    };
+
     const endpoint = `${getApiBaseUrl()}/tailings`;
     if (this.offlineSync.isOnline()) {
-      this.http.post<any>(endpoint, this.newTailings).subscribe({
+      this.http.post<any>(endpoint, payload).subscribe({
         next: () => {
           this.loadTailings();
         },
         error: () => {
-          this.offlineSync.queueAction(endpoint, 'POST', this.newTailings, 'Relaves ' + this.newTailings.station_tag);
+          this.offlineSync.queueAction(endpoint, 'POST', payload, 'Relaves ' + this.newTailings.station_tag);
         }
       });
     } else {
-      this.offlineSync.queueAction(endpoint, 'POST', this.newTailings, 'Relaves ' + this.newTailings.station_tag);
+      this.offlineSync.queueAction(endpoint, 'POST', payload, 'Relaves ' + this.newTailings.station_tag);
     }
   }
 }

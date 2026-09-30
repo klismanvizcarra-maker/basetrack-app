@@ -6,6 +6,7 @@ import path from 'node:path';
 import { db } from '../database/db.js';
 import { AuthenticatedRequest } from '../middlewares/auth.middleware.js';
 import { logAudit } from '../middlewares/error.middleware.js';
+import { ALL_PERMISSIONS, DEFAULT_ROLE_PERMISSIONS, PermissionKey } from '../config/permissions.js';
 
 function normalizeShift(shift?: any): string {
   if (!shift) return 'G1';
@@ -72,8 +73,8 @@ export function createUsersBulk(req: AuthenticatedRequest, res: Response) {
     }
 
     const insertUser = db.prepare(`
-      INSERT INTO users (id, username, email, password_hash, full_name, role, shift, avatar_url)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO users (id, username, email, password_hash, full_name, role, shift, avatar_url, document_id, radio_channel, phone_extension, primary_role)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     const insertCrew = db.prepare(`
@@ -122,6 +123,22 @@ export function createUsersBulk(req: AuthenticatedRequest, res: Response) {
         const userId = crypto.randomUUID();
         const hash = bcrypt.hashSync(password, 10);
 
+        let primaryRole = 'OPERADOR_BOMBAS';
+        if (item.primary_role) {
+          primaryRole = item.primary_role;
+        } else if (role === 'SUPERVISOR') {
+          primaryRole = 'SUPERVISOR';
+        } else {
+          const lowerName = fullName.toLowerCase() + ' ' + (item.area || '').toLowerCase();
+          if (lowerName.includes('ciclon') && lowerName.includes('2')) primaryRole = 'OPERADOR_CICLONES_2';
+          else if (lowerName.includes('ciclon')) primaryRole = 'OPERADOR_CICLONES_1';
+          else if (lowerName.includes('distribuidor')) primaryRole = 'OPERADOR_DISTRIBUIDOR';
+          else if (lowerName.includes('descarga') && lowerName.includes('2')) primaryRole = 'OPERADOR_DESCARGA_2';
+          else if (lowerName.includes('descarga') || lowerName.includes('relave') || lowerName.includes('presa')) primaryRole = 'OPERADOR_DESCARGA_1';
+          else if (lowerName.includes('misc') || lowerName.includes('reactivo')) primaryRole = 'OPERADOR_MISCELANEOS';
+          else primaryRole = 'OPERADOR_BOMBAS';
+        }
+
         insertUser.run(
           userId,
           username,
@@ -130,28 +147,16 @@ export function createUsersBulk(req: AuthenticatedRequest, res: Response) {
           fullName,
           ['ADMIN', 'SUPERVISOR', 'OPERATOR'].includes(role) ? role : 'OPERATOR',
           shift,
-          avatar
+          avatar,
+          documentId,
+          radio,
+          phone,
+          primaryRole
         );
 
         // Also insert into crew_members if operator or supervisor and document not duplicate
         const existingCrew = checkExistingCrewDoc.get(documentId);
         if (!existingCrew) {
-          let primaryRole = 'OPERADOR_BOMBAS';
-          if (item.primary_role) {
-            primaryRole = item.primary_role;
-          } else if (role === 'SUPERVISOR') {
-            primaryRole = 'SUPERVISOR';
-          } else {
-            const lowerName = fullName.toLowerCase() + ' ' + (item.area || '').toLowerCase();
-            if (lowerName.includes('ciclon') && lowerName.includes('2')) primaryRole = 'OPERADOR_CICLONES_2';
-            else if (lowerName.includes('ciclon')) primaryRole = 'OPERADOR_CICLONES_1';
-            else if (lowerName.includes('distribuidor')) primaryRole = 'OPERADOR_DISTRIBUIDOR';
-            else if (lowerName.includes('descarga') && lowerName.includes('2')) primaryRole = 'OPERADOR_DESCARGA_2';
-            else if (lowerName.includes('descarga') || lowerName.includes('relave') || lowerName.includes('presa')) primaryRole = 'OPERADOR_DESCARGA_1';
-            else if (lowerName.includes('misc') || lowerName.includes('reactivo')) primaryRole = 'OPERADOR_MISCELANEOS';
-            else primaryRole = 'OPERADOR_BOMBAS';
-          }
-
           insertCrew.run(
             crypto.randomUUID(),
             fullName,
@@ -168,29 +173,75 @@ export function createUsersBulk(req: AuthenticatedRequest, res: Response) {
         importedCount++;
       }
 
+      // Auto-link operators to their supervisor in supervisor_operators for all affected shifts
+      const affectedShifts = Array.from(new Set(rawUsers.map((u: any) => {
+        let s = (u.shift || 'G1').toString().toUpperCase();
+        if (s.startsWith('GUARDIA_')) s = s.replace('GUARDIA_A', 'G1').replace('GUARDIA_B', 'G2').replace('GUARDIA_C', 'G3').replace('GUARDIA_D', 'G4');
+        return ['G1', 'G2', 'G3', 'G4'].includes(s) ? s : 'G1';
+      })));
+
+      const insertSupOp = db.prepare(`
+        INSERT OR REPLACE INTO supervisor_operators (id, supervisor_id, operator_id, shift_code)
+        VALUES (?, ?, ?, ?)
+      `);
+
+      let totalAutoLinked = 0;
+      const shiftSummary: Record<string, { supervisor: string | null; operators: number }> = {};
+
+      for (const shift of affectedShifts) {
+        const sup = db.prepare(`
+          SELECT id, username, full_name FROM users
+          WHERE shift = ? AND role IN ('SUPERVISOR', 'ADMIN')
+          ORDER BY CASE WHEN role = 'SUPERVISOR' THEN 1 ELSE 2 END
+          LIMIT 1
+        `).get(shift) as { id: string; username: string; full_name: string } | undefined;
+
+        const ops = db.prepare(`
+          SELECT id FROM crew_members 
+          WHERE shift_code = ? AND primary_role != 'SUPERVISOR'
+        `).all(shift) as Array<{ id: string }>;
+
+        shiftSummary[shift] = {
+          supervisor: sup ? (sup.full_name || sup.username) : null,
+          operators: ops.length
+        };
+
+        if (sup) {
+          for (const op of ops) {
+            insertSupOp.run(crypto.randomUUID(), sup.id, op.id, shift);
+            if (sup.username && sup.username !== sup.id) {
+              insertSupOp.run(crypto.randomUUID(), sup.username, op.id, shift);
+            }
+            totalAutoLinked++;
+          }
+        }
+      }
+
       db.exec('COMMIT;');
+
+      logAudit(
+        req.user?.userId || null,
+        req.user?.username || 'admin',
+        'BULK_CREATE_USERS',
+        'USERS',
+        null,
+        `Carga masiva organizada: ${importedCount} usuarios importados, ${totalAutoLinked} operadores vinculados a supervisores en ${affectedShifts.join(', ')}`,
+        req.ip || '127.0.0.1'
+      );
+
+      return res.status(201).json({
+        success: true,
+        message: `Carga completada: ${importedCount} usuarios importados y vinculados exitosamente por guardia`,
+        count: importedCount,
+        skippedCount: skippedList.length,
+        skipped: skippedList,
+        totalAutoLinked,
+        shiftSummary
+      });
     } catch (innerErr) {
       db.exec('ROLLBACK;');
       throw innerErr;
     }
-
-    logAudit(
-      req.user?.userId || null,
-      req.user?.username || 'admin',
-      'BULK_CREATE_USERS',
-      'USERS',
-      null,
-      `Carga masiva: ${importedCount} usuarios importados, ${skippedList.length} omitidos`,
-      req.ip || '127.0.0.1'
-    );
-
-    return res.status(201).json({
-      success: true,
-      message: `Carga completada: ${importedCount} usuarios importados exitosamente`,
-      count: importedCount,
-      skippedCount: skippedList.length,
-      skipped: skippedList
-    });
   } catch (error: any) {
     return res.status(500).json({ success: false, message: error.message });
   }
@@ -589,7 +640,7 @@ export function toggleUserStatus(req: AuthenticatedRequest, res: Response) {
       return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
     }
 
-    if (user.username === 'KlismanV' || (req.user && req.user.userId === id)) {
+    if (user.username === 'Marckv' || (req.user && req.user.userId === id)) {
       return res.status(403).json({ success: false, message: 'No es posible suspender la cuenta del Administrador principal o la sesión activa.' });
     }
 
@@ -618,13 +669,24 @@ export function toggleUserStatus(req: AuthenticatedRequest, res: Response) {
 
 export function getConnectedDevices(req: AuthenticatedRequest, res: Response) {
   try {
+    // Normalizar IPs IPv6/localhost residuales en la BD
+    db.prepare(`
+      UPDATE connected_devices 
+      SET ip_address = '127.0.0.1' 
+      WHERE ip_address = '::1' OR ip_address = '::ffff:127.0.0.1'
+    `).run();
+
     const devices = db.prepare(`
       SELECT 
         device_id,
         device_name,
         user_id,
         username,
-        ip_address,
+        CASE 
+          WHEN ip_address = '::1' OR ip_address = '::ffff:127.0.0.1' THEN '127.0.0.1'
+          WHEN ip_address LIKE '::ffff:%' THEN REPLACE(ip_address, '::ffff:', '')
+          ELSE COALESCE(ip_address, '127.0.0.1')
+        END as ip_address,
         user_agent,
         last_seen,
         is_revoked,
@@ -634,7 +696,7 @@ export function getConnectedDevices(req: AuthenticatedRequest, res: Response) {
         END as is_online
       FROM connected_devices
       ORDER BY last_seen DESC
-      LIMIT 50
+      LIMIT 100
     `).all();
 
     return res.json({
@@ -688,19 +750,76 @@ export function revokeDeviceSession(req: AuthenticatedRequest, res: Response) {
   }
 }
 
+export function deleteDeviceSession(req: AuthenticatedRequest, res: Response) {
+  try {
+    const deviceId = String(req.params.deviceId || '');
+    if (!deviceId) {
+      return res.status(400).json({ success: false, message: 'ID de dispositivo requerido' });
+    }
+
+    const info = db.prepare('DELETE FROM connected_devices WHERE device_id = ?').run(deviceId);
+
+    logAudit(
+      req.user?.userId || null,
+      req.user?.username || 'admin',
+      'DELETE_DEVICE_SESSION',
+      'SECURITY',
+      deviceId,
+      `Terminal ${deviceId} desvinculada y eliminada del monitor de flota`,
+      req.ip || '127.0.0.1'
+    );
+
+    return res.json({
+      success: true,
+      message: 'Terminal eliminada de la flota exitosamente',
+      deleted: info.changes > 0
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+export function purgeStaleDevices(req: AuthenticatedRequest, res: Response) {
+  try {
+    // Eliminar terminales inactivas por más de 5 días o revocadas
+    const result = db.prepare(`
+      DELETE FROM connected_devices 
+      WHERE is_revoked = 1 
+         OR last_seen < datetime('now', '-5 days')
+    `).run();
+
+    logAudit(
+      req.user?.userId || null,
+      req.user?.username || 'admin',
+      'PURGE_STALE_DEVICES',
+      'SECURITY',
+      null,
+      `Depuración de flota: ${result.changes} terminales inactivas o revocadas eliminadas`,
+      req.ip || '127.0.0.1'
+    );
+
+    return res.json({
+      success: true,
+      purgedCount: result.changes,
+      message: `Depuración completada: ${result.changes} terminal(es) obsoletas eliminadas`
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+
 // =========================================================================
 // SUPERVISOR & OPERATORS MANAGEMENT (Gestión de Cuadrilla por Supervisor)
 // =========================================================================
 
 export function getSupervisorOperators(req: AuthenticatedRequest, res: Response) {
   try {
-    // 1. Obtener todos los supervisores
+    // 1. Obtener supervisores operacionales (excluye Administrador puro de planta)
     const supervisors = db.prepare(`
       SELECT id, username, email, full_name, role, shift, avatar_url, COALESCE(is_active, 1) as is_active
       FROM users
-      WHERE role IN ('SUPERVISOR', 'ADMIN')
+      WHERE role = 'SUPERVISOR' OR (role = 'ADMIN' AND shift IN ('G1', 'G2', 'G3', 'G4'))
       ORDER BY 
-        CASE role WHEN 'ADMIN' THEN 1 ELSE 2 END,
         shift ASC,
         full_name ASC
     `).all() as any[];
@@ -985,6 +1104,194 @@ export function getMyOperators(req: AuthenticatedRequest, res: Response) {
       role: userRole,
       shift: userShift,
       data: operators
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Matriz de Permisos & Seguridad (RBAC Híbrido + Excepciones)
+// -----------------------------------------------------------------------------
+
+export function getPermissionsMatrix(req: Request, res: Response) {
+  try {
+    const roleRows = db.prepare('SELECT role, permissions, updated_at FROM role_permissions').all() as Array<{ role: string; permissions: string; updated_at: string }>;
+    const rolePermissions: Record<string, string[]> = {
+      ADMIN: [...DEFAULT_ROLE_PERMISSIONS.ADMIN],
+      SUPERVISOR: [...DEFAULT_ROLE_PERMISSIONS.SUPERVISOR],
+      OPERATOR: [...DEFAULT_ROLE_PERMISSIONS.OPERATOR]
+    };
+
+    for (const r of roleRows) {
+      try {
+        rolePermissions[r.role] = JSON.parse(r.permissions);
+      } catch {}
+    }
+
+    const overrideRows = db.prepare('SELECT user_id, permissions, updated_at FROM user_permission_overrides').all() as Array<{ user_id: string; permissions: string; updated_at: string }>;
+    const userOverrides: Record<string, Record<string, boolean>> = {};
+    for (const o of overrideRows) {
+      try {
+        userOverrides[o.user_id] = JSON.parse(o.permissions);
+      } catch {}
+    }
+
+    return res.json({
+      success: true,
+      allPermissions: ALL_PERMISSIONS,
+      rolePermissions,
+      userOverrides
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+export function updateRolePermissions(req: AuthenticatedRequest, res: Response) {
+  try {
+    const { role, permissions } = req.body;
+    if (!role || !Array.isArray(permissions)) {
+      return res.status(400).json({ success: false, message: 'Rol y lista de permisos son requeridos' });
+    }
+
+    const validRoles = ['ADMIN', 'SUPERVISOR', 'OPERATOR'];
+    if (!validRoles.includes(role)) {
+      return res.status(400).json({ success: false, message: `Rol inválido: ${role}` });
+    }
+
+    db.prepare("INSERT OR REPLACE INTO role_permissions (role, permissions, updated_at) VALUES (?, ?, datetime('now'))")
+      .run(role, JSON.stringify(permissions));
+
+    logAudit(
+      req.user?.userId || null,
+      req.user?.username || 'admin',
+      'UPDATE_ROLE_PERMISSIONS',
+      'role_permissions',
+      role,
+      `Permisos actualizados para rol ${role}: ${permissions.join(', ')}`,
+      req.ip || '127.0.0.1'
+    );
+
+    return res.json({ success: true, message: `Permisos para el rol ${role} guardados exitosamente` });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+export function updateUserPermissionOverrides(req: AuthenticatedRequest, res: Response) {
+  try {
+    const { userId } = req.params;
+    const { permissions } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({ success: false, message: 'userId es requerido' });
+    }
+
+    if (!permissions || typeof permissions !== 'object') {
+      db.prepare('DELETE FROM user_permission_overrides WHERE user_id = ?').run(userId);
+      return res.json({ success: true, message: 'Excepciones de permisos eliminadas para el usuario' });
+    }
+
+    db.prepare("INSERT OR REPLACE INTO user_permission_overrides (user_id, permissions, updated_at) VALUES (?, ?, datetime('now'))")
+      .run(userId, JSON.stringify(permissions));
+
+    logAudit(
+      req.user?.userId || null,
+      req.user?.username || 'admin',
+      'UPDATE_USER_PERMISSIONS',
+      'user_permission_overrides',
+      userId,
+      `Excepciones de permisos actualizadas para usuario ${userId}`,
+      req.ip || '127.0.0.1'
+    );
+
+    return res.json({ success: true, message: `Permisos especiales guardados para el usuario` });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+export function resetPermissionsMatrix(req: AuthenticatedRequest, res: Response) {
+  try {
+    const stmt = db.prepare("INSERT OR REPLACE INTO role_permissions (role, permissions, updated_at) VALUES (?, ?, datetime('now'))");
+    stmt.run('ADMIN', JSON.stringify(DEFAULT_ROLE_PERMISSIONS.ADMIN));
+    stmt.run('SUPERVISOR', JSON.stringify(DEFAULT_ROLE_PERMISSIONS.SUPERVISOR));
+    stmt.run('OPERATOR', JSON.stringify(DEFAULT_ROLE_PERMISSIONS.OPERATOR));
+
+    db.exec('DELETE FROM user_permission_overrides;');
+
+    logAudit(
+      req.user?.userId || null,
+      req.user?.username || 'admin',
+      'RESET_PERMISSIONS_MATRIX',
+      'role_permissions',
+      null,
+      'Matriz de permisos restaurada a valores por defecto de fábrica',
+      req.ip || '127.0.0.1'
+    );
+
+    return res.json({
+      success: true,
+      message: 'Matriz de permisos restaurada a valores por defecto de fábrica',
+      rolePermissions: DEFAULT_ROLE_PERMISSIONS
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+export function getMyPermissions(req: AuthenticatedRequest, res: Response) {
+  try {
+    const user = req.user;
+    if (!user) {
+      return res.status(401).json({ success: false, message: 'No autenticado' });
+    }
+
+    const isSuperAdmin =
+      user.role === 'ADMIN' ||
+      user.username?.toLowerCase() === 'marckv' ||
+      user.username?.toLowerCase() === 'admin' ||
+      user.fullName?.toUpperCase().includes('MARCK');
+
+    if (isSuperAdmin) {
+      return res.json({
+        success: true,
+        role: user.role,
+        isSuperAdmin: true,
+        permissions: ALL_PERMISSIONS.map(p => p.key)
+      });
+    }
+
+    const userRole = (user.role || 'OPERATOR') as 'ADMIN' | 'SUPERVISOR' | 'OPERATOR';
+    const roleRow = db.prepare('SELECT permissions FROM role_permissions WHERE role = ?').get(userRole) as { permissions: string } | undefined;
+    let effectivePerms: string[] = DEFAULT_ROLE_PERMISSIONS[userRole] || [];
+    if (roleRow && roleRow.permissions) {
+      try {
+        effectivePerms = JSON.parse(roleRow.permissions);
+      } catch {}
+    }
+
+    const userId = user.userId || user.username;
+    const userOverride = db.prepare('SELECT permissions FROM user_permission_overrides WHERE user_id = ?').get(userId) as { permissions: string } | undefined;
+    if (userOverride && userOverride.permissions) {
+      try {
+        const overrides: Record<string, boolean> = JSON.parse(userOverride.permissions);
+        for (const [permKey, allowed] of Object.entries(overrides)) {
+          if (allowed && !effectivePerms.includes(permKey)) {
+            effectivePerms.push(permKey);
+          } else if (!allowed && effectivePerms.includes(permKey)) {
+            effectivePerms = effectivePerms.filter(k => k !== permKey);
+          }
+        }
+      } catch {}
+    }
+
+    return res.json({
+      success: true,
+      role: user.role,
+      isSuperAdmin: false,
+      permissions: effectivePerms
     });
   } catch (error: any) {
     return res.status(500).json({ success: false, message: error.message });

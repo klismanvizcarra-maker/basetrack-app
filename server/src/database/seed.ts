@@ -13,49 +13,15 @@ export function seed() {
   `);
 
   const staffUsers = [
-    // GUARDIA 1 (G1) - 1 Supervisor + 8 Operadores
-    { username: 'KlismanV', fullName: 'VIZCARRA CORI MANLEY KLISMAN', dni: '71209033', role: 'ADMIN', shift: 'G1', email: 'klismanvizcarra@basetrack.com', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80' },
-    { username: 'WalterQ', fullName: 'QUISPE CASTILLO WALTER', dni: '46298104', role: 'OPERATOR', shift: 'G1', email: 'walterquispe@basetrack.com', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=250&q=80' },
-    { username: 'CarlosP', fullName: 'PILCO APAZA CARLOS EDUARDO', dni: '42324277', role: 'OPERATOR', shift: 'G1', email: 'carlospilco@basetrack.com', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=250&q=80' },
-    { username: 'JorgeV', fullName: 'VILCAMIZA PEVE JORGE RICARDO', dni: '41748219', role: 'OPERATOR', shift: 'G1', email: 'jorgevilcamiza@basetrack.com', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=250&q=80' },
-    { username: 'VilmaR', fullName: 'ROSADO FALCON VILMA LUCIA', dni: '45564062', role: 'OPERATOR', shift: 'G1', email: 'vilmarosado@basetrack.com', avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=250&q=80' },
-    { username: 'JhoferP', fullName: 'PARI COAYLA JHOFER LUIS', dni: '74924255', role: 'OPERATOR', shift: 'G1', email: 'jhoferpari@basetrack.com', avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=250&q=80' },
-    { username: 'DiegoM', fullName: 'MONTES RODRIGUEZ DIEGO ALEXANDER', dni: '45437279', role: 'OPERATOR', shift: 'G1', email: 'diegomontes@basetrack.com', avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=250&q=80' },
-    { username: 'RonalM', fullName: 'MAMANI MIRANDA RONAL', dni: '72958467', role: 'OPERATOR', shift: 'G1', email: 'ronalmamani@basetrack.com', avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=250&q=80' },
-    { username: 'AnthonyJ', fullName: 'MAMANI CUTIPA ANTHONY JESUS SMIT', dni: '72297288', role: 'OPERATOR', shift: 'G1', email: 'anthonymamani@basetrack.com', avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=250&q=80' },
-
-    // GUARDIA 2 (G2) - 1 Supervisor + 8 Operadores
-    { username: 'VictorA', fullName: 'LLERENA CALLE-BRACAMONTE VICTOR ALEJANDRO II', dni: '71491945', role: 'SUPERVISOR', shift: 'G2', email: 'victorllerena@basetrack.com', avatar: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&w=250&q=80' },
-    { username: 'RobertoF', fullName: 'FLORES HUANCA ROBERTO CARLOS', dni: '43829105', role: 'OPERATOR', shift: 'G2', email: 'robertoflores@basetrack.com', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80' },
-    { username: 'EdsonH', fullName: 'HILARI CABRERA EDSON EUSEBIO', dni: '40824273', role: 'OPERATOR', shift: 'G2', email: 'edsonhilari@basetrack.com', avatar: 'https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?auto=format&fit=crop&w=250&q=80' },
-    { username: 'EmilioA', fullName: 'ALIAGA CASTAÑEDA EMILIO URIEL', dni: '46593500', role: 'OPERATOR', shift: 'G2', email: 'Emilioaliaga@basetrack.com', avatar: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=250&q=80' },
-    { username: 'LuisA', fullName: 'CASCASI FLORES LUIS ANTONIO', dni: '43132072', role: 'OPERATOR', shift: 'G2', email: 'Luiscascasi@basetrack.com', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=250&q=80' },
-    { username: 'ValerieC', fullName: 'CAYO GOMEZ VALERIE JAZMINE', dni: '71719330', role: 'OPERATOR', shift: 'G2', email: 'valeriecayo@basetrack.com', avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=250&q=80' },
-    { username: 'PedroI', fullName: 'CHOQUE MANZANO PEDRO IVAN', dni: '75555937', role: 'OPERATOR', shift: 'G2', email: 'pedrochoque@basetrack.com', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=250&q=80' },
-    { username: 'PaulC', fullName: 'CRUZ APAZA PAUL', dni: '44428468', role: 'OPERATOR', shift: 'G2', email: 'paulcruz@basetrack.com', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80' },
-    { username: 'CarlosB', fullName: 'BARRIOS HUAMÁN CARLOS', dni: '72190458', role: 'OPERATOR', shift: 'G2', email: 'carlosbarrios@basetrack.com', avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=250&q=80' },
-
-    // GUARDIA 3 (G3) - 1 Supervisor + 8 Operadores
-    { username: 'HectorM', fullName: 'MENDOZA QUISPE HÉCTOR', dni: '41920394', role: 'SUPERVISOR', shift: 'G3', email: 'hectormendoza@basetrack.com', avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=250&q=80' },
-    { username: 'LuisC', fullName: 'CONDORI CALLATA LUIS MIGUEL', dni: '71839204', role: 'OPERATOR', shift: 'G3', email: 'luiscondori@basetrack.com', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=250&q=80' },
-    { username: 'MarcoC', fullName: 'CHÁVEZ ROJAS MARCO ANTONIO', dni: '70491823', role: 'OPERATOR', shift: 'G3', email: 'marcochavez@basetrack.com', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=250&q=80' },
-    { username: 'AngelT', fullName: 'TORRES FLORES ÁNGEL', dni: '43920194', role: 'OPERATOR', shift: 'G3', email: 'angeltorres@basetrack.com', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=250&q=80' },
-    { username: 'JuanG', fullName: 'GUTIÉRREZ VERA JUAN CARLOS', dni: '71829304', role: 'OPERATOR', shift: 'G3', email: 'juangutierrez@basetrack.com', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80' },
-    { username: 'RenatoQ', fullName: 'QUISPE APAZA RENATO', dni: '45819203', role: 'OPERATOR', shift: 'G3', email: 'renatoquispe@basetrack.com', avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=250&q=80' },
-    { username: 'EdgarH', fullName: 'HUAMÁN CARBAJAL EDGAR', dni: '74829104', role: 'OPERATOR', shift: 'G3', email: 'edgarhuaman@basetrack.com', avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=250&q=80' },
-    { username: 'GabrielS', fullName: 'SALAS VÁSQUEZ GABRIEL', dni: '42910293', role: 'OPERATOR', shift: 'G3', email: 'gabrielsalas@basetrack.com', avatar: 'https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?auto=format&fit=crop&w=250&q=80' },
-    { username: 'WilberF', fullName: 'FERNÁNDEZ COSI WILBER', dni: '73910293', role: 'OPERATOR', shift: 'G3', email: 'wilberfernandez@basetrack.com', avatar: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=250&q=80' },
-
-    // GUARDIA 4 (G4) - 1 Supervisor + 8 Operadores
-    { username: 'CesarO', fullName: 'ORTEGA RAMÍREZ CESAR', dni: '40918239', role: 'SUPERVISOR', shift: 'G4', email: 'cesarortega@basetrack.com', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=250&q=80' },
-    { username: 'RichardM', fullName: 'MAMANI QUISPE RICHARD DANIEL', dni: '74910295', role: 'OPERATOR', shift: 'G4', email: 'richardmamani@basetrack.com', avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=250&q=80' },
-    { username: 'OswaldoC', fullName: 'CAMPOS ZEA OSWALDO', dni: '72910394', role: 'OPERATOR', shift: 'G4', email: 'oswaldocampos@basetrack.com', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80' },
-    { username: 'JulioS', fullName: 'SUÁREZ MAMANI JULIO', dni: '44819203', role: 'OPERATOR', shift: 'G4', email: 'juliosuarez@basetrack.com', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=250&q=80' },
-    { username: 'EnriqueD', fullName: 'DELGADO PACHECO ENRIQUE', dni: '71920394', role: 'OPERATOR', shift: 'G4', email: 'enriquedelgado@basetrack.com', avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=250&q=80' },
-    { username: 'SamuelT', fullName: 'TITO CONDORI SAMUEL', dni: '46819203', role: 'OPERATOR', shift: 'G4', email: 'samueltito@basetrack.com', avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=250&q=80' },
-    { username: 'AlonsoC', fullName: 'CORNEJO NINA ALONSO', dni: '75910293', role: 'OPERATOR', shift: 'G4', email: 'alonsocornejo@basetrack.com', avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=250&q=80' },
-    { username: 'OscarV', fullName: 'VILLALBA ZAPATA OSCAR', dni: '43819203', role: 'OPERATOR', shift: 'G4', email: 'oscarvillalba@basetrack.com', avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=250&q=80' },
-    { username: 'ChristianZ', fullName: 'ZAMORA PÉREZ CHRISTIAN', dni: '72819203', role: 'OPERATOR', shift: 'G4', email: 'christianz@basetrack.com', avatar: 'https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?auto=format&fit=crop&w=250&q=80' }
+    {
+      username: 'Marckv',
+      fullName: 'Marck Vizcarra',
+      dni: '2794vizcarra',
+      role: 'ADMIN',
+      shift: 'ADMIN',
+      email: 'marckvizcarra@basetrack.com',
+      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80'
+    }
   ];
 
   for (const u of staffUsers) {
@@ -74,27 +40,46 @@ export function seed() {
     }
   }
 
-  // 2. Shift Handovers
+  // 2. Shift Handovers - Clean obsolete test records
+  db.prepare(`
+    DELETE FROM shift_handovers 
+    WHERE outgoing_supervisor LIKE '%Roberto Quispe%' 
+       OR outgoing_supervisor LIKE '%VIZCARRA CORI%' 
+       OR incoming_supervisor LIKE '%Marco Vel%' 
+       OR incoming_supervisor LIKE '%LLERENA CALLE%'
+       OR date < '2026-09-26'
+  `).run();
+
   const shiftCount = (db.prepare('SELECT COUNT(*) as count FROM shift_handovers').get() as { count: number }).count;
   if (shiftCount === 0) {
-    console.log('[Seed] Seeding shift handovers...');
+    console.log('[Seed] Seeding shift handovers with official 8x8 rotation (G4 entrega a G2)...');
     const insertShift = db.prepare(`
-      INSERT INTO shift_handovers (id, shift_code, date, shift_type, outgoing_supervisor, incoming_supervisor, plant_status, tonnage_processed, safety_incidents, operational_highlights, pending_tasks, status)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO shift_handovers (
+        id, shift_code, date, shift_type,
+        outgoing_supervisor, outgoing_dni, outgoing_role,
+        incoming_supervisor, incoming_dni, incoming_role,
+        plant_status, tonnage_processed, safety_incidents,
+        operational_highlights, pending_tasks, status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
+    // Rotación oficial de hoy 29-Sep-2026: Bloque 3 día 4 -> G4 (Turno Día) entrega a G2 (Turno Noche)
     insertShift.run(
       crypto.randomUUID(),
-      'G1_DIA_01',
-      new Date().toISOString().split('T')[0],
+      'G4_DIA_0929',
+      '2026-09-29',
       'DIA',
-      'Ing. Roberto Quispe',
-      'Ing. Marco Velásquez',
-      'Planta Concentradora operando a 94.5% de capacidad de diseño. Circuito de molienda SAG en régimen estable.',
-      48250,
-      'Cero incidentes con tiempo perdido (LTI: 0). Charla de 5 minutos sobre bloqueo y etiquetado (LOTO) realizada.',
-      'Caudal promedio de pulpa: 3,420 m³/h. Densidad de descarga de molienda en 68.5% sólidos.',
-      'Inspeccionar desgaste en impelente de bomba PP-102. Calibrar densímetro nuclear en línea 2 de relaves.',
+      'FERNANDEZ ASCURRA DANTE PACO',
+      '18110964',
+      'Supervisor de guardia',
+      'ALIAGA CASTAÑEDA EMILIO URIEL',
+      '46593500',
+      'Supervisor de guardia',
+      'Planta Concentradora operando en régimen continuo normal. Circuitos de molienda SAG y flotación estables sin anomalías.',
+      24500,
+      'Cero accidentes laborales (LTI: 0). Charla de seguridad de 5 minutos completada al inicio de turno.',
+      'Caudal sostenido de pulpa hacia baterías de ciclones. Presión de manifold en rango operativo óptimo (18.5 PSI).',
+      'Inspección programada de bombas de alimentación e impulsor en siguiente relevo.',
       'ACCEPTED'
     );
   }
@@ -130,8 +115,8 @@ export function seed() {
         p.temp,
         p.vib,
         p.amps,
-        'G1',
-        'Juan Pérez',
+        'G4',
+        'MONTES RODRIGUEZ DIEGO ALEXANDER',
         p.notes
       );
     }
@@ -264,8 +249,8 @@ export function seed() {
       142.6,
       12.4,
       'NORMAL',
-      'Marcos Alanya',
-      'G1',
+      'MONTES RODRIGUEZ DIEGO ALEXANDER',
+      'G4',
       'Espesador de relaves con torque al 48%. Nivel freático en muro dentro de rango seguro.'
     );
 
@@ -279,8 +264,8 @@ export function seed() {
       138.0,
       10.1,
       'NORMAL',
-      'Marcos Alanya',
-      'G1',
+      'PILCO APAZA CARLOS EDUARDO',
+      'G4',
       'Dosificación de floculante aniónico optimizada. Sobrenadante clarificado.'
     );
   }
@@ -302,7 +287,7 @@ export function seed() {
       'Durante la inspección de rutina se detectó vibración de 4.8 mm/s en rodamiento DE. Requiere análisis espectral y re-engrase.',
       'HIGH',
       'IN_PROGRESS',
-      'Juan Pérez',
+      'MONTES RODRIGUEZ DIEGO ALEXANDER',
       'Ing. Mantenimiento Mecánico (Taller Central)',
       'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=400&q=80',
       4.5
@@ -316,7 +301,7 @@ export function seed() {
       'Desgaste severo por abrasión de pulpa en vortex. Pérdida de eficiencia en corte de finos.',
       'MEDIUM',
       'PENDING',
-      'Roberto Quispe',
+      'PILCO APAZA CARLOS EDUARDO',
       'Equipo Mantenimiento Planta',
       'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=400&q=80',
       3.0
@@ -330,7 +315,7 @@ export function seed() {
       'Desgaste regular tras 4,200 horas continuas de bombeo de pulpa abrasiva. Se programa cambio de camisas y sello.',
       'HIGH',
       'IN_PROGRESS',
-      'Juan Pérez',
+      'VILCAMIZA PEVE JORGE RICARDO',
       'Taller Mecánico Concentradora',
       'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=400&q=80',
       4.0
@@ -344,7 +329,7 @@ export function seed() {
       'Goteo de pulpa de relaves sobre canaleta de drenaje. Ajuste de empaquetadura completado satisfactoriamente.',
       'LOW',
       'RESOLVED',
-      'Marcos Alanya',
+      'ROSADO FALCON VILMA LUCIA',
       'Técnico Lubricador',
       'https://images.unsplash.com/photo-1504917599217-d4dc5ebe6122?auto=format&fit=crop&w=400&q=80',
       1.5
@@ -368,25 +353,25 @@ export function seed() {
 
     insertSheet.run(
       crypto.randomUUID(),
-      '2026-08-27',
-      'G1',
-      'Operador Central',
+      new Date().toISOString().split('T')[0],
+      'G4',
+      'MONTES RODRIGUEZ DIEGO ALEXANDER',
       JSON.stringify(sentina),
       JSON.stringify(intermedia),
       JSON.stringify(torre5),
-      JSON.stringify({ orca: '---', espejo: '---', captacion: '---' }),
+      JSON.stringify({ orca: '', espejo: '', captacion: '' }),
       JSON.stringify({
-        nivel_sentina: '---', bombeo_turno_intermedia: '---', nivel_tko02: '---', aforador: '---',
-        cortafugas: '---', ph_aforador: '---', ph_cortafugas: '---', h_embalas: '---',
-        dique_almacenamiento: '---', drenaje_dique: '---', agua_a_car: '---', anticrustante: '---',
-        torre5_cortafugas: '---', torre5_status1: 'Stand by', torre5_status2: 'Stand by'
+        nivel_sentina: '', bombeo_turno_intermedia: '', nivel_tko02: '', aforador: '',
+        cortafugas: '', ph_aforador: '', ph_cortafugas: '', h_embalas: '',
+        dique_almacenamiento: '', drenaje_dique: '', agua_a_car: '', anticrustante: '',
+        torre5_cortafugas: '', torre5_status1: 'Stand by', torre5_status2: 'Stand by'
       }),
       JSON.stringify([
-        { poza: 'S-QCOR.R_02', medida_ini: 'n/d', flujo_ini: 'n/d', medida_fin: 'n/d', flujo_fin: 'n/d', horas: 'n/d', acc: '---' },
-        { poza: 'S-QCOR.R_03', medida_ini: 'n/d', flujo_ini: 'n/d', medida_fin: 'n/d', flujo_fin: 'n/d', horas: 'n/d', acc: '---' }
+        { poza: 'S-QCOR.R_02', medida_ini: '', flujo_ini: '', medida_fin: '', flujo_fin: '', horas: '', acc: '' },
+        { poza: 'S-QCOR.R_03', medida_ini: '', flujo_ini: '', medida_fin: '', flujo_fin: '', horas: '', acc: '' }
       ]),
       JSON.stringify({
-        notas: '---', af_cantera: '---', escorrentia: '---', ph_c5_1: '---', ph_c5_2: '---'
+        notas: '', af_cantera: '', escorrentia: '', ph_c5_1: '', ph_c5_2: ''
       })
     );
   }
@@ -414,151 +399,27 @@ export function seed() {
     }
   }
 
-  console.log('[Seed] Seeding crew members & operational assignments with official staff...');
-  const findMemberByDni = db.prepare('SELECT id FROM crew_members WHERE document_id = ?');
-  const updateMember = db.prepare(`
-    UPDATE crew_members
-    SET name = ?, primary_role = ?, shift_code = ?, radio_channel = ?, phone_extension = ?, avatar_url = ?
-    WHERE document_id = ?
-  `);
-  const insertMember = db.prepare(`
-    INSERT INTO crew_members (id, name, document_id, primary_role, shift_code, radio_channel, phone_extension, status, avatar_url)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  // Insert 9 Official Plant Positions
+  const insertPos = db.prepare(`
+    INSERT OR REPLACE INTO crew_positions (key, title, default_location, default_radio, is_custom)
+    VALUES (?, ?, ?, ?, ?)
   `);
 
-  const OFFICIAL_CREW = [
-    // GUARDIA 1 (G1) - 1 Supervisor + 8 Operadores
-    { id: 'op-klisman-g1', name: 'VIZCARRA CORI MANLEY KLISMAN', dni: '71209033', role: 'SUPERVISOR', shift: 'G1', radio: 'Canal 1 Operaciones / Control', phone: 'Ext. 4125', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80' },
-    { id: 'op-ctrl-g1', name: 'QUISPE CASTILLO WALTER', dni: '46298104', role: 'OPERADOR_SALA_CONTROL', shift: 'G1', radio: 'Canal 1 Operaciones / Control', phone: 'Ext. 4110', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=250&q=80' },
-    { id: 'op-carlos-g1', name: 'PILCO APAZA CARLOS EDUARDO', dni: '42324277', role: 'OPERADOR_BOMBAS', shift: 'G1', radio: 'Canal 3 Bombas', phone: 'Ext. 4122', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=250&q=80' },
-    { id: 'op-jorge-g1', name: 'VILCAMIZA PEVE JORGE RICARDO', dni: '41748219', role: 'OPERADOR_CICLONES_1', shift: 'G1', radio: 'Canal 2 Ciclones', phone: 'Ext. 4124', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=250&q=80' },
-    { id: 'op-vilma-g1', name: 'ROSADO FALCON VILMA LUCIA', dni: '45564062', role: 'OPERADOR_CICLONES_2', shift: 'G1', radio: 'Canal 2 Ciclones', phone: 'Ext. 4123', avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=250&q=80' },
-    { id: 'op-jhofer-g1', name: 'PARI COAYLA JHOFER LUIS', dni: '74924255', role: 'OPERADOR_DISTRIBUIDOR', shift: 'G1', radio: 'Canal 6 Distribuidor / Flujo', phone: 'Ext. 4121', avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=250&q=80' },
-    { id: 'op-diego-g1', name: 'MONTES RODRIGUEZ DIEGO ALEXANDER', dni: '45437279', role: 'OPERADOR_DESCARGA_1', shift: 'G1', radio: 'Canal 4 Presa / Descarga', phone: 'Ext. 4120', avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=250&q=80' },
-    { id: 'op-ronal-g1', name: 'MAMANI MIRANDA RONAL', dni: '72958467', role: 'OPERADOR_DESCARGA_2', shift: 'G1', radio: 'Canal 4 Presa / Descarga', phone: 'Ext. 4119', avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=250&q=80' },
-    { id: 'op-anthony-g1', name: 'MAMANI CUTIPA ANTHONY JESUS SMIT', dni: '72297288', role: 'OPERADOR_MISCELANEOS', shift: 'G1', radio: 'Canal 5 Auxiliares / Planta', phone: 'Ext. 4118', avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=250&q=80' },
-
-    // GUARDIA 2 (G2) - 1 Supervisor + 8 Operadores
-    { id: 'op-victor-g2', name: 'LLERENA CALLE-BRACAMONTE VICTOR ALEJANDRO II', dni: '71491945', role: 'SUPERVISOR', shift: 'G2', radio: 'Canal 1 Operaciones / Control', phone: 'Ext. 4117', avatar: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&w=250&q=80' },
-    { id: 'op-ctrl-g2', name: 'FLORES HUANCA ROBERTO CARLOS', dni: '43829105', role: 'OPERADOR_SALA_CONTROL', shift: 'G2', radio: 'Canal 1 Operaciones / Control', phone: 'Ext. 4111', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80' },
-    { id: 'op-edson-g2', name: 'HILARI CABRERA EDSON EUSEBIO', dni: '40824273', role: 'OPERADOR_BOMBAS', shift: 'G2', radio: 'Canal 3 Bombas', phone: 'Ext. 4116', avatar: 'https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?auto=format&fit=crop&w=250&q=80' },
-    { id: 'op-emilio-g2', name: 'ALIAGA CASTAÑEDA EMILIO URIEL', dni: '46593500', role: 'OPERADOR_CICLONES_1', shift: 'G2', radio: 'Canal 2 Ciclones', phone: 'Ext. 4102', avatar: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=250&q=80' },
-    { id: 'op-luis-g2', name: 'CASCASI FLORES LUIS ANTONIO', dni: '43132072', role: 'OPERADOR_CICLONES_2', shift: 'G2', radio: 'Canal 2 Ciclones', phone: 'Ext. 4105', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=250&q=80' },
-    { id: 'op-valerie-g2', name: 'CAYO GOMEZ VALERIE JAZMINE', dni: '71719330', role: 'OPERADOR_DISTRIBUIDOR', shift: 'G2', radio: 'Canal 6 Distribuidor / Flujo', phone: 'Ext. 4109', avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=250&q=80' },
-    { id: 'op-pedro-g2', name: 'CHOQUE MANZANO PEDRO IVAN', dni: '75555937', role: 'OPERADOR_DESCARGA_1', shift: 'G2', radio: 'Canal 4 Presa / Descarga', phone: 'Ext. 4112', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=250&q=80' },
-    { id: 'op-paul-g2', name: 'CRUZ APAZA PAUL', dni: '44428468', role: 'OPERADOR_DESCARGA_2', shift: 'G2', radio: 'Canal 4 Presa / Descarga', phone: 'Ext. 4115', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80' },
-    { id: 'op-carlos-g2', name: 'BARRIOS HUAMÁN CARLOS', dni: '72190458', role: 'OPERADOR_MISCELANEOS', shift: 'G2', radio: 'Canal 5 Auxiliares / Planta', phone: 'Ext. 4130', avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=250&q=80' },
-
-    // GUARDIA 3 (G3) - 1 Supervisor + 8 Operadores
-    { id: 'op-sup-g3', name: 'MENDOZA QUISPE HÉCTOR', dni: '41920394', role: 'SUPERVISOR', shift: 'G3', radio: 'Canal 1 Operaciones / Control', phone: 'Ext. 4140', avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=250&q=80' },
-    { id: 'op-ctrl-g3', name: 'CONDORI CALLATA LUIS MIGUEL', dni: '71839204', role: 'OPERADOR_SALA_CONTROL', shift: 'G3', radio: 'Canal 1 Operaciones / Control', phone: 'Ext. 4148', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=250&q=80' },
-    { id: 'op-bmb-g3', name: 'CHÁVEZ ROJAS MARCO ANTONIO', dni: '70491823', role: 'OPERADOR_BOMBAS', shift: 'G3', radio: 'Canal 3 Bombas', phone: 'Ext. 4141', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=250&q=80' },
-    { id: 'op-cyc1-g3', name: 'TORRES FLORES ÁNGEL', dni: '43920194', role: 'OPERADOR_CICLONES_1', shift: 'G3', radio: 'Canal 2 Ciclones', phone: 'Ext. 4142', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=250&q=80' },
-    { id: 'op-cyc2-g3', name: 'GUTIÉRREZ VERA JUAN CARLOS', dni: '71829304', role: 'OPERADOR_CICLONES_2', shift: 'G3', radio: 'Canal 2 Ciclones', phone: 'Ext. 4143', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80' },
-    { id: 'op-dist-g3', name: 'QUISPE APAZA RENATO', dni: '45819203', role: 'OPERADOR_DISTRIBUIDOR', shift: 'G3', radio: 'Canal 6 Distribuidor / Flujo', phone: 'Ext. 4144', avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=250&q=80' },
-    { id: 'op-des1-g3', name: 'HUAMÁN CARBAJAL EDGAR', dni: '74829104', role: 'OPERADOR_DESCARGA_1', shift: 'G3', radio: 'Canal 4 Presa / Descarga', phone: 'Ext. 4145', avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=250&q=80' },
-    { id: 'op-des2-g3', name: 'SALAS VÁSQUEZ GABRIEL', dni: '42910293', role: 'OPERADOR_DESCARGA_2', shift: 'G3', radio: 'Canal 4 Presa / Descarga', phone: 'Ext. 4146', avatar: 'https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?auto=format&fit=crop&w=250&q=80' },
-    { id: 'op-misc-g3', name: 'FERNÁNDEZ COSI WILBER', dni: '73910293', role: 'OPERADOR_MISCELANEOS', shift: 'G3', radio: 'Canal 5 Auxiliares / Planta', phone: 'Ext. 4147', avatar: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=250&q=80' },
-
-    // GUARDIA 4 (G4) - 1 Supervisor + 8 Operadores
-    { id: 'op-sup-g4', name: 'ORTEGA RAMÍREZ CESAR', dni: '40918239', role: 'SUPERVISOR', shift: 'G4', radio: 'Canal 1 Operaciones / Control', phone: 'Ext. 4160', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=250&q=80' },
-    { id: 'op-ctrl-g4', name: 'MAMANI QUISPE RICHARD DANIEL', dni: '74910295', role: 'OPERADOR_SALA_CONTROL', shift: 'G4', radio: 'Canal 1 Operaciones / Control', phone: 'Ext. 4168', avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=250&q=80' },
-    { id: 'op-bmb-g4', name: 'CAMPOS ZEA OSWALDO', dni: '72910394', role: 'OPERADOR_BOMBAS', shift: 'G4', radio: 'Canal 3 Bombas', phone: 'Ext. 4161', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80' },
-    { id: 'op-cyc1-g4', name: 'SUÁREZ MAMANI JULIO', dni: '44819203', role: 'OPERADOR_CICLONES_1', shift: 'G4', radio: 'Canal 2 Ciclones', phone: 'Ext. 4162', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=250&q=80' },
-    { id: 'op-cyc2-g4', name: 'DELGADO PACHECO ENRIQUE', dni: '71920394', role: 'OPERADOR_CICLONES_2', shift: 'G4', radio: 'Canal 2 Ciclones', phone: 'Ext. 4163', avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=250&q=80' },
-    { id: 'op-dist-g4', name: 'TITO CONDORI SAMUEL', dni: '46819203', role: 'OPERADOR_DISTRIBUIDOR', shift: 'G4', radio: 'Canal 6 Distribuidor / Flujo', phone: 'Ext. 4164', avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=250&q=80' },
-    { id: 'op-des1-g4', name: 'CORNEJO NINA ALONSO', dni: '75910293', role: 'OPERADOR_DESCARGA_1', shift: 'G4', radio: 'Canal 4 Presa / Descarga', phone: 'Ext. 4165', avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=250&q=80' },
-    { id: 'op-des2-g4', name: 'VILLALBA ZAPATA OSCAR', dni: '43819203', role: 'OPERADOR_DESCARGA_2', shift: 'G4', radio: 'Canal 4 Presa / Descarga', phone: 'Ext. 4166', avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=250&q=80' },
-    { id: 'op-misc-g4', name: 'ZAMORA PÉREZ CHRISTIAN', dni: '72819203', role: 'OPERADOR_MISCELANEOS', shift: 'G4', radio: 'Canal 5 Auxiliares / Planta', phone: 'Ext. 4167', avatar: 'https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?auto=format&fit=crop&w=250&q=80' }
+  const OFFICIAL_POSITIONS = [
+    { key: 'SUPERVISOR', title: 'Supervisor de guardia', default_location: 'Supervisión de Turno / Gestión Operativa', default_radio: 'Canal 1 Operaciones / Control', is_custom: 0 },
+    { key: 'SALA_CONTROL', title: 'Operador sala de control', default_location: 'Sala de Control DCS / SCADA', default_radio: 'Canal 1 Operaciones / Control', is_custom: 0 },
+    { key: 'BOMBAS', title: 'Operador de bombas', default_location: 'Sala de Bombas Slurry PP-101 a PP-104 & Sentinas', default_radio: 'Canal 3 Bombas', is_custom: 0 },
+    { key: 'CICLONES_1', title: 'Operador de ciclones 1', default_location: '1ra Estación Baterías de Ciclones D-10', default_radio: 'Canal 2 Ciclones', is_custom: 0 },
+    { key: 'CICLONES_2', title: 'Operador de ciclones 2', default_location: '2da Estación Baterías de Ciclones D-10', default_radio: 'Canal 2 Ciclones', is_custom: 0 },
+    { key: 'DISTRIBUIDOR', title: 'Operador de distribuidor', default_location: 'Cajón Distribuidor & Repartición de Carga', default_radio: 'Canal 6 Distribuidor / Flujo', is_custom: 0 },
+    { key: 'DESCARGA_1', title: 'Operador de descarga 1', default_location: 'Línea HDPE de Impulsión & Estación Relaves', default_radio: 'Canal 4 Presa / Descarga', is_custom: 0 },
+    { key: 'DESCARGA_2', title: 'Operador de descarga 2', default_location: 'Presa Principal de Relaves & Muro de Contención', default_radio: 'Canal 4 Presa / Descarga', is_custom: 0 },
+    { key: 'MISCELANEOS', title: 'Operador de misceláneos', default_location: 'Planta de Reactivos, Floculante & Servicios Auxiliares', default_radio: 'Canal 5 Auxiliares / Planta', is_custom: 0 }
   ];
 
-  for (const m of OFFICIAL_CREW) {
-    const existing = findMemberByDni.get(m.dni) as { id: string } | undefined;
-    if (existing) {
-      updateMember.run(m.name, m.role, m.shift, m.radio, m.phone, m.avatar, m.dni);
-    } else {
-      insertMember.run(
-        m.id,
-        m.name,
-        m.dni,
-        m.role,
-        m.shift,
-        m.radio,
-        m.phone,
-        'EN_TURNO',
-        m.avatar
-      );
-    }
+  for (const p of OFFICIAL_POSITIONS) {
+    insertPos.run(p.key, p.title, p.default_location, p.default_radio, p.is_custom);
   }
-
-    // Insert 9 Official Plant Positions
-    const insertPos = db.prepare(`
-      INSERT OR REPLACE INTO crew_positions (key, title, default_location, default_radio, is_custom)
-      VALUES (?, ?, ?, ?, ?)
-    `);
-
-    const OFFICIAL_POSITIONS = [
-      { key: 'SUPERVISOR', title: 'Supervisor de guardia', default_location: 'Supervisión de Turno / Gestión Operativa', default_radio: 'Canal 1 Operaciones / Control', is_custom: 0 },
-      { key: 'SALA_CONTROL', title: 'Operador sala de control', default_location: 'Sala de Control DCS / SCADA', default_radio: 'Canal 1 Operaciones / Control', is_custom: 0 },
-      { key: 'BOMBAS', title: 'Operador de bombas', default_location: 'Sala de Bombas Slurry PP-101 a PP-104 & Sentinas', default_radio: 'Canal 3 Bombas', is_custom: 0 },
-      { key: 'CICLONES_1', title: 'Operador de ciclones 1', default_location: '1ra Estación Baterías de Ciclones D-10', default_radio: 'Canal 2 Ciclones', is_custom: 0 },
-      { key: 'CICLONES_2', title: 'Operador de ciclones 2', default_location: '2da Estación Baterías de Ciclones D-10', default_radio: 'Canal 2 Ciclones', is_custom: 0 },
-      { key: 'DISTRIBUIDOR', title: 'Operador de distribuidor', default_location: 'Cajón Distribuidor & Repartición de Carga', default_radio: 'Canal 6 Distribuidor / Flujo', is_custom: 0 },
-      { key: 'DESCARGA_1', title: 'Operador de descarga 1', default_location: 'Línea HDPE de Impulsión & Estación Relaves', default_radio: 'Canal 4 Presa / Descarga', is_custom: 0 },
-      { key: 'DESCARGA_2', title: 'Operador de descarga 2', default_location: 'Presa Principal de Relaves & Muro de Contención', default_radio: 'Canal 4 Presa / Descarga', is_custom: 0 },
-      { key: 'MISCELANEOS', title: 'Operador de misceláneos', default_location: 'Planta de Reactivos, Floculante & Servicios Auxiliares', default_radio: 'Canal 5 Auxiliares / Planta', is_custom: 0 }
-    ];
-
-    for (const p of OFFICIAL_POSITIONS) {
-      insertPos.run(p.key, p.title, p.default_location, p.default_radio, p.is_custom);
-    }
-
-    // Initial Area Assignments for Today DIA Turno Guardia G1 (8 of 8 positions covered)
-    const today = new Date().toISOString().split('T')[0];
-    const checkAssignment = db.prepare('SELECT id FROM crew_area_assignments WHERE shift_code = ? AND shift_date = ? AND position_key = ?');
-    const insertAssignment = db.prepare(`
-      INSERT INTO crew_area_assignments (
-        id, shift_code, shift_date, shift_type, position_key, position_title,
-        operator_id, backup_operator_id, epp_verified, safety_talk_completed,
-        radio_channel, station_location, notes
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-
-    const getMemberIdByDni = (dni: string) => (findMemberByDni.get(dni) as { id: string } | undefined)?.id;
-
-    const g1Assignments = [
-      { key: 'SUPERVISOR', title: 'Supervisor de guardia', dni: '71209033', backupDni: null, radio: 'Canal 1 Operaciones / Control', loc: 'Supervisión de Turno / Gestión Operativa', notes: 'Liderazgo operativo de guardia, gestión de seguridad y supervisión general de planta' },
-      { key: 'SALA_CONTROL', title: 'Operador sala de control', dni: '46298104', backupDni: '72297288', radio: 'Canal 1 Operaciones / Control', loc: 'Sala de Control DCS / SCADA', notes: 'Monitoreo de consolas SCADA/DCS, alarmas de proceso y balance en tiempo real' },
-      { key: 'BOMBAS', title: 'Operador de bombas', dni: '42324277', backupDni: '72297288', radio: 'Canal 3 Bombas', loc: 'Sala de Bombas Slurry PP-101 a PP-104 & Sentinas', notes: 'Control de flujo, amperajes y niveles en pozas de sentina' },
-      { key: 'CICLONES_1', title: 'Operador de ciclones 1', dni: '41748219', backupDni: '72297288', radio: 'Canal 2 Ciclones', loc: '1ra Estación Baterías de Ciclones D-10', notes: 'Muestreo metalúrgico horario de pulpa y presiones' },
-      { key: 'CICLONES_2', title: 'Operador de ciclones 2', dni: '45564062', backupDni: '72297288', radio: 'Canal 2 Ciclones', loc: '2da Estación Baterías de Ciclones D-10', notes: 'Control de balance de sólidos y granulometría de malla -200' },
-      { key: 'DISTRIBUIDOR', title: 'Operador de distribuidor', dni: '74924255', backupDni: '72297288', radio: 'Canal 6 Distribuidor / Flujo', loc: 'Cajón Distribuidor & Repartición de Carga', notes: 'Monitoreo de distribución uniforme hacia baterías de clasificación' },
-      { key: 'DESCARGA_1', title: 'Operador de descarga 1', dni: '45437279', backupDni: '72297288', radio: 'Canal 4 Presa / Descarga', loc: 'Línea HDPE de Impulsión & Estación Relaves', notes: 'Supervisión de bombeo y presión en línea de relaves' },
-      { key: 'DESCARGA_2', title: 'Operador de descarga 2', dni: '72958467', backupDni: '72297288', radio: 'Canal 4 Presa / Descarga', loc: 'Presa Principal de Relaves & Muro de Contención', notes: 'Verificación de borde libre, vertederos e instrumentación' },
-      { key: 'MISCELANEOS', title: 'Operador de misceláneos', dni: '72297288', backupDni: null, radio: 'Canal 5 Auxiliares / Planta', loc: 'Planta de Reactivos, Floculante & Servicios Auxiliares', notes: 'Dosificación de floculante, apoyo a espesadores e inspección general' }
-    ];
-
-    for (const a of g1Assignments) {
-      const opId = getMemberIdByDni(a.dni);
-      const backupId = (a.backupDni ? getMemberIdByDni(a.backupDni) : null) ?? null;
-      if (opId && !checkAssignment.get('G1', today, a.key)) {
-        insertAssignment.run(
-          crypto.randomUUID(),
-          'G1',
-          today,
-          'DIA',
-          a.key,
-          a.title,
-          opId,
-          backupId,
-          1,
-          1,
-          a.radio,
-          a.loc,
-          a.notes
-        );
-      }
-    }
 
     // 7. Vehicle Checklists - Idempotent Seeding for previous days
     const checkVehicleChecklist = db.prepare('SELECT id FROM vehicle_checklists WHERE vehicle_plate = ? AND date = ?');

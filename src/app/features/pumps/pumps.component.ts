@@ -7,6 +7,8 @@ import { ModalComponent } from '../../shared/ui/modal.component';
 import { OfflineSyncService } from '../../core/offline/offline-sync.service';
 import { getRealtimeData, saveRealtimeData } from '../../core/storage/local-store.util';
 import { PumpReportPdfComponent } from '../reports/pump-report-pdf.component';
+import { CrewService } from '../../core/services/crew.service';
+import { getCurrentActiveShift } from '../../shared/utils/roster.util';
 
 export interface PumpStatusItem {
   tag: string;
@@ -120,23 +122,21 @@ export interface PumpReport {
 
           <!-- Action Buttons -->
           <div class="actions-group">
-            <button class="btn btn-secondary action-btn-pdf" (click)="isPdfModalOpen = true" title="Exportar reporte oficial de bombas en PDF a una sola hoja">
+            <button class="btn btn-secondary action-btn-pdf" (click)="isPdfModalOpen = true" title="Exportar reporte oficial de bombas en PDF">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                 <polyline points="14 2 14 8 20 8"></polyline>
                 <line x1="16" y1="13" x2="8" y2="13"></line>
                 <line x1="16" y1="17" x2="8" y2="17"></line>
               </svg>
-              Exportar PDF (1 Hoja)
+              Exportar PDF
             </button>
-            <button *ngIf="activeTab === 'REPORT'" class="btn btn-primary" (click)="saveOperationalSheet()" [disabled]="isSaving">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-                <polyline points="17 21 17 13 7 13 7 21"></polyline>
-                <polyline points="7 3 7 8 15 8"></polyline>
-              </svg>
-              {{ isSaving ? 'Guardando...' : 'Guardar Reporte' }}
-            </button>
+            <div *ngIf="activeTab === 'REPORT'" class="autosave-badge" [class.saving]="isAutoSaving">
+              <span class="autosave-dot"></span>
+              <span class="autosave-text">
+                {{ isAutoSaving ? 'Guardando...' : (lastAutoSavedTime ? '✓ Guardado ' + lastAutoSavedTime : '✓ Guardado automático') }}
+              </span>
+            </div>
             <button *ngIf="activeTab === 'TELEMETRY'" class="btn btn-primary" (click)="openCreatePumpModal()">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
                 <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -262,15 +262,15 @@ export interface PumpReport {
           <div class="levels-grid editable-levels">
             <div class="level-item-box">
               <label class="level-key">ORCA:</label>
-              <input type="text" class="inline-level-input cyan-glow" [(ngModel)]="sheet.levels.orca" (ngModelChange)="onSheetChange()" placeholder="Ej: 4,120.5 m" />
+              <input type="text" class="inline-level-input cyan-glow" [(ngModel)]="sheet.levels.orca" (ngModelChange)="onSheetChange()" (focus)="onFocusSelect($event)" placeholder="" />
             </div>
             <div class="level-item-box">
               <label class="level-key">Espejo:</label>
-              <input type="text" class="inline-level-input emerald-glow" [(ngModel)]="sheet.levels.espejo" (ngModelChange)="onSheetChange()" placeholder="Ej: 14.2 m" />
+              <input type="text" class="inline-level-input emerald-glow" [(ngModel)]="sheet.levels.espejo" (ngModelChange)="onSheetChange()" (focus)="onFocusSelect($event)" placeholder="" />
             </div>
             <div class="level-item-box">
               <label class="level-key">Captación:</label>
-              <input type="text" class="inline-level-input purple-glow" [(ngModel)]="sheet.levels.captacion" (ngModelChange)="onSheetChange()" placeholder="Ej: 8.5 m" />
+              <input type="text" class="inline-level-input purple-glow" [(ngModel)]="sheet.levels.captacion" (ngModelChange)="onSheetChange()" (focus)="onFocusSelect($event)" placeholder="" />
             </div>
           </div>
         </section>
@@ -288,42 +288,42 @@ export interface PumpReport {
               <div class="indicator-row editable-ind-row">
                 <span class="ind-label">Nivel de sentina (%)</span>
                 <span class="ind-leader"></span>
-                <input type="text" class="inline-ind-input" [(ngModel)]="sheet.main_indicators.nivel_sentina" (ngModelChange)="onSheetChange()" placeholder="Ej: 74%" />
+                <input type="text" class="inline-ind-input" [(ngModel)]="sheet.main_indicators.nivel_sentina" (ngModelChange)="onSheetChange()" (focus)="onFocusSelect($event)" placeholder="" />
               </div>
               <div class="indicator-row editable-ind-row">
                 <span class="ind-label">Bombeo Turno Intermedia (m³)</span>
                 <span class="ind-leader"></span>
-                <input type="text" class="inline-ind-input" [(ngModel)]="sheet.main_indicators.bombeo_turno_intermedia" (ngModelChange)="onSheetChange()" placeholder="Ej: 3,420 m³" />
+                <input type="text" class="inline-ind-input" [(ngModel)]="sheet.main_indicators.bombeo_turno_intermedia" (ngModelChange)="onSheetChange()" (focus)="onFocusSelect($event)" placeholder="" />
               </div>
               <div class="indicator-row editable-ind-row">
                 <span class="ind-label">Nivel TKO02 (%)</span>
                 <span class="ind-leader"></span>
-                <input type="text" class="inline-ind-input" [(ngModel)]="sheet.main_indicators.nivel_tko02" (ngModelChange)="onSheetChange()" placeholder="Ej: 82%" />
+                <input type="text" class="inline-ind-input" [(ngModel)]="sheet.main_indicators.nivel_tko02" (ngModelChange)="onSheetChange()" (focus)="onFocusSelect($event)" placeholder="" />
               </div>
               <div class="indicator-row editable-ind-row">
                 <span class="ind-label">Aforador (m)</span>
                 <span class="ind-leader"></span>
-                <input type="text" class="inline-ind-input" [(ngModel)]="sheet.main_indicators.aforador" (ngModelChange)="onSheetChange()" placeholder="Ej: 1.45 m" />
+                <input type="text" class="inline-ind-input" [(ngModel)]="sheet.main_indicators.aforador" (ngModelChange)="onSheetChange()" (focus)="onFocusSelect($event)" placeholder="" />
               </div>
               <div class="indicator-row editable-ind-row">
                 <span class="ind-label">Cortafugas (l/s)</span>
                 <span class="ind-leader"></span>
-                <input type="text" class="inline-ind-input" [(ngModel)]="sheet.main_indicators.cortafugas" (ngModelChange)="onSheetChange()" placeholder="Ej: 12.8 l/s" />
+                <input type="text" class="inline-ind-input" [(ngModel)]="sheet.main_indicators.cortafugas" (ngModelChange)="onSheetChange()" (focus)="onFocusSelect($event)" placeholder="" />
               </div>
               <div class="indicator-row editable-ind-row">
                 <span class="ind-label">pH aforador</span>
                 <span class="ind-leader"></span>
-                <input type="text" class="inline-ind-input" [(ngModel)]="sheet.main_indicators.ph_aforador" (ngModelChange)="onSheetChange()" placeholder="Ej: 7.85" />
+                <input type="text" class="inline-ind-input" [(ngModel)]="sheet.main_indicators.ph_aforador" (ngModelChange)="onSheetChange()" (focus)="onFocusSelect($event)" placeholder="" />
               </div>
               <div class="indicator-row editable-ind-row">
                 <span class="ind-label">pH Cortafugas</span>
                 <span class="ind-leader"></span>
-                <input type="text" class="inline-ind-input" [(ngModel)]="sheet.main_indicators.ph_cortafugas" (ngModelChange)="onSheetChange()" placeholder="Ej: 8.10" />
+                <input type="text" class="inline-ind-input" [(ngModel)]="sheet.main_indicators.ph_cortafugas" (ngModelChange)="onSheetChange()" (focus)="onFocusSelect($event)" placeholder="" />
               </div>
               <div class="indicator-row editable-ind-row">
                 <span class="ind-label">H Embalas</span>
                 <span class="ind-leader"></span>
-                <input type="text" class="inline-ind-input" [(ngModel)]="sheet.main_indicators.h_embalas" (ngModelChange)="onSheetChange()" placeholder="Ej: 2.10 m" />
+                <input type="text" class="inline-ind-input" [(ngModel)]="sheet.main_indicators.h_embalas" (ngModelChange)="onSheetChange()" (focus)="onFocusSelect($event)" placeholder="" />
               </div>
             </div>
 
@@ -332,27 +332,27 @@ export interface PumpReport {
               <div class="indicator-row editable-ind-row">
                 <span class="ind-label">Dique Almacenamiento (%)</span>
                 <span class="ind-leader"></span>
-                <input type="text" class="inline-ind-input" [(ngModel)]="sheet.main_indicators.dique_almacenamiento" (ngModelChange)="onSheetChange()" placeholder="Ej: 65%" />
+                <input type="text" class="inline-ind-input" [(ngModel)]="sheet.main_indicators.dique_almacenamiento" (ngModelChange)="onSheetChange()" (focus)="onFocusSelect($event)" placeholder="" />
               </div>
               <div class="indicator-row editable-ind-row">
                 <span class="ind-label">Drenaje del Dique (%)</span>
                 <span class="ind-leader"></span>
-                <input type="text" class="inline-ind-input" [(ngModel)]="sheet.main_indicators.drenaje_dique" (ngModelChange)="onSheetChange()" placeholder="Ej: 42%" />
+                <input type="text" class="inline-ind-input" [(ngModel)]="sheet.main_indicators.drenaje_dique" (ngModelChange)="onSheetChange()" (focus)="onFocusSelect($event)" placeholder="" />
               </div>
               <div class="indicator-row editable-ind-row">
                 <span class="ind-label">Agua a car</span>
                 <span class="ind-leader"></span>
-                <input type="text" class="inline-ind-input" [(ngModel)]="sheet.main_indicators.agua_a_car" (ngModelChange)="onSheetChange()" placeholder="Ej: 180 m³/h" />
+                <input type="text" class="inline-ind-input" [(ngModel)]="sheet.main_indicators.agua_a_car" (ngModelChange)="onSheetChange()" (focus)="onFocusSelect($event)" placeholder="" />
               </div>
               <div class="indicator-row editable-ind-row">
                 <span class="ind-label">Anticrustante (%)</span>
                 <span class="ind-leader"></span>
-                <input type="text" class="inline-ind-input" [(ngModel)]="sheet.main_indicators.anticrustante" (ngModelChange)="onSheetChange()" placeholder="Ej: 88%" />
+                <input type="text" class="inline-ind-input" [(ngModel)]="sheet.main_indicators.anticrustante" (ngModelChange)="onSheetChange()" (focus)="onFocusSelect($event)" placeholder="" />
               </div>
               <div class="indicator-row editable-ind-row">
                 <span class="ind-label">Torre 5 Cortafugas (%)</span>
                 <span class="ind-leader"></span>
-                <input type="text" class="inline-ind-input" [(ngModel)]="sheet.main_indicators.torre5_cortafugas" (ngModelChange)="onSheetChange()" placeholder="Ej: 15%" />
+                <input type="text" class="inline-ind-input" [(ngModel)]="sheet.main_indicators.torre5_cortafugas" (ngModelChange)="onSheetChange()" (focus)="onFocusSelect($event)" placeholder="" />
               </div>
               <div class="indicator-row editable-ind-row">
                 <span class="ind-label">Torre 5 Status 1</span>
@@ -391,35 +391,35 @@ export interface PumpReport {
             <table class="pozas-table">
               <thead>
                 <tr>
-                  <th class="th-dark-green">POZA</th>
-                  <th class="th-dark-green">MEDIDA INICIAL</th>
-                  <th class="th-dark-green">FLUJO INICIAL</th>
-                  <th class="th-dark-green">MEDIDA FINAL</th>
-                  <th class="th-dark-green">FLUJO FINAL</th>
-                  <th class="th-dark-green">HORAS DE BOMBEO</th>
-                  <th class="th-dark-green">ACC.</th>
+                  <th>POZA</th>
+                  <th>MEDIDA INICIAL</th>
+                  <th>FLUJO INICIAL</th>
+                  <th>MEDIDA FINAL</th>
+                  <th>FLUJO FINAL</th>
+                  <th>HORAS DE BOMBEO</th>
+                  <th>ACC.</th>
                 </tr>
               </thead>
               <tbody>
                 <tr *ngFor="let p of sheet.pozas_sentina">
                   <td class="poza-tag">{{ p.poza }}</td>
                   <td>
-                    <input type="text" class="inline-poza-input" [(ngModel)]="p.medida_ini" (ngModelChange)="onSheetChange()" placeholder="n/d" />
+                    <input type="text" class="inline-poza-input" [(ngModel)]="p.medida_ini" (ngModelChange)="onSheetChange()" (focus)="onFocusSelect($event)" placeholder="" />
                   </td>
                   <td>
-                    <input type="text" class="inline-poza-input" [(ngModel)]="p.flujo_ini" (ngModelChange)="onSheetChange()" placeholder="n/d" />
+                    <input type="text" class="inline-poza-input" [(ngModel)]="p.flujo_ini" (ngModelChange)="onSheetChange()" (focus)="onFocusSelect($event)" placeholder="" />
                   </td>
                   <td>
-                    <input type="text" class="inline-poza-input" [(ngModel)]="p.medida_fin" (ngModelChange)="onSheetChange()" placeholder="n/d" />
+                    <input type="text" class="inline-poza-input" [(ngModel)]="p.medida_fin" (ngModelChange)="onSheetChange()" (focus)="onFocusSelect($event)" placeholder="" />
                   </td>
                   <td>
-                    <input type="text" class="inline-poza-input" [(ngModel)]="p.flujo_fin" (ngModelChange)="onSheetChange()" placeholder="n/d" />
+                    <input type="text" class="inline-poza-input" [(ngModel)]="p.flujo_fin" (ngModelChange)="onSheetChange()" (focus)="onFocusSelect($event)" placeholder="" />
                   </td>
                   <td>
-                    <input type="text" class="inline-poza-input" [(ngModel)]="p.horas" (ngModelChange)="onSheetChange()" placeholder="n/d" />
+                    <input type="text" class="inline-poza-input" [(ngModel)]="p.horas" (ngModelChange)="onSheetChange()" (focus)="onFocusSelect($event)" placeholder="" />
                   </td>
                   <td>
-                    <input type="text" class="inline-poza-input" [(ngModel)]="p.acc" (ngModelChange)="onSheetChange()" placeholder="---" />
+                    <input type="text" class="inline-poza-input" [(ngModel)]="p.acc" (ngModelChange)="onSheetChange()" (focus)="onFocusSelect($event)" placeholder="" />
                   </td>
                 </tr>
               </tbody>
@@ -442,6 +442,7 @@ export interface PumpReport {
                 rows="4" 
                 [(ngModel)]="sheet.additional_obs.notas" 
                 (ngModelChange)="onSheetChange()" 
+                (focus)="onFocusSelect($event)"
                 placeholder="Escriba aquí las notas, novedades operativas, eventos de turno o contingencias..."
               ></textarea>
             </div>
@@ -449,22 +450,22 @@ export interface PumpReport {
               <div class="side-metric-row editable-sm-row">
                 <span class="sm-label">Af. Cantera:</span>
                 <span class="sm-leader"></span>
-                <input type="text" class="inline-sm-input" [(ngModel)]="sheet.additional_obs.af_cantera" (ngModelChange)="onSheetChange()" placeholder="---" />
+                <input type="text" class="inline-sm-input" [(ngModel)]="sheet.additional_obs.af_cantera" (ngModelChange)="onSheetChange()" (focus)="onFocusSelect($event)" placeholder="" />
               </div>
               <div class="side-metric-row editable-sm-row">
                 <span class="sm-label">Escorrentia:</span>
                 <span class="sm-leader"></span>
-                <input type="text" class="inline-sm-input" [(ngModel)]="sheet.additional_obs.escorrentia" (ngModelChange)="onSheetChange()" placeholder="---" />
+                <input type="text" class="inline-sm-input" [(ngModel)]="sheet.additional_obs.escorrentia" (ngModelChange)="onSheetChange()" (focus)="onFocusSelect($event)" placeholder="" />
               </div>
               <div class="side-metric-row editable-sm-row">
                 <span class="sm-label">pH C/5 (1):</span>
                 <span class="sm-leader"></span>
-                <input type="text" class="inline-sm-input" [(ngModel)]="sheet.additional_obs.ph_c5_1" (ngModelChange)="onSheetChange()" placeholder="---" />
+                <input type="text" class="inline-sm-input" [(ngModel)]="sheet.additional_obs.ph_c5_1" (ngModelChange)="onSheetChange()" (focus)="onFocusSelect($event)" placeholder="" />
               </div>
               <div class="side-metric-row editable-sm-row">
                 <span class="sm-label">pH C/5 (2):</span>
                 <span class="sm-leader"></span>
-                <input type="text" class="inline-sm-input" [(ngModel)]="sheet.additional_obs.ph_c5_2" (ngModelChange)="onSheetChange()" placeholder="---" />
+                <input type="text" class="inline-sm-input" [(ngModel)]="sheet.additional_obs.ph_c5_2" (ngModelChange)="onSheetChange()" (focus)="onFocusSelect($event)" placeholder="" />
               </div>
             </div>
           </div>
@@ -734,7 +735,54 @@ export interface PumpReport {
 
       .actions-group {
         display: flex;
+        align-items: center;
         gap: 10px;
+
+        .autosave-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 7px;
+          padding: 7px 14px;
+          background: rgba(3, 23, 149, 0.06);
+          border: 1px solid rgba(3, 23, 149, 0.18);
+          border-radius: var(--radius-full);
+          font-size: 0.80rem;
+          font-weight: 700;
+          color: #031795;
+          user-select: none;
+          white-space: nowrap;
+          transition: all 0.2s ease;
+
+          .autosave-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #10b981;
+            box-shadow: 0 0 6px rgba(16, 185, 129, 0.5);
+          }
+
+          &.saving {
+            background: rgba(245, 158, 11, 0.1);
+            border-color: rgba(245, 158, 11, 0.35);
+            color: #d97706;
+
+            .autosave-dot {
+              background: #f59e0b;
+              box-shadow: 0 0 6px rgba(245, 158, 11, 0.6);
+            }
+          }
+        }
+      }
+
+      :host-context(.dark) .actions-group .autosave-badge {
+        background: rgba(96, 165, 250, 0.12);
+        border-color: rgba(96, 165, 250, 0.28);
+        color: #93c5fd;
+
+        .autosave-dot {
+          background: #34d399;
+          box-shadow: 0 0 6px rgba(52, 211, 153, 0.6);
+        }
       }
 
       @media (max-width: 768px) {
@@ -848,7 +896,7 @@ export interface PumpReport {
         .date-label {
           font-size: 0.82rem;
           font-weight: 700;
-          color: #d1fae5;
+          color: rgba(255, 255, 255, 0.95);
           letter-spacing: 0.05em;
         }
 
@@ -899,8 +947,8 @@ export interface PumpReport {
       h4 {
         margin: 0;
         font-size: 0.9rem;
-        font-weight: 700;
-        color: var(--primary-lavender, #60a5fa);
+        font-weight: 800;
+        color: #031795;
         letter-spacing: 0.04em;
       }
 
@@ -908,9 +956,9 @@ export interface PumpReport {
         margin-left: auto;
         font-size: 0.72rem;
         font-weight: 700;
-        color: #0284c7;
-        background: rgba(2, 132, 199, 0.1);
-        border: 1px solid rgba(2, 132, 199, 0.25);
+        color: #031795;
+        background: rgba(3, 23, 149, 0.08);
+        border: 1px solid rgba(3, 23, 149, 0.22);
         border-radius: var(--radius-full);
         padding: 2px 10px;
       }
@@ -1249,32 +1297,43 @@ export interface PumpReport {
       min-width: 680px;
       border-collapse: collapse;
       text-align: center;
-      font-size: 0.84rem;
+      font-size: 0.86rem;
 
       th {
-        background: #064e3b;
+        background: #031795;
         color: #ffffff;
         font-weight: 800;
-        padding: 9px 12px;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        font-size: 0.78rem;
-        letter-spacing: 0.04em;
+        letter-spacing: 0.05em;
+        padding: 10px 12px;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        font-size: 0.82rem;
       }
 
       td {
-        padding: 6px 8px;
+        padding: 7px 12px;
         border: 1px solid var(--border-subtle);
         vertical-align: middle;
+        background: var(--bg-card);
+        color: var(--text-primary);
       }
 
-      tbody tr:hover {
-        background: var(--bg-card-hover);
+      tbody tr {
+        transition: background-color 0.15s ease;
+
+        &:nth-child(even) td {
+          background: var(--bg-card-subtle);
+        }
+
+        &:hover td {
+          background: var(--bg-card-hover);
+        }
       }
 
       .poza-tag {
-        color: #0284c7;
+        color: #031795;
         font-weight: 800;
-        font-size: 0.86rem;
+        font-size: 0.88rem;
+        letter-spacing: 0.02em;
       }
 
       .inline-poza-input {
@@ -1283,7 +1342,7 @@ export interface PumpReport {
         background: var(--bg-input);
         border: 1px solid var(--border-subtle);
         color: var(--text-primary);
-        font-size: 0.84rem;
+        font-size: 0.86rem;
         font-weight: 700;
         padding: 6px 8px;
         border-radius: var(--radius-sm);
@@ -1291,11 +1350,15 @@ export interface PumpReport {
         font-variant-numeric: tabular-nums;
         transition: all 0.2s ease;
 
+        &:hover {
+          border-color: rgba(3, 23, 149, 0.35);
+        }
+
         &:focus {
           outline: none;
-          border-color: #10b981;
-          box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
-          background: rgba(16, 185, 129, 0.06);
+          border-color: #031795;
+          box-shadow: 0 0 0 2px rgba(3, 23, 149, 0.2);
+          background: var(--bg-card);
         }
       }
     }
@@ -1613,6 +1676,7 @@ export interface PumpReport {
 export class PumpsComponent implements OnInit {
   private http = inject(HttpClient);
   offlineSync = inject(OfflineSyncService);
+  private crewService = inject(CrewService);
 
   activeTab: 'REPORT' | 'TELEMETRY' = 'REPORT';
   isEditModalOpen = false;
@@ -1620,15 +1684,18 @@ export class PumpsComponent implements OnInit {
   isStatusModalOpen = false;
   isPdfModalOpen = false;
   isSaving = false;
+  isAutoSaving = false;
+  lastAutoSavedTime = '';
+  private autoSaveTimer: any = null;
   saveSuccessMessage = '';
 
   // Max rows in Section A is 10 (Torre 5 has PU021..PU030)
   readonly maxRowsArray = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
 
   sheet: PumpStationSheet = {
-    report_date: '27/08/2026',
-    shift_code: 'G1',
-    operator_name: 'Operador Central',
+    report_date: new Date().toLocaleDateString('es-PE'),
+    shift_code: 'G4',
+    operator_name: 'MONTES RODRIGUEZ DIEGO ALEXANDER',
     sentina_pumps: [
       { tag: 'PU001', status: 'Operativo' },
       { tag: 'PU002', status: 'Operativo' },
@@ -1660,37 +1727,37 @@ export class PumpsComponent implements OnInit {
       { tag: 'PU030', status: 'Operativo' }
     ],
     levels: {
-      orca: '---',
-      espejo: '---',
-      captacion: '---'
+      orca: '',
+      espejo: '',
+      captacion: ''
     },
     main_indicators: {
-      nivel_sentina: '---',
-      bombeo_turno_intermedia: '---',
-      nivel_tko02: '---',
-      aforador: '---',
-      cortafugas: '---',
-      ph_aforador: '---',
-      ph_cortafugas: '---',
-      h_embalas: '---',
-      dique_almacenamiento: '---',
-      drenaje_dique: '---',
-      agua_a_car: '---',
-      anticrustante: '---',
-      torre5_cortafugas: '---',
+      nivel_sentina: '',
+      bombeo_turno_intermedia: '',
+      nivel_tko02: '',
+      aforador: '',
+      cortafugas: '',
+      ph_aforador: '',
+      ph_cortafugas: '',
+      h_embalas: '',
+      dique_almacenamiento: '',
+      drenaje_dique: '',
+      agua_a_car: '',
+      anticrustante: '',
+      torre5_cortafugas: '',
       torre5_status1: 'Stand by',
       torre5_status2: 'Stand by'
     },
     pozas_sentina: [
-      { poza: 'S-QCOR.R_02', medida_ini: 'n/d', flujo_ini: 'n/d', medida_fin: 'n/d', flujo_fin: 'n/d', horas: 'n/d', acc: '---' },
-      { poza: 'S-QCOR.R_03', medida_ini: 'n/d', flujo_ini: 'n/d', medida_fin: 'n/d', flujo_fin: 'n/d', horas: 'n/d', acc: '---' }
+      { poza: 'S-QCOR.R_02', medida_ini: '', flujo_ini: '', medida_fin: '', flujo_fin: '', horas: '', acc: '' },
+      { poza: 'S-QCOR.R_03', medida_ini: '', flujo_ini: '', medida_fin: '', flujo_fin: '', horas: '', acc: '' }
     ],
     additional_obs: {
-      notas: '---',
-      af_cantera: '---',
-      escorrentia: '---',
-      ph_c5_1: '---',
-      ph_c5_2: '---'
+      notas: '',
+      af_cantera: '',
+      escorrentia: '',
+      ph_c5_1: '',
+      ph_c5_2: ''
     }
   };
 
@@ -1726,7 +1793,42 @@ export class PumpsComponent implements OnInit {
     return this.sheet.torre5_pumps.filter(p => p.status === 'Operativo').length;
   }
 
+  sanitizeSheetData(obj: any): any {
+    if (!obj) return obj;
+    if (typeof obj === 'string') {
+      const trimmed = obj.trim();
+      if (trimmed === '---' || trimmed === 'n/d' || trimmed === 'null' || trimmed === 'undefined') {
+        return '';
+      }
+      return obj;
+    }
+    if (Array.isArray(obj)) {
+      return obj.map(item => this.sanitizeSheetData(item));
+    }
+    if (typeof obj === 'object') {
+      const sanitized: any = {};
+      for (const key of Object.keys(obj)) {
+        sanitized[key] = this.sanitizeSheetData(obj[key]);
+      }
+      return sanitized;
+    }
+    return obj;
+  }
+
+  onFocusSelect(event: Event): void {
+    const el = event.target as HTMLInputElement | HTMLTextAreaElement | null;
+    if (el && typeof el.select === 'function') {
+      el.select();
+    }
+  }
+
   ngOnInit(): void {
+    const activeShift = getCurrentActiveShift().activeGuard.code;
+    const assignedOp = this.crewService.getAssignedOperatorForPosition('BOMBAS', activeShift);
+    this.sheet.shift_code = activeShift;
+    if (assignedOp) {
+      this.sheet.operator_name = assignedOp.name;
+    }
     this.loadOperationalSheet();
     this.loadTelemetryPumps();
   }
@@ -1734,18 +1836,18 @@ export class PumpsComponent implements OnInit {
   loadOperationalSheet(): void {
     const cached = getRealtimeData<any>('pump_sheet_' + this.sheet.report_date, null) || getRealtimeData<any>('pump_sheet_latest', null);
     if (cached) {
-      this.sheet = { ...this.sheet, ...cached };
+      this.sheet = this.sanitizeSheetData({ ...this.sheet, ...cached });
       if (this.sheet.shift_code === 'GUARDIA_A') this.sheet.shift_code = 'G1';
     }
 
     this.http.get<any>(`${getApiBaseUrl()}/pumps/operational-sheet?date=${this.sheet.report_date}`).subscribe({
       next: (res) => {
         if (res.success && res.data) {
-          this.sheet = {
+          this.sheet = this.sanitizeSheetData({
             ...this.sheet,
             ...res.data,
             report_date: res.data.report_date || this.sheet.report_date
-          };
+          });
           if (this.sheet.shift_code === 'GUARDIA_A') this.sheet.shift_code = 'G1';
           saveRealtimeData('pump_sheet_' + this.sheet.report_date, this.sheet);
           saveRealtimeData('pump_sheet_latest', this.sheet);
@@ -1777,21 +1879,21 @@ export class PumpsComponent implements OnInit {
               id: 'p-1', tag: 'PP-101', name: 'Bomba Slurry Alimentación Ciclones 01',
               system: 'ALIMENTACION_CICLONES', status: 'OPERATING', flow_rate_m3h: 1850,
               pressure_bar: 4.8, rpm: 580, bearing_temp_c: 62.4, vibration_mms: 2.3,
-              current_amps: 310, shift_code: 'G1', operator_name: 'Juan Pérez',
+              current_amps: 310, shift_code: 'G4', operator_name: 'MONTES RODRIGUEZ DIEGO ALEXANDER',
               created_at: new Date().toISOString()
             },
             {
               id: 'p-2', tag: 'PP-102', name: 'Bomba Slurry Alimentación Ciclones 02',
               system: 'ALIMENTACION_CICLONES', status: 'STANDBY', flow_rate_m3h: 0,
               pressure_bar: 0.1, rpm: 0, bearing_temp_c: 34.0, vibration_mms: 0.2,
-              current_amps: 0, shift_code: 'G1', operator_name: 'Juan Pérez',
+              current_amps: 0, shift_code: 'G4', operator_name: 'MONTES RODRIGUEZ DIEGO ALEXANDER',
               created_at: new Date().toISOString()
             },
             {
               id: 'p-3', tag: 'TL-201', name: 'Bomba de Pulpa Relaves Espesados',
               system: 'TRANSPORTE_RELAVES', status: 'OPERATING', flow_rate_m3h: 2150,
               pressure_bar: 6.2, rpm: 720, bearing_temp_c: 68.1, vibration_mms: 3.1,
-              current_amps: 420, shift_code: 'G1', operator_name: 'Marcos Alanya',
+              current_amps: 420, shift_code: 'G4', operator_name: 'VILCAMIZA PEVE JORGE RICARDO',
               created_at: new Date().toISOString()
             }
           ];
@@ -1805,9 +1907,7 @@ export class PumpsComponent implements OnInit {
     const states: Array<'Operativo' | 'Stand by' | 'Mantenimiento' | 'Falla'> = ['Operativo', 'Stand by', 'Mantenimiento', 'Falla'];
     const idx = states.indexOf(pump.status);
     pump.status = states[(idx + 1) % states.length];
-    // Persist inline status toggle immediately
-    saveRealtimeData('pump_sheet_' + this.sheet.report_date, this.sheet);
-    saveRealtimeData('pump_sheet_latest', this.sheet);
+    this.onSheetChange();
   }
 
   getStatusClass(status: string): string {
@@ -1835,8 +1935,49 @@ export class PumpsComponent implements OnInit {
   }
 
   onSheetChange(): void {
+    // 1. Instant local persistence (zero latency)
     saveRealtimeData('pump_sheet_' + this.sheet.report_date, this.sheet);
     saveRealtimeData('pump_sheet_latest', this.sheet);
+
+    // 2. Debounced automatic backend synchronization
+    if (this.autoSaveTimer) {
+      clearTimeout(this.autoSaveTimer);
+    }
+    this.isAutoSaving = true;
+    this.autoSaveTimer = setTimeout(() => {
+      this.executeAutoSave();
+    }, 600);
+  }
+
+  executeAutoSave(): void {
+    const payload = {
+      ...this.sheet,
+      report_date: this.sheet.report_date
+    };
+    saveRealtimeData('pump_sheet_' + this.sheet.report_date, payload);
+    saveRealtimeData('pump_sheet_latest', payload);
+
+    const endpoint = `${getApiBaseUrl()}/pumps/operational-sheet`;
+    if (this.offlineSync.isOnline()) {
+      this.http.post<any>(endpoint, payload).subscribe({
+        next: () => {
+          this.isAutoSaving = false;
+          this.isSaving = false;
+          this.lastAutoSavedTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        },
+        error: () => {
+          this.offlineSync.queueAction(endpoint, 'POST', payload, 'Reporte Bombas ' + this.sheet.report_date);
+          this.isAutoSaving = false;
+          this.isSaving = false;
+          this.lastAutoSavedTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+      });
+    } else {
+      this.offlineSync.queueAction(endpoint, 'POST', payload, 'Reporte Bombas ' + this.sheet.report_date);
+      this.isAutoSaving = false;
+      this.isSaving = false;
+      this.lastAutoSavedTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
   }
 
   cycleTorreStatus(which: 1 | 2): void {
@@ -1866,34 +2007,7 @@ export class PumpsComponent implements OnInit {
   }
 
   saveOperationalSheet(): void {
-    this.isSaving = true;
-    const payload = {
-      ...this.sheet,
-      report_date: this.sheet.report_date
-    };
-
-    // Save immediately to real-time persistent store
-    saveRealtimeData('pump_sheet_' + this.sheet.report_date, payload);
-    saveRealtimeData('pump_sheet_latest', payload);
-
-    const endpoint = `${getApiBaseUrl()}/pumps/operational-sheet`;
-    if (this.offlineSync.isOnline()) {
-      this.http.post<any>(endpoint, payload).subscribe({
-        next: () => {
-          this.isSaving = false;
-          this.showSaveSuccess('✓ Reporte de bombas guardado y sincronizado exitosamente.');
-        },
-        error: () => {
-          this.offlineSync.queueAction(endpoint, 'POST', payload, 'Reporte Bombas ' + this.sheet.report_date);
-          this.isSaving = false;
-          this.showSaveSuccess('✓ Reporte guardado localmente (sincronizará al reconectar).');
-        }
-      });
-    } else {
-      this.offlineSync.queueAction(endpoint, 'POST', payload, 'Reporte Bombas ' + this.sheet.report_date);
-      this.isSaving = false;
-      this.showSaveSuccess('✓ Reporte guardado localmente (Modo Offline).');
-    }
+    this.executeAutoSave();
   }
 
   openCreatePumpModal(): void {

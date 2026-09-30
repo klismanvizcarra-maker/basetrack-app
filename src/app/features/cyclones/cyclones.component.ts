@@ -7,6 +7,7 @@ import { ModalComponent } from '../../shared/ui/modal.component';
 import { OfflineSyncService } from '../../core/offline/offline-sync.service';
 import { getRealtimeData, saveRealtimeData } from '../../core/storage/local-store.util';
 import { CycloneReportPdfComponent } from '../reports/cyclone-report-pdf.component';
+import { getCurrentActiveShift } from '../../shared/utils/roster.util';
 
 export interface CycloneReport {
   id: string;
@@ -75,7 +76,7 @@ export interface GeneralAverages {
               <line x1="16" y1="13" x2="8" y2="13"></line>
               <line x1="16" y1="17" x2="8" y2="17"></line>
             </svg>
-            <span class="btn-text">Exportar PDF (1 Hoja)</span>
+            <span class="btn-text">Exportar PDF</span>
           </button>
           <button class="btn btn-secondary action-btn" (click)="exportCsv()" title="Exportar reporte en CSV">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -85,12 +86,12 @@ export interface GeneralAverages {
             </svg>
             <span class="btn-text">Exportar CSV</span>
           </button>
-          <button class="btn btn-emerald action-btn" (click)="openSampleModal()">
+          <button class="btn btn-emerald action-btn" (click)="addSampleRow()" title="Agregar nueva muestra directamente a la tabla">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
               <line x1="12" y1="5" x2="12" y2="19"></line>
               <line x1="5" y1="12" x2="19" y2="12"></line>
             </svg>
-            <span class="btn-text">Registrar Muestreo</span>
+            <span class="btn-text">+ Registro de Muestreo</span>
           </button>
           <button class="btn btn-primary action-btn" (click)="isCreateModalOpen = true">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
@@ -212,32 +213,119 @@ export interface GeneralAverages {
               </tr>
             </thead>
             <tbody>
-              <ng-container *ngFor="let group of groupedSamples">
-                <tr *ngFor="let row of group.rows; let i = index" class="data-row">
-                  <!-- Hourly Rowspan -->
+              <ng-container *ngFor="let group of groupedSamples; trackBy: trackByGroup">
+                <tr *ngFor="let row of group.rows; trackBy: trackByRow; let i = index" class="data-row">
+                  <!-- Hourly Rowspan with Inline Editing -->
                   <td *ngIf="i === 0" [attr.rowspan]="group.rows.length" class="cell-hora font-bold sticky-col-1">
-                    {{ group.time }}
+                    <input
+                      type="text"
+                      class="table-cell-input hora-input font-bold"
+                      [(ngModel)]="group.time"
+                      (change)="onGroupTimeChange(group, group.time)"
+                      (focus)="$event.target.select()"
+                      placeholder="00:00"
+                      title="Editar hora del grupo (HH:mm)"
+                    />
                   </td>
-                  <!-- Battery Tag -->
+                  <!-- Battery Tag Dropdown Selection -->
                   <td class="cell-battery font-bold sticky-col-2">
-                    {{ row.battery_tag }}
+                    <select
+                      class="table-battery-select"
+                      [(ngModel)]="row.battery_tag"
+                      (change)="onCellChange(row); saveRow(row)"
+                      title="Seleccionar batería"
+                    >
+                      <option *ngFor="let bat of availableBatteries" [value]="bat">{{ bat }}</option>
+                    </select>
                   </td>
-                  <!-- % Sólidos -->
-                  <td class="cell-val">{{ row.solids_feed | number:'1.2-2' }}</td>
-                  <td class="cell-val">{{ row.solids_of | number:'1.2-2' }}</td>
-                  <td class="cell-val cell-uf font-bold">{{ row.solids_uf | number:'1.2-2' }}</td>
-                  <!-- % Malla 200 -->
-                  <td class="cell-val">{{ row.mesh200_feed | number:'1.2-2' }}</td>
-                  <td class="cell-val">{{ row.mesh200_of | number:'1.2-2' }}</td>
-                  <td class="cell-val cell-uf font-bold">{{ row.mesh200_uf | number:'1.2-2' }}</td>
+                  <!-- % Sólidos Direct Inline Inputs -->
+                  <td class="cell-val">
+                    <input
+                      type="number"
+                      step="0.01"
+                      inputmode="decimal"
+                      [(ngModel)]="row.solids_feed"
+                      (ngModelChange)="onCellChange(row)"
+                      (blur)="saveRow(row)"
+                      (focus)="$event.target.select()"
+                      class="table-cell-input"
+                      placeholder="0.00"
+                    />
+                  </td>
+                  <td class="cell-val">
+                    <input
+                      type="number"
+                      step="0.01"
+                      inputmode="decimal"
+                      [(ngModel)]="row.solids_of"
+                      (ngModelChange)="onCellChange(row)"
+                      (blur)="saveRow(row)"
+                      (focus)="$event.target.select()"
+                      class="table-cell-input"
+                      placeholder="0.00"
+                    />
+                  </td>
+                  <td class="cell-val cell-uf font-bold">
+                    <input
+                      type="number"
+                      step="0.01"
+                      inputmode="decimal"
+                      [(ngModel)]="row.solids_uf"
+                      (ngModelChange)="onCellChange(row)"
+                      (blur)="saveRow(row)"
+                      (focus)="$event.target.select()"
+                      class="table-cell-input uf-input font-bold"
+                      placeholder="0.00"
+                    />
+                  </td>
+                  <!-- % Malla 200 Direct Inline Inputs -->
+                  <td class="cell-val">
+                    <input
+                      type="number"
+                      step="0.01"
+                      inputmode="decimal"
+                      [(ngModel)]="row.mesh200_feed"
+                      (ngModelChange)="onCellChange(row)"
+                      (blur)="saveRow(row)"
+                      (focus)="$event.target.select()"
+                      class="table-cell-input"
+                      placeholder="0.00"
+                    />
+                  </td>
+                  <td class="cell-val">
+                    <input
+                      type="number"
+                      step="0.01"
+                      inputmode="decimal"
+                      [(ngModel)]="row.mesh200_of"
+                      (ngModelChange)="onCellChange(row)"
+                      (blur)="saveRow(row)"
+                      (focus)="$event.target.select()"
+                      class="table-cell-input"
+                      placeholder="0.00"
+                    />
+                  </td>
+                  <td class="cell-val cell-uf font-bold">
+                    <input
+                      type="number"
+                      step="0.01"
+                      inputmode="decimal"
+                      [(ngModel)]="row.mesh200_uf"
+                      (ngModelChange)="onCellChange(row)"
+                      (blur)="saveRow(row)"
+                      (focus)="$event.target.select()"
+                      class="table-cell-input uf-input font-bold"
+                      placeholder="0.00"
+                    />
+                  </td>
 
-                  <!-- ACCIÓN: Botón para borrar filas o datos por hora -->
+                  <!-- ACCIÓN: Botón para borrar hora completa (CY3 y CY4) -->
                   <td *ngIf="i === 0" [attr.rowspan]="group.rows.length" class="cell-accion text-center">
                     <button
                       type="button"
                       class="btn-trash-action"
-                      (click)="openDeleteModal(group)"
-                      title="Borrar filas o datos de las {{ group.time }}"
+                      (click)="deleteHourGroup(group)"
+                      title="Eliminar hora completa {{ group.time }} (CY3 y CY4)"
                     >
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M3 6h18"></path>
@@ -1100,12 +1188,94 @@ export interface GeneralAverages {
         .cell-val {
           color: var(--text-secondary);
           font-variant-numeric: tabular-nums;
+          padding: 4px 6px !important;
         }
 
         .cell-uf {
           color: var(--primary-lavender, #60a5fa);
           font-weight: 800;
           font-size: 0.92rem;
+          padding: 4px 6px !important;
+        }
+
+        .table-cell-input {
+          width: 100%;
+          min-width: 58px;
+          max-width: 95px;
+          padding: 6px 4px;
+          text-align: center;
+          background: transparent;
+          border: 1px solid transparent;
+          border-radius: 6px;
+          color: var(--text-primary);
+          font-family: inherit;
+          font-size: 0.88rem;
+          font-weight: 600;
+          font-variant-numeric: tabular-nums;
+          outline: none;
+          transition: all 0.15s ease-in-out;
+
+          /* Ocultar flechas numéricas */
+          -moz-appearance: textfield;
+          &::-webkit-outer-spin-button,
+          &::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+          }
+
+          &:hover {
+            background: rgba(59, 130, 246, 0.08);
+            border-color: rgba(59, 130, 246, 0.3);
+          }
+
+          &:focus {
+            background: var(--bg-card);
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
+            color: var(--text-primary);
+          }
+
+          &.uf-input {
+            color: #38bdf8;
+            font-weight: 800;
+            &:focus {
+              border-color: #38bdf8;
+              box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.3);
+            }
+          }
+
+          &.hora-input {
+            font-size: 0.95rem;
+            font-weight: 800;
+            color: var(--primary-lavender, #818cf8);
+            max-width: 75px;
+            letter-spacing: 0.02em;
+            cursor: pointer;
+          }
+        }
+
+        .table-battery-select {
+          padding: 4px 8px;
+          background: rgba(59, 130, 246, 0.12);
+          border: 1px solid rgba(59, 130, 246, 0.3);
+          border-radius: 6px;
+          color: var(--accent-cyan, #38bdf8);
+          font-weight: 700;
+          font-size: 0.85rem;
+          cursor: pointer;
+          outline: none;
+          text-align: center;
+          transition: all 0.15s;
+
+          &:hover, &:focus {
+            background: rgba(59, 130, 246, 0.22);
+            border-color: #3b82f6;
+          }
+
+          option {
+            background: #1e1e2d;
+            color: #ffffff;
+          }
         }
 
         .cell-accion {
@@ -1811,6 +1981,7 @@ export class CyclonesComponent implements OnInit {
   };
 
   ngOnInit(): void {
+    this.newSample.shift_code = getCurrentActiveShift().activeGuard.code;
     // Inicializar con fallback de datos reales de inmediato
     this.useFallbackData();
     this.loadCyclones();
@@ -1972,34 +2143,173 @@ export class CyclonesComponent implements OnInit {
     };
   }
 
-  openSampleModal(): void {
-    this.newSample.station = this.selectedStation;
-    this.isSampleModalOpen = true;
+  trackByGroup(index: number, group: GroupedSample): string {
+    return group.time;
   }
 
-  saveStationSample(): void {
-    const payload = { ...this.newSample };
-    const newRow = { id: 'sample-' + Date.now(), ...payload } as StationSample;
+  trackByRow(index: number, row: StationSample): string {
+    return row.id;
+  }
 
-    // Save in real time locally
-    this.rawStationSamples.unshift(newRow);
+  get availableBatteries(): string[] {
+    if (this.selectedStation.toLowerCase().includes('1ra')) {
+      return ['CY1', 'CY2', 'CY3', 'CY4'];
+    }
+    return ['CY3', 'CY4', 'CY1', 'CY2', 'CY5', 'CY6'];
+  }
+
+  addSampleRow(): void {
+    const is1ra = this.selectedStation.toLowerCase().includes('1ra');
+    const now = new Date();
+    const currentHour = `${String(now.getHours()).padStart(2, '0')}:00`;
+
+    // Determinar la siguiente hora en secuencia
+    let targetHour = currentHour;
+    if (this.groupedSamples.length > 0) {
+      const lastGroup = this.groupedSamples[this.groupedSamples.length - 1];
+      targetHour = this.getNextQuickHour(lastGroup.time);
+    } else {
+      targetHour = this.quickHours[0] || '20:00';
+    }
+
+    // Agregar la hora completa: exactamente dos muestras (CY3 y CY4 para 2da, o CY1 y CY2 para 1ra)
+    const batteries = is1ra ? ['CY1', 'CY2'] : ['CY3', 'CY4'];
+    const finalShift = this.selectedShift !== 'ALL' ? this.selectedShift : getCurrentActiveShift().activeGuard.code;
+    const finalDate = this.filterDate || new Date().toISOString().split('T')[0];
+
+    for (const bat of batteries) {
+      const newId = 'spl-' + Date.now() + '-' + bat.toLowerCase() + '-' + Math.random().toString(36).substring(2, 6);
+      const newSample: StationSample = {
+        id: newId,
+        station: this.selectedStation,
+        sample_time: targetHour,
+        battery_tag: bat,
+        solids_feed: 0,
+        solids_of: 0,
+        solids_uf: 0,
+        mesh200_feed: 0,
+        mesh200_of: 0,
+        mesh200_uf: 0,
+        shift_code: finalShift,
+        date: finalDate,
+        created_at: new Date().toISOString()
+      };
+      this.rawStationSamples.push(newSample);
+      this.saveRowToBackend(newSample, true);
+    }
+
     saveRealtimeData('cyclone_samples', this.rawStationSamples);
     this.filterSamples();
-    this.isSampleModalOpen = false;
+  }
 
-    const endpoint = `${getApiBaseUrl()}/cyclones/station-samples`;
+  deleteHourGroup(group: GroupedSample): void {
+    for (const row of group.rows) {
+      const id = row.id;
+      if (id && !id.startsWith('s-')) {
+        const deleteUrl = `${getApiBaseUrl()}/cyclones/station-samples/${id}`;
+        if (this.offlineSync.isOnline()) {
+          this.http.delete<any>(deleteUrl).subscribe({
+            next: () => console.log(`Deleted sample ${id}`),
+            error: (err) => console.warn('Delete error or offline', err)
+          });
+        } else {
+          this.offlineSync.queueAction(deleteUrl, 'DELETE' as any, {}, `Eliminar muestra ${row.station} ${row.sample_time} ${row.battery_tag}`);
+        }
+      }
+    }
+
+    const rowIds = new Set(group.rows.map(r => r.id).filter(Boolean));
+    const targetStation = this.selectedStation.toLowerCase().trim();
+
+    this.rawStationSamples = this.rawStationSamples.filter(s => {
+      if (s.id && rowIds.has(s.id)) return false;
+      if (s.sample_time === group.time && s.station.toLowerCase().trim().includes(targetStation.includes('1ra') ? '1ra' : '2da')) {
+        return false;
+      }
+      return true;
+    });
+
+    saveRealtimeData('cyclone_samples', this.rawStationSamples);
+    this.filterSamples();
+    if (this.groupToDelete) {
+      this.isDeleteModalOpen = false;
+      this.groupToDelete = null;
+    }
+  }
+
+  getNextQuickHour(currentTime: string): string {
+    const idx = this.quickHours.indexOf(currentTime);
+    if (idx !== -1 && idx < this.quickHours.length - 1) {
+      return this.quickHours[idx + 1];
+    }
+    const parts = (currentTime || '00:00').split(':');
+    const h = (parseInt(parts[0] || '0', 10) + 1) % 24;
+    return `${String(h).padStart(2, '0')}:00`;
+  }
+
+  onGroupTimeChange(group: GroupedSample, newTime: string): void {
+    const cleanTime = (newTime || '').trim();
+    if (!cleanTime) return;
+    for (const row of group.rows) {
+      row.sample_time = cleanTime;
+      this.saveRowToBackend(row);
+    }
+    saveRealtimeData('cyclone_samples', this.rawStationSamples);
+    this.filterSamples();
+  }
+
+  onCellChange(row: StationSample): void {
+    row.solids_feed = Number(row.solids_feed || 0);
+    row.solids_of = Number(row.solids_of || 0);
+    row.solids_uf = Number(row.solids_uf || 0);
+    row.mesh200_feed = Number(row.mesh200_feed || 0);
+    row.mesh200_of = Number(row.mesh200_of || 0);
+    row.mesh200_uf = Number(row.mesh200_uf || 0);
+
+    saveRealtimeData('cyclone_samples', this.rawStationSamples);
+    this.computeAverages(this.filteredStationSamples);
+  }
+
+  saveRow(row: StationSample): void {
+    this.onCellChange(row);
+    this.saveRowToBackend(row);
+  }
+
+  saveRowToBackend(row: StationSample, isNew = false): void {
+    const endpoint = `${getApiBaseUrl()}/cyclones/station-samples/${row.id}`;
+    const payload = {
+      station: row.station,
+      sample_time: row.sample_time,
+      battery_tag: row.battery_tag,
+      solids_feed: Number(row.solids_feed || 0),
+      solids_of: Number(row.solids_of || 0),
+      solids_uf: Number(row.solids_uf || 0),
+      mesh200_feed: Number(row.mesh200_feed || 0),
+      mesh200_of: Number(row.mesh200_of || 0),
+      mesh200_uf: Number(row.mesh200_uf || 0),
+      shift_code: row.shift_code || getCurrentActiveShift().activeGuard.code,
+      date: row.date || new Date().toISOString().split('T')[0]
+    };
+
     if (this.offlineSync.isOnline()) {
-      this.http.post<any>(endpoint, payload).subscribe({
-        next: () => {
-          this.loadStationSamples();
-        },
+      this.http.put<any>(endpoint, payload).subscribe({
+        next: () => {},
         error: () => {
-          this.offlineSync.queueAction(endpoint, 'POST', payload, `Muestra ${payload.station} ${payload.sample_time} ${payload.battery_tag}`);
+          this.offlineSync.queueAction(endpoint, 'PUT' as any, payload, `Muestra ${row.sample_time} ${row.battery_tag}`);
         }
       });
     } else {
-      this.offlineSync.queueAction(endpoint, 'POST', payload, `Muestra ${payload.station} ${payload.sample_time} ${payload.battery_tag}`);
+      this.offlineSync.queueAction(endpoint, 'PUT' as any, payload, `Muestra ${row.sample_time} ${row.battery_tag}`);
     }
+  }
+
+  openSampleModal(): void {
+    this.addSampleRow();
+  }
+
+  saveStationSample(): void {
+    this.addSampleRow();
+    this.isSampleModalOpen = false;
   }
 
   openDeleteModal(group: GroupedSample): void {
@@ -2009,7 +2319,7 @@ export class CyclonesComponent implements OnInit {
 
   deleteSingleRow(row: StationSample): void {
     const id = row.id;
-    if (id && !id.startsWith('s-') && !id.startsWith('temp-') && !id.startsWith('sample-')) {
+    if (id && !id.startsWith('s-')) {
       const deleteUrl = `${getApiBaseUrl()}/cyclones/station-samples/${id}`;
       if (this.offlineSync.isOnline()) {
         this.http.delete<any>(deleteUrl).subscribe({
@@ -2114,12 +2424,13 @@ export class CyclonesComponent implements OnInit {
         }
       },
       error: () => {
+        const curShift = getCurrentActiveShift().activeGuard.code;
         this.cyclones = [
           {
             id: 'c-1', battery_tag: 'CYCLOPAC-BATERIA-01', total_cyclones: 12,
             active_cyclones: 10, feed_pressure_psi: 18.5, feed_density_kgm3: 1650,
             p80_microns: 148, overflow_density: 1280, underflow_density: 1980,
-            flocculant_ppm: 14.2, status: 'OPTIMAL', shift_code: 'G1',
+            flocculant_ppm: 14.2, status: 'OPTIMAL', shift_code: curShift,
             notes: 'Ciclones 03 y 07 en standby. P80 en 148 µm en rango óptimo de flotación.',
             created_at: new Date().toISOString()
           },
@@ -2127,7 +2438,7 @@ export class CyclonesComponent implements OnInit {
             id: 'c-2', battery_tag: 'CYCLOPAC-BATERIA-02', total_cyclones: 12,
             active_cyclones: 9, feed_pressure_psi: 17.2, feed_density_kgm3: 1640,
             p80_microns: 155, overflow_density: 1295, underflow_density: 1960,
-            flocculant_ppm: 13.8, status: 'ATTENTION', shift_code: 'G1',
+            flocculant_ppm: 13.8, status: 'ATTENTION', shift_code: curShift,
             notes: 'Ciclón 11 cerrado por arenado en ápice (Apex).',
             created_at: new Date().toISOString()
           }

@@ -1,9 +1,14 @@
-import { Component, Input, Output, EventEmitter, OnInit, inject } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChanges, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { ShiftHandover } from '../shift-handover/shift-handover.component';
 import { PdfExportService } from '../../core/services/pdf-export.service';
+import { CrewService } from '../../core/services/crew.service';
+import { VehicleChecklistService, HandoverVehicleObservation } from '../../core/services/vehicle-checklist.service';
 import { copyToClipboard } from '../../core/utils/clipboard.util';
+import { getApiBaseUrl } from '../../core/constants/api.config';
+import { getRealtimeData } from '../../core/storage/local-store.util';
+import { getCurrentActiveShift } from '../../shared/utils/roster.util';
 
 @Component({
   selector: 'app-shift-report-pdf',
@@ -78,23 +83,23 @@ import { copyToClipboard } from '../../core/utils/clipboard.util';
           <div class="kpi-banner-grid">
             <div class="kpi-cell">
               <span class="kpi-title">Tonelaje Procesado</span>
-              <span class="kpi-val">{{ reportData.tonnage_processed | number }} <small>TMS</small></span>
+              <span class="kpi-val">{{ (reportData.tonnage_processed || liveTonnage) | number }} <small>TMS</small></span>
               <span class="kpi-sub">Tratamiento de Planta</span>
             </div>
             <div class="kpi-cell">
               <span class="kpi-title">Malla -200 Final (OF)</span>
-              <span class="kpi-val highlight-emerald">64.5 <small>%</small></span>
-              <span class="kpi-sub">Target Granulométrico</span>
+              <span class="kpi-val highlight-emerald">{{ liveMesh200Of | number:'1.1-2' }} <small>%</small></span>
+              <span class="kpi-sub">Target Granulométrico (2da Estación)</span>
             </div>
             <div class="kpi-cell">
               <span class="kpi-title">Disponibilidad Bombas</span>
-              <span class="kpi-val">98.4 <small>%</small></span>
-              <span class="kpi-sub">5/6 en Operación</span>
+              <span class="kpi-val">{{ pumpAvailabilityPercent | number:'1.1-1' }} <small>%</small></span>
+              <span class="kpi-sub">{{ pumpOperatingCount }}/{{ pumpTotalCount }} en Operación</span>
             </div>
             <div class="kpi-cell">
               <span class="kpi-title">Borde Libre Presa</span>
-              <span class="kpi-val highlight-blue">3.8 <small>m</small></span>
-              <span class="kpi-sub">Margen Seguro (> 2.5m)</span>
+              <span class="kpi-val highlight-blue">{{ liveFreeboard | number:'1.1-2' }} <small>m</small></span>
+              <span class="kpi-sub">{{ liveFreeboard >= 2.5 ? 'Margen Seguro (> 2.5m)' : 'Alerta de Cota (< 2.5m)' }}</span>
             </div>
           </div>
 
@@ -104,11 +109,19 @@ import { copyToClipboard } from '../../core/utils/clipboard.util';
             <div class="grid-2-col">
               <div class="info-card">
                 <span class="card-label">Supervisor Saliente (Entrega):</span>
-                <span class="card-val">👤 {{ reportData.outgoing_supervisor }}</span>
+                <span class="card-val">👤 {{ outgoingSupervisorName }}</span>
+                <div class="card-meta-line">
+                  <span>DNI: <strong>{{ outgoingSupervisorDni }}</strong></span> • 
+                  <span>Cargo: <strong>{{ outgoingSupervisorRole }}</strong></span>
+                </div>
               </div>
               <div class="info-card">
                 <span class="card-label">Supervisor Entrante (Recepción):</span>
-                <span class="card-val">👤 {{ reportData.incoming_supervisor || 'Supervisor Turno Siguiente' }}</span>
+                <span class="card-val">👤 {{ incomingSupervisorName }}</span>
+                <div class="card-meta-line">
+                  <span>DNI: <strong>{{ incomingSupervisorDni }}</strong></span> • 
+                  <span>Cargo: <strong>{{ incomingSupervisorRole }}</strong></span>
+                </div>
               </div>
             </div>
 
@@ -128,9 +141,44 @@ import { copyToClipboard } from '../../core/utils/clipboard.util';
             </div>
           </div>
 
+          <!-- SECCIÓN 1.1: DOTACIÓN DE PERSONAL OPERATIVO (CUADRILLA TITULAR) -->
+          <div class="doc-section page-break-inside-avoid">
+            <div class="section-heading">1.1. DOTACIÓN DE PERSONAL OPERATIVO (CUADRILLA TITULAR)</div>
+            <table class="report-table">
+              <thead>
+                <tr>
+                  <th>PUESTO OPERATIVO</th>
+                  <th>OPERADOR TITULAR ASIGNADO</th>
+                  <th>DNI</th>
+                  <th>CANAL RADIAL</th>
+                  <th>UBICACIÓN EN PLANTA</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let item of operationalCrewList">
+                  <td><strong>{{ item.title }}</strong></td>
+                  <td>{{ item.operatorName }}</td>
+                  <td>{{ item.documentId }}</td>
+                  <td>{{ item.radioChannel }}</td>
+                  <td>{{ item.location }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
           <!-- SECCIÓN 2: REPORTE DE BOMBAS SLURRY Y ESTACIONES -->
           <div class="doc-section page-break-inside-avoid">
             <div class="section-heading">2. REPORTE DE BOMBAS SLURRY, SENTINAS Y SISTEMA DE AGUA</div>
+            
+            <!-- Resumen de estado de estaciones si existe planilla -->
+            <div class="pumps-summary-bar" *ngIf="sentinaActiveCount || intermediaActiveCount || torre5ActiveCount">
+              <span class="ps-item"><strong>Sentina Principal:</strong> {{ sentinaActiveCount }}/8 Operativas</span>
+              <span class="ps-divider">•</span>
+              <span class="ps-item"><strong>Bombeo Intermedio:</strong> {{ intermediaActiveCount }}/6 Operativas</span>
+              <span class="ps-divider">•</span>
+              <span class="ps-item"><strong>Torre 5:</strong> {{ torre5ActiveCount }}/10 Operativas</span>
+            </div>
+
             <table class="report-table">
               <thead>
                 <tr>
@@ -138,58 +186,18 @@ import { copyToClipboard } from '../../core/utils/clipboard.util';
                   <th>TAG EQUIPO</th>
                   <th>ESTADO</th>
                   <th>CORRIENTE (A)</th>
-                  <th>PRESIÓN (PSI)</th>
+                  <th>PRESIÓN</th>
                   <th>OBSERVACIONES</th>
                 </tr>
               </thead>
               <tbody>
-                <tr>
-                  <td>Sentina Principal</td>
-                  <td><strong>PP-101</strong></td>
-                  <td><span class="tbl-badge badge-green">OPERANDO</span></td>
-                  <td>142 A</td>
-                  <td>34.5 PSI</td>
-                  <td>Vibración dentro de rango permisible</td>
-                </tr>
-                <tr>
-                  <td>Sentina Principal</td>
-                  <td><strong>PP-102</strong></td>
-                  <td><span class="tbl-badge badge-slate">STANDBY</span></td>
-                  <td>0 A</td>
-                  <td>0 PSI</td>
-                  <td>Listo para respaldo automático</td>
-                </tr>
-                <tr>
-                  <td>Bombeo Intermedio</td>
-                  <td><strong>PP-201</strong></td>
-                  <td><span class="tbl-badge badge-green">OPERANDO</span></td>
-                  <td>158 A</td>
-                  <td>42.0 PSI</td>
-                  <td>Caudal sostenido a ciclones</td>
-                </tr>
-                <tr>
-                  <td>Bombeo Intermedio</td>
-                  <td><strong>PP-202</strong></td>
-                  <td><span class="tbl-badge badge-green">OPERANDO</span></td>
-                  <td>155 A</td>
-                  <td>41.2 PSI</td>
-                  <td>Operación continua normal</td>
-                </tr>
-                <tr>
-                  <td>Estación Torre 5</td>
-                  <td><strong>PP-501</strong></td>
-                  <td><span class="tbl-badge badge-green">OPERANDO</span></td>
-                  <td>110 A</td>
-                  <td>28.4 PSI</td>
-                  <td>Retorno de agua clara</td>
-                </tr>
-                <tr>
-                  <td>Línea Relaves</td>
-                  <td><strong>TL-201</strong></td>
-                  <td><span class="tbl-badge badge-green">OPERANDO</span></td>
-                  <td>168 A</td>
-                  <td>48.0 PSI</td>
-                  <td>Descarga estable hacia presa</td>
+                <tr *ngFor="let p of displayPumps">
+                  <td>{{ p.systemName }}</td>
+                  <td><strong>{{ p.tag }}</strong></td>
+                  <td><span class="tbl-badge" [ngClass]="p.badgeClass">{{ p.statusLabel }}</span></td>
+                  <td>{{ p.currentAmps }}</td>
+                  <td>{{ p.pressure }}</td>
+                  <td>{{ p.observations }}</td>
                 </tr>
               </tbody>
             </table>
@@ -211,23 +219,14 @@ import { copyToClipboard } from '../../core/utils/clipboard.util';
                 </tr>
               </thead>
               <tbody>
-                <tr>
-                  <td><strong>1ra Estación (CY1/2)</strong></td>
-                  <td>4 de 6 en línea</td>
-                  <td>16.2 PSI</td>
-                  <td>58.2 %</td>
-                  <td>32.5 %</td>
-                  <td>74.8 %</td>
-                  <td>52.4 %</td>
-                </tr>
-                <tr>
-                  <td><strong>2da Estación (CY3/4)</strong></td>
-                  <td>5 de 6 en línea</td>
-                  <td>18.5 PSI</td>
-                  <td>52.0 %</td>
-                  <td>26.8 %</td>
-                  <td>71.5 %</td>
-                  <td><strong>64.5 %</strong></td>
+                <tr *ngFor="let row of cycloneStationRows">
+                  <td><strong>{{ row.name }}</strong></td>
+                  <td>{{ row.activeCount }}</td>
+                  <td>{{ row.pressure }}</td>
+                  <td>{{ row.solidsFeed | number:'1.2-2' }} %</td>
+                  <td>{{ row.solidsOf | number:'1.2-2' }} %</td>
+                  <td>{{ row.solidsUf | number:'1.2-2' }} %</td>
+                  <td><strong [class.highlight-emerald]="row.isTarget">{{ row.mesh200Of | number:'1.2-2' }} %</strong></td>
                 </tr>
               </tbody>
             </table>
@@ -239,44 +238,108 @@ import { copyToClipboard } from '../../core/utils/clipboard.util';
             <div class="grid-4-col">
               <div class="metric-card">
                 <span class="m-lbl">Espejo de Agua</span>
-                <span class="m-val">4,120.4 <small>msnm</small></span>
-                <span class="m-note">Dentro de cota permitida</span>
+                <span class="m-val">{{ liveWaterMirror | number:'1.1-2' }} <small>msnm</small></span>
+                <span class="m-note">Cota verificada de laguna</span>
               </div>
               <div class="metric-card">
                 <span class="m-lbl">Borde Libre</span>
-                <span class="m-val">3.8 <small>metros</small></span>
-                <span class="m-note">Margen de seguridad alto</span>
+                <span class="m-val">{{ liveFreeboard | number:'1.1-2' }} <small>metros</small></span>
+                <span class="m-note">{{ liveFreeboard >= 2.5 ? 'Margen de seguridad alto (>2.5m)' : 'Alerta de cota baja (<2.5m)' }}</span>
               </div>
               <div class="metric-card">
                 <span class="m-lbl">Piezometría Muro</span>
-                <span class="m-val">142.6 <small>kPa</small></span>
+                <span class="m-val">{{ livePiezometer | number:'1.1-1' }} <small>kPa</small></span>
                 <span class="m-note">Línea freática estable</span>
               </div>
               <div class="metric-card">
                 <span class="m-lbl">Turbidez de Agua Clara</span>
-                <span class="m-val">12.5 <small>NTU</small></span>
+                <span class="m-val">{{ liveTurbidity | number:'1.1-1' }} <small>NTU</small></span>
                 <span class="m-note">Cumple estándar ambiental</span>
               </div>
             </div>
           </div>
 
+          <!-- SECCIÓN 4.1: NOVEDADES DE INSPECCIÓN VEHICULAR (SOLO UNIDADES OBSERVADAS O NO APTAS) -->
+          <div class="doc-section page-break-inside-avoid" *ngIf="observedVehicles.length > 0">
+            <div class="section-heading">4.1. INSPECCIÓN VEHICULAR - CAMIONETAS CON OBSERVACIÓN O NO APTAS</div>
+            
+            <div class="vehicle-alert-banner">
+              <span class="va-icon">⚠️</span>
+              <div class="va-text">
+                <strong>Atención Supervisión de Guardia:</strong> Se registran <strong>{{ observedVehicles.length }}</strong> camioneta(s) con observaciones técnicas o restricción operativa en la inspección pre-uso. Las unidades en estado Apto (Verde) operan con normalidad y quedan excluidas de esta bitácora.
+              </div>
+            </div>
+
+            <table class="report-table vehicle-table">
+              <thead>
+                <tr>
+                  <th style="width: 14%;">UNIDAD / PLACA</th>
+                  <th style="width: 18%;">ÁREA / MODELO</th>
+                  <th style="width: 20%;">CONDUCTOR / DNI</th>
+                  <th style="width: 13%;">KILOMETRAJE</th>
+                  <th style="width: 13%;">ESTADO</th>
+                  <th style="width: 22%;">DETALLE DE OBSERVACIÓN</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let v of observedVehicles">
+                  <td>
+                    <div class="vehicle-tag-badge">{{ v.tag }}</div>
+                    <div class="vehicle-plate-text">{{ v.plate }}</div>
+                  </td>
+                  <td>
+                    <div style="font-weight: 700;">{{ v.area }}</div>
+                    <small style="color: #64748b; font-size: 0.68rem;">{{ v.model }}</small>
+                  </td>
+                  <td>
+                    <div><strong>{{ v.driverName }}</strong></div>
+                    <small style="color: #64748b; font-size: 0.68rem;">DNI: {{ v.driverDni }}</small>
+                  </td>
+                  <td>
+                    <strong>{{ v.odometer | number }}</strong> <small>km</small>
+                    <div style="color: #94a3b8; font-size: 0.66rem;">{{ v.time }}</div>
+                  </td>
+                  <td>
+                    <span class="tbl-badge" [ngClass]="v.operationalStatus === 'NO_APTO' ? 'badge-rose' : 'badge-amber'">
+                      {{ v.operationalStatus === 'NO_APTO' ? '⛔ NO APTO' : '⚠️ OBSERVADO' }}
+                    </span>
+                  </td>
+                  <td class="obs-cell">
+                    <div class="obs-notes">{{ v.observationNotes }}</div>
+                    <div class="defective-tags" *ngIf="v.defectiveItems && v.defectiveItems.length > 0">
+                      <span class="def-pill" *ngFor="let item of v.defectiveItems">
+                        • {{ item.name }}
+                      </span>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
           <!-- SECCIÓN 5: FIRMAS Y CONFORMIDAD OPERACIONAL -->
           <div class="doc-section signatures-section page-break-inside-avoid">
-            <div class="section-heading">5. CONFORMIDAD Y FIRMAS DE RELEVO FORMAL</div>
+            <div class="section-heading">5. CONFORMIDAD Y ACREDITACIÓN DE RELEVO FORMAL</div>
             <div class="signatures-grid">
               <div class="signature-box">
                 <div class="sign-line"></div>
-                <span class="sign-name">{{ reportData.outgoing_supervisor }}</span>
-                <span class="sign-role">SUPERVISOR SALIENTE</span>
-                <span class="sign-date">Fecha/Hora: {{ reportData.date }} 19:00</span>
+                <span class="sign-name">{{ outgoingSupervisorName }}</span>
+                <div class="sign-meta-block">
+                  <span class="sign-dni">DNI: <strong>{{ outgoingSupervisorDni }}</strong></span>
+                  <span class="sign-role">{{ outgoingSupervisorRole }} (Turno Saliente)</span>
+                </div>
+                <span class="sign-date">Fecha y Hora: {{ reportData.date }} 19:00</span>
                 <span class="sign-status-tag">ENTREGADO CONFORME</span>
               </div>
               <div class="signature-box">
                 <div class="sign-line"></div>
-                <span class="sign-name">{{ reportData.incoming_supervisor || 'Supervisor Entrante' }}</span>
-                <span class="sign-role">SUPERVISOR ENTRANTE</span>
-                <span class="sign-date">Fecha/Hora: {{ reportData.date }} 19:15</span>
-                <span class="sign-status-tag">RECIBIDO CONFORME</span>
+                <span class="sign-name">{{ incomingSupervisorName }}</span>
+                <div class="sign-meta-block">
+                  <span class="sign-dni">DNI: <strong>{{ incomingSupervisorDni }}</strong></span>
+                  <span class="sign-role">{{ incomingSupervisorRole }} (Turno Entrante)</span>
+                </div>
+                <span class="sign-date">Fecha y Hora: {{ reportData.date }} 19:15</span>
+                <span class="sign-status-tag">{{ isAccepted ? 'RECIBIDO CONFORME' : 'PENDIENTE DE CONFORMIDAD' }}</span>
               </div>
             </div>
           </div>
@@ -601,6 +664,12 @@ import { copyToClipboard } from '../../core/utils/clipboard.util';
           color: #0f172a;
           margin-top: 0.25rem;
         }
+
+        .card-meta-line {
+          font-size: 0.72rem;
+          color: #475569;
+          margin-top: 0.25rem;
+        }
       }
     }
 
@@ -678,6 +747,37 @@ import { copyToClipboard } from '../../core/utils/clipboard.util';
         background: #f1f5f9;
         color: #475569;
       }
+
+      &.badge-amber {
+        background: #fffbeb;
+        color: #b45309;
+      }
+
+      &.badge-rose {
+        background: #ffe4e6;
+        color: #e11d48;
+      }
+    }
+
+    .pumps-summary-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 0.4rem 0.75rem;
+      margin-bottom: 0.65rem;
+      font-size: 0.73rem;
+      color: #334155;
+
+      .ps-item strong {
+        color: #0f172a;
+      }
+
+      .ps-divider {
+        color: #cbd5e1;
+      }
     }
 
     .grid-4-col {
@@ -747,6 +847,20 @@ import { copyToClipboard } from '../../core/utils/clipboard.util';
           margin: 0.15rem 0;
         }
 
+        .sign-meta-block {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 2px;
+          margin: 0.25rem 0 0.35rem;
+        }
+
+        .sign-dni {
+          font-size: 0.74rem;
+          color: #1e293b;
+          letter-spacing: 0.03em;
+        }
+
         .sign-date {
           display: block;
           font-size: 0.68rem;
@@ -764,6 +878,77 @@ import { copyToClipboard } from '../../core/utils/clipboard.util';
           padding: 0.15rem 0.6rem;
           border-radius: 9999px;
         }
+      }
+    }
+
+    .vehicle-alert-banner {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.65rem;
+      background: #fffbeb;
+      border: 1px solid #fef3c7;
+      border-left: 4px solid #f59e0b;
+      padding: 0.55rem 0.85rem;
+      border-radius: 6px;
+      margin-bottom: 0.65rem;
+      font-size: 0.74rem;
+      color: #92400e;
+
+      .va-icon {
+        font-size: 1rem;
+        line-height: 1;
+      }
+
+      .va-text {
+        line-height: 1.35;
+      }
+    }
+
+    .vehicle-tag-badge {
+      display: inline-block;
+      font-weight: 800;
+      font-size: 0.76rem;
+      color: #031795;
+      background: #eef2ff;
+      border: 1px solid #c7d2fe;
+      padding: 1px 6px;
+      border-radius: 4px;
+    }
+
+    .vehicle-plate-text {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #475569;
+      margin-top: 2px;
+      letter-spacing: 0.04em;
+    }
+
+    .obs-cell {
+      text-align: left;
+
+      .obs-notes {
+        font-size: 0.72rem;
+        font-weight: 600;
+        color: #b45309;
+        line-height: 1.3;
+      }
+
+      .defective-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 3px;
+        margin-top: 4px;
+      }
+
+      .def-pill {
+        display: inline-block;
+        font-size: 0.65rem;
+        font-weight: 600;
+        color: #991b1b;
+        background: #fee2e2;
+        border: 1px solid #fecaca;
+        padding: 1px 5px;
+        border-radius: 4px;
       }
     }
 
@@ -825,15 +1010,44 @@ import { copyToClipboard } from '../../core/utils/clipboard.util';
     }
   `]
 })
-export class ShiftReportPdfComponent implements OnInit {
+export class ShiftReportPdfComponent implements OnInit, OnChanges {
   private pdfService = inject(PdfExportService);
+  private crewService = inject(CrewService);
+  private vehicleService = inject(VehicleChecklistService);
+  private http = inject(HttpClient);
 
   @Input() handover: ShiftHandover | null = null;
+
+  observedVehicles: HandoverVehicleObservation[] = [];
+  operationalPumps: any[] = [];
+  pumpSheet: any = null;
+  rawCycloneSamples: any[] = [];
+  latestTailings: any = null;
+
+  get operationalCrewList() {
+    if (this.handover?.assigned_crew && this.handover.assigned_crew.length > 0) {
+      return this.handover.assigned_crew;
+    }
+    const shift = this.reportData.shift_code?.substring(0, 2) || (typeof localStorage !== 'undefined' ? localStorage.getItem('basetrack_active_shift') : null) || 'G1';
+    const positions = this.crewService.positions().filter(p => p.key !== 'SUPERVISOR');
+    return positions.map(p => {
+      const op = this.crewService.getAssignedOperatorForPosition(p.key, shift);
+      return {
+        key: p.key,
+        title: p.title,
+        operatorName: op?.name || '--- Sin Asignar ---',
+        documentId: op?.document_id || '---',
+        radioChannel: op?.radio_channel || p.defaultRadio || 'Canal 1 Operaciones',
+        location: p.defaultLocation || 'Planta Concentradora'
+      };
+    });
+  }
   
   private _isOpen = false;
   @Input() set isOpen(val: boolean) {
     this._isOpen = val;
     if (val) {
+      this.loadOperationalData();
       setTimeout(() => {
         this.downloadDirectPdf();
       }, 350);
@@ -854,27 +1068,392 @@ export class ShiftReportPdfComponent implements OnInit {
     shift_code: 'G1-01',
     date: new Date().toISOString().split('T')[0],
     shift_type: 'DIA',
-    outgoing_supervisor: 'VIZCARRA CORI MANLEY KLISMAN',
-    incoming_supervisor: 'Ing. Roberto Silva',
+    outgoing_supervisor: '',
+    outgoing_dni: '',
+    outgoing_role: 'Supervisor de guardia',
+    incoming_supervisor: '',
+    incoming_dni: '',
+    incoming_role: 'Supervisor de guardia',
     plant_status: 'Operación normal a ritmo de tratamiento continuo. Se mantuvo estabilidad en flotación y clasificación.',
-    tonnage_processed: 24500,
+    tonnage_processed: 48250,
     safety_incidents: 'Sin accidentes ni incidentes con tiempo perdido en el turno. Charla de seguridad realizada.',
-    operational_highlights: 'Buen rendimiento en nidos Cyclopac CY3/4.',
-    pending_tasks: 'Inspección de desgaste en impulsor de Bomba PP-101 para la parada programada de mañana a las 10:00.',
+    operational_highlights: 'Buen rendimiento en nidos de ciclones y transporte de pulpa.',
+    pending_tasks: 'Inspección de desgaste en impulsor de Bomba PP-101 para la parada programada de mañana.',
     status: 'ACCEPTED',
     created_at: new Date().toISOString()
   };
 
   ngOnInit(): void {
+    this.syncHandoverData();
+    this.loadOperationalData();
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['handover'] && this.handover) {
+      this.syncHandoverData();
+    }
+    if (changes['isOpen'] && this.isOpen) {
+      this.loadOperationalData();
+    }
+  }
+
+  private syncHandoverData(): void {
     if (this.handover) {
       this.reportData = { ...this.handover };
     }
+    const active = getCurrentActiveShift();
+    const isInvalidSup = (name?: string) => !name || name.includes('VIZCARRA CORI') || name.includes('Roberto Quispe') || name.includes('LLERENA CALLE') || name.includes('Marco Vel');
+
+    if (isInvalidSup(this.reportData.outgoing_supervisor)) {
+      const shift = this.reportData.shift_code?.substring(0, 2) || active.activeGuard.code;
+      const sup = this.crewService.getActiveSupervisorForShift(shift);
+      this.reportData.outgoing_supervisor = sup?.name || active.activeGuard.supervisorName;
+      this.reportData.outgoing_dni = sup?.document_id || (shift === 'G4' ? '18110964' : '41833717');
+      this.reportData.outgoing_role = 'Supervisor de guardia';
+    }
+
+    if (isInvalidSup(this.reportData.incoming_supervisor)) {
+      const inSup = this.crewService.getActiveSupervisorForShift(active.nextGuard.code);
+      this.reportData.incoming_supervisor = inSup?.name || active.nextGuard.supervisorName;
+      this.reportData.incoming_dni = inSup?.document_id || (active.nextGuard.code === 'G2' ? '46593500' : '40132660');
+      this.reportData.incoming_role = 'Supervisor de guardia';
+    }
+  }
+
+  loadOperationalData(): void {
+    // 1. Bombas: telemetry & sheet
+    const cachedPumps = getRealtimeData<any[]>('pumps_telemetry', []);
+    if (cachedPumps && cachedPumps.length > 0) {
+      this.operationalPumps = cachedPumps;
+    }
+    this.http.get<any>(`${getApiBaseUrl()}/pumps`).subscribe({
+      next: (res) => {
+        if (res.success && res.data && res.data.length > 0) {
+          this.operationalPumps = res.data;
+        }
+      },
+      error: () => {}
+    });
+
+    const cachedSheet = getRealtimeData<any>('pump_sheet_latest', null);
+    if (cachedSheet) {
+      this.pumpSheet = cachedSheet;
+    }
+    this.http.get<any>(`${getApiBaseUrl()}/pumps/operational-sheet`).subscribe({
+      next: (res) => {
+        if (res.success && res.data) {
+          this.pumpSheet = res.data;
+        }
+      },
+      error: () => {}
+    });
+
+    // 2. Ciclones
+    const cachedSamples = getRealtimeData<any[]>('cyclone_samples', []);
+    if (cachedSamples && cachedSamples.length > 0) {
+      this.rawCycloneSamples = cachedSamples;
+    }
+    this.http.get<any>(`${getApiBaseUrl()}/cyclones/station-samples`).subscribe({
+      next: (res) => {
+        if (res.success && res.data && res.data.length > 0) {
+          this.rawCycloneSamples = res.data;
+        }
+      },
+      error: () => {}
+    });
+
+    // 3. Relaves
+    const cachedTailings = getRealtimeData<any[]>('tailings_reports', []);
+    if (cachedTailings && cachedTailings.length > 0) {
+      this.latestTailings = cachedTailings[0];
+    }
+    this.http.get<any>(`${getApiBaseUrl()}/tailings`).subscribe({
+      next: (res) => {
+        if (res.success && res.data && res.data.length > 0) {
+          this.latestTailings = res.data[0];
+        }
+      },
+      error: () => {}
+    });
+
+    // 4. Camionetas Mineras (Checklist Pre-Uso)
+    // REGLA ESTRICTA: Solo unidades OBSERVADAS o NO APTAS. Unidades APTAS (Verde) quedan excluidas del informe.
+    this.observedVehicles = this.vehicleService.getObservedOrNonAptoVehicles();
+    this.http.get<any>(`${getApiBaseUrl()}/vehicles/checklists`).subscribe({
+      next: (res) => {
+        if (res && res.success && Array.isArray(res.data)) {
+          this.observedVehicles = this.vehicleService.getObservedOrNonAptoVehicles(res.data);
+        }
+      },
+      error: () => {}
+    });
+  }
+
+  // --- GETTERS: PUMPS METRICS & TABLES ---
+  get sentinaActiveCount(): number {
+    if (!this.pumpSheet?.sentina_pumps) return 0;
+    return this.pumpSheet.sentina_pumps.filter((p: any) => p.status === 'Operativo').length;
+  }
+
+  get intermediaActiveCount(): number {
+    if (!this.pumpSheet?.intermedia_pumps) return 0;
+    return this.pumpSheet.intermedia_pumps.filter((p: any) => p.status === 'Operativo').length;
+  }
+
+  get torre5ActiveCount(): number {
+    if (!this.pumpSheet?.torre5_pumps) return 0;
+    return this.pumpSheet.torre5_pumps.filter((p: any) => p.status === 'Operativo').length;
+  }
+
+  get displayPumps(): any[] {
+    if (this.operationalPumps && this.operationalPumps.length > 0) {
+      return this.operationalPumps.map(p => {
+        const statusUpper = (p.status || 'OPERATING').toUpperCase();
+        let badgeClass = 'badge-green';
+        let statusLabel = 'OPERANDO';
+        if (statusUpper === 'STANDBY' || statusUpper === 'STAND BY') {
+          badgeClass = 'badge-slate';
+          statusLabel = 'STANDBY';
+        } else if (statusUpper === 'MAINTENANCE' || statusUpper === 'MANTENIMIENTO') {
+          badgeClass = 'badge-amber';
+          statusLabel = 'MANTENIMIENTO';
+        } else if (statusUpper === 'FAULT' || statusUpper === 'CRITICAL' || statusUpper === 'FALLA') {
+          badgeClass = 'badge-rose';
+          statusLabel = 'FALLA';
+        }
+
+        let pressStr = '0 PSI';
+        if (p.pressure_bar !== undefined && p.pressure_bar !== null && p.pressure_bar > 0) {
+          pressStr = `${(p.pressure_bar * 14.5038).toFixed(1)} PSI (${p.pressure_bar} bar)`;
+        } else if (p.pressure_psi) {
+          pressStr = `${p.pressure_psi} PSI`;
+        }
+
+        const formatSystemName = (sys: string, name: string) => {
+          if (name && name.length > 5) return name;
+          if (!sys) return 'Circuito General';
+          switch (sys) {
+            case 'ALIMENTACION_CICLONES': return 'Alimentación Ciclones';
+            case 'TRANSPORTE_RELAVES': return 'Línea de Relaves';
+            case 'DESCARGA_MOLIENDA': return 'Descarga Molienda SAG';
+            case 'AGUA_RECUPERADA': return 'Sistema Agua Clarificada';
+            default: return sys.replace(/_/g, ' ');
+          }
+        };
+
+        return {
+          tag: p.tag,
+          systemName: formatSystemName(p.system, p.name),
+          badgeClass,
+          statusLabel,
+          currentAmps: p.current_amps ? `${p.current_amps} A` : '0 A',
+          pressure: pressStr,
+          observations: p.notes || (statusLabel === 'OPERANDO' ? 'Operación en rango normal' : (statusLabel === 'STANDBY' ? 'Listo para respaldo' : 'Inspección técnica'))
+        };
+      });
+    }
+
+    return [
+      { systemName: 'Sentina Principal', tag: 'PP-101', badgeClass: 'badge-green', statusLabel: 'OPERANDO', currentAmps: '142 A', pressure: '34.5 PSI', observations: 'Vibración en rango permisible' },
+      { systemName: 'Sentina Principal', tag: 'PP-102', badgeClass: 'badge-slate', statusLabel: 'STANDBY', currentAmps: '0 A', pressure: '0 PSI', observations: 'Listo para respaldo automático' },
+      { systemName: 'Bombeo Intermedio', tag: 'PP-201', badgeClass: 'badge-green', statusLabel: 'OPERANDO', currentAmps: '158 A', pressure: '42.0 PSI', observations: 'Caudal sostenido a ciclones' },
+      { systemName: 'Bombeo Intermedio', tag: 'PP-202', badgeClass: 'badge-green', statusLabel: 'OPERANDO', currentAmps: '155 A', pressure: '41.2 PSI', observations: 'Operación continua normal' },
+      { systemName: 'Estación Torre 5', tag: 'PP-501', badgeClass: 'badge-green', statusLabel: 'OPERANDO', currentAmps: '110 A', pressure: '28.4 PSI', observations: 'Retorno de agua clara' },
+      { systemName: 'Línea Relaves', tag: 'TL-201', badgeClass: 'badge-green', statusLabel: 'OPERANDO', currentAmps: '168 A', pressure: '48.0 PSI', observations: 'Descarga estable hacia presa' }
+    ];
+  }
+
+  get pumpOperatingCount(): number {
+    if (this.displayPumps.length > 0) {
+      return this.displayPumps.filter(p => p.statusLabel === 'OPERANDO').length;
+    }
+    if (this.pumpSheet) {
+      return (this.sentinaActiveCount + this.intermediaActiveCount + this.torre5ActiveCount);
+    }
+    return 5;
+  }
+
+  get pumpTotalCount(): number {
+    if (this.displayPumps.length > 0) {
+      return this.displayPumps.length;
+    }
+    if (this.pumpSheet) {
+      return (
+        (this.pumpSheet.sentina_pumps?.length || 8) +
+        (this.pumpSheet.intermedia_pumps?.length || 6) +
+        (this.pumpSheet.torre5_pumps?.length || 10)
+      );
+    }
+    return 6;
+  }
+
+  get pumpAvailabilityPercent(): number {
+    const total = this.pumpTotalCount;
+    if (total === 0) return 100;
+    return Number(((this.pumpOperatingCount / total) * 100).toFixed(1));
+  }
+
+  // --- GETTERS: CYCLONE STATION ROWS & METRICS ---
+  get cycloneStationRows() {
+    const samples = this.rawCycloneSamples || [];
+    
+    const s1 = samples.filter((s: any) => 
+      (s.station && s.station.toLowerCase().includes('1ra')) || 
+      s.battery_tag === 'CY1' || s.battery_tag === 'CY2'
+    );
+    const s2 = samples.filter((s: any) => 
+      (s.station && s.station.toLowerCase().includes('2da')) || 
+      s.battery_tag === 'CY3' || s.battery_tag === 'CY4'
+    );
+
+    const calc = (list: any[], defaultFeed: number, defaultOf: number, defaultUf: number, defaultM200: number) => {
+      if (list.length === 0) {
+        return {
+          feed: defaultFeed,
+          of: defaultOf,
+          uf: defaultUf,
+          m200: defaultM200
+        };
+      }
+      const sum = list.reduce((acc, c) => ({
+        feed: acc.feed + Number(c.solids_feed || 0),
+        of: acc.of + Number(c.solids_of || 0),
+        uf: acc.uf + Number(c.solids_uf || 0),
+        m200: acc.m200 + Number(c.mesh200_of || 0)
+      }), { feed: 0, of: 0, uf: 0, m200: 0 });
+      return {
+        feed: Number((sum.feed / list.length).toFixed(2)),
+        of: Number((sum.of / list.length).toFixed(2)),
+        uf: Number((sum.uf / list.length).toFixed(2)),
+        m200: Number((sum.m200 / list.length).toFixed(2))
+      };
+    };
+
+    const avg1 = calc(s1, 44.8, 28.5, 69.2, 52.4);
+    const avg2 = calc(s2, 45.6, 29.5, 70.1, 64.5);
+
+    return [
+      {
+        name: '1ra Estación (CY1/2)',
+        activeCount: '4 de 6 en línea',
+        pressure: '16.2 PSI',
+        solidsFeed: avg1.feed,
+        solidsOf: avg1.of,
+        solidsUf: avg1.uf,
+        mesh200Of: avg1.m200,
+        isTarget: false
+      },
+      {
+        name: '2da Estación (CY3/4)',
+        activeCount: '5 de 6 en línea',
+        pressure: '18.5 PSI',
+        solidsFeed: avg2.feed,
+        solidsOf: avg2.of,
+        solidsUf: avg2.uf,
+        mesh200Of: avg2.m200,
+        isTarget: true
+      }
+    ];
+  }
+
+  get liveMesh200Of(): number {
+    return this.cycloneStationRows[1]?.mesh200Of || 64.5;
+  }
+
+  // --- GETTERS: TAILINGS METRICS ---
+  get liveWaterMirror(): number {
+    if (this.latestTailings?.dam_level_meters) {
+      return Number(this.latestTailings.dam_level_meters);
+    }
+    if (this.pumpSheet?.levels?.espejo) {
+      const parsed = parseFloat(String(this.pumpSheet.levels.espejo).replace(',', '.'));
+      if (!isNaN(parsed)) return parsed;
+    }
+    return 4120.4;
+  }
+
+  get liveFreeboard(): number {
+    if (this.latestTailings?.freeboard_meters) {
+      return Number(this.latestTailings.freeboard_meters);
+    }
+    return 3.8;
+  }
+
+  get livePiezometer(): number {
+    if (this.latestTailings?.piezometer_kpa) {
+      return Number(this.latestTailings.piezometer_kpa);
+    }
+    return 142.6;
+  }
+
+  get liveTurbidity(): number {
+    if (this.latestTailings?.turbidity_ntu) {
+      return Number(this.latestTailings.turbidity_ntu);
+    }
+    return 12.5;
+  }
+
+  get liveTonnage(): number {
+    return this.reportData.tonnage_processed || 48250;
+  }
+
+  // --- GETTERS: DYNAMIC SUPERVISORS & SIGNATURES ---
+  get outgoingSupervisorName(): string {
+    const isInvalidSup = (name?: string) => !name || name.includes('VIZCARRA CORI') || name.includes('Roberto Quispe') || name.includes('LLERENA CALLE') || name.includes('Marco Vel');
+    if (!isInvalidSup(this.reportData.outgoing_supervisor)) {
+      return this.reportData.outgoing_supervisor;
+    }
+    const active = getCurrentActiveShift();
+    const shift = this.reportData.shift_code?.substring(0, 2) || active.activeGuard.code;
+    const sup = this.crewService.getActiveSupervisorForShift(shift);
+    return sup?.name || active.activeGuard.supervisorName;
+  }
+
+  get outgoingSupervisorDni(): string {
+    if (this.reportData.outgoing_dni && this.reportData.outgoing_dni !== '71209033') {
+      return this.reportData.outgoing_dni;
+    }
+    const active = getCurrentActiveShift();
+    const shift = this.reportData.shift_code?.substring(0, 2) || active.activeGuard.code;
+    const sup = this.crewService.getActiveSupervisorForShift(shift);
+    return sup?.document_id || (shift === 'G4' ? '18110964' : '41833717');
+  }
+
+  get outgoingSupervisorRole(): string {
+    return this.reportData.outgoing_role || 'Supervisor de guardia';
+  }
+
+  get incomingSupervisorName(): string {
+    const isInvalidSup = (name?: string) => !name || name.includes('VIZCARRA CORI') || name.includes('Roberto Quispe') || name.includes('LLERENA CALLE') || name.includes('Marco Vel');
+    if (!isInvalidSup(this.reportData.incoming_supervisor)) {
+      return this.reportData.incoming_supervisor;
+    }
+    const active = getCurrentActiveShift();
+    const inSup = this.crewService.getActiveSupervisorForShift(active.nextGuard.code);
+    return inSup?.name || active.nextGuard.supervisorName;
+  }
+
+  get incomingSupervisorDni(): string {
+    if (this.reportData.incoming_dni && this.reportData.incoming_dni !== '71491945') {
+      return this.reportData.incoming_dni;
+    }
+    const active = getCurrentActiveShift();
+    const inSup = this.crewService.getActiveSupervisorForShift(active.nextGuard.code);
+    return inSup?.document_id || (active.nextGuard.code === 'G2' ? '46593500' : '40132660');
+  }
+
+  get incomingSupervisorRole(): string {
+    return this.reportData.incoming_role || 'Supervisor de guardia';
+  }
+
+  get isAccepted(): boolean {
+    return this.reportData.status === 'ACCEPTED';
   }
 
   async downloadDirectPdf(): Promise<void> {
     if (this.isDownloading) return;
     this.isDownloading = true;
-    const cleanDate = this.reportData.date.replace(/[\/\\]/g, '-');
+    const cleanDate = (this.reportData.date || new Date().toISOString().split('T')[0]).replace(/[\/\\]/g, '-');
     const filename = `Informe_Oficial_Guardia_${cleanDate}.pdf`;
     const success = await this.pdfService.exportToPdf('printable-shift-report', filename);
     this.isDownloading = false;
@@ -901,16 +1480,23 @@ export class ShiftReportPdfComponent implements OnInit {
   }
 
   copyExecutiveSummary(): void {
+    let vehText = '';
+    if (this.observedVehicles && this.observedVehicles.length > 0) {
+      vehText = `\n🚗 *NOVEDADES VEHICULARES (${this.observedVehicles.length} UNIDAD(ES) CON OBSERVACIÓN / NO APTA):*\n` +
+        this.observedVehicles.map(v => `  • ${v.tag} (${v.plate}) [${v.operationalStatus}]: ${v.observationNotes} | Cond: ${v.driverName}`).join('\n');
+    }
+
     const summary = `📋 *BASETRACK - REPORTE OFICIAL DE RELEVO DE GUARDIA*
 📅 Fecha: ${this.reportData.date} | Turno: ${this.reportData.shift_type} | Código: ${this.reportData.shift_code}
-👤 Entrega: ${this.reportData.outgoing_supervisor}
-👤 Recibe: ${this.reportData.incoming_supervisor || 'Guardia Siguiente'}
-⚖️ Tonelaje Procesado: ${this.reportData.tonnage_processed.toLocaleString()} TMS
-🌪️ Malla -200 Final: 64.5%
-🌊 Borde Libre Presa: 3.8m (Estable)
+👤 Entrega: ${this.outgoingSupervisorName} (DNI: ${this.outgoingSupervisorDni})
+👤 Recibe: ${this.incomingSupervisorName} (DNI: ${this.incomingSupervisorDni})
+⚖️ Tonelaje Procesado: ${(this.reportData.tonnage_processed || this.liveTonnage).toLocaleString()} TMS
+🌪️ Malla -200 Final (OF): ${this.liveMesh200Of}%
+⚡ Disponibilidad Bombas: ${this.pumpAvailabilityPercent}% (${this.pumpOperatingCount}/${this.pumpTotalCount} Operativas)
+🌊 Borde Libre Presa: ${this.liveFreeboard}m (${this.liveFreeboard >= 2.5 ? 'Estable' : 'Alerta'})
 📌 Novedad de Planta: ${this.reportData.plant_status}
-⚠️ Pendientes Críticos: ${this.reportData.pending_tasks || 'Ninguno'}
-✅ Estado: ACEPTADO Y CONFORME`;
+⚠️ Pendientes Críticos: ${this.reportData.pending_tasks || 'Ninguno'}${vehText}
+✅ Estado: ${this.isAccepted ? 'ACEPTADO Y CONFORME' : 'PENDIENTE DE CONFORMIDAD'}`;
 
     copyToClipboard(summary).then((success) => {
       if (success) {

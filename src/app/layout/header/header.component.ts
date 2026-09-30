@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
@@ -260,16 +260,36 @@ import { ThemeService } from '../../core/theme/theme.service';
         </div>
 
         <div class="sync-modal-foot">
-          <button class="btn btn-secondary" (click)="offlineSync.closeSyncDrawer()">Cerrar</button>
-          <button
-            class="btn btn-primary"
-            (click)="syncAll()"
-            [disabled]="cloudSync.isSyncing() || offlineSync.isSyncing()"
-          >
-            {{ (cloudSync.isSyncing() || offlineSync.isSyncing()) ? 'Sincronizando...' : '🔄 Sincronizar en la Nube' }}
+          <button class="btn btn-backup-export" (click)="offlineSync.exportEmergencyBackupJson()" title="Descargar copia de seguridad en JSON de los datos en este equipo">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            Exportar Respaldo Local (JSON)
           </button>
+          <div class="foot-main-actions">
+            <button *ngIf="offlineSync.queueItems().length > 0" class="btn btn-secondary btn-sm" (click)="offlineSync.clearQueue()" title="Limpiar cola pendiente">
+              🧹 Purgar Cola
+            </button>
+            <button class="btn btn-secondary" (click)="offlineSync.closeSyncDrawer()">Cerrar</button>
+            <button
+              class="btn btn-primary"
+              (click)="syncAll()"
+              [disabled]="cloudSync.isSyncing() || offlineSync.isSyncing()"
+            >
+              {{ (cloudSync.isSyncing() || offlineSync.isSyncing()) ? 'Sincronizando...' : '🔄 Sincronizar en la Nube' }}
+            </button>
+          </div>
         </div>
       </div>
+    </div>
+
+    <!-- Floating Connectivity Toast Banner -->
+    <div *ngIf="connectivityToastMessage" class="connectivity-toast-banner animate-fade-in" [class.toast-offline]="!isOnlineToast" [class.toast-online]="isOnlineToast">
+      <span class="toast-dot"></span>
+      <span class="toast-text">{{ connectivityToastMessage }}</span>
+      <button class="toast-close" (click)="connectivityToastMessage = null">✕</button>
     </div>
   `,
   styles: [`
@@ -996,8 +1016,14 @@ import { ThemeService } from '../../core/theme/theme.service';
       background: #f8fafc;
       border-top: 1px solid #e2e8f0;
       display: flex;
-      justify-content: flex-end;
+      justify-content: space-between;
+      align-items: center;
       gap: 0.75rem;
+
+      .foot-main-actions {
+        display: flex;
+        gap: 0.75rem;
+      }
 
       .btn {
         padding: 0.5rem 1rem;
@@ -1006,6 +1032,19 @@ import { ThemeService } from '../../core/theme/theme.service';
         font-weight: 600;
         cursor: pointer;
         border: 1px solid transparent;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .btn-backup-export {
+        background: #fffbeb;
+        color: #b45309;
+        border-color: #fde68a;
+        &:hover {
+          background: #fef3c7;
+          border-color: #f59e0b;
+        }
       }
 
       .btn-secondary {
@@ -1023,6 +1062,59 @@ import { ThemeService } from '../../core/theme/theme.service';
           opacity: 0.5;
           cursor: not-allowed;
         }
+      }
+    }
+
+    /* Floating Connectivity Toast Banner */
+    .connectivity-toast-banner {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 999999;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 18px;
+      border-radius: 12px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.25);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+
+      &.toast-online {
+        background: #064e3b;
+        color: #ecfdf5;
+        border-color: #10b981;
+        .toast-dot { background: #34d399; box-shadow: 0 0 10px #34d399; }
+      }
+
+      &.toast-offline {
+        background: #7f1d1d;
+        color: #fef2f2;
+        border-color: #ef4444;
+        .toast-dot { background: #f87171; box-shadow: 0 0 10px #f87171; }
+      }
+
+      .toast-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+
+      .toast-text {
+        flex: 1;
+      }
+
+      .toast-close {
+        background: transparent;
+        border: none;
+        color: currentColor;
+        font-size: 0.9rem;
+        cursor: pointer;
+        padding: 0 4px;
+        opacity: 0.8;
+        &:hover { opacity: 1; }
       }
     }
 
@@ -1072,6 +1164,41 @@ export class HeaderComponent {
   themeService = inject(ThemeService);
   private router = inject(Router);
   showNotifications = false;
+
+  connectivityToastMessage: string | null = null;
+  isOnlineToast = true;
+  private onlineListener?: () => void;
+  private offlineListener?: () => void;
+
+  constructor() {
+    if (typeof window !== 'undefined') {
+      this.onlineListener = () => {
+        this.isOnlineToast = true;
+        this.connectivityToastMessage = 'Conexión Restablecida — Sincronizando con el servidor...';
+        setTimeout(() => {
+          this.connectivityToastMessage = null;
+        }, 4500);
+      };
+
+      this.offlineListener = () => {
+        this.isOnlineToast = false;
+        this.connectivityToastMessage = 'Modo Offline Activo — Datos guardados localmente con seguridad';
+        setTimeout(() => {
+          this.connectivityToastMessage = null;
+        }, 5000);
+      };
+
+      window.addEventListener('online', this.onlineListener);
+      window.addEventListener('offline', this.offlineListener);
+    }
+  }
+
+  ngOnDestroy(): void {
+    if (typeof window !== 'undefined') {
+      if (this.onlineListener) window.removeEventListener('online', this.onlineListener);
+      if (this.offlineListener) window.removeEventListener('offline', this.offlineListener);
+    }
+  }
 
   getPageTitle(): string {
     const url = this.router.url;

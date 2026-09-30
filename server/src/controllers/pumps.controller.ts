@@ -107,6 +107,21 @@ export function getPumpOperationalSheet(req: Request, res: Response) {
     }
 
     if (sheet) {
+      const cleanVal = (v: any) => (v === '---' || v === 'n/d' || v === null || v === undefined ? '' : v);
+      const cleanObj = (obj: any): any => {
+        if (!obj || typeof obj !== 'object') return obj;
+        if (Array.isArray(obj)) return obj.map(item => cleanObj(item));
+        const out: any = {};
+        for (const [k, v] of Object.entries(obj)) {
+          if (typeof v === 'object' && v !== null) {
+            out[k] = cleanObj(v);
+          } else {
+            out[k] = k.includes('status') ? v : cleanVal(v);
+          }
+        }
+        return out;
+      };
+
       return res.json({
         success: true,
         data: {
@@ -117,16 +132,16 @@ export function getPumpOperationalSheet(req: Request, res: Response) {
           sentina_pumps: JSON.parse(sheet.sentina_pumps_json),
           intermedia_pumps: JSON.parse(sheet.intermedia_pumps_json),
           torre5_pumps: JSON.parse(sheet.torre5_pumps_json),
-          levels: JSON.parse(sheet.levels_json),
-          main_indicators: JSON.parse(sheet.main_indicators_json),
-          pozas_sentina: JSON.parse(sheet.pozas_sentina_json),
-          additional_obs: JSON.parse(sheet.additional_obs_json),
+          levels: cleanObj(JSON.parse(sheet.levels_json)),
+          main_indicators: cleanObj(JSON.parse(sheet.main_indicators_json)),
+          pozas_sentina: cleanObj(JSON.parse(sheet.pozas_sentina_json)),
+          additional_obs: cleanObj(JSON.parse(sheet.additional_obs_json)),
           updated_at: sheet.updated_at
         }
       });
     }
 
-    // Default template if no records yet
+    // Default template if no records yet (clean empty spaces)
     const defaultSentina = ['PU001', 'PU002', 'PU003', 'PU004', 'PU005', 'PU006', 'PU007', 'PU008'].map(tag => ({ tag, status: 'Operativo' }));
     const defaultIntermedia = ['PU011', 'PU012', 'PU013', 'PU014', 'PU015', 'PU016'].map(tag => ({ tag, status: 'Operativo' }));
     const defaultTorre5 = ['PU021', 'PU022', 'PU023', 'PU024', 'PU025', 'PU026', 'PU027', 'PU028', 'PU029', 'PU030'].map(tag => ({ tag, status: 'Operativo' }));
@@ -141,19 +156,19 @@ export function getPumpOperationalSheet(req: Request, res: Response) {
         sentina_pumps: defaultSentina,
         intermedia_pumps: defaultIntermedia,
         torre5_pumps: defaultTorre5,
-        levels: { orca: '---', espejo: '---', captacion: '---' },
+        levels: { orca: '', espejo: '', captacion: '' },
         main_indicators: {
-          nivel_sentina: '---', bombeo_turno_intermedia: '---', nivel_tko02: '---', aforador: '---',
-          cortafugas: '---', ph_aforador: '---', ph_cortafugas: '---', h_embalas: '---',
-          dique_almacenamiento: '---', drenaje_dique: '---', agua_a_car: '---', anticrustante: '---',
-          torre5_cortafugas: '---', torre5_status1: 'Stand by', torre5_status2: 'Stand by'
+          nivel_sentina: '', bombeo_turno_intermedia: '', nivel_tko02: '', aforador: '',
+          cortafugas: '', ph_aforador: '', ph_cortafugas: '', h_embalas: '',
+          dique_almacenamiento: '', drenaje_dique: '', agua_a_car: '', anticrustante: '',
+          torre5_cortafugas: '', torre5_status1: 'Stand by', torre5_status2: 'Stand by'
         },
         pozas_sentina: [
-          { poza: 'S-QCOR.R_02', medida_ini: 'n/d', flujo_ini: 'n/d', medida_fin: 'n/d', flujo_fin: 'n/d', horas: 'n/d', acc: '---' },
-          { poza: 'S-QCOR.R_03', medida_ini: 'n/d', flujo_ini: 'n/d', medida_fin: 'n/d', flujo_fin: 'n/d', horas: 'n/d', acc: '---' }
+          { poza: 'S-QCOR.R_02', medida_ini: '', flujo_ini: '', medida_fin: '', flujo_fin: '', horas: '', acc: '' },
+          { poza: 'S-QCOR.R_03', medida_ini: '', flujo_ini: '', medida_fin: '', flujo_fin: '', horas: '', acc: '' }
         ],
         additional_obs: {
-          notas: '---', af_cantera: '---', escorrentia: '---', ph_c5_1: '---', ph_c5_2: '---'
+          notas: '', af_cantera: '', escorrentia: '', ph_c5_1: '', ph_c5_2: ''
         }
       }
     });

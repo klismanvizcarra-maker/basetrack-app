@@ -47,6 +47,25 @@ export interface VehicleChecklist {
   created_at?: string;
 }
 
+export interface HandoverVehicleObservation {
+  plate: 'BMC715' | 'BKS921' | 'BKS913' | 'BPS747';
+  tag: string;
+  model: string;
+  area: string;
+  date: string;
+  time: string;
+  shift: string;
+  shiftType?: string;
+  driverName: string;
+  driverDni: string;
+  driverLicense?: string;
+  odometer: number;
+  operationalStatus: 'OBSERVADO' | 'NO_APTO';
+  observationNotes: string;
+  photoUrl?: string;
+  defectiveItems: Array<{ category: string; name: string; observation?: string }>;
+}
+
 export const OFFICIAL_VEHICLES_METADATA: VehicleInfo[] = [
   {
     plate: 'BMC715',
@@ -474,6 +493,89 @@ export class VehicleChecklistService {
         }
       });
     });
+  }
+
+  /**
+   * Obtiene exclusivamente los vehículos con estado OBSERVADO o NO_APTO en su checklist más reciente.
+   * Regla estricta: Si el vehículo está en estado APTO (Verde) sin fallas, se EXCLUYE totalmente del informe.
+   */
+  public getObservedOrNonAptoVehicles(customList?: VehicleChecklist[]): HandoverVehicleObservation[] {
+    const plates: Array<'BMC715' | 'BKS921' | 'BKS913' | 'BPS747'> = ['BMC715', 'BKS921', 'BKS913', 'BPS747'];
+    const vehiclesMeta = this.vehiclesSignal();
+    const result: HandoverVehicleObservation[] = [];
+
+    for (const plate of plates) {
+      const meta = vehiclesMeta.find(v => v.plate === plate) || OFFICIAL_VEHICLES_METADATA.find(v => v.plate === plate);
+      
+      let latest: VehicleChecklist | null = null;
+      if (customList && customList.length > 0) {
+        const forPlate = customList.filter(c => c.vehicle_plate === plate);
+        if (forPlate.length > 0) {
+          latest = forPlate.sort((a, b) => (b.date + ' ' + b.time).localeCompare(a.date + ' ' + a.time))[0];
+        }
+      }
+
+      if (!latest) {
+        const initial = SAMPLE_INITIAL_CHECKLISTS[plate] || [];
+        const cached = getRealtimeData<VehicleChecklist[]>(`basetrack_checklists_${plate}`, initial);
+        if (cached && cached.length > 0) {
+          latest = cached[0];
+        }
+      }
+
+      if (!latest) continue;
+
+      // REGLA ESTRICTA: Solo incluir si tiene observaciones o NO es APTO
+      const hasDefectiveItems = Array.isArray(latest.items) && latest.items.some(i => i.status === 'M');
+      const hasObsNotes = Boolean(latest.observation_notes && latest.observation_notes.trim().length > 0);
+      const isNotApto = latest.operational_status === 'NO_APTO';
+      const isObservado = latest.operational_status === 'OBSERVADO';
+      const hasObsFlag = Boolean(latest.has_observations);
+
+      const requiresInclusion = isNotApto || isObservado || hasObsFlag || hasDefectiveItems || (hasObsNotes && latest.operational_status !== 'APTO');
+
+      // Si es VERDE APTO (sin observaciones ni fallas), NO SE INCLUYE EN EL INFORME
+      if (!requiresInclusion) {
+        continue;
+      }
+
+      const defectiveItems = (latest.items || [])
+        .filter(i => i.status === 'M' || (i.observation && i.observation.trim().length > 0))
+        .map(i => ({
+          category: i.category,
+          name: i.name,
+          observation: i.observation || ''
+        }));
+
+      let notes = (latest.observation_notes || '').trim();
+      if (!notes && defectiveItems.length > 0) {
+        notes = defectiveItems.map(d => `${d.name}: ${d.observation || 'Con falla técnica'}`).join('; ');
+      }
+      if (!notes) {
+        notes = isNotApto ? 'Unidad fuera de servicio por no conformidad en inspección técnica.' : 'Inspección pre-uso registra observaciones operativas.';
+      }
+
+      result.push({
+        plate: latest.vehicle_plate,
+        tag: meta?.tag || 'CAM',
+        model: meta?.model || 'Toyota Hilux 4x4 Turbodiésel',
+        area: meta?.area || 'Operaciones de Planta',
+        date: latest.date,
+        time: latest.time,
+        shift: latest.shift ? `${latest.shift} (${latest.shift_type || ''})` : (latest.shift_type || ''),
+        shiftType: latest.shift_type,
+        driverName: latest.driver_name || 'Conductor asignado',
+        driverDni: latest.driver_dni || '---',
+        driverLicense: latest.driver_license,
+        odometer: latest.odometer || meta?.baseOdometer || 0,
+        operationalStatus: isNotApto ? 'NO_APTO' : 'OBSERVADO',
+        observationNotes: notes,
+        photoUrl: latest.photo_url,
+        defectiveItems
+      });
+    }
+
+    return result;
   }
 
   private loadCachedVehicles(): VehicleInfo[] {

@@ -8,12 +8,14 @@ import {
   DayRoster,
   MonthRoster,
   GUARDS_CATALOG,
+  updateGuardsCatalog,
   getRosterForDate,
   getMonthRoster,
   getCurrentActiveShift
 } from '../../shared/utils/roster.util';
 import { PdfExportService } from '../../core/services/pdf-export.service';
 import { AuthService } from '../../core/auth/auth.service';
+import { CrewService } from '../../core/services/crew.service';
 
 @Component({
   selector: 'app-guard-roster',
@@ -85,7 +87,7 @@ import { AuthService } from '../../core/auth/auth.service';
                   <span class="stage-badge">Día {{ todayRoster.guardStatus[todayRoster.dayShiftGuard.code].dayInStage }}/4</span>
                 </div>
                 <strong class="sup-fullname">{{ todayRoster.dayShiftGuard.supervisorName }}</strong>
-                <span class="sup-sub">Supervisor a cargo • 7 Operadores en planta</span>
+                <span class="sup-sub">Supervisor a cargo • {{ getOperatorCount(todayRoster.dayShiftGuard.code) }} Operadores en planta</span>
               </div>
             </div>
           </div>
@@ -107,7 +109,7 @@ import { AuthService } from '../../core/auth/auth.service';
                   <span class="stage-badge">Noche {{ todayRoster.guardStatus[todayRoster.nightShiftGuard.code].dayInStage }}/4</span>
                 </div>
                 <strong class="sup-fullname">{{ todayRoster.nightShiftGuard.supervisorName }}</strong>
-                <span class="sup-sub">Supervisor a cargo • 7 Operadores en planta</span>
+                <span class="sup-sub">Supervisor a cargo • {{ getOperatorCount(todayRoster.nightShiftGuard.code) }} Operadores en planta</span>
               </div>
             </div>
           </div>
@@ -170,7 +172,7 @@ import { AuthService } from '../../core/auth/auth.service';
             (click)="selectedGuardFilter = 'G1'"
           >
             <span class="dot-indicator" [style.background-color]="guardsCatalog['G1'].colorHex"></span>
-            G1 (Klisman V.)
+            G1 ({{ getShortSupervisorName('G1') }})
           </button>
           <button 
             type="button" 
@@ -179,7 +181,7 @@ import { AuthService } from '../../core/auth/auth.service';
             (click)="selectedGuardFilter = 'G2'"
           >
             <span class="dot-indicator" [style.background-color]="guardsCatalog['G2'].colorHex"></span>
-            G2 (Víctor L.)
+            G2 ({{ getShortSupervisorName('G2') }})
           </button>
           <button 
             type="button" 
@@ -188,7 +190,7 @@ import { AuthService } from '../../core/auth/auth.service';
             (click)="selectedGuardFilter = 'G3'"
           >
             <span class="dot-indicator" [style.background-color]="guardsCatalog['G3'].colorHex"></span>
-            G3 (Hugo M.)
+            G3 ({{ getShortSupervisorName('G3') }})
           </button>
           <button 
             type="button" 
@@ -197,7 +199,7 @@ import { AuthService } from '../../core/auth/auth.service';
             (click)="selectedGuardFilter = 'G4'"
           >
             <span class="dot-indicator" [style.background-color]="guardsCatalog['G4'].colorHex"></span>
-            G4 (César O.)
+            G4 ({{ getShortSupervisorName('G4') }})
           </button>
         </div>
       </div>
@@ -305,8 +307,8 @@ import { AuthService } from '../../core/auth/auth.service';
               <strong>Bloque 1</strong>
               <span class="days-span">4 Días</span>
             </div>
-            <div class="block-row">☀️ <strong>Día:</strong> Guardia 1 (Klisman V.)</div>
-            <div class="block-row">🌙 <strong>Noche:</strong> Guardia 3 (Hugo M.)</div>
+            <div class="block-row">☀️ <strong>Día:</strong> Guardia 1 ({{ getShortSupervisorName('G1') }})</div>
+            <div class="block-row">🌙 <strong>Noche:</strong> Guardia 3 ({{ getShortSupervisorName('G3') }})</div>
             <div class="block-row text-muted">🏖️ <strong>Descanso:</strong> G2, G4</div>
           </div>
 
@@ -315,8 +317,8 @@ import { AuthService } from '../../core/auth/auth.service';
               <strong>Bloque 2</strong>
               <span class="days-span">4 Días</span>
             </div>
-            <div class="block-row">☀️ <strong>Día:</strong> Guardia 2 (Víctor L.)</div>
-            <div class="block-row">🌙 <strong>Noche:</strong> Guardia 1 (Klisman V.)</div>
+            <div class="block-row">☀️ <strong>Día:</strong> Guardia 2 ({{ getShortSupervisorName('G2') }})</div>
+            <div class="block-row">🌙 <strong>Noche:</strong> Guardia 1 ({{ getShortSupervisorName('G1') }})</div>
             <div class="block-row text-muted">🏖️ <strong>Descanso:</strong> G3, G4</div>
           </div>
 
@@ -326,8 +328,8 @@ import { AuthService } from '../../core/auth/auth.service';
               <span class="days-span">4 Días</span>
               <span class="anchor-flag" *ngIf="todayRoster?.blockNumber === 3">BLOQUE ACTUAL</span>
             </div>
-            <div class="block-row">☀️ <strong>Día:</strong> Guardia 4 (César O.)</div>
-            <div class="block-row">🌙 <strong>Noche:</strong> Guardia 2 (Víctor L.)</div>
+            <div class="block-row">☀️ <strong>Día:</strong> Guardia 4 ({{ getShortSupervisorName('G4') }})</div>
+            <div class="block-row">🌙 <strong>Noche:</strong> Guardia 2 ({{ getShortSupervisorName('G2') }})</div>
             <div class="block-row text-muted">🏖️ <strong>Descanso:</strong> G1, G3</div>
           </div>
 
@@ -336,8 +338,8 @@ import { AuthService } from '../../core/auth/auth.service';
               <strong>Bloque 4</strong>
               <span class="days-span">4 Días</span>
             </div>
-            <div class="block-row">☀️ <strong>Día:</strong> Guardia 3 (Hugo M.)</div>
-            <div class="block-row">🌙 <strong>Noche:</strong> Guardia 4 (César O.)</div>
+            <div class="block-row">☀️ <strong>Día:</strong> Guardia 3 ({{ getShortSupervisorName('G3') }})</div>
+            <div class="block-row">🌙 <strong>Noche:</strong> Guardia 4 ({{ getShortSupervisorName('G4') }})</div>
             <div class="block-row text-muted">🏖️ <strong>Descanso:</strong> G1, G2</div>
           </div>
         </div>
@@ -382,8 +384,8 @@ import { AuthService } from '../../core/auth/auth.service';
                 <span class="print-sup">{{ day.nightShiftGuard.supervisorName }}</span>
               </td>
               <td>
-                <span class="print-off-guard">{{ day.offGuards[0].name }} ({{ day.offGuards[0].supervisorUser }})</span> y 
-                <span class="print-off-guard">{{ day.offGuards[1].name }} ({{ day.offGuards[1].supervisorUser }})</span>
+                <span class="print-off-guard">{{ day.offGuards[0].name }} ({{ getShortSupervisorName(day.offGuards[0].code) }})</span> y 
+                <span class="print-off-guard">{{ day.offGuards[1].name }} ({{ getShortSupervisorName(day.offGuards[1].code) }})</span>
               </td>
             </tr>
           </tbody>
@@ -1227,9 +1229,11 @@ import { AuthService } from '../../core/auth/auth.service';
 })
 export class GuardRosterComponent implements OnInit {
   private pdfExportService = inject(PdfExportService);
+  private crewService = inject(CrewService);
   authService = inject(AuthService);
 
   guardsCatalog = GUARDS_CATALOG;
+  operatorCounts: Record<GuardCode, number> = { G1: 7, G2: 7, G3: 7, G4: 7 };
 
   // Selected date state
   selectedYear: number = 2026;
@@ -1247,11 +1251,62 @@ export class GuardRosterComponent implements OnInit {
     return this.monthRoster ? this.monthRoster.monthName : 'Septiembre';
   }
 
+  getOperatorCount(code: GuardCode): number {
+    return this.operatorCounts[code] || 7;
+  }
+
+  getShortSupervisorName(code: GuardCode): string {
+    const sup = this.guardsCatalog[code]?.supervisorName;
+    if (!sup) return '';
+    const parts = sup.trim().split(/\s+/);
+    if (parts.length <= 1) return parts[0];
+    if (parts.length >= 3) {
+      const firstName = parts[2];
+      const lastName = parts[0];
+      const capFirst = firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
+      const initialLast = lastName.charAt(0).toUpperCase();
+      return `${capFirst} ${initialLast}.`;
+    }
+    const capFirst = parts[1].charAt(0).toUpperCase() + parts[1].slice(1).toLowerCase();
+    return `${capFirst} ${parts[0].charAt(0).toUpperCase()}.`;
+  }
+
   ngOnInit(): void {
     const now = new Date();
     this.selectedYear = now.getFullYear();
     this.selectedMonthIndex = now.getMonth();
     this.loadRoster();
+    this.refreshPersonnelFromService();
+  }
+
+  refreshPersonnelFromService(): void {
+    this.crewService.loadCrew().subscribe({
+      next: () => {
+        const members = this.crewService.allMembers();
+        if (members && members.length > 0) {
+          const sups: Partial<Record<GuardCode, Partial<GuardInfo>>> = {};
+          (['G1', 'G2', 'G3', 'G4'] as GuardCode[]).forEach(code => {
+            const sup = members.find(m => m.shift_code === code && m.primary_role === 'SUPERVISOR');
+            if (sup) {
+              sups[code] = {
+                supervisorName: sup.name,
+                supervisorUser: sup.name,
+                avatarUrl: sup.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${sup.name}`
+              };
+            }
+            const count = members.filter(m => m.shift_code === code && m.primary_role !== 'SUPERVISOR').length;
+            this.operatorCounts[code] = count > 0 ? count : 7;
+          });
+          if (Object.keys(sups).length > 0) {
+            updateGuardsCatalog(sups);
+          }
+        }
+        this.loadRoster();
+      },
+      error: () => {
+        this.loadRoster();
+      }
+    });
   }
 
   loadRoster(): void {

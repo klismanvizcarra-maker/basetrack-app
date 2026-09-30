@@ -18,7 +18,7 @@ export function saveRealtimeData(key: string, data: any): void {
     // Also asynchronously persist to IndexedDB if available
   if (typeof window !== 'undefined' && 'indexedDB' in window) {
     try {
-      const openReq = indexedDB.open('basetrack_db', 1);
+      const openReq = indexedDB.open('basetrack_db');
       openReq.onsuccess = (e) => {
         const db = (e.target as IDBOpenDBRequest).result;
         if (db.objectStoreNames.contains('offline_cache')) {

@@ -3,30 +3,36 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { VehicleChecklistService, VehicleInfo, VehicleChecklist, InspectionCheckItem, DEFAULT_INSPECTION_ITEMS } from '../../core/services/vehicle-checklist.service';
 import { AuthService } from '../../core/auth/auth.service';
+import { CrewService } from '../../core/services/crew.service';
 import { ModalComponent } from '../../shared/ui/modal.component';
+import { VehicleChecklistReportPdfComponent } from '../reports/vehicle-checklist-report-pdf.component';
+import { getCurrentActiveShift, getLocalDateString } from '../../shared/utils/roster.util';
 
 @Component({
   selector: 'app-vehicle-checklist',
   standalone: true,
-  imports: [CommonModule, FormsModule, ModalComponent],
+  imports: [CommonModule, FormsModule, ModalComponent, VehicleChecklistReportPdfComponent],
   templateUrl: './vehicle-checklist.component.html',
   styleUrls: ['./vehicle-checklist.component.scss']
 })
 export class VehicleChecklistComponent implements OnInit {
   checklistService = inject(VehicleChecklistService);
   authService = inject(AuthService);
+  crewService = inject(CrewService);
 
   // Modal State
   isCreateModalOpen = false;
   isDetailModalOpen = false;
+  isPdfModalOpen = false;
   selectedChecklistDetail: VehicleChecklist | null = null;
+  selectedChecklistForPdf: VehicleChecklist | null = null;
   previewPhotoUrl: string | null = null;
   isSubmitting = false;
   successMessage = '';
 
   // Form State
   formVehiclePlate: 'BMC715' | 'BKS921' | 'BKS913' | 'BPS747' = 'BMC715';
-  formDate = new Date().toISOString().slice(0, 10);
+  formDate = getLocalDateString();
   formTime = new Date().toTimeString().slice(0, 5);
   formShift: 'G1' | 'G2' | 'G3' | 'G4' = 'G1';
   formShiftType: 'DIA' | 'NOCHE' = 'DIA';
@@ -79,22 +85,47 @@ export class VehicleChecklistComponent implements OnInit {
 
     // Autocomplete driver information from logged-in user
     this.formVehiclePlate = currentVeh.plate;
-    this.formDate = new Date().toISOString().slice(0, 10);
+    this.formDate = getLocalDateString();
     this.formTime = new Date().toTimeString().slice(0, 5);
     
-    // Auto-detect shift type based on hour
-    const currentHour = new Date().getHours();
-    this.formShiftType = (currentHour >= 7 && currentHour < 19) ? 'DIA' : 'NOCHE';
+    // Auto-detect shift type and active guard
+    const activeShiftInfo = getCurrentActiveShift();
+    this.formShiftType = activeShiftInfo.shiftName;
     
-    // Auto-fill user shift or default to G1
-    const userShift = (user?.shift || 'G1').toUpperCase();
-    this.formShift = ['G1', 'G2', 'G3', 'G4'].includes(userShift) ? (userShift as any) : 'G1';
+    const activeShift = activeShiftInfo.activeGuard.code;
+    const userShift = (user?.shift || activeShift).toUpperCase();
+    this.formShift = ['G1', 'G2', 'G3', 'G4'].includes(userShift) ? (userShift as any) : (activeShift as any);
     
-    this.formDriverName = user?.fullName || 'Conductor de Operaciones';
-    this.formDriverDni = user?.document_id || '';
-    this.formDriverLicense = user?.document_id ? `Q${user.document_id}` : '';
+    // Driver Full Name
+    this.formDriverName = user?.fullName || user?.username || 'VIZCARRA CORI MANLEY KLISMAN';
+
+    // Driver DNI resolution
+    let dni = user?.document_id || '';
+    if (!dni) {
+      const allMembers = this.crewService.allMembers?.() || this.crewService.defaultMembers || [];
+      const matched = allMembers.find((m: any) => 
+        m.name?.toLowerCase().trim() === this.formDriverName.toLowerCase().trim() ||
+        (user?.username && m.name?.toLowerCase().includes(user.username.toLowerCase()))
+      );
+      if (matched?.document_id) {
+        dni = matched.document_id;
+      }
+    }
+    if (!dni) {
+      const uLower = (user?.username || '').toLowerCase();
+      const fLower = this.formDriverName.toLowerCase();
+      if (uLower === 'klismanv' || fLower.includes('klisman') || fLower.includes('vizcarra cori')) {
+        dni = '71209033';
+      } else if (uLower === 'marckv' || uLower === 'admin') {
+        dni = '2794vizcarra';
+      }
+    }
+    this.formDriverDni = dni;
+
+    // Driver License auto-fill
+    this.formDriverLicense = this.formDriverDni ? `Q${this.formDriverDni}` : 'Q71209033';
     
-    // Set initial odometer suggested from vehicle current odometer + 10 km
+    // Set initial odometer suggested from vehicle current odometer + 5 km
     this.formOdometer = currentVeh.currentOdometer + 5;
 
     // Deep copy default items
@@ -107,6 +138,12 @@ export class VehicleChecklistComponent implements OnInit {
     this.activeCategory = 'TODAS';
 
     this.isCreateModalOpen = true;
+  }
+
+  onDniChange(): void {
+    if (this.formDriverDni && (!this.formDriverLicense || this.formDriverLicense.startsWith('Q'))) {
+      this.formDriverLicense = `Q${this.formDriverDni.trim()}`;
+    }
   }
 
   markAllItemsGood(): void {
@@ -173,6 +210,26 @@ export class VehicleChecklistComponent implements OnInit {
     this.formPhotoUrl = '';
   }
 
+  openPdfModal(checklist: VehicleChecklist | null): void {
+    if (!checklist) return;
+    this.selectedChecklistForPdf = checklist;
+    this.isPdfModalOpen = true;
+  }
+
+  closePdfModal(): void {
+    this.isPdfModalOpen = false;
+    this.selectedChecklistForPdf = null;
+  }
+
+  exportLatestPdf(): void {
+    const list = this.checklists;
+    if (list && list.length > 0) {
+      this.openPdfModal(list[0]);
+    } else {
+      alert('No hay checklists registrados para la camioneta seleccionada.');
+    }
+  }
+
   openDetailModal(checklist: VehicleChecklist): void {
     this.selectedChecklistDetail = checklist;
     this.isDetailModalOpen = true;
@@ -187,9 +244,27 @@ export class VehicleChecklistComponent implements OnInit {
   }
 
   submitChecklist(): void {
+    if (!this.formDriverName) {
+      this.formDriverName = this.authService.currentUser()?.fullName || 'VIZCARRA CORI MANLEY KLISMAN';
+    }
+
+    if (!this.formDriverDni) {
+      const uLower = (this.authService.currentUser()?.username || '').toLowerCase();
+      const fLower = (this.formDriverName || '').toLowerCase();
+      if (uLower === 'klismanv' || fLower.includes('klisman') || fLower.includes('vizcarra cori')) {
+        this.formDriverDni = '71209033';
+      } else if (uLower === 'marckv' || uLower === 'admin') {
+        this.formDriverDni = '2794vizcarra';
+      }
+    }
+
     if (!this.formDriverName || !this.formDriverDni) {
       alert('Por favor complete los datos obligatorios del conductor (Nombre y DNI).');
       return;
+    }
+
+    if (!this.formDriverLicense) {
+      this.formDriverLicense = `Q${this.formDriverDni}`;
     }
 
     if (!this.formOdometer || this.formOdometer <= 0) {
