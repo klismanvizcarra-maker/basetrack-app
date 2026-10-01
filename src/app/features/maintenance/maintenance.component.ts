@@ -533,7 +533,7 @@ export class MaintenanceComponent implements OnInit {
       description: this.newTicket.description,
       priority: this.newTicket.priority as any,
       status: 'PENDING',
-      requester_name: this.authService.currentUser()?.fullName || 'GONGORA ROJAS MIGUEL ALONSO',
+      requester_name: this.authService.currentUser()?.fullName || 'Operador de Turno',
       assigned_to: 'Equipo Mantenimiento Planta',
       photo_url: this.newTicket.photo_url,
       estimated_hours: this.newTicket.estimated_hours,

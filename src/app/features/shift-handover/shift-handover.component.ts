@@ -41,12 +41,7 @@ export interface OfficialSupervisor {
   shift: string;
 }
 
-export const OFFICIAL_SUPERVISORS: OfficialSupervisor[] = [
-  { shift: 'G1', name: 'GONGORA ROJAS MIGUEL ALONSO', dni: '41833717', role: 'Supervisor de guardia' },
-  { shift: 'G2', name: 'ALIAGA CASTAÑEDA EMILIO URIEL', dni: '46593500', role: 'Supervisor de guardia' },
-  { shift: 'G3', name: 'ARI MAMANI HUGO ANDRES', dni: '40132660', role: 'Supervisor de guardia' },
-  { shift: 'G4', name: 'FERNANDEZ ASCURRA DANTE PACO', dni: '18110964', role: 'Supervisor de guardia' }
-];
+export const OFFICIAL_SUPERVISORS: OfficialSupervisor[] = [];
 
 @Component({
   selector: 'app-shift-handover',
@@ -993,11 +988,11 @@ export class ShiftHandoverComponent implements OnInit {
   newHandover = {
     shift_code: 'G4_DIA_' + new Date().toISOString().slice(5, 10).replace('-', ''),
     shift_type: 'DIA' as 'DIA' | 'NOCHE',
-    outgoing_supervisor: 'FERNANDEZ ASCURRA DANTE PACO',
-    outgoing_dni: '18110964',
+    outgoing_supervisor: '',
+    outgoing_dni: '',
     outgoing_role: 'Supervisor de guardia',
-    incoming_supervisor: 'ALIAGA CASTAÑEDA EMILIO URIEL',
-    incoming_dni: '46593500',
+    incoming_supervisor: '',
+    incoming_dni: '',
     incoming_role: 'Supervisor de guardia',
     plant_status: 'Operación de planta en condiciones normales de proceso. Circuitos de molienda y flotación estables.',
     tonnage_processed: 0,

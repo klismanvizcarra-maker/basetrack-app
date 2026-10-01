@@ -1696,8 +1696,8 @@ export class PumpsComponent implements OnInit {
 
   sheet: PumpStationSheet = {
     report_date: new Date().toLocaleDateString('es-PE'),
-    shift_code: 'G4',
-    operator_name: 'Marck Vizcarra',
+    shift_code: 'G1',
+    operator_name: '--- Vacante ---',
     sentina_pumps: [
       { tag: 'PU001', status: 'Operativo' },
       { tag: 'PU002', status: 'Operativo' },
@@ -1828,8 +1828,13 @@ export class PumpsComponent implements OnInit {
     const activeShift = getCurrentActiveShift().activeGuard.code;
     const assignedOp = this.crewService.getAssignedOperatorForPosition('BOMBAS', activeShift);
     this.sheet.shift_code = activeShift;
-    if (assignedOp) {
+    const currentUser = this.authService.currentUser();
+    if (assignedOp && assignedOp.name) {
       this.sheet.operator_name = assignedOp.name;
+    } else if (currentUser?.fullName && currentUser?.role === 'OPERATOR') {
+      this.sheet.operator_name = currentUser.fullName;
+    } else {
+      this.sheet.operator_name = '--- Vacante ---';
     }
     this.loadOperationalSheet();
     this.loadTelemetryPumps();

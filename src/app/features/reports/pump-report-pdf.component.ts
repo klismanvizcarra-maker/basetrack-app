@@ -952,15 +952,15 @@ export class PumpReportPdfComponent implements OnInit {
   operatorName = '--- Vacante ---';
   operatorDni = '---';
   operatorRole = 'Operador de bombas';
-  supervisorName = 'FERNANDEZ ASCURRA DANTE PACO';
-  supervisorDni = '18110964';
+  supervisorName = getCurrentActiveShift().activeGuard.supervisorName;
+  supervisorDni = '---';
   supervisorRole = 'Supervisor de guardia';
 
   readonly maxRowsArray = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
 
   defaultSheet: PumpStationSheet = {
     report_date: new Date().toLocaleDateString('es-PE'),
-    shift_code: 'G4',
+    shift_code: getCurrentActiveShift().activeGuard.code,
     operator_name: '--- Vacante ---',
     sentina_pumps: [
       { tag: 'PU001', status: 'Operativo' },

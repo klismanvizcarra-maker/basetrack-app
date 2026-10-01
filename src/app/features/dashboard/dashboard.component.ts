@@ -327,11 +327,11 @@ export class DashboardComponent implements OnInit {
   private http = inject(HttpClient);
 
   kpiCards = [
-    { title: 'Caudal Total Slurry', value: '3,420 m³/h', trend: '+4.5%', isPositive: true },
-    { title: 'Tonelaje Procesado', value: '24.5 kTon', trend: '+2.8%', isPositive: true },
-    { title: 'Disponibilidad Planta', value: '94.5 %', trend: '+1.2%', isPositive: true },
-    { title: 'Bombas en Servicio', value: '5 / 6', trend: 'Normal', isPositive: true },
-    { title: 'Personal en Turno', value: '32 Oper.', trend: 'G1-G4 Activas', isPositive: true }
+    { title: 'Caudal Total Slurry', value: '0 m³/h', trend: 'Sincronizado', isPositive: true },
+    { title: 'Tonelaje Procesado', value: '0.0 kTon', trend: 'Sin entregas', isPositive: true },
+    { title: 'Disponibilidad Planta', value: '100 %', trend: 'Normal', isPositive: true },
+    { title: 'Bombas en Servicio', value: '0 / 0', trend: 'Normal', isPositive: true },
+    { title: 'Personal en Turno', value: '0 Oper.', trend: 'Sincronizado', isPositive: true }
   ];
 
   operationGauges = [

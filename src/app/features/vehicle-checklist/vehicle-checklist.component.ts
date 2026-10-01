@@ -97,11 +97,11 @@ export class VehicleChecklistComponent implements OnInit {
     this.formShift = ['G1', 'G2', 'G3', 'G4'].includes(userShift) ? (userShift as any) : (activeShift as any);
     
     // Driver Full Name
-    this.formDriverName = user?.fullName || user?.username || 'Marck Vizcarra';
+    this.formDriverName = user?.fullName || user?.username || '';
 
     // Driver DNI resolution
     let dni = user?.document_id || '';
-    if (!dni) {
+    if (!dni && this.formDriverName) {
       const allMembers = this.crewService.allMembers?.() || this.crewService.defaultMembers || [];
       const matched = allMembers.find((m: any) => 
         m.name?.toLowerCase().trim() === this.formDriverName.toLowerCase().trim() ||
@@ -111,16 +111,10 @@ export class VehicleChecklistComponent implements OnInit {
         dni = matched.document_id;
       }
     }
-    if (!dni) {
-      const uLower = (user?.username || '').toLowerCase();
-      if (uLower === 'marckv' || uLower === 'admin') {
-        dni = '91209966';
-      }
-    }
     this.formDriverDni = dni;
 
     // Driver License auto-fill
-    this.formDriverLicense = this.formDriverDni ? `Q${this.formDriverDni}` : 'Q91209966';
+    this.formDriverLicense = this.formDriverDni ? `Q${this.formDriverDni}` : '';
     
     // Set initial odometer suggested from vehicle current odometer + 5 km
     this.formOdometer = currentVeh.currentOdometer + 5;

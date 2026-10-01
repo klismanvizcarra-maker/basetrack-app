@@ -612,28 +612,6 @@ export function initDatabase() {
         insertPos.run(p.key, p.title, p.default_location, p.default_radio, p.badge_class, p.icon_svg, p.description);
       }
     }
-
-    // 3. Ensure the 4 Official Supervisors exist in users and crew_members if absent
-    const OFFICIAL_SUPERVISORS_DATA = [
-      { id: 'op-g1-sup', username: 'MiguelG', name: 'GONGORA ROJAS MIGUEL ALONSO', document_id: '41833717', shift: 'G1', email: 'miguelgongora@basetrack.com', radio: 'Canal 1 Operaciones / Control', phone: 'Ext. 4101', avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=MIGUELG' },
-      { id: 'op-g2-sup', username: 'EmilioA', name: 'ALIAGA CASTAÑEDA EMILIO URIEL', document_id: '46593500', shift: 'G2', email: 'emilioaliaga@basetrack.com', radio: 'Canal 1 Operaciones / Control', phone: 'Ext. 4102', avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=EMILIOA' },
-      { id: 'op-g3-sup', username: 'HugoA', name: 'ARI MAMANI HUGO ANDRES', document_id: '40132660', shift: 'G3', email: 'hugoari@basetrack.com', radio: 'Canal 1 Operaciones / Control', phone: 'Ext. 4103', avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=HUGOA' },
-      { id: 'op-g4-sup', username: 'DanteF', name: 'FERNANDEZ ASCURRA DANTE PACO', document_id: '18110964', shift: 'G4', email: 'dantefernandez@basetrack.com', radio: 'Canal 1 Operaciones / Control', phone: 'Ext. 4104', avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=DANTEF' }
-    ];
-
-    const insertCrew = db.prepare(`
-      INSERT OR IGNORE INTO crew_members (id, name, document_id, primary_role, shift_code, radio_channel, phone_extension, status, avatar_url)
-      VALUES (?, ?, ?, 'SUPERVISOR', ?, ?, ?, 'EN_TURNO', ?);
-    `);
-    const insertSupUser = db.prepare(`
-      INSERT OR IGNORE INTO users (id, username, email, password_hash, full_name, role, shift, avatar_url, is_active, document_id, primary_role)
-      VALUES (?, ?, ?, ?, ?, 'SUPERVISOR', ?, ?, 1, ?, 'SUPERVISOR');
-    `);
-
-    for (const sup of OFFICIAL_SUPERVISORS_DATA) {
-      insertCrew.run(sup.id, sup.name, sup.document_id, sup.shift, sup.radio, sup.phone, sup.avatar);
-      insertSupUser.run(crypto.randomUUID(), sup.username, sup.email, bcrypt.hashSync(sup.document_id, 10), sup.name, sup.shift, sup.avatar, sup.document_id);
-    }
   } catch (e) {
     console.warn('[Database] Initialization check warning:', e);
   }

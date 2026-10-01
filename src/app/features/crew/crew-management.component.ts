@@ -2050,24 +2050,18 @@ export class CrewManagementComponent implements OnInit {
 
   get activeSupervisorDisplayName(): string {
     const supMember = this.activeSupervisorMember;
-    if (supMember) {
+    if (supMember && supMember.name && supMember.name !== '--- Vacante ---') {
       return sanitizeOfficialName(supMember.name);
     }
     const currentUser = this.authService.currentUser();
     if (currentUser?.role === 'SUPERVISOR' && currentUser.shift === this.selectedShift) {
       return sanitizeOfficialName(currentUser.fullName || currentUser.username);
     }
-    switch (this.selectedShift) {
-      case 'G1': return 'GONGORA ROJAS MIGUEL ALONSO';
-      case 'G2': return 'ALIAGA CASTAÑEDA EMILIO URIEL';
-      case 'G3': return 'ARI MAMANI HUGO ANDRES';
-      case 'G4': return 'FERNANDEZ ASCURRA DANTE PACO';
-      default: return currentUser?.fullName || 'Supervisor de Planta';
-    }
+    return currentUser?.fullName || 'Sin Asignar';
   }
 
   get activeSupervisorAvatar(): string {
-    return this.activeSupervisorMember?.avatar_url || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80';
+    return this.activeSupervisorMember?.avatar_url || '';
   }
 
   get currentSquadOperators(): CrewMember[] {
@@ -2156,8 +2150,9 @@ export class CrewManagementComponent implements OnInit {
     // De acuerdo al rol y horario, para inicio de guardia el supervisor asignado lidera la guardia,
     // mientras que todas las posiciones operativas arrancan limpias (vacantes) listas para asignar.
     const isSupervisor = key === 'SUPERVISOR';
-    const defaultOperatorId = isSupervisor ? staff.supervisor?.id : null;
-    const defaultOperator = isSupervisor ? staff.supervisor : null;
+    const hasSupervisor = isSupervisor && !!(staff.supervisor?.id && staff.supervisor.id.trim() !== '');
+    const defaultOperatorId = hasSupervisor ? staff.supervisor.id : null;
+    const defaultOperator = hasSupervisor ? staff.supervisor : null;
 
     return {
       id: `assign-${key.toString().toLowerCase()}-${this.selectedShift}-${this.selectedShiftType}`,
@@ -2174,8 +2169,8 @@ export class CrewManagementComponent implements OnInit {
       operator_default_radio: isSupervisor ? staff.supervisor?.radio_channel : posMeta?.defaultRadio,
       backup_operator_id: null,
       backup_name: undefined,
-      epp_verified: isSupervisor ? 1 : 0,
-      safety_talk_completed: isSupervisor ? 1 : 0,
+      epp_verified: hasSupervisor ? 1 : 0,
+      safety_talk_completed: hasSupervisor ? 1 : 0,
       radio_channel: posMeta?.defaultRadio,
       station_location: posMeta?.defaultLocation,
       notes: posMeta?.description
@@ -2185,9 +2180,20 @@ export class CrewManagementComponent implements OnInit {
   clearAllAssignments(): void {
     const list = this.crewService.positions();
     for (const p of list) {
-      if (p.key !== 'SUPERVISOR') {
-        this.onAssignOperator(p.key, null);
-        this.onAssignBackup(p.key, null);
+      this.onAssignOperator(p.key, null);
+      this.onAssignBackup(p.key, null);
+    }
+    // Limpieza integral de las asignaciones de esta guardia en memoria y almacenamiento local
+    const remaining = this.crewService.activeAssignments().filter(a => a.shift_code !== this.selectedShift);
+    this.crewService.activeAssignments.set(remaining);
+    if (typeof localStorage !== 'undefined') {
+      const key = `basetrack_assignments_${this.selectedDate}_${this.selectedShift}_${this.selectedShiftType}`;
+      localStorage.removeItem(key);
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const k = localStorage.key(i);
+        if (k && k.includes(`_${this.selectedShift}_`)) {
+          localStorage.removeItem(k);
+        }
       }
     }
   }

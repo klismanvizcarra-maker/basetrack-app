@@ -1107,15 +1107,15 @@ export class ShiftReportPdfComponent implements OnInit, OnChanges {
     if (isInvalidSup(this.reportData.outgoing_supervisor)) {
       const shift = this.reportData.shift_code?.substring(0, 2) || active.activeGuard.code;
       const sup = this.crewService.getActiveSupervisorForShift(shift);
-      this.reportData.outgoing_supervisor = sup?.name || active.activeGuard.supervisorName;
-      this.reportData.outgoing_dni = sup?.document_id || (shift === 'G4' ? '18110964' : '41833717');
+      this.reportData.outgoing_supervisor = sup?.name || active.activeGuard.supervisorName || 'Sin Asignar';
+      this.reportData.outgoing_dni = sup?.document_id || '';
       this.reportData.outgoing_role = 'Supervisor de guardia';
     }
 
     if (isInvalidSup(this.reportData.incoming_supervisor)) {
       const inSup = this.crewService.getActiveSupervisorForShift(active.nextGuard.code);
-      this.reportData.incoming_supervisor = inSup?.name || active.nextGuard.supervisorName;
-      this.reportData.incoming_dni = inSup?.document_id || (active.nextGuard.code === 'G2' ? '46593500' : '40132660');
+      this.reportData.incoming_supervisor = inSup?.name || active.nextGuard.supervisorName || 'Sin Asignar';
+      this.reportData.incoming_dni = inSup?.document_id || '';
       this.reportData.incoming_role = 'Supervisor de guardia';
     }
   }
@@ -1399,7 +1399,7 @@ export class ShiftReportPdfComponent implements OnInit, OnChanges {
     const active = getCurrentActiveShift();
     const shift = this.reportData.shift_code?.substring(0, 2) || active.activeGuard.code;
     const sup = this.crewService.getActiveSupervisorForShift(shift);
-    return sup?.name || active.activeGuard.supervisorName || 'Marck Vizcarra';
+    return sup?.name || (active.activeGuard.supervisorName !== 'Sin Asignar' ? active.activeGuard.supervisorName : 'Sin Asignar');
   }
 
   get outgoingSupervisorDni(): string {
@@ -1409,7 +1409,7 @@ export class ShiftReportPdfComponent implements OnInit, OnChanges {
     const active = getCurrentActiveShift();
     const shift = this.reportData.shift_code?.substring(0, 2) || active.activeGuard.code;
     const sup = this.crewService.getActiveSupervisorForShift(shift);
-    return sup?.document_id || '91209966';
+    return sup?.document_id || '---';
   }
 
   get outgoingSupervisorRole(): string {

@@ -1941,12 +1941,12 @@ export class CyclonesComponent implements OnInit {
   quickHours: string[] = ['20:00', '23:00', '02:00', '05:00', '08:00', '11:00', '14:00', '17:00'];
 
   generalAverages: GeneralAverages = {
-    solids_feed: 45.06,
-    solids_of: 29.49,
-    solids_uf: 69.69,
-    mesh200_feed: 54.77,
-    mesh200_of: 21.98,
-    mesh200_uf: 23.76
+    solids_feed: 0,
+    solids_of: 0,
+    solids_uf: 0,
+    mesh200_feed: 0,
+    mesh200_of: 0,
+    mesh200_uf: 0
   };
 
   isSampleModalOpen = false;
@@ -1957,12 +1957,12 @@ export class CyclonesComponent implements OnInit {
     sample_time: '20:00',
     battery_tag: 'CY3',
     shift_code: 'G1',
-    solids_feed: 45.30,
-    solids_of: 28.60,
-    solids_uf: 69.40,
-    mesh200_feed: 54.60,
-    mesh200_of: 22.40,
-    mesh200_uf: 23.40,
+    solids_feed: 0,
+    solids_of: 0,
+    solids_uf: 0,
+    mesh200_feed: 0,
+    mesh200_of: 0,
+    mesh200_uf: 0,
     date: new Date().toISOString().split('T')[0]
   };
 
@@ -2041,17 +2041,11 @@ export class CyclonesComponent implements OnInit {
     let list = this.rawStationSamples.filter(s => s.station.toLowerCase().trim().includes(targetStation.includes('1ra') ? '1ra' : '2da'));
 
     if (this.selectedShift !== 'ALL') {
-      const shiftFiltered = list.filter(s => s.shift_code === this.selectedShift);
-      if (shiftFiltered.length > 0) {
-        list = shiftFiltered;
-      }
+      list = list.filter(s => s.shift_code === this.selectedShift);
     }
 
     if (this.filterDate) {
-      const dateFiltered = list.filter(s => s.date === this.filterDate);
-      if (dateFiltered.length > 0) {
-        list = dateFiltered;
-      }
+      list = list.filter(s => s.date === this.filterDate);
     }
 
     this.filteredStationSamples = list;
@@ -2085,12 +2079,12 @@ export class CyclonesComponent implements OnInit {
   computeAverages(samples: StationSample[]): void {
     if (samples.length === 0) {
       this.generalAverages = {
-        solids_feed: 45.06,
-        solids_of: 29.49,
-        solids_uf: 69.69,
-        mesh200_feed: 54.77,
-        mesh200_of: 21.98,
-        mesh200_uf: 23.76
+        solids_feed: 0,
+        solids_of: 0,
+        solids_uf: 0,
+        mesh200_feed: 0,
+        mesh200_of: 0,
+        mesh200_uf: 0
       };
       return;
     }

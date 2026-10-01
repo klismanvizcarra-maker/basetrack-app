@@ -4,6 +4,7 @@ import { VehicleChecklist, VehicleInfo, InspectionCheckItem } from '../../core/s
 import { PdfExportService } from '../../core/services/pdf-export.service';
 import { CrewService } from '../../core/services/crew.service';
 import { copyToClipboard } from '../../core/utils/clipboard.util';
+import { getCurrentActiveShift } from '../../shared/utils/roster.util';
 
 @Component({
   selector: 'app-vehicle-checklist-report-pdf',
@@ -1116,8 +1117,8 @@ export class VehicleChecklistReportPdfComponent implements OnInit, OnChanges {
   downloadSuccess = false;
   copiedText = false;
 
-  supervisorName = 'FERNANDEZ ASCURRA DANTE PACO';
-  supervisorDni = '18110964';
+  supervisorName = getCurrentActiveShift().activeGuard.supervisorName;
+  supervisorDni = '---';
 
   ngOnInit(): void {
     this.updateSupervisor();
@@ -1128,7 +1129,7 @@ export class VehicleChecklistReportPdfComponent implements OnInit, OnChanges {
   }
 
   private updateSupervisor(): void {
-    const shift = this.checklist?.shift || 'G4';
+    const shift = this.checklist?.shift || getCurrentActiveShift().activeGuard.code;
     const sup = this.crewService.getActiveSupervisorForShift(shift);
     if (sup) {
       this.supervisorName = sup.name;

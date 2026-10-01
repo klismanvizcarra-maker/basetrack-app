@@ -219,53 +219,8 @@ export class CrewService {
     }
   ];
 
-  // Official supervisors dictionary by shift
-  public static readonly OFFICIAL_SUPERVISOR_MAP: Record<string, CrewMember> = {
-    G1: {
-      id: 'sup-g1-official',
-      name: 'GONGORA ROJAS MIGUEL ALONSO',
-      document_id: '41833717',
-      primary_role: 'SUPERVISOR',
-      shift_code: 'G1',
-      radio_channel: 'Canal 1 Operaciones / Control',
-      phone_extension: 'Ext. 4101',
-      status: 'EN_TURNO',
-      avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=MIGUELG'
-    },
-    G2: {
-      id: 'sup-g2-official',
-      name: 'ALIAGA CASTAÑEDA EMILIO URIEL',
-      document_id: '46593500',
-      primary_role: 'SUPERVISOR',
-      shift_code: 'G2',
-      radio_channel: 'Canal 1 Operaciones / Control',
-      phone_extension: 'Ext. 4102',
-      status: 'EN_TURNO',
-      avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=EMILIOA'
-    },
-    G3: {
-      id: 'sup-g3-official',
-      name: 'ARI MAMANI HUGO ANDRES',
-      document_id: '40132660',
-      primary_role: 'SUPERVISOR',
-      shift_code: 'G3',
-      radio_channel: 'Canal 1 Operaciones / Control',
-      phone_extension: 'Ext. 4103',
-      status: 'EN_TURNO',
-      avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=HUGOA'
-    },
-    G4: {
-      id: 'sup-g4-official',
-      name: 'FERNANDEZ ASCURRA DANTE PACO',
-      document_id: '18110964',
-      primary_role: 'SUPERVISOR',
-      shift_code: 'G4',
-      radio_channel: 'Canal 1 Operaciones / Control',
-      phone_extension: 'Ext. 4104',
-      status: 'EN_TURNO',
-      avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=DANTEF'
-    }
-  };
+  // Official supervisors dictionary by shift - Clean Slate: Populated exclusively from Database or CSV
+  public static readonly OFFICIAL_SUPERVISOR_MAP: Record<string, CrewMember> = {};
 
   // Default staff catalog: Empty. All operational data is populated strictly from CSV / Database
   public readonly defaultMembers: CrewMember[] = [];
@@ -437,6 +392,10 @@ export class CrewService {
           if (Object.keys(foundSups).length > 0) {
             updateGuardsCatalog(foundSups);
           }
+        } else if (res?.success && Array.isArray(res.data) && res.data.length === 0) {
+          this.allMembers.set([]);
+          this.crewMembers.set([]);
+          this.saveCache('basetrack_crew_members', []);
         } else {
           this.loadCachedMembers(normShift);
         }
@@ -471,6 +430,9 @@ export class CrewService {
           }));
           this.activeAssignments.set(clean);
           this.saveCache(`basetrack_assignments_${date}_${normShift}_${shiftType}`, clean);
+        } else if (res?.success && Array.isArray(res.data) && res.data.length === 0) {
+          this.activeAssignments.set([]);
+          this.saveCache(`basetrack_assignments_${date}_${normShift}_${shiftType}`, []);
         } else {
           this.loadCachedAssignments(date, normShift, shiftType);
         }
@@ -496,9 +458,15 @@ export class CrewService {
       position_key: payload.position_key || 'BOMBAS',
       position_title: payload.position_title || 'Operador',
       operator_id: payload.operator_id !== undefined ? payload.operator_id : null,
+      operator_name: payload.operator_id ? payload.operator_name : undefined,
+      operator_avatar: payload.operator_id ? payload.operator_avatar : undefined,
+      operator_role: payload.operator_id ? payload.operator_role : undefined,
+      operator_phone: payload.operator_id ? payload.operator_phone : undefined,
+      operator_default_radio: payload.operator_id ? payload.operator_default_radio : undefined,
       backup_operator_id: payload.backup_operator_id || null,
-      epp_verified: payload.epp_verified !== undefined ? payload.epp_verified : 1,
-      safety_talk_completed: payload.safety_talk_completed !== undefined ? payload.safety_talk_completed : 1,
+      backup_name: payload.backup_operator_id ? payload.backup_name : undefined,
+      epp_verified: payload.epp_verified !== undefined ? payload.epp_verified : (payload.operator_id ? 1 : 0),
+      safety_talk_completed: payload.safety_talk_completed !== undefined ? payload.safety_talk_completed : (payload.operator_id ? 1 : 0),
       radio_channel: payload.radio_channel,
       station_location: payload.station_location,
       notes: payload.notes
@@ -526,7 +494,13 @@ export class CrewService {
 
     const idx = current.findIndex(a => a.position_key === completePayload.position_key);
     if (idx >= 0) {
-      current[idx] = { ...current[idx], ...completePayload };
+      current[idx] = { 
+        ...current[idx], 
+        ...completePayload,
+        operator_name: completePayload.operator_id ? completePayload.operator_name : undefined,
+        operator_avatar: completePayload.operator_id ? completePayload.operator_avatar : undefined,
+        operator_role: completePayload.operator_id ? completePayload.operator_role : undefined
+      };
     } else {
       current.push(completePayload);
     }
@@ -679,9 +653,12 @@ export class CrewService {
     return this.http.get<{ success: boolean; supervisors: SupervisorData[]; all_operators: CrewMember[] }>(url).pipe(
       timeout(4000),
       tap(res => {
-        if (res?.success && Array.isArray(res.supervisors) && res.supervisors.length >= 4) {
+        if (res?.success && Array.isArray(res.supervisors) && res.supervisors.length > 0) {
           this.supervisorsWithOperators.set(res.supervisors);
           this.saveCache('basetrack_supervisor_operators', res.supervisors);
+        } else if (res?.success && Array.isArray(res.supervisors) && res.supervisors.length === 0) {
+          this.supervisorsWithOperators.set([]);
+          this.saveCache('basetrack_supervisor_operators', []);
         } else {
           const fallback = this.loadCachedSupervisorOperators();
           this.supervisorsWithOperators.set(fallback);
@@ -866,7 +843,13 @@ export class CrewService {
         const parsed = JSON.parse(cached);
         const hasOldMocks = Array.isArray(parsed) && parsed.some((m: any) => 
           m.name?.includes('TEST') ||
-          m.name?.includes('PRUEBA')
+          m.name?.includes('PRUEBA') ||
+          m.name?.includes('GONGORA') ||
+          m.name?.includes('ALIAGA') ||
+          m.name?.includes('ARI MAMANI') ||
+          m.name?.includes('FERNANDEZ') ||
+          m.name?.includes('Roberto Quispe') ||
+          m.name?.includes('Marco Vel')
         );
         if (Array.isArray(parsed) && !hasOldMocks) {
           list = parsed.map((m: any) => ({
@@ -904,8 +887,21 @@ export class CrewService {
       const cached = localStorage.getItem(key);
       if (cached) {
         const parsed = JSON.parse(cached);
-        const hasOldMocks = Array.isArray(parsed) && parsed.some((a: any) => a.operator_name === 'Juan Pérez Huamán' || a.operator_name === 'Manuel Condori Ramos');
-        if (Array.isArray(parsed) && parsed.length > 0 && !hasOldMocks) {
+        const hasOldMocks = Array.isArray(parsed) && parsed.some((a: any) => 
+          a.operator_name === 'Juan Pérez Huamán' || 
+          a.operator_name === 'Manuel Condori Ramos' ||
+          a.operator_name?.includes('GONGORA') ||
+          a.operator_name?.includes('ALIAGA') ||
+          a.operator_name?.includes('ARI MAMANI') ||
+          a.operator_name?.includes('FERNANDEZ') ||
+          a.operator_id === 'op-g1-sup' ||
+          a.operator_id === 'op-g2-sup' ||
+          a.operator_id === 'op-g3-sup' ||
+          a.operator_id === 'op-g4-sup'
+        );
+        if (hasOldMocks) {
+          localStorage.removeItem(key);
+        } else if (Array.isArray(parsed) && parsed.length > 0) {
           const clean = parsed.map((a: any) => ({
             ...a,
             shift_code: a.shift_code === 'GUARDIA_A' ? 'G1' :
@@ -1138,12 +1134,12 @@ export class CrewService {
     }
 
     if (positionKey === 'SUPERVISOR') {
-      return CrewService.OFFICIAL_SUPERVISOR_MAP[normShift] || CrewService.OFFICIAL_SUPERVISOR_MAP['G1'];
+      return CrewService.OFFICIAL_SUPERVISOR_MAP[normShift];
     }
     return undefined;
   }
 
-  public getActiveSupervisorForShift(shiftCode?: string): CrewMember {
+  public getActiveSupervisorForShift(shiftCode?: string): CrewMember | undefined {
     const raw = shiftCode || (typeof localStorage !== 'undefined' ? localStorage.getItem('basetrack_active_shift') : null) || 'G1';
     const normShift = raw === 'GUARDIA_A' ? 'G1' :
                       raw === 'GUARDIA_B' ? 'G2' :
@@ -1153,7 +1149,7 @@ export class CrewService {
     if (staff && staff.supervisor && staff.supervisor.name) {
       return staff.supervisor;
     }
-    return CrewService.OFFICIAL_SUPERVISOR_MAP[normShift] || CrewService.OFFICIAL_SUPERVISOR_MAP['G1'];
+    return CrewService.OFFICIAL_SUPERVISOR_MAP[normShift];
   }
 
   private saveCache(key: string, data: any): void {

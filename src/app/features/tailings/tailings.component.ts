@@ -62,23 +62,28 @@ export interface TailingsReport {
       <div class="safety-metrics-grid no-print">
         <div class="metric-box glass-panel">
           <span class="m-title">Nivel de Espejo de Agua</span>
-          <span class="m-val">4,120.4 <small>msnm</small></span>
-          <span class="m-status normal">Dentro de Cota de Diseño</span>
+          <span class="m-val">{{ latestDamLevel ? (latestDamLevel | number:'1.1-1') : '---' }} <small>msnm</small></span>
+          <span class="m-status normal" *ngIf="latestDamLevel > 0">Dentro de Cota de Diseño</span>
+          <span class="m-status" style="color: var(--text-muted)" *ngIf="!latestDamLevel">Sin registros</span>
         </div>
         <div class="metric-box glass-panel">
           <span class="m-title">Borde Libre (Freeboard)</span>
-          <span class="m-val">3.8 <small>metros</small></span>
-          <span class="m-status normal">Margen Seguro (> 2.5m)</span>
+          <span class="m-val">{{ latestFreeboard ? (latestFreeboard | number:'1.1-1') : '---' }} <small>metros</small></span>
+          <span class="m-status normal" *ngIf="latestFreeboard >= 2.5">Margen Seguro (> 2.5m)</span>
+          <span class="m-status warn" *ngIf="latestFreeboard > 0 && latestFreeboard < 2.5">Alerta Margen Bajo</span>
+          <span class="m-status" style="color: var(--text-muted)" *ngIf="!latestFreeboard">Sin registros</span>
         </div>
         <div class="metric-box glass-panel">
           <span class="m-title">Presión Piezométrica Muro</span>
-          <span class="m-val">142.6 <small>kPa</small></span>
-          <span class="m-status normal">Línea Freática Estable</span>
+          <span class="m-val">{{ latestPiezometer ? (latestPiezometer | number:'1.1-1') : '---' }} <small>kPa</small></span>
+          <span class="m-status normal" *ngIf="latestPiezometer > 0">Línea Freática Estable</span>
+          <span class="m-status" style="color: var(--text-muted)" *ngIf="!latestPiezometer">Sin registros</span>
         </div>
         <div class="metric-box glass-panel">
           <span class="m-title">Turbidez Sobrenadante</span>
-          <span class="m-val">12.4 <small>NTU</small></span>
-          <span class="m-status normal">Clarificado para Reúso</span>
+          <span class="m-val">{{ latestTurbidity ? (latestTurbidity | number:'1.1-1') : '---' }} <small>NTU</small></span>
+          <span class="m-status normal" *ngIf="latestTurbidity > 0">Clarificado para Reúso</span>
+          <span class="m-status" style="color: var(--text-muted)" *ngIf="!latestTurbidity">Sin registros</span>
         </div>
       </div>
 
@@ -386,15 +391,31 @@ export class TailingsComponent implements OnInit {
 
   newTailings = {
     station_tag: 'CANALETA-RELAVES-02',
-    flow_rate_m3h: 2100,
-    solids_percentage: 64.2,
-    dam_level_meters: 4120.5,
-    freeboard_meters: 3.7,
-    piezometer_kpa: 141.2,
-    turbidity_ntu: 11.8,
+    flow_rate_m3h: 0,
+    solids_percentage: 0,
+    dam_level_meters: 0,
+    freeboard_meters: 0,
+    piezometer_kpa: 0,
+    turbidity_ntu: 0,
     pumping_line_status: 'NORMAL' as const,
-    notes: 'Flujo estable hacia el sector este de la presa'
+    notes: ''
   };
+
+  get latestDamLevel(): number {
+    return this.tailings.length > 0 ? this.tailings[0].dam_level_meters : 0;
+  }
+
+  get latestFreeboard(): number {
+    return this.tailings.length > 0 ? this.tailings[0].freeboard_meters : 0;
+  }
+
+  get latestPiezometer(): number {
+    return this.tailings.length > 0 ? this.tailings[0].piezometer_kpa : 0;
+  }
+
+  get latestTurbidity(): number {
+    return this.tailings.length > 0 ? this.tailings[0].turbidity_ntu : 0;
+  }
 
   ngOnInit(): void {
     this.loadTailings();

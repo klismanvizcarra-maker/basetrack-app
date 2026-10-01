@@ -57,7 +57,7 @@ const DEFAULT_USERS: UserItem[] = [
     shift: 'ADMIN',
     document_id: '91209966',
     avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80',
-    created_at: '2026-09-29T08:00:00.000Z'
+    created_at: new Date().toISOString()
   }
 ];
 
@@ -69,7 +69,7 @@ const DEFAULT_LOGS: AuditLog[] = [
     entity: 'AUTH',
     details: 'Inicio de sesion administrativo verificado con exito',
     ip_address: '192.168.1.104',
-    timestamp: '2026-09-29 08:00:00'
+    timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19)
   }
 ];
 
@@ -966,10 +966,10 @@ const DEFAULT_LOGS: AuditLog[] = [
                   (ngModelChange)="onTargetShiftChange($event)"
                 >
                   <option value="TODAS">🌟 Todas las Guardias (G1 a G4 - Planta Completa)</option>
-                  <option value="G1">🛡️ Guardia 1 (G1) - Sup. Miguel Góngora</option>
-                  <option value="G2">🛡️ Guardia 2 (G2) - Sup. Emilio Aliaga</option>
-                  <option value="G3">🛡️ Guardia 3 (G3) - Sup. Hugo Ari</option>
-                  <option value="G4">🛡️ Guardia 4 (G4) - Sup. Dante Fernández</option>
+                  <option value="G1">🛡️ Guardia 1 (G1)</option>
+                  <option value="G2">🛡️ Guardia 2 (G2)</option>
+                  <option value="G3">🛡️ Guardia 3 (G3)</option>
+                  <option value="G4">🛡️ Guardia 4 (G4)</option>
                 </select>
               </div>
 
@@ -4494,19 +4494,20 @@ export class AdminComponent implements OnInit {
       return {
         name: s.full_name,
         username: s.username,
-        dni: (s as any).document_id || (s as any).dni || (shift === 'G4' ? '18110964' : shift === 'G3' ? '40132660' : shift === 'G2' ? '46593500' : '41833717'),
+        dni: (s as any).document_id || (s as any).dni || '',
         email: s.email,
         avatar: s.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${s.username}`,
         role: s.role || 'SUPERVISOR'
       };
     }
-    const defaults: Record<string, any> = {
-      G1: { name: 'GONGORA ROJAS MIGUEL ALONSO', username: 'MiguelG', dni: '41833717', email: 'miguelgongora@basetrack.com', avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=MIGUELG', role: 'SUPERVISOR' },
-      G2: { name: 'ALIAGA CASTAÑEDA EMILIO URIEL', username: 'EmilioA', dni: '46593500', email: 'emilioaliaga@basetrack.com', avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=EMILIOA', role: 'SUPERVISOR' },
-      G3: { name: 'ARI MAMANI HUGO ANDRES', username: 'HugoA', dni: '40132660', email: 'hugoari@basetrack.com', avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=HUGOA', role: 'SUPERVISOR' },
-      G4: { name: 'FERNANDEZ ASCURRA DANTE PACO', username: 'DanteF', dni: '18110964', email: 'dantefernandez@basetrack.com', avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=DANTEF', role: 'SUPERVISOR' }
+    return {
+      name: `Supervisor ${shift}`,
+      username: `supervisor_${shift.toLowerCase()}`,
+      dni: '',
+      email: `supervisor_${shift.toLowerCase()}@basetrack.com`,
+      avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=sup_${shift}`,
+      role: 'SUPERVISOR'
     };
-    return defaults[shift] || defaults['G1'];
   }
 
   setBulkPreviewFilterShift(shift: string): void {
@@ -4551,14 +4552,18 @@ export class AdminComponent implements OnInit {
       contentRows = generateGuardRows(shift, sup.username, sup.name, sup.dni, 'Ext. 4101');
       filename = `plantilla_nomina_guardia_${shift}_basetrack.csv`;
     } else {
+      const s1 = this.getSupervisorForShift('G1');
+      const s2 = this.getSupervisorForShift('G2');
+      const s3 = this.getSupervisorForShift('G3');
+      const s4 = this.getSupervisorForShift('G4');
       contentRows = [
-        ...generateGuardRows('G1', 'supervisor_g1', 'Supervisor Guardia 1', '70010010', 'Ext. 4101'),
+        ...generateGuardRows('G1', s1.username, s1.name, s1.dni, 'Ext. 4101'),
         '',
-        ...generateGuardRows('G2', 'supervisor_g2', 'Supervisor Guardia 2', '70010020', 'Ext. 4201'),
+        ...generateGuardRows('G2', s2.username, s2.name, s2.dni, 'Ext. 4201'),
         '',
-        ...generateGuardRows('G3', 'HectorM', 'MENDOZA QUISPE HÉCTOR', '41920394', 'Ext. 4301'),
+        ...generateGuardRows('G3', s3.username, s3.name, s3.dni, 'Ext. 4301'),
         '',
-        ...generateGuardRows('G4', 'CesarO', 'ORTEGA RAMÍREZ CESAR', '40918239', 'Ext. 4401')
+        ...generateGuardRows('G4', s4.username, s4.name, s4.dni, 'Ext. 4401')
       ];
       filename = 'plantilla_maestra_4guardias_basetrack.csv';
     }
@@ -5213,11 +5218,18 @@ export class AdminComponent implements OnInit {
 
         for (let i = localStorage.length - 1; i >= 0; i--) {
           const key = localStorage.key(i);
-          if (key && (key.startsWith('basetrack_assignments_') || key.startsWith('offline_queue'))) {
-            localStorage.removeItem(key);
+          if (key && (key.startsWith('basetrack_assignments_') || key.startsWith('offline_queue') || key.startsWith('basetrack_'))) {
+            if (key !== 'basetrack_auth_token' && key !== 'basetrack_active_user') {
+              localStorage.removeItem(key);
+            }
           }
         }
       }
+      this.crewService.allMembers.set([]);
+      this.crewService.crewMembers.set([]);
+      this.crewService.activeAssignments.set([]);
+      this.crewService.supervisorsWithOperators.set([]);
+      this.crewService.myOperators.set([]);
     };
 
     const resetEndpoint = `${getApiBaseUrl()}/admin/reset-app`;

@@ -30,42 +30,42 @@ export const GUARDS_CATALOG: Record<GuardCode, GuardInfo> = {
   G1: {
     code: 'G1',
     name: 'Guardia 1',
-    supervisorName: 'GONGORA ROJAS MIGUEL ALONSO',
-    supervisorUser: 'MIGUELG',
+    supervisorName: 'Sin Asignar',
+    supervisorUser: '',
     colorHex: '#1d4ed8', // Azul Cobalto
     bgLight: '#eff6ff',
     badgeBorder: '#93c5fd',
-    avatarUrl: 'https://api.dicebear.com/7.x/bottts/svg?seed=MIGUELG'
+    avatarUrl: 'https://api.dicebear.com/7.x/bottts/svg?seed=G1'
   },
   G2: {
     code: 'G2',
     name: 'Guardia 2',
-    supervisorName: 'ALIAGA CASTAÑEDA EMILIO URIEL',
-    supervisorUser: 'EMILIOA',
+    supervisorName: 'Sin Asignar',
+    supervisorUser: '',
     colorHex: '#059669', // Verde Esmeralda
     bgLight: '#ecfdf5',
     badgeBorder: '#6ee7b7',
-    avatarUrl: 'https://api.dicebear.com/7.x/bottts/svg?seed=EMILIOA'
+    avatarUrl: 'https://api.dicebear.com/7.x/bottts/svg?seed=G2'
   },
   G3: {
     code: 'G3',
     name: 'Guardia 3',
-    supervisorName: 'ARI MAMANI HUGO ANDRES',
-    supervisorUser: 'HUGOA',
+    supervisorName: 'Sin Asignar',
+    supervisorUser: '',
     colorHex: '#d97706', // Ámbar Minero
     bgLight: '#fffbeb',
     badgeBorder: '#fcd34d',
-    avatarUrl: 'https://api.dicebear.com/7.x/bottts/svg?seed=HUGOA'
+    avatarUrl: 'https://api.dicebear.com/7.x/bottts/svg?seed=G3'
   },
   G4: {
     code: 'G4',
     name: 'Guardia 4',
-    supervisorName: 'FERNANDEZ ASCURRA DANTE PACO',
-    supervisorUser: 'DANTEF',
+    supervisorName: 'Sin Asignar',
+    supervisorUser: '',
     colorHex: '#7c3aed', // Púrpura Industrial
     bgLight: '#f5f3ff',
     badgeBorder: '#c4b5fd',
-    avatarUrl: 'https://api.dicebear.com/7.x/bottts/svg?seed=DANTEF'
+    avatarUrl: 'https://api.dicebear.com/7.x/bottts/svg?seed=G4'
   }
 };
 
@@ -83,27 +83,36 @@ export function updateGuardsCatalog(supervisors: Partial<Record<GuardCode, Parti
   });
 }
 
-// Validar y cargar automáticamente supervisores guardados en almacenamiento local si existen
+// Depuración automática de almacenamiento local al inicializar para garantizar Clean Slate
 if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
   try {
     const rawCrew = localStorage.getItem('basetrack_crew_members');
     if (rawCrew) {
       const parsed = JSON.parse(rawCrew);
-      const isStale = Array.isArray(parsed) && parsed.some((m: any) => 
-        (m.shift_code === 'G1' && m.primary_role === 'SUPERVISOR' && !m.name?.includes('GONGORA')) ||
-        (m.shift_code === 'G2' && m.primary_role === 'SUPERVISOR' && !m.name?.includes('ALIAGA')) ||
-        (m.shift_code === 'G3' && m.primary_role === 'SUPERVISOR' && !m.name?.includes('ARI MAMANI')) ||
-        (m.shift_code === 'G4' && m.primary_role === 'SUPERVISOR' && !m.name?.includes('FERNANDEZ')) ||
+      const hasMockData = Array.isArray(parsed) && parsed.some((m: any) => 
+        m.name?.includes('GONGORA') ||
+        m.name?.includes('ALIAGA') ||
+        m.name?.includes('ARI MAMANI') ||
+        m.name?.includes('FERNANDEZ') ||
         m.name?.includes('Roberto Quispe') ||
         m.name?.includes('Marco Vel') ||
-        (m.primary_role === 'SUPERVISOR' && (m.name?.includes('VIZCARRA CORI') || m.name?.includes('LLERENA CALLE') || m.name?.includes('MENDOZA QUISPE') || m.name?.includes('ORTEGA RAM')))
+        m.name?.includes('VIZCARRA CORI') ||
+        m.name?.includes('LLERENA CALLE') ||
+        m.name?.includes('MENDOZA QUISPE') ||
+        m.name?.includes('ORTEGA RAM')
       );
 
-      if (isStale) {
+      if (hasMockData) {
         localStorage.removeItem('basetrack_crew_members');
         localStorage.removeItem('basetrack_supervisor_operators');
         localStorage.removeItem('basetrack_my_operators');
-      } else if (Array.isArray(parsed)) {
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+          const key = localStorage.key(i);
+          if (key && (key.startsWith('basetrack_assignments_') || key.startsWith('offline_queue'))) {
+            localStorage.removeItem(key);
+          }
+        }
+      } else if (Array.isArray(parsed) && parsed.length > 0) {
         const foundSups: Partial<Record<GuardCode, Partial<GuardInfo>>> = {};
         parsed.forEach((m: any) => {
           const shift = (m.shift_code || m.shift) as GuardCode;

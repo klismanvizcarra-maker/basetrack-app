@@ -1219,6 +1219,7 @@ export class HeaderComponent {
     const url = this.router.url;
     if (url.includes('shift-handover')) return 'Cambio de Guardia';
     if (url.includes('crew')) return 'Gestión de Cuadrilla';
+    if (url.includes('roster')) return 'Rol de Guardias (8x8)';
     if (url.includes('pumps')) return 'Reporte de bombas';
     if (url.includes('cyclones')) return 'Reporte de ciclones';
     if (url.includes('tailings')) return 'Reporte de descarga';

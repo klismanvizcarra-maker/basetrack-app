@@ -47,9 +47,22 @@
           "value": "public, max-age=0, must-revalidate"
         }
       ]
+    },
+    {
+      "source": "/index.html",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
     }
   ],
   "rewrites": [
+    {
+      "source": "/api/:match*",
+      "destination": "https://basetrack-app.onrender.com/api/:match*"
+    },
     {
       "source": "/((?!sw\\.js|manifest\\.webmanifest|icons/|images/|favicon\\.ico).*)*",
       "destination": "/index.html"

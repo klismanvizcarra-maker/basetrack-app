@@ -583,23 +583,6 @@ export function resetApp(req: AuthenticatedRequest, res: Response) {
       // 2. Delete all users except the authorized administrator
       db.prepare('DELETE FROM users WHERE id != ?').run(adminUser.id);
 
-      // 3. Keep 4 official supervisors in crew_members with clean state
-      const OFFICIAL_SUPERVISORS_DATA = [
-        { id: 'op-g1-sup', username: 'MiguelG', name: 'GONGORA ROJAS MIGUEL ALONSO', document_id: '41833717', shift: 'G1', email: 'miguelgongora@basetrack.com', radio: 'Canal 1 Operaciones / Control', phone: 'Ext. 4101', avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=MIGUELG' },
-        { id: 'op-g2-sup', username: 'EmilioA', name: 'ALIAGA CASTAÑEDA EMILIO URIEL', document_id: '46593500', shift: 'G2', email: 'emilioaliaga@basetrack.com', radio: 'Canal 1 Operaciones / Control', phone: 'Ext. 4102', avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=EMILIOA' },
-        { id: 'op-g3-sup', username: 'HugoA', name: 'ARI MAMANI HUGO ANDRES', document_id: '40132660', shift: 'G3', email: 'hugoari@basetrack.com', radio: 'Canal 1 Operaciones / Control', phone: 'Ext. 4103', avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=HUGOA' },
-        { id: 'op-g4-sup', username: 'DanteF', name: 'FERNANDEZ ASCURRA DANTE PACO', document_id: '18110964', shift: 'G4', email: 'dantefernandez@basetrack.com', radio: 'Canal 1 Operaciones / Control', phone: 'Ext. 4104', avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=DANTEF' }
-      ];
-
-      const insertCrew = db.prepare(`
-        INSERT OR REPLACE INTO crew_members (id, name, document_id, primary_role, shift_code, radio_channel, phone_extension, status, avatar_url)
-        VALUES (?, ?, ?, 'SUPERVISOR', ?, ?, ?, 'EN_TURNO', ?);
-      `);
-
-      for (const sup of OFFICIAL_SUPERVISORS_DATA) {
-        insertCrew.run(sup.id, sup.name, sup.document_id, sup.shift, sup.radio, sup.phone, sup.avatar);
-      }
-
       db.exec('COMMIT;');
     } catch (innerErr) {
       db.exec('ROLLBACK;');

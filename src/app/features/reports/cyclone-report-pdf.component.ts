@@ -715,9 +715,9 @@ export class CycloneReportPdfComponent implements OnInit {
   operatorName = '--- Vacante ---';
   operatorDni = '---';
   operatorRole = 'Operador de Ciclones';
-  supervisorName = 'Marck Vizcarra';
-  supervisorDni = '91209966';
-  supervisorRole = 'Administrador de Guardia';
+  supervisorName = getCurrentActiveShift().activeGuard.supervisorName;
+  supervisorDni = '---';
+  supervisorRole = 'Supervisor de guardia';
 
   defaultSamples: StationSample[] = [];
 

@@ -698,12 +698,12 @@ export class TailingsReportPdfComponent implements OnInit {
   downloadSuccess = false;
   copiedText = false;
   todayDate: string = new Date().toISOString().split('T')[0];
-  displayShift: string = 'G4';
+  displayShift: string = getCurrentActiveShift().activeGuard.code;
   operatorName = '--- Vacante ---';
   operatorDni = '---';
   operatorRole = 'Operador de descarga 1';
-  supervisorName = 'FERNANDEZ ASCURRA DANTE PACO';
-  supervisorDni = '18110964';
+  supervisorName = getCurrentActiveShift().activeGuard.supervisorName;
+  supervisorDni = '---';
   supervisorRole = 'Supervisor de guardia';
 
   defaultItems: TailingsReport[] = [];
