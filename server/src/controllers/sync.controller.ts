@@ -85,9 +85,16 @@ export async function pushEvents(req: Request, res: Response) {
     let lastServerId = 0;
     try {
       for (const item of events) {
+        let rawPayload = item.payload;
+        if (rawPayload === undefined || rawPayload === null) {
+          if ((item as any).data !== undefined) {
+            rawPayload = { key: (item as any).key, data: (item as any).data };
+          }
+        }
+
         let payloadStr = '{}';
-        if (item.payload !== undefined && item.payload !== null) {
-          payloadStr = typeof item.payload === 'string' ? item.payload : JSON.stringify(item.payload);
+        if (rawPayload !== undefined && rawPayload !== null) {
+          payloadStr = typeof rawPayload === 'string' ? rawPayload : JSON.stringify(rawPayload);
         }
 
         // Limit payload size to 500KB per event to prevent DB bloat/Denial of Service

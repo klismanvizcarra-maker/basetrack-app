@@ -8,6 +8,7 @@ export interface SyncEventPayload {
   action: 'CREATE' | 'UPDATE' | 'DELETE' | 'CHECKIN' | 'SET';
   key?: string;
   data: any;
+  payload?: any;
   timestamp: number;
 }
 
@@ -43,6 +44,7 @@ export class CloudSyncService {
   private broadcastChannel?: BroadcastChannel;
   private lastServerId = 0;
   private pollingTimer?: any;
+  private keepAliveTimer?: any;
   private isProcessingQueue = false;
 
   constructor() {
@@ -79,10 +81,11 @@ export class CloudSyncService {
       });
     }
 
-    // 3. Initial sync and periodic polling
+    // 3. Initial sync, periodic polling, and background keep-alive
     setTimeout(() => {
       this.forceSync();
       this.startPeriodicSync();
+      this.startKeepAlive();
     }, 1500);
   }
 
@@ -120,6 +123,7 @@ export class CloudSyncService {
       action,
       key: storageKey,
       data,
+      payload: { key: storageKey, data },
       timestamp: Date.now()
     };
 
@@ -277,21 +281,24 @@ export class CloudSyncService {
       }
 
       // If key is present in payload or event, persist to local store
-      if (payload && payload.key && payload.data !== undefined) {
-        saveRealtimeData(payload.key, payload.data);
-      } else if (entity) {
-        // Dispatch custom global DOM event for active components
-        if (typeof window !== 'undefined') {
-          window.dispatchEvent(new CustomEvent('basetrack_cloud_sync', {
-            detail: {
-              entity,
-              action,
-              payload,
-              source: 'remote',
-              deviceId: ev.deviceId || ev.device_id
-            }
-          }));
-        }
+      const storageKey = payload?.key || ev.key;
+      const eventData = payload?.data !== undefined ? payload.data : (payload !== undefined ? payload : ev.data);
+
+      if (storageKey && eventData !== undefined) {
+        saveRealtimeData(storageKey, eventData);
+      }
+
+      // Dispatch custom global DOM event for active components
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('basetrack_cloud_sync', {
+          detail: {
+            entity,
+            action,
+            payload: eventData,
+            source: 'remote',
+            deviceId: ev.deviceId || ev.device_id
+          }
+        }));
       }
     } catch (e) {
       console.warn('[CloudSync] Error aplicando evento remoto:', e);
@@ -328,12 +335,24 @@ export class CloudSyncService {
 
   private startPeriodicSync(): void {
     if (this.pollingTimer) clearInterval(this.pollingTimer);
-    // Poll every 12 seconds when online
+    // Poll every 6 seconds when online for snappy synchronization
     this.pollingTimer = setInterval(() => {
       if (navigator.onLine) {
         this.forceSync();
       }
-    }, 12000);
+    }, 6000);
+  }
+
+  private startKeepAlive(): void {
+    if (this.keepAliveTimer) clearInterval(this.keepAliveTimer);
+    // Keep Render backend awake to avoid 50s cold boot
+    this.keepAliveTimer = setInterval(() => {
+      if (navigator.onLine) {
+        this.http.get<any>(`${getApiBaseUrl()}/health`).pipe(
+          catchError(() => of(null))
+        ).subscribe();
+      }
+    }, 45000);
   }
 
   private onNetworkOnline(): void {
