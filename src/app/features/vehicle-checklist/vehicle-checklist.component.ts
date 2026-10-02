@@ -96,12 +96,13 @@ export class VehicleChecklistComponent implements OnInit {
     const userShift = (user?.shift || activeShift).toUpperCase();
     this.formShift = ['G1', 'G2', 'G3', 'G4'].includes(userShift) ? (userShift as any) : (activeShift as any);
     
-    // Driver Full Name
-    this.formDriverName = user?.fullName || user?.username || '';
+    // Driver Full Name (Admin is a system administrator, not a field driver)
+    const isAdmin = user?.role === 'ADMIN' || (user?.username || '').toLowerCase() === 'marckv';
+    this.formDriverName = (!isAdmin ? (user?.fullName || user?.username) : '') || '';
 
     // Driver DNI resolution
-    let dni = user?.document_id || '';
-    if (!dni && this.formDriverName) {
+    let dni = (!isAdmin ? user?.document_id : '') || '';
+    if (!dni && this.formDriverName && !isAdmin) {
       const allMembers = this.crewService.allMembers?.() || this.crewService.defaultMembers || [];
       const matched = allMembers.find((m: any) => 
         m.name?.toLowerCase().trim() === this.formDriverName.toLowerCase().trim() ||
@@ -236,13 +237,10 @@ export class VehicleChecklistComponent implements OnInit {
 
   submitChecklist(): void {
     if (!this.formDriverName) {
-      this.formDriverName = this.authService.currentUser()?.fullName || 'Marck Vizcarra';
-    }
-
-    if (!this.formDriverDni) {
-      const uLower = (this.authService.currentUser()?.username || '').toLowerCase();
-      if (uLower === 'marckv' || uLower === 'admin') {
-        this.formDriverDni = '91209966';
+      const u = this.authService.currentUser();
+      const isAdmin = u?.role === 'ADMIN' || (u?.username || '').toLowerCase() === 'marckv';
+      if (!isAdmin) {
+        this.formDriverName = u?.fullName || u?.username || '';
       }
     }
 

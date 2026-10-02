@@ -7,6 +7,7 @@ import { PwaService } from '../../core/pwa/pwa.service';
 import { OfflineSyncService } from '../../core/offline/offline-sync.service';
 import { CloudSyncService } from '../../core/services/cloud-sync.service';
 import { ThemeService } from '../../core/theme/theme.service';
+import { getCurrentActiveShift } from '../../shared/utils/roster.util';
 
 @Component({
   selector: 'app-header',
@@ -44,7 +45,7 @@ import { ThemeService } from '../../core/theme/theme.service';
 
         <div class="shift-indicator">
           <span class="shift-tag">Turno:</span>
-          <span class="shift-name">{{ authService.currentUser()?.shift || 'G1' }}</span>
+          <span class="shift-name">{{ displayShift }}</span>
         </div>
       </div>
 
@@ -147,8 +148,8 @@ import { ThemeService } from '../../core/theme/theme.service';
             <span class="user-status-dot"></span>
           </div>
           <div class="user-meta">
-            <span class="user-name">{{ authService.currentUser()?.fullName || 'Ing. Supervisor' }}</span>
-            <span class="user-role">{{ authService.currentUser()?.role || 'SUPERVISOR' }}</span>
+            <span class="user-name">{{ authService.currentUser()?.fullName || 'Usuario' }}</span>
+            <span class="user-role">{{ authService.currentUser()?.role || 'OPERADOR' }}</span>
           </div>
         </div>
       </div>
@@ -1179,6 +1180,14 @@ export class HeaderComponent {
   themeService = inject(ThemeService);
   private router = inject(Router);
   showNotifications = false;
+
+  get displayShift(): string {
+    const user = this.authService.currentUser();
+    if (user?.role !== 'ADMIN' && user?.shift && user.shift !== 'ADMIN') {
+      return user.shift;
+    }
+    return getCurrentActiveShift().activeGuard.code;
+  }
 
   connectivityToastMessage: string | null = null;
   isOnlineToast = true;

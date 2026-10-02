@@ -55,7 +55,7 @@ const DEFAULT_USERS: UserItem[] = [
     full_name: 'Marck Vizcarra',
     role: 'ADMIN',
     shift: 'ADMIN',
-    document_id: '91209966',
+    document_id: '',
     avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80',
     created_at: new Date().toISOString()
   }
@@ -5260,7 +5260,7 @@ export class AdminComponent implements OnInit {
             return;
           }
 
-          if (password === '91209966' || password === 'Basetrack2026!') {
+          if (password === 'Basetrack2026!') {
             this.isResetAppModalOpen = false;
             purgeLocalStorage();
             this.backupSuccessMessage = '✅ Reset App completado. Almacenamiento y datos depurados.';
@@ -5295,16 +5295,18 @@ export class AdminComponent implements OnInit {
     }
 
     this.crewService.loadSupervisorOperators().subscribe(res => {
-      const list = (res?.supervisors && res.supervisors.length >= 4) ? res.supervisors : fallbackGuards;
+      const list = res?.supervisors ? res.supervisors : [];
       this.supervisorsList = list;
       this.allAvailableOperators = (res?.all_operators && res.all_operators.length > 0) 
         ? res.all_operators 
-        : (this.crewService.allMembers().length > 0 ? this.crewService.allMembers().filter(m => m.primary_role !== 'SUPERVISOR') : this.allAvailableOperators);
+        : (this.crewService.allMembers().length > 0 ? this.crewService.allMembers().filter(m => m.primary_role !== 'SUPERVISOR') : []);
       if (!this.selectedSupervisor && this.supervisorsList.length > 0) {
         this.selectedSupervisor = this.supervisorsList[0];
       } else if (this.selectedSupervisor) {
         const updated = this.supervisorsList.find(s => s.id === this.selectedSupervisor!.id || s.username === this.selectedSupervisor!.username);
-        if (updated) this.selectedSupervisor = updated;
+        this.selectedSupervisor = updated || (this.supervisorsList.length > 0 ? this.supervisorsList[0] : null);
+      } else {
+        this.selectedSupervisor = null;
       }
     });
   }

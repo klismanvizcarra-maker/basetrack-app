@@ -29,19 +29,18 @@ export function purgeAndSetSoleAdmin() {
   // 2. Delete all users
   db.prepare('DELETE FROM users').run();
 
-  // 3. Insert Sole Administrator: Marck Vizcarra (DNI: 91209966, Pass: 91209966)
+  // 3. Insert Sole Administrator: Marckv (Ghost system administrator - no operational DNI)
   const adminId = crypto.randomUUID();
   const adminHash = bcrypt.hashSync('91209966', 10);
   db.prepare(`
     INSERT INTO users (id, username, email, password_hash, full_name, role, shift, avatar_url, is_active, document_id, primary_role)
-    VALUES (?, ?, ?, ?, ?, 'ADMIN', 'ADMIN', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80', 1, ?, 'ADMIN')
+    VALUES (?, ?, ?, ?, ?, 'ADMIN', 'ADMIN', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80', 1, '', 'ADMIN')
   `).run(
     adminId,
     'Marckv',
     'marckvizcarra@basetrack.com',
     adminHash,
-    'Marck Vizcarra',
-    '91209966'
+    'Marck Vizcarra'
   );
 
   // 4. Default operational positions in crew_positions

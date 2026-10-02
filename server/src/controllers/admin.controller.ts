@@ -138,34 +138,36 @@ export function createUsersBulk(req: AuthenticatedRequest, res: Response) {
           );
         }
 
-        // Also upsert into crew_members if operator or supervisor
-        const existingCrew = checkExistingCrewDoc.get(documentId) as any;
-        if (existingCrew) {
-          db.prepare(`
-            UPDATE crew_members
-            SET name = ?, primary_role = ?, shift_code = ?, radio_channel = ?, phone_extension = ?, avatar_url = ?
-            WHERE document_id = ?
-          `).run(
-            fullName,
-            primaryRole,
-            shift,
-            radio,
-            phone,
-            avatar,
-            documentId
-          );
-        } else {
-          insertCrew.run(
-            crypto.randomUUID(),
-            fullName,
-            documentId,
-            primaryRole,
-            shift,
-            radio,
-            phone,
-            'EN_TURNO',
-            avatar
-          );
+        // Also upsert into crew_members if operator or supervisor (NEVER for ADMIN)
+        if (role !== 'ADMIN') {
+          const existingCrew = checkExistingCrewDoc.get(documentId) as any;
+          if (existingCrew) {
+            db.prepare(`
+              UPDATE crew_members
+              SET name = ?, primary_role = ?, shift_code = ?, radio_channel = ?, phone_extension = ?, avatar_url = ?
+              WHERE document_id = ?
+            `).run(
+              fullName,
+              primaryRole,
+              shift,
+              radio,
+              phone,
+              avatar,
+              documentId
+            );
+          } else {
+            insertCrew.run(
+              crypto.randomUUID(),
+              fullName,
+              documentId,
+              primaryRole,
+              shift,
+              radio,
+              phone,
+              'EN_TURNO',
+              avatar
+            );
+          }
         }
 
         importedCount++;
@@ -629,17 +631,19 @@ export function updateUserRoleShift(req: AuthenticatedRequest, res: Response) {
 
     db.prepare('UPDATE users SET role = ?, shift = ? WHERE id = ?').run(newRole, newShift, id);
 
-    // Sync with crew_members if exists
-    try {
-      let crewRole = 'OPERADOR_BOMBAS';
-      if (newRole === 'SUPERVISOR') crewRole = 'SUPERVISOR';
-      db.prepare(`
-        UPDATE crew_members 
-        SET shift_code = ?, primary_role = CASE WHEN primary_role = 'SUPERVISOR' OR ? = 'SUPERVISOR' THEN ? ELSE primary_role END
-        WHERE LOWER(name) = LOWER(?)
-      `).run(newShift, newRole, crewRole, String(user.full_name || ''));
-    } catch (e) {
-      console.warn('[Admin] Sync with crew_members notice:', e);
+    // Sync with crew_members if exists and not ADMIN
+    if (user.role !== 'ADMIN' && newRole !== 'ADMIN') {
+      try {
+        let crewRole = 'OPERADOR_BOMBAS';
+        if (newRole === 'SUPERVISOR') crewRole = 'SUPERVISOR';
+        db.prepare(`
+          UPDATE crew_members 
+          SET shift_code = ?, primary_role = CASE WHEN primary_role = 'SUPERVISOR' OR ? = 'SUPERVISOR' THEN ? ELSE primary_role END
+          WHERE LOWER(name) = LOWER(?)
+        `).run(newShift, newRole, crewRole, String(user.full_name || ''));
+      } catch (e) {
+        console.warn('[Admin] Sync with crew_members notice:', e);
+      }
     }
 
     logAudit(
@@ -1339,8 +1343,7 @@ export function getMyPermissions(req: AuthenticatedRequest, res: Response) {
     const isSuperAdmin =
       user.role === 'ADMIN' ||
       user.username?.toLowerCase() === 'marckv' ||
-      user.username?.toLowerCase() === 'admin' ||
-      user.fullName?.toUpperCase().includes('MARCK');
+      user.username?.toLowerCase() === 'admin';
 
     if (isSuperAdmin) {
       return res.json({

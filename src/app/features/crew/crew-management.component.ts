@@ -2040,24 +2040,24 @@ export class CrewManagementComponent implements OnInit {
   }
 
   get activeSupervisorMember(): CrewMember | undefined {
-    return this.crewService.allMembers().find(m => m.shift_code === this.selectedShift && m.primary_role === 'SUPERVISOR') ||
+    return this.crewService.allMembers().find(m => m.shift_code === this.selectedShift && m.primary_role === 'SUPERVISOR' && !m.name.toLowerCase().includes('marck')) ||
            CrewService.OFFICIAL_SUPERVISOR_MAP[this.selectedShift];
   }
 
   get otherSupervisors(): CrewMember[] {
-    return this.crewService.allMembers().filter(m => m.primary_role === 'SUPERVISOR' && m.shift_code !== this.selectedShift);
+    return this.crewService.allMembers().filter(m => m.primary_role === 'SUPERVISOR' && m.shift_code !== this.selectedShift && !m.name.toLowerCase().includes('marck'));
   }
 
   get activeSupervisorDisplayName(): string {
     const supMember = this.activeSupervisorMember;
-    if (supMember && supMember.name && supMember.name !== '--- Vacante ---') {
+    if (supMember && supMember.name && supMember.name !== '--- Vacante ---' && !supMember.name.toLowerCase().includes('marck')) {
       return sanitizeOfficialName(supMember.name);
     }
     const currentUser = this.authService.currentUser();
-    if (currentUser?.role === 'SUPERVISOR' && currentUser.shift === this.selectedShift) {
+    if (currentUser?.role === 'SUPERVISOR' && currentUser.shift === this.selectedShift && !currentUser.fullName?.toLowerCase().includes('marck')) {
       return sanitizeOfficialName(currentUser.fullName || currentUser.username);
     }
-    return currentUser?.fullName || 'Sin Asignar';
+    return 'Sin Asignar';
   }
 
   get activeSupervisorAvatar(): string {

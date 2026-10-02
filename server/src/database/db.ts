@@ -535,24 +535,6 @@ export function initDatabase() {
     console.warn('[Database] Global shift update migration:', e);
   }
 
-  // UTF-8 Integrity repair for staff names with tildes and accents (e.g. CASTAÑEDA, RAMÍREZ, SUÁREZ)
-  try {
-    db.exec(`
-      UPDATE crew_members SET name = 'ALIAGA CASTAÑEDA EMILIO URIEL' WHERE name LIKE '%CASTA%EDA%' AND name != 'ALIAGA CASTAÑEDA EMILIO URIEL';
-      UPDATE users SET full_name = 'ALIAGA CASTAÑEDA EMILIO URIEL' WHERE full_name LIKE '%CASTA%EDA%' AND full_name != 'ALIAGA CASTAÑEDA EMILIO URIEL';
-      UPDATE shift_handovers SET incoming_supervisor = 'ALIAGA CASTAÑEDA EMILIO URIEL' WHERE incoming_supervisor LIKE '%CASTA%EDA%' AND incoming_supervisor != 'ALIAGA CASTAÑEDA EMILIO URIEL';
-      UPDATE shift_handovers SET outgoing_supervisor = 'ALIAGA CASTAÑEDA EMILIO URIEL' WHERE outgoing_supervisor LIKE '%CASTA%EDA%' AND outgoing_supervisor != 'ALIAGA CASTAÑEDA EMILIO URIEL';
-
-      UPDATE crew_members SET name = 'ORTEGA RAMÍREZ CESAR' WHERE name LIKE '%ORTEGA RAM%REZ%' AND name != 'ORTEGA RAMÍREZ CESAR';
-      UPDATE users SET full_name = 'ORTEGA RAMÍREZ CESAR' WHERE full_name LIKE '%ORTEGA RAM%REZ%' AND full_name != 'ORTEGA RAMÍREZ CESAR';
-
-      UPDATE crew_members SET name = 'SUÁREZ MAMANI JULIO' WHERE name LIKE '%SU%REZ MAMANI%' AND name != 'SUÁREZ MAMANI JULIO';
-      UPDATE users SET full_name = 'SUÁREZ MAMANI JULIO' WHERE full_name LIKE '%SU%REZ MAMANI%' AND full_name != 'SUÁREZ MAMANI JULIO';
-    `);
-  } catch (e) {
-    console.warn('[Database] UTF-8 repair error:', e);
-  }
-
   // Migration: Add supervisor DNI and position role columns to shift_handovers
   try {
     db.prepare("ALTER TABLE shift_handovers ADD COLUMN outgoing_dni TEXT").run();
@@ -568,26 +550,29 @@ export function initDatabase() {
   } catch {}
 
   // -------------------------------------------------------------
-  // SYSTEM INITIALIZATION: Ensure Admin, Positions, and Official Supervisors
+  // SYSTEM INITIALIZATION: Ensure Admin and Positions
   // Operate ONLY with real data loaded via CSV / User Actions (Zero fake generated data)
   // -------------------------------------------------------------
   try {
-    // 1. Ensure Sole Administrator: Marck Vizcarra (DNI: 91209966)
+    // 1. Ensure Sole Administrator: Marckv (Ghost system administrator - no operational DNI)
     const adminExists = (db.prepare("SELECT COUNT(*) as cnt FROM users WHERE role = 'ADMIN' OR username = 'Marckv'").get() as { cnt: number })?.cnt > 0;
     if (!adminExists) {
       const adminId = crypto.randomUUID();
       const adminHash = bcrypt.hashSync('91209966', 10);
       db.prepare(`
         INSERT INTO users (id, username, email, password_hash, full_name, role, shift, avatar_url, is_active, document_id, primary_role)
-        VALUES (?, ?, ?, ?, ?, 'ADMIN', 'ADMIN', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80', 1, ?, 'ADMIN')
+        VALUES (?, ?, ?, ?, ?, 'ADMIN', 'ADMIN', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80', 1, '', 'ADMIN')
       `).run(
         adminId,
         'Marckv',
         'marckvizcarra@basetrack.com',
         adminHash,
-        'Marck Vizcarra',
-        '91209966'
+        'Marck Vizcarra'
       );
+    } else {
+      // Ensure existing admin has no operational DNI and is not in crew_members
+      db.prepare("UPDATE users SET document_id = '' WHERE role = 'ADMIN' OR username = 'Marckv'").run();
+      db.prepare("DELETE FROM crew_members WHERE LOWER(name) = 'marck vizcarra' OR document_id = '91209966'").run();
     }
 
     // 2. Default operational positions in crew_positions

@@ -1003,7 +1003,8 @@ export class ShiftHandoverComponent implements OnInit {
   ngOnInit(): void {
     const shiftInfo = getCurrentActiveShift();
     const user = this.authService.currentUser();
-    const supFound = this.officialSupervisors.find(s => s.name === user?.fullName);
+    const isRealSupervisor = user?.role === 'SUPERVISOR' && !user?.fullName?.toLowerCase().includes('marck');
+    const supFound = isRealSupervisor ? this.officialSupervisors.find(s => s.name === user?.fullName) : null;
     if (supFound) {
       this.newHandover.outgoing_supervisor = supFound.name;
       this.newHandover.outgoing_dni = supFound.dni;
@@ -1214,15 +1215,17 @@ export class ShiftHandoverComponent implements OnInit {
                     this.officialSupervisors.find(s => s.shift === shiftInfo.nextGuard.code);
 
     const currentUser = this.authService.currentUser();
-    const isCurrentUserOfficialSup = this.officialSupervisors.find(s => s.name === currentUser?.fullName || s.dni === currentUser?.document_id);
+    const isCurrentUserOfficialSup = (currentUser?.role === 'SUPERVISOR' && !currentUser.fullName?.toLowerCase().includes('marck'))
+      ? this.officialSupervisors.find(s => s.name === currentUser?.fullName || (currentUser?.document_id && s.dni === currentUser?.document_id))
+      : null;
 
     const finalIncomingSup = isCurrentUserOfficialSup 
       ? isCurrentUserOfficialSup 
-      : (nextSup || this.officialSupervisors[1]);
+      : (nextSup || (this.officialSupervisors.length > 0 ? this.officialSupervisors[0] : null));
 
     const acceptPayload = {
-      incoming_supervisor: finalIncomingSup.name,
-      incoming_dni: (finalIncomingSup as any).dni || (finalIncomingSup as any).document_id || '46593500',
+      incoming_supervisor: finalIncomingSup?.name || 'Sin Asignar',
+      incoming_dni: (finalIncomingSup as any)?.dni || (finalIncomingSup as any)?.document_id || '',
       incoming_role: 'Supervisor de guardia'
     };
 

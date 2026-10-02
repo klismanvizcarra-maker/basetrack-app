@@ -121,15 +121,15 @@ apiRouter.post('/admin/permissions/reset', authenticateToken, requireRoles('ADMI
 apiRouter.get('/auth/permissions', authenticateToken, getMyPermissions);
 
 // 10. Crew & Area Assignments Routes (Gestión de Cuadrilla y Asignación por Área)
-apiRouter.get('/crew/members', getCrewMembers);
+apiRouter.get('/crew/members', authenticateToken, getCrewMembers);
 apiRouter.get('/crew/my-operators', authenticateToken, getMyOperators);
 apiRouter.post('/crew/members', authenticateToken, requirePermission('CAN_MANAGE_CREW'), createCrewMember);
 apiRouter.put('/crew/members/:id', authenticateToken, requirePermission('CAN_MANAGE_CREW'), updateCrewMember);
 apiRouter.delete('/crew/members/:id', authenticateToken, requireRoles('ADMIN'), deleteCrewMember);
-apiRouter.get('/crew/assignments', getAreaAssignments);
+apiRouter.get('/crew/assignments', authenticateToken, getAreaAssignments);
 apiRouter.post('/crew/assignments', authenticateToken, requirePermission('CAN_MANAGE_CREW'), saveAreaAssignment);
 apiRouter.patch('/crew/assignments/:id/checkin', authenticateToken, requirePermission('CAN_RECORD_DATA'), checkinAreaAssignment);
-apiRouter.get('/crew/positions', getCrewPositions);
+apiRouter.get('/crew/positions', authenticateToken, getCrewPositions);
 apiRouter.post('/crew/positions', authenticateToken, requirePermission('CAN_MANAGE_CREW'), createCrewPosition);
 apiRouter.delete('/crew/positions/:key', authenticateToken, requireRoles('ADMIN'), deleteCrewPosition);
 

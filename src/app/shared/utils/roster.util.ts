@@ -86,46 +86,42 @@ export function updateGuardsCatalog(supervisors: Partial<Record<GuardCode, Parti
 // Depuración automática de almacenamiento local al inicializar para garantizar Clean Slate
 if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
   try {
-    const rawCrew = localStorage.getItem('basetrack_crew_members');
-    if (rawCrew) {
-      const parsed = JSON.parse(rawCrew);
-      const hasMockData = Array.isArray(parsed) && parsed.some((m: any) => 
-        m.name?.includes('GONGORA') ||
-        m.name?.includes('ALIAGA') ||
-        m.name?.includes('ARI MAMANI') ||
-        m.name?.includes('FERNANDEZ') ||
-        m.name?.includes('Roberto Quispe') ||
-        m.name?.includes('Marco Vel') ||
-        m.name?.includes('VIZCARRA CORI') ||
-        m.name?.includes('LLERENA CALLE') ||
-        m.name?.includes('MENDOZA QUISPE') ||
-        m.name?.includes('ORTEGA RAM')
-      );
-
-      if (hasMockData) {
-        localStorage.removeItem('basetrack_crew_members');
-        localStorage.removeItem('basetrack_supervisor_operators');
-        localStorage.removeItem('basetrack_my_operators');
-        for (let i = localStorage.length - 1; i >= 0; i--) {
-          const key = localStorage.key(i);
-          if (key && (key.startsWith('basetrack_assignments_') || key.startsWith('offline_queue'))) {
-            localStorage.removeItem(key);
-          }
+    const isCleanV5 = localStorage.getItem('basetrack_v5_clean_slate') === 'true';
+    if (!isCleanV5) {
+      localStorage.removeItem('basetrack_crew_members');
+      localStorage.removeItem('basetrack_supervisor_operators');
+      localStorage.removeItem('basetrack_my_operators');
+      localStorage.removeItem('shift_handovers');
+      localStorage.removeItem('pumps_telemetry');
+      localStorage.removeItem('tailings_reports');
+      localStorage.removeItem('vehicle_checklists');
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const key = localStorage.key(i);
+        if (key && (key.startsWith('basetrack_assignments_') || key.startsWith('pump_sheet_') || key.startsWith('offline_queue'))) {
+          localStorage.removeItem(key);
         }
-      } else if (Array.isArray(parsed) && parsed.length > 0) {
-        const foundSups: Partial<Record<GuardCode, Partial<GuardInfo>>> = {};
-        parsed.forEach((m: any) => {
-          const shift = (m.shift_code || m.shift) as GuardCode;
-          if (['G1', 'G2', 'G3', 'G4'].includes(shift) && m.primary_role === 'SUPERVISOR') {
-            foundSups[shift] = {
-              supervisorName: m.name || m.full_name,
-              supervisorUser: m.username || m.name,
-              avatarUrl: m.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${m.name}`
-            };
+      }
+      localStorage.setItem('basetrack_v5_clean_slate', 'true');
+    } else {
+      const rawCrew = localStorage.getItem('basetrack_crew_members');
+      if (rawCrew) {
+        const parsed = JSON.parse(rawCrew);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const foundSups: Partial<Record<GuardCode, Partial<GuardInfo>>> = {};
+          parsed.forEach((m: any) => {
+            const shift = (m.shift_code || m.shift) as GuardCode;
+            const isMarck = (m.name || '').toLowerCase().includes('marck') || (m.username || '').toLowerCase() === 'marckv';
+            if (!isMarck && ['G1', 'G2', 'G3', 'G4'].includes(shift) && m.primary_role === 'SUPERVISOR') {
+              foundSups[shift] = {
+                supervisorName: m.name || m.full_name,
+                supervisorUser: m.username || m.name,
+                avatarUrl: m.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${m.name}`
+              };
+            }
+          });
+          if (Object.keys(foundSups).length > 0) {
+            updateGuardsCatalog(foundSups);
           }
-        });
-        if (Object.keys(foundSups).length > 0) {
-          updateGuardsCatalog(foundSups);
         }
       }
     }

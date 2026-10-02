@@ -2011,8 +2011,8 @@ export class PumpsComponent implements OnInit {
       bearing_temp_c: this.newPump.bearing_temp_c,
       vibration_mms: this.newPump.vibration_mms,
       current_amps: this.newPump.current_amps,
-      shift_code: 'G1',
-      operator_name: this.authService.currentUser()?.fullName || this.sheet.operator_name || 'Marck Vizcarra',
+      shift_code: this.sheet.shift_code || 'G1',
+      operator_name: (this.authService.currentUser()?.role !== 'ADMIN' ? this.authService.currentUser()?.fullName : null) || (this.sheet.operator_name !== '--- Vacante ---' ? this.sheet.operator_name : null) || 'Operador de Turno',
       notes: this.newPump.notes,
       created_at: new Date().toISOString()
     };

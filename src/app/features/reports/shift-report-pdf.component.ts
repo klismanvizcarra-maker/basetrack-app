@@ -1102,7 +1102,7 @@ export class ShiftReportPdfComponent implements OnInit, OnChanges {
       this.reportData = { ...this.handover };
     }
     const active = getCurrentActiveShift();
-    const isInvalidSup = (name?: string) => !name || name.includes('Roberto Quispe') || name.includes('Marco Vel') || name.includes('Marck Vizcarra');
+    const isInvalidSup = (name?: string) => !name || name.includes('Roberto Quispe') || name.includes('Marco Vel') || name.toLowerCase().includes('marck') || name.toLowerCase().includes('vizcarra') || name.toLowerCase().includes('admin');
 
     if (isInvalidSup(this.reportData.outgoing_supervisor)) {
       const shift = this.reportData.shift_code?.substring(0, 2) || active.activeGuard.code;
@@ -1392,7 +1392,7 @@ export class ShiftReportPdfComponent implements OnInit, OnChanges {
 
   // --- GETTERS: DYNAMIC SUPERVISORS & SIGNATURES ---
   get outgoingSupervisorName(): string {
-    const isInvalidSup = (name?: string) => !name || name.includes('Roberto Quispe') || name.includes('Marco Vel') || name.includes('Marck Vizcarra');
+    const isInvalidSup = (name?: string) => !name || name.includes('Roberto Quispe') || name.includes('Marco Vel') || name.toLowerCase().includes('marck') || name.toLowerCase().includes('vizcarra') || name.toLowerCase().includes('admin');
     if (!isInvalidSup(this.reportData.outgoing_supervisor)) {
       return this.reportData.outgoing_supervisor;
     }
@@ -1417,7 +1417,7 @@ export class ShiftReportPdfComponent implements OnInit, OnChanges {
   }
 
   get incomingSupervisorName(): string {
-    const isInvalidSup = (name?: string) => !name || name.includes('Roberto Quispe') || name.includes('Marco Vel') || name.includes('Marck Vizcarra');
+    const isInvalidSup = (name?: string) => !name || name.includes('Roberto Quispe') || name.includes('Marco Vel') || name.toLowerCase().includes('marck') || name.toLowerCase().includes('vizcarra') || name.toLowerCase().includes('admin');
     if (!isInvalidSup(this.reportData.incoming_supervisor)) {
       return this.reportData.incoming_supervisor;
     }

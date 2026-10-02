@@ -51,7 +51,7 @@ import { AuthService } from '../../core/auth/auth.service';
                 type="text"
                 name="username"
                 [(ngModel)]="username"
-                placeholder="Ej: Marckv o su DNI"
+                placeholder="Usuario, correo o DNI"
                 autocomplete="username"
                 required
               />

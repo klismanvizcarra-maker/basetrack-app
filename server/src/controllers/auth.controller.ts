@@ -16,22 +16,23 @@ export async function login(req: Request, res: Response) {
   const cleanUser = String(username || '').trim();
   const cleanPass = String(password || '').trim();
 
-  // Resilient lookup: admin, marckv, 91209966 or Marck Vizcarra resolves to Marckv (Official Administrator)
+  // Admin lookup strictly by username: 'admin' or 'marckv'
   let user: any = null;
-  const isTargetingAdmin = ['admin', 'marckv', '91209966', 'marck vizcarra', '2794vizcarra'].includes(cleanUser.toLowerCase());
+  const isTargetingAdmin = ['admin', 'marckv'].includes(cleanUser.toLowerCase());
 
   if (isTargetingAdmin) {
-    user = db.prepare('SELECT * FROM users WHERE LOWER(username) = ? OR document_id = ?').get('marckv', '91209966') as any;
+    user = db.prepare('SELECT * FROM users WHERE LOWER(username) = ?').get('marckv') as any;
     if (!user) {
       user = db.prepare("SELECT * FROM users WHERE role = 'ADMIN'").get() as any;
     }
   } else {
-    user = db.prepare('SELECT * FROM users WHERE LOWER(username) = LOWER(?) OR LOWER(email) = LOWER(?) OR document_id = ? OR LOWER(full_name) = LOWER(?)').get(cleanUser, cleanUser, cleanUser, cleanUser) as any;
+    // Normal users / operators lookup (strictly not admin by DNI)
+    user = db.prepare("SELECT * FROM users WHERE LOWER(username) = LOWER(?) OR LOWER(email) = LOWER(?) OR (document_id = ? AND role != 'ADMIN' AND document_id != '') OR (LOWER(full_name) = LOWER(?) AND role != 'ADMIN')").get(cleanUser, cleanUser, cleanUser, cleanUser) as any;
     if (!user) {
-      // Allow login with operator DNI
-      const crew = db.prepare('SELECT name FROM crew_members WHERE document_id = ?').get(cleanUser) as { name: string } | undefined;
+      // Allow login with operator DNI for operational staff
+      const crew = db.prepare("SELECT name FROM crew_members WHERE document_id = ? AND document_id != ''").get(cleanUser) as { name: string } | undefined;
       if (crew) {
-        user = db.prepare('SELECT * FROM users WHERE LOWER(full_name) = LOWER(?)').get(crew.name) as any;
+        user = db.prepare("SELECT * FROM users WHERE LOWER(full_name) = LOWER(?) AND role != 'ADMIN'").get(crew.name) as any;
       }
     }
   }
@@ -86,7 +87,7 @@ export async function login(req: Request, res: Response) {
       role: user.role,
       shift: user.shift,
       avatarUrl: user.avatar_url,
-      document_id: user.document_id,
+      document_id: user.role === 'ADMIN' ? '' : (user.document_id || ''),
       radio_channel: user.radio_channel,
       phone_extension: user.phone_extension,
       primary_role: user.primary_role
@@ -175,49 +176,51 @@ export async function updateProfile(req: AuthenticatedRequest, res: Response) {
       WHERE id = ?
     `).run(updatedFullName, updatedEmail, updatedAvatar, updatedShift, updatedDocId, updatedRadio, updatedPhone, updatedRole, user.id);
 
-    // Also synchronize with crew_members table
-    try {
-      const crewUpdate = db.prepare(`
-        UPDATE crew_members
-        SET 
-          name = COALESCE(?, name),
-          avatar_url = COALESCE(?, avatar_url),
-          document_id = COALESCE(?, document_id),
-          radio_channel = COALESCE(?, radio_channel),
-          phone_extension = COALESCE(?, phone_extension),
-          primary_role = COALESCE(?, primary_role),
-          shift_code = COALESCE(?, shift_code)
-        WHERE (document_id IS NOT NULL AND document_id = ?) 
-           OR name = ?
-      `).run(
-        updatedFullName, 
-        updatedAvatar, 
-        updatedDocId, 
-        updatedRadio, 
-        updatedPhone, 
-        updatedRole, 
-        updatedShift,
-        updatedDocId || '',
-        updatedFullName
-      );
-
-      if (crewUpdate.changes === 0 && updatedDocId) {
-        db.prepare(`
-          INSERT OR IGNORE INTO crew_members (id, name, document_id, primary_role, shift_code, radio_channel, phone_extension, status, avatar_url)
-          VALUES (?, ?, ?, ?, ?, ?, ?, 'EN_TURNO', ?)
+    // Also synchronize with crew_members table ONLY for non-admin operational personnel
+    if (user.role !== 'ADMIN') {
+      try {
+        const crewUpdate = db.prepare(`
+          UPDATE crew_members
+          SET 
+            name = COALESCE(?, name),
+            avatar_url = COALESCE(?, avatar_url),
+            document_id = COALESCE(?, document_id),
+            radio_channel = COALESCE(?, radio_channel),
+            phone_extension = COALESCE(?, phone_extension),
+            primary_role = COALESCE(?, primary_role),
+            shift_code = COALESCE(?, shift_code)
+          WHERE (document_id IS NOT NULL AND document_id = ?) 
+             OR name = ?
         `).run(
-          'crew-' + user.id,
-          updatedFullName,
-          updatedDocId,
-          updatedRole || 'OPERADOR_BOMBAS',
-          updatedShift || 'G1',
-          updatedRadio || 'Canal 1 Operaciones',
-          updatedPhone || null,
-          updatedAvatar || null
+          updatedFullName, 
+          updatedAvatar, 
+          updatedDocId, 
+          updatedRadio, 
+          updatedPhone, 
+          updatedRole, 
+          updatedShift,
+          updatedDocId || '',
+          updatedFullName
         );
+
+        if (crewUpdate.changes === 0 && updatedDocId) {
+          db.prepare(`
+            INSERT OR IGNORE INTO crew_members (id, name, document_id, primary_role, shift_code, radio_channel, phone_extension, status, avatar_url)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 'EN_TURNO', ?)
+          `).run(
+            'crew-' + user.id,
+            updatedFullName,
+            updatedDocId,
+            updatedRole || 'OPERADOR_BOMBAS',
+            updatedShift || 'G1',
+            updatedRadio || 'Canal 1 Operaciones',
+            updatedPhone || null,
+            updatedAvatar || null
+          );
+        }
+      } catch (e) {
+        console.warn('[Profile] Error synchronizing with crew_members:', e);
       }
-    } catch (e) {
-      console.warn('[Profile] Error synchronizing with crew_members:', e);
     }
 
     logAudit(user.id, user.username, 'UPDATE_PROFILE', 'USERS', user.id, `Actualización de perfil (Nombre: ${updatedFullName}, DNI: ${updatedDocId || 'N/A'})`, req.ip || '127.0.0.1');

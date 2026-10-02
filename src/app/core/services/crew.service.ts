@@ -844,12 +844,9 @@ export class CrewService {
         const hasOldMocks = Array.isArray(parsed) && parsed.some((m: any) => 
           m.name?.includes('TEST') ||
           m.name?.includes('PRUEBA') ||
-          m.name?.includes('GONGORA') ||
-          m.name?.includes('ALIAGA') ||
-          m.name?.includes('ARI MAMANI') ||
-          m.name?.includes('FERNANDEZ') ||
           m.name?.includes('Roberto Quispe') ||
-          m.name?.includes('Marco Vel')
+          m.name?.includes('Marco Vel') ||
+          m.name?.toLowerCase().includes('marck')
         );
         if (Array.isArray(parsed) && !hasOldMocks) {
           list = parsed.map((m: any) => ({
@@ -888,16 +885,15 @@ export class CrewService {
       if (cached) {
         const parsed = JSON.parse(cached);
         const hasOldMocks = Array.isArray(parsed) && parsed.some((a: any) => 
-          a.operator_name === 'Juan Pérez Huamán' || 
-          a.operator_name === 'Manuel Condori Ramos' ||
-          a.operator_name?.includes('GONGORA') ||
-          a.operator_name?.includes('ALIAGA') ||
-          a.operator_name?.includes('ARI MAMANI') ||
-          a.operator_name?.includes('FERNANDEZ') ||
           a.operator_id === 'op-g1-sup' ||
           a.operator_id === 'op-g2-sup' ||
           a.operator_id === 'op-g3-sup' ||
-          a.operator_id === 'op-g4-sup'
+          a.operator_id === 'op-g4-sup' ||
+          a.operator_name?.includes('TEST') ||
+          a.operator_name?.includes('PRUEBA') ||
+          a.operator_name?.includes('Roberto Quispe') ||
+          a.operator_name?.includes('Marco Vel') ||
+          a.operator_name?.toLowerCase().includes('marck')
         );
         if (hasOldMocks) {
           localStorage.removeItem(key);
