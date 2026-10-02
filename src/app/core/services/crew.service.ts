@@ -1036,8 +1036,11 @@ export class CrewService {
         return found;
       }
       if (role === 'SUPERVISOR') {
-        const officialSup = CrewService.OFFICIAL_SUPERVISOR_MAP[normShift];
-        if (officialSup) return officialSup;
+        const foundSup = activeShiftStaff.find(m => m.primary_role === 'SUPERVISOR');
+        if (foundSup) {
+          usedStaffIds.add(foundSup.id);
+          return foundSup;
+        }
       }
 
       return {
@@ -1226,7 +1229,8 @@ export class CrewService {
     }
 
     if (positionKey === 'SUPERVISOR') {
-      return CrewService.OFFICIAL_SUPERVISOR_MAP[normShift];
+      const foundSup = this.allMembers().find(m => m.shift_code === normShift && m.primary_role === 'SUPERVISOR');
+      return foundSup;
     }
     return undefined;
   }
@@ -1238,10 +1242,11 @@ export class CrewService {
                       raw === 'GUARDIA_C' ? 'G3' :
                       raw === 'GUARDIA_D' ? 'G4' : raw;
     const staff = this.getOfficialShiftStaff(normShift);
-    if (staff && staff.supervisor && staff.supervisor.name) {
+    if (staff && staff.supervisor && staff.supervisor.name && staff.supervisor.id) {
       return staff.supervisor;
     }
-    return CrewService.OFFICIAL_SUPERVISOR_MAP[normShift];
+    const foundSup = this.allMembers().find(m => m.shift_code === normShift && m.primary_role === 'SUPERVISOR');
+    return foundSup;
   }
 
   private saveCache(key: string, data: any): void {

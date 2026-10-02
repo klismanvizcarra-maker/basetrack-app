@@ -9,6 +9,7 @@ import {
   MonthRoster,
   GUARDS_CATALOG,
   updateGuardsCatalog,
+  resetGuardsCatalog,
   getRosterForDate,
   getMonthRoster,
   getCurrentActiveShift
@@ -172,7 +173,7 @@ import { CrewService } from '../../core/services/crew.service';
             (click)="selectedGuardFilter = 'G1'"
           >
             <span class="dot-indicator" [style.background-color]="guardsCatalog['G1'].colorHex"></span>
-            G1 ({{ getShortSupervisorName('G1') }})
+            G1<ng-container *ngIf="getShortSupervisorName('G1')"> ({{ getShortSupervisorName('G1') }})</ng-container>
           </button>
           <button 
             type="button" 
@@ -181,7 +182,7 @@ import { CrewService } from '../../core/services/crew.service';
             (click)="selectedGuardFilter = 'G2'"
           >
             <span class="dot-indicator" [style.background-color]="guardsCatalog['G2'].colorHex"></span>
-            G2 ({{ getShortSupervisorName('G2') }})
+            G2<ng-container *ngIf="getShortSupervisorName('G2')"> ({{ getShortSupervisorName('G2') }})</ng-container>
           </button>
           <button 
             type="button" 
@@ -190,7 +191,7 @@ import { CrewService } from '../../core/services/crew.service';
             (click)="selectedGuardFilter = 'G3'"
           >
             <span class="dot-indicator" [style.background-color]="guardsCatalog['G3'].colorHex"></span>
-            G3 ({{ getShortSupervisorName('G3') }})
+            G3<ng-container *ngIf="getShortSupervisorName('G3')"> ({{ getShortSupervisorName('G3') }})</ng-container>
           </button>
           <button 
             type="button" 
@@ -199,7 +200,7 @@ import { CrewService } from '../../core/services/crew.service';
             (click)="selectedGuardFilter = 'G4'"
           >
             <span class="dot-indicator" [style.background-color]="guardsCatalog['G4'].colorHex"></span>
-            G4 ({{ getShortSupervisorName('G4') }})
+            G4<ng-container *ngIf="getShortSupervisorName('G4')"> ({{ getShortSupervisorName('G4') }})</ng-container>
           </button>
         </div>
       </div>
@@ -307,8 +308,8 @@ import { CrewService } from '../../core/services/crew.service';
               <strong>Bloque 1</strong>
               <span class="days-span">4 Días</span>
             </div>
-            <div class="block-row">☀️ <strong>Día:</strong> Guardia 1 ({{ getShortSupervisorName('G1') }})</div>
-            <div class="block-row">🌙 <strong>Noche:</strong> Guardia 3 ({{ getShortSupervisorName('G3') }})</div>
+            <div class="block-row">☀️ <strong>Día:</strong> Guardia 1<ng-container *ngIf="getShortSupervisorName('G1')"> ({{ getShortSupervisorName('G1') }})</ng-container></div>
+            <div class="block-row">🌙 <strong>Noche:</strong> Guardia 3<ng-container *ngIf="getShortSupervisorName('G3')"> ({{ getShortSupervisorName('G3') }})</ng-container></div>
             <div class="block-row text-muted">🏖️ <strong>Descanso:</strong> G2, G4</div>
           </div>
 
@@ -317,8 +318,8 @@ import { CrewService } from '../../core/services/crew.service';
               <strong>Bloque 2</strong>
               <span class="days-span">4 Días</span>
             </div>
-            <div class="block-row">☀️ <strong>Día:</strong> Guardia 2 ({{ getShortSupervisorName('G2') }})</div>
-            <div class="block-row">🌙 <strong>Noche:</strong> Guardia 1 ({{ getShortSupervisorName('G1') }})</div>
+            <div class="block-row">☀️ <strong>Día:</strong> Guardia 2<ng-container *ngIf="getShortSupervisorName('G2')"> ({{ getShortSupervisorName('G2') }})</ng-container></div>
+            <div class="block-row">🌙 <strong>Noche:</strong> Guardia 1<ng-container *ngIf="getShortSupervisorName('G1')"> ({{ getShortSupervisorName('G1') }})</ng-container></div>
             <div class="block-row text-muted">🏖️ <strong>Descanso:</strong> G3, G4</div>
           </div>
 
@@ -328,8 +329,8 @@ import { CrewService } from '../../core/services/crew.service';
               <span class="days-span">4 Días</span>
               <span class="anchor-flag" *ngIf="todayRoster?.blockNumber === 3">BLOQUE ACTUAL</span>
             </div>
-            <div class="block-row">☀️ <strong>Día:</strong> Guardia 4 ({{ getShortSupervisorName('G4') }})</div>
-            <div class="block-row">🌙 <strong>Noche:</strong> Guardia 2 ({{ getShortSupervisorName('G2') }})</div>
+            <div class="block-row">☀️ <strong>Día:</strong> Guardia 4<ng-container *ngIf="getShortSupervisorName('G4')"> ({{ getShortSupervisorName('G4') }})</ng-container></div>
+            <div class="block-row">🌙 <strong>Noche:</strong> Guardia 2<ng-container *ngIf="getShortSupervisorName('G2')"> ({{ getShortSupervisorName('G2') }})</ng-container></div>
             <div class="block-row text-muted">🏖️ <strong>Descanso:</strong> G1, G3</div>
           </div>
 
@@ -338,8 +339,8 @@ import { CrewService } from '../../core/services/crew.service';
               <strong>Bloque 4</strong>
               <span class="days-span">4 Días</span>
             </div>
-            <div class="block-row">☀️ <strong>Día:</strong> Guardia 3 ({{ getShortSupervisorName('G3') }})</div>
-            <div class="block-row">🌙 <strong>Noche:</strong> Guardia 4 ({{ getShortSupervisorName('G4') }})</div>
+            <div class="block-row">☀️ <strong>Día:</strong> Guardia 3<ng-container *ngIf="getShortSupervisorName('G3')"> ({{ getShortSupervisorName('G3') }})</ng-container></div>
+            <div class="block-row">🌙 <strong>Noche:</strong> Guardia 4<ng-container *ngIf="getShortSupervisorName('G4')"> ({{ getShortSupervisorName('G4') }})</ng-container></div>
             <div class="block-row text-muted">🏖️ <strong>Descanso:</strong> G1, G2</div>
           </div>
         </div>
@@ -384,8 +385,8 @@ import { CrewService } from '../../core/services/crew.service';
                 <span class="print-sup">{{ day.nightShiftGuard.supervisorName }}</span>
               </td>
               <td>
-                <span class="print-off-guard">{{ day.offGuards[0].name }} ({{ getShortSupervisorName(day.offGuards[0].code) }})</span> y 
-                <span class="print-off-guard">{{ day.offGuards[1].name }} ({{ getShortSupervisorName(day.offGuards[1].code) }})</span>
+                <span class="print-off-guard">{{ day.offGuards[0].name }}<ng-container *ngIf="getShortSupervisorName(day.offGuards[0].code)"> ({{ getShortSupervisorName(day.offGuards[0].code) }})</ng-container></span> y 
+                <span class="print-off-guard">{{ day.offGuards[1].name }}<ng-container *ngIf="getShortSupervisorName(day.offGuards[1].code)"> ({{ getShortSupervisorName(day.offGuards[1].code) }})</ng-container></span>
               </td>
             </tr>
           </tbody>
@@ -1242,7 +1243,7 @@ export class GuardRosterComponent implements OnInit {
   authService = inject(AuthService);
 
   guardsCatalog = GUARDS_CATALOG;
-  operatorCounts: Record<GuardCode, number> = { G1: 7, G2: 7, G3: 7, G4: 7 };
+  operatorCounts: Record<GuardCode, number> = { G1: 0, G2: 0, G3: 0, G4: 0 };
 
   // Selected date state
   selectedYear: number = 2026;
@@ -1261,12 +1262,12 @@ export class GuardRosterComponent implements OnInit {
   }
 
   getOperatorCount(code: GuardCode): number {
-    return this.operatorCounts[code] || 7;
+    return this.operatorCounts[code] || 0;
   }
 
   getShortSupervisorName(code: GuardCode): string {
     const sup = this.guardsCatalog[code]?.supervisorName;
-    if (!sup) return '';
+    if (!sup || sup === 'Sin Asignar') return '';
     const parts = sup.trim().split(/\s+/);
     if (parts.length <= 1) return parts[0];
     if (parts.length >= 3) {
@@ -1302,13 +1303,20 @@ export class GuardRosterComponent implements OnInit {
                 supervisorUser: sup.name,
                 avatarUrl: sup.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${sup.name}`
               };
+            } else {
+              sups[code] = {
+                supervisorName: 'Sin Asignar',
+                supervisorUser: '',
+                avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=GUARDIA_${code}`
+              };
             }
             const count = members.filter(m => m.shift_code === code && m.primary_role !== 'SUPERVISOR').length;
-            this.operatorCounts[code] = count > 0 ? count : 7;
+            this.operatorCounts[code] = count;
           });
-          if (Object.keys(sups).length > 0) {
-            updateGuardsCatalog(sups);
-          }
+          updateGuardsCatalog(sups);
+        } else {
+          resetGuardsCatalog();
+          this.operatorCounts = { G1: 0, G2: 0, G3: 0, G4: 0 };
         }
         this.loadRoster();
       },
