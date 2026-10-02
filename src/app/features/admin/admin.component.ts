@@ -5575,7 +5575,7 @@ export class AdminComponent implements OnInit {
     this.apiConnectionTestStatus = 'idle';
     this.apiConnectionTestMessage = 'Probando conexión con el servidor cloud...';
 
-    this.http.get<any>(`${cleanUrl}/sync/status`).pipe(timeout(7000)).subscribe({
+    this.http.get<any>(`${cleanUrl}/sync/status`).pipe(timeout(12000)).subscribe({
       next: (res) => {
         this.isTestingApiConnection = false;
         this.apiConnectionTestStatus = 'success';
@@ -6233,7 +6233,7 @@ export class AdminComponent implements OnInit {
 
     const bulkEndpoint = `${getApiBaseUrl()}/admin/users/bulk`;
     this.http.post<any>(bulkEndpoint, { users: validRows })
-      .pipe(timeout(3500))
+      .pipe(timeout(20000))
       .subscribe({
         next: (res) => {
           this.isImporting = false;
@@ -6617,14 +6617,20 @@ export class AdminComponent implements OnInit {
 
     const purgeLocalStorage = () => {
       if (typeof localStorage !== 'undefined') {
-        const authToken = localStorage.getItem('basetrack_auth_token');
-        const activeUser = localStorage.getItem('basetrack_active_user');
+        const token = localStorage.getItem('basetrack_token') || localStorage.getItem('basetrack_auth_token');
+        const user = localStorage.getItem('basetrack_user') || localStorage.getItem('basetrack_active_user');
         const theme = localStorage.getItem('basetrack_theme');
 
         localStorage.clear();
 
-        if (authToken) localStorage.setItem('basetrack_auth_token', authToken);
-        if (activeUser) localStorage.setItem('basetrack_active_user', activeUser);
+        if (token) {
+          localStorage.setItem('basetrack_token', token);
+          localStorage.setItem('basetrack_auth_token', token);
+        }
+        if (user) {
+          localStorage.setItem('basetrack_user', user);
+          localStorage.setItem('basetrack_active_user', user);
+        }
         if (theme) localStorage.setItem('basetrack_theme', theme);
         localStorage.setItem('basetrack_v5_clean_slate', 'true');
       }

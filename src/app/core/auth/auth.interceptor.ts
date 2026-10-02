@@ -7,7 +7,7 @@ import { catchError, throwError } from 'rxjs';
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   // Read token directly from local storage/cache to prevent circular DI with HttpClient
   const token = getRealtimeData<string>('token', '') || 
-    (typeof localStorage !== 'undefined' ? localStorage.getItem('basetrack_token') : null);
+    (typeof localStorage !== 'undefined' ? (localStorage.getItem('basetrack_token') || localStorage.getItem('basetrack_auth_token')) : null);
 
   let authReq = req;
   if (token) {

@@ -744,7 +744,7 @@ export class CrewService {
 
     const url = `${getApiBaseUrl()}/admin/supervisor-operators`;
     return this.http.get<{ success: boolean; supervisors: SupervisorData[]; all_operators: CrewMember[] }>(url).pipe(
-      timeout(4000),
+      timeout(15000),
       tap(res => {
         if (res?.success && Array.isArray(res.supervisors) && res.supervisors.length > 0) {
           this.supervisorsWithOperators.set(res.supervisors);
