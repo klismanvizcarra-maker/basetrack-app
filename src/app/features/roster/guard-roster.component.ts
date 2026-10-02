@@ -119,7 +119,7 @@ import { CrewService } from '../../core/services/crew.service';
           <div class="shift-box off-box">
             <div class="shift-label-row">
               <span class="shift-icon">🏖️</span>
-              <span class="shift-title">EN DESCANSO / BAJADA (2 GUARDÍAS)</span>
+              <span class="shift-title">EN DESCANSO / BAJADA (2 GUARDIAS)</span>
             </div>
             <div class="off-guards-list">
               <div *ngFor="let og of todayRoster.offGuards" class="off-guard-item">
