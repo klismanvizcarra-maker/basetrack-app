@@ -982,10 +982,12 @@ export class CrewService {
           a.operator_id === 'op-g2-sup' ||
           a.operator_id === 'op-g3-sup' ||
           a.operator_id === 'op-g4-sup' ||
+          a.operator_id?.startsWith('ref-') ||
           a.operator_name?.includes('TEST') ||
           a.operator_name?.includes('PRUEBA') ||
           a.operator_name?.includes('Roberto Quispe') ||
           a.operator_name?.includes('Marco Vel') ||
+          a.operator_name?.includes('VIZCARRA CORI') ||
           a.operator_name?.toLowerCase().includes('marck')
         );
         if (hasOldMocks) {
@@ -1038,29 +1040,13 @@ export class CrewService {
         if (officialSup) return officialSup;
       }
 
-      const guardStaffRef = CrewService.OFFICIAL_CREW_CATALOG[normShift];
-      if (guardStaffRef && guardStaffRef[role]) {
-        const ref = guardStaffRef[role];
-        return {
-          id: `ref-${normShift}-${role}`,
-          name: ref.name,
-          document_id: ref.dni,
-          primary_role: role,
-          shift_code: normShift,
-          radio_channel: ref.radio,
-          phone_extension: '',
-          status: 'EN_TURNO',
-          avatar_url: `https://api.dicebear.com/7.x/bottts/svg?seed=${ref.name}`
-        };
-      }
-
       return {
         id: '',
         name: '--- Vacante ---',
         document_id: '---',
         primary_role: role,
         shift_code: normShift,
-        radio_channel: 'Canal 1 Operaciones',
+        radio_channel: '---',
         phone_extension: '',
         status: 'EN_TURNO',
         avatar_url: ''

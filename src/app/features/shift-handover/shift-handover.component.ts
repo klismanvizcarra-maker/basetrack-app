@@ -3253,7 +3253,12 @@ export class ShiftHandoverComponent implements OnInit {
   }
 
   openPdfReport(h?: ShiftHandover | null): void {
-    this.selectedHandoverForPdf = h || this.latestHandover || (this.handovers.length > 0 ? this.handovers[0] : null);
+    const target = h || this.latestHandover || (this.handovers && this.handovers.length > 0 ? this.handovers[0] : null);
+    if (!target) {
+      alert('⚠️ Al momento no existen relevos de guardia registrados en el sistema. Registra un nuevo relevo para poder generar y descargar su reporte oficial.');
+      return;
+    }
+    this.selectedHandoverForPdf = target;
     this.isPdfModalOpen = true;
   }
 

@@ -94,12 +94,12 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
             <div class="kpi-cell">
               <span class="kpi-title">Disponibilidad Bombas</span>
               <span class="kpi-val">{{ pumpAvailabilityPercent | number:'1.1-1' }} <small>%</small></span>
-              <span class="kpi-sub">{{ pumpOperatingCount }}/{{ pumpTotalCount }} en Operación</span>
+              <span class="kpi-sub">{{ pumpTotalCount > 0 ? (pumpOperatingCount + '/' + pumpTotalCount + ' en Operación') : 'Sin Datos de Bombas' }}</span>
             </div>
             <div class="kpi-cell">
               <span class="kpi-title">Borde Libre Presa</span>
               <span class="kpi-val highlight-blue">{{ liveFreeboard | number:'1.1-2' }} <small>m</small></span>
-              <span class="kpi-sub">{{ liveFreeboard >= 2.5 ? 'Margen Seguro (> 2.5m)' : 'Alerta de Cota (< 2.5m)' }}</span>
+              <span class="kpi-sub">{{ liveFreeboard > 0 ? (liveFreeboard >= 2.5 ? 'Margen Seguro (> 2.5m)' : 'Alerta de Cota (< 2.5m)') : 'Sin Lecturas de Presa' }}</span>
             </div>
           </div>
 
@@ -1090,12 +1090,13 @@ export class ShiftReportPdfComponent implements OnInit, OnChanges {
     const positions = this.crewService.positions().filter(p => p.key !== 'SUPERVISOR');
     return positions.map(p => {
       const op = this.crewService.getAssignedOperatorForPosition(p.key, shift);
+      const isReal = !!(op && op.id && !op.id.startsWith('ref-') && op.name && !op.name.includes('Vacante') && !op.name.includes('VIZCARRA CORI'));
       return {
         key: p.key,
         title: p.title,
-        operatorName: op?.name || '--- Sin Asignar ---',
-        documentId: op?.document_id || '---',
-        radioChannel: op?.radio_channel || p.defaultRadio || 'Canal 1 Operaciones',
+        operatorName: isReal ? op.name : '--- Sin Asignar ---',
+        documentId: isReal && op.document_id && op.document_id !== '---' ? op.document_id : '---',
+        radioChannel: isReal && op.radio_channel ? op.radio_channel : '---',
         location: p.defaultLocation || 'Planta Concentradora'
       };
     });
@@ -1122,8 +1123,8 @@ export class ShiftReportPdfComponent implements OnInit, OnChanges {
   copiedText = false;
 
   reportData: ShiftHandover = {
-    id: 'DEMO-1',
-    shift_code: 'G1-01',
+    id: '',
+    shift_code: '',
     date: new Date().toISOString().split('T')[0],
     shift_type: 'DIA',
     outgoing_supervisor: '',
@@ -1132,12 +1133,12 @@ export class ShiftReportPdfComponent implements OnInit, OnChanges {
     incoming_supervisor: '',
     incoming_dni: '',
     incoming_role: 'Supervisor de guardia',
-    plant_status: 'Operación normal a ritmo de tratamiento continuo. Se mantuvo estabilidad en flotación y clasificación.',
-    tonnage_processed: 48250,
-    safety_incidents: 'Sin accidentes ni incidentes con tiempo perdido en el turno. Charla de seguridad realizada.',
-    operational_highlights: 'Buen rendimiento en nidos de ciclones y transporte de pulpa.',
-    pending_tasks: 'Inspección de desgaste en impulsor de Bomba PP-101 para la parada programada de mañana.',
-    status: 'ACCEPTED',
+    plant_status: 'Sin registros de estado de planta para este turno.',
+    tonnage_processed: 0,
+    safety_incidents: 'Sin incidentes reportados.',
+    operational_highlights: 'Sin novedades operacionales registradas.',
+    pending_tasks: 'Sin tareas pendientes registradas.',
+    status: 'DRAFT',
     created_at: new Date().toISOString()
   };
 
@@ -1330,9 +1331,9 @@ export class ShiftReportPdfComponent implements OnInit, OnChanges {
     }
     if (this.pumpSheet) {
       return (
-        (this.pumpSheet.sentina_pumps?.length || 8) +
-        (this.pumpSheet.intermedia_pumps?.length || 6) +
-        (this.pumpSheet.torre5_pumps?.length || 10)
+        (this.pumpSheet.sentina_pumps?.length || 0) +
+        (this.pumpSheet.intermedia_pumps?.length || 0) +
+        (this.pumpSheet.torre5_pumps?.length || 0)
       );
     }
     return 0;
@@ -1340,7 +1341,7 @@ export class ShiftReportPdfComponent implements OnInit, OnChanges {
 
   get pumpAvailabilityPercent(): number {
     const total = this.pumpTotalCount;
-    if (total === 0) return 100;
+    if (total === 0) return 0;
     return Number(((this.pumpOperatingCount / total) * 100).toFixed(1));
   }
 
@@ -1420,28 +1421,28 @@ export class ShiftReportPdfComponent implements OnInit, OnChanges {
       const parsed = parseFloat(String(this.pumpSheet.levels.espejo).replace(',', '.'));
       if (!isNaN(parsed)) return parsed;
     }
-    return 4120.4;
+    return 0;
   }
 
   get liveFreeboard(): number {
     if (this.latestTailings?.freeboard_meters) {
       return Number(this.latestTailings.freeboard_meters);
     }
-    return 3.8;
+    return 0;
   }
 
   get livePiezometer(): number {
     if (this.latestTailings?.piezometer_kpa) {
       return Number(this.latestTailings.piezometer_kpa);
     }
-    return 142.6;
+    return 0;
   }
 
   get liveTurbidity(): number {
     if (this.latestTailings?.turbidity_ntu) {
       return Number(this.latestTailings.turbidity_ntu);
     }
-    return 12.5;
+    return 0;
   }
 
   get liveTonnage(): number {
