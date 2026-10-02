@@ -468,19 +468,19 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
       gap: 6px;
       padding: 7px 12px;
       border-radius: var(--radius-full);
-      background: #eef2ff;
-      border: 1px solid #c7d2fe;
-      color: #031795;
+      background: var(--primary-bg-subtle, #eef2ff);
+      border: 1px solid var(--primary-border, #c7d2fe);
+      color: var(--primary-purple, #031795);
       font-size: 0.78rem;
       font-weight: 700;
       cursor: pointer;
       transition: var(--transition-smooth);
 
       &:hover {
-        background: #e0e7ff;
-        border-color: #031795;
+        background: var(--bg-card-hover);
+        border-color: var(--primary-purple);
         transform: translateY(-1px);
-        box-shadow: 0 2px 8px rgba(3, 23, 149, 0.2);
+        box-shadow: 0 2px 8px var(--primary-glow);
       }
 
       @media (max-width: 640px) {
@@ -578,11 +578,11 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
       top: 80px;
       right: 32px;
       width: 360px;
-      background: #ffffff;
+      background: var(--bg-card);
       border: 1px solid var(--border-subtle);
       border-radius: var(--radius-lg);
       padding: 16px;
-      box-shadow: 0 16px 36px -4px rgba(15, 23, 42, 0.12), 0 0 1px rgba(0, 0, 0, 0.08);
+      box-shadow: var(--shadow-card);
       z-index: 1000;
 
       @media (max-width: 600px) {
@@ -679,14 +679,14 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
       font-size: 0.75rem;
       font-weight: 700;
       cursor: pointer;
-      border: 1px solid #c7d2fe;
-      background: #eef2ff;
-      color: #031795;
+      border: 1px solid var(--primary-border, #c7d2fe);
+      background: var(--primary-bg-subtle, #eef2ff);
+      color: var(--primary-purple, #031795);
       transition: all 0.2s ease;
 
       &:hover {
-        background: #e0e7ff;
-        border-color: #a5b4fc;
+        background: var(--bg-card-hover);
+        border-color: var(--primary-purple);
       }
 
       @media (max-width: 580px) {
@@ -700,18 +700,18 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
       }
 
       &.offline-pill, &.pending-pill {
-        background: #fffbeb;
-        border-color: #fde68a;
-        color: #b45309;
+        background: var(--warning-bg, #fffbeb);
+        border-color: rgba(245, 158, 11, 0.35);
+        color: var(--warning, #b45309);
         &:hover {
-          background: #fef3c7;
+          background: rgba(245, 158, 11, 0.2);
         }
       }
 
       &.syncing-pill {
-        background: #eff6ff;
-        border-color: #bfdbfe;
-        color: #1d4ed8;
+        background: var(--primary-bg-subtle, #eff6ff);
+        border-color: var(--primary-border, #bfdbfe);
+        color: var(--primary-purple, #1d4ed8);
       }
     }
 
@@ -743,8 +743,8 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
     .sync-modal-backdrop {
       position: fixed;
       inset: 0;
-      background: rgba(15, 23, 42, 0.6);
-      backdrop-filter: blur(4px);
+      background: rgba(9, 14, 26, 0.75);
+      backdrop-filter: blur(6px);
       z-index: 1300;
       display: flex;
       align-items: center;
@@ -753,12 +753,12 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
     }
 
     .sync-modal-card {
-      background: #ffffff;
+      background: var(--bg-card);
       width: 100%;
       max-width: 520px;
       border-radius: 16px;
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-      border: 1px solid #e2e8f0;
+      box-shadow: var(--shadow-card);
+      border: 1px solid var(--border-subtle);
       overflow: hidden;
 
       @media (max-width: 600px) {
@@ -771,11 +771,11 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
 
     .sync-modal-head {
       padding: 1.25rem 1.5rem;
-      border-bottom: 1px solid #e2e8f0;
+      border-bottom: 1px solid var(--border-subtle);
       display: flex;
       align-items: center;
       justify-content: space-between;
-      background: #f8fafc;
+      background: var(--bg-card-subtle);
 
       .head-left {
         display: flex;
@@ -794,7 +794,7 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
           margin: 0;
           font-size: 1rem;
           font-weight: 700;
-          color: #0f172a;
+          color: var(--text-primary);
         }
       }
 
@@ -802,23 +802,25 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
         background: none;
         border: none;
         font-size: 1.25rem;
-        color: #64748b;
+        color: var(--text-muted);
         cursor: pointer;
         padding: 0.25rem;
         border-radius: 6px;
-        &:hover { background: #e2e8f0; color: #0f172a; }
+        transition: var(--transition-smooth);
+        &:hover { background: var(--bg-card-hover); color: var(--text-primary); }
       }
     }
 
     .sync-modal-body {
       padding: 1.5rem;
+      background: var(--bg-card);
     }
 
     .conn-status-banner {
       display: flex;
       gap: 1rem;
-      background: #eef2ff;
-      border: 1px solid #c7d2fe;
+      background: var(--primary-bg-subtle, #eef2ff);
+      border: 1px solid var(--primary-border, #c7d2fe);
       border-radius: 10px;
       padding: 1rem;
       margin-bottom: 1.25rem;
@@ -831,28 +833,28 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
         strong {
           display: block;
           font-size: 0.9rem;
-          color: #031795;
+          color: var(--primary-purple);
           margin-bottom: 0.2rem;
         }
         p {
           margin: 0;
           font-size: 0.78rem;
-          color: #1e40af;
+          color: var(--text-secondary);
           line-height: 1.4;
         }
       }
 
       &.banner-offline {
-        background: #fffbeb;
-        border-color: #fde68a;
-        .banner-text strong { color: #92400e; }
-        .banner-text p { color: #78350f; }
+        background: var(--warning-bg, #fffbeb);
+        border-color: rgba(245, 158, 11, 0.4);
+        .banner-text strong { color: var(--warning, #92400e); }
+        .banner-text p { color: var(--text-secondary); }
       }
     }
 
     .cloud-devices-card {
-      background: #f0fdfa;
-      border: 1px solid #99f6e4;
+      background: var(--bg-card-subtle);
+      border: 1px solid var(--border-subtle);
       border-radius: 10px;
       padding: 0.85rem 1rem;
       margin-bottom: 1.25rem;
@@ -872,21 +874,21 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
           strong {
             display: block;
             font-size: 0.84rem;
-            color: #0f766e;
+            color: var(--text-primary);
           }
 
           p {
             margin: 2px 0 0;
             font-size: 0.74rem;
-            color: #115e59;
+            color: var(--text-muted);
           }
 
           .badge-terminal {
             font-weight: 700;
-            background: #ccfbf1;
+            background: rgba(16, 185, 129, 0.18);
             padding: 1px 6px;
             border-radius: 4px;
-            color: #0f766e;
+            color: #10b981;
           }
         }
 
@@ -905,14 +907,14 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
         justify-content: space-between;
         margin-top: 0.6rem;
         padding-top: 0.6rem;
-        border-top: 1px dashed #99f6e4;
+        border-top: 1px dashed var(--border-subtle);
         font-size: 0.72rem;
 
         .stat-col {
           display: flex;
           gap: 4px;
-          .s-label { color: #115e59; font-weight: 600; }
-          .s-val { color: #042f2e; font-weight: 500; }
+          .s-label { color: var(--text-muted); font-weight: 600; }
+          .s-val { color: var(--text-primary); font-weight: 500; }
         }
       }
     }
@@ -924,8 +926,8 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
       margin-bottom: 1.25rem;
 
       .meta-box {
-        background: #f8fafc;
-        border: 1px solid #e2e8f0;
+        background: var(--bg-card-subtle);
+        border: 1px solid var(--border-subtle);
         border-radius: 8px;
         padding: 0.75rem;
         text-align: center;
@@ -934,7 +936,7 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
           display: block;
           font-size: 0.7rem;
           font-weight: 600;
-          color: #64748b;
+          color: var(--text-muted);
           text-transform: uppercase;
         }
 
@@ -942,10 +944,10 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
           display: block;
           font-size: 1.3rem;
           font-weight: 800;
-          color: #0f172a;
+          color: var(--text-primary);
           margin-top: 0.15rem;
 
-          &.count-orange { color: #d97706; }
+          &.count-orange { color: #f59e0b; }
           &.text-sm { font-size: 0.85rem; font-weight: 700; }
         }
       }
@@ -955,15 +957,16 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
       h5 {
         margin: 0 0 0.5rem;
         font-size: 0.8rem;
-        color: #475569;
+        color: var(--text-secondary);
         font-weight: 700;
       }
 
       .pending-items {
         max-height: 140px;
         overflow-y: auto;
-        border: 1px solid #e2e8f0;
+        border: 1px solid var(--border-subtle);
         border-radius: 8px;
+        background: var(--bg-input);
       }
 
       .pending-row {
@@ -971,13 +974,13 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
         align-items: center;
         justify-content: space-between;
         padding: 0.5rem 0.75rem;
-        border-bottom: 1px solid #f1f5f9;
+        border-bottom: 1px solid var(--border-subtle);
         font-size: 0.75rem;
         &:last-child { border-bottom: none; }
 
         .method-tag {
-          background: #eff6ff;
-          color: #2563eb;
+          background: rgba(59, 130, 246, 0.18);
+          color: var(--primary-lavender);
           font-weight: 800;
           font-size: 0.65rem;
           padding: 0.1rem 0.4rem;
@@ -986,7 +989,7 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
 
         .item-name {
           font-weight: 600;
-          color: #1e293b;
+          color: var(--text-primary);
           flex: 1;
           margin: 0 0.5rem;
           overflow: hidden;
@@ -995,7 +998,7 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
         }
 
         .item-time {
-          color: #94a3b8;
+          color: var(--text-muted);
           font-size: 0.7rem;
         }
       }
@@ -1004,8 +1007,8 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
     .empty-queue-msg {
       text-align: center;
       padding: 1rem;
-      background: #f8fafc;
-      border: 1px dashed #cbd5e1;
+      background: var(--bg-card-subtle);
+      border: 1px dashed var(--border-subtle);
       border-radius: 8px;
 
       .check-icon {
@@ -1014,8 +1017,8 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
         height: 28px;
         line-height: 28px;
         border-radius: 50%;
-        background: #eef2ff;
-        color: #031795;
+        background: var(--primary-bg-subtle);
+        color: var(--primary-purple);
         font-weight: 800;
         margin-bottom: 0.4rem;
       }
@@ -1023,14 +1026,14 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
       p {
         margin: 0;
         font-size: 0.8rem;
-        color: #475569;
+        color: var(--text-secondary);
       }
     }
 
     .sync-modal-foot {
       padding: 1rem 1.5rem;
-      background: #f8fafc;
-      border-top: 1px solid #e2e8f0;
+      background: var(--bg-card-subtle);
+      border-top: 1px solid var(--border-subtle);
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -1051,29 +1054,33 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
         display: inline-flex;
         align-items: center;
         gap: 6px;
+        transition: var(--transition-smooth);
       }
 
       .btn-backup-export {
-        background: #fffbeb;
-        color: #b45309;
-        border-color: #fde68a;
+        background: var(--warning-bg, #fffbeb);
+        color: var(--warning, #b45309);
+        border-color: rgba(245, 158, 11, 0.4);
         &:hover {
-          background: #fef3c7;
-          border-color: #f59e0b;
+          background: rgba(245, 158, 11, 0.22);
+          border-color: var(--warning);
         }
       }
 
       .btn-secondary {
-        background: #ffffff;
-        border-color: #cbd5e1;
-        color: #334155;
-        &:hover { background: #f1f5f9; }
+        background: var(--bg-card);
+        border-color: var(--border-subtle);
+        color: var(--text-primary);
+        &:hover { background: var(--bg-card-hover); }
       }
 
       .btn-primary {
-        background: #031795;
+        background: var(--primary-purple);
         color: #ffffff;
-        &:hover:not(:disabled) { background: #1e40af; }
+        &:hover:not(:disabled) {
+          background: var(--primary-violet);
+          filter: brightness(1.1);
+        }
         &:disabled {
           opacity: 0.5;
           cursor: not-allowed;

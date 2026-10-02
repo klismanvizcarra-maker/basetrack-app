@@ -449,16 +449,16 @@ export const OFFICIAL_SUPERVISORS: OfficialSupervisor[] = [];
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      background: #f1f5f9;
-      color: #334155;
-      border: 1px solid #cbd5e1;
+      background: var(--bg-card-subtle);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-subtle);
       padding: 3px 10px;
       border-radius: 9999px;
       font-size: 0.73rem;
       font-weight: 600;
 
       strong {
-        color: #031795;
+        color: var(--primary-purple);
         font-weight: 700;
       }
     }
@@ -804,9 +804,9 @@ export const OFFICIAL_SUPERVISORS: OfficialSupervisor[] = [];
     }
 
     .banner-vehicle-warning {
-      background: #fffbeb;
-      border: 1px solid #fef3c7;
-      border-left: 5px solid #f59e0b;
+      background: var(--warning-bg, #fffbeb);
+      border: 1px solid rgba(245, 158, 11, 0.35);
+      border-left: 5px solid var(--warning);
       border-radius: var(--radius-md);
       padding: 14px 18px;
       display: flex;
@@ -832,25 +832,25 @@ export const OFFICIAL_SUPERVISORS: OfficialSupervisor[] = [];
           .bvw-title {
             font-size: 0.92rem;
             font-weight: 800;
-            color: #92400e;
+            color: var(--warning, #92400e);
             display: block;
           }
 
           .bvw-sub {
             font-size: 0.74rem;
-            color: #b45309;
+            color: var(--text-secondary);
             margin: 2px 0 0;
           }
         }
 
         .bvw-pill-count {
-          background: #fde68a;
-          color: #78350f;
+          background: rgba(245, 158, 11, 0.2);
+          color: var(--warning, #78350f);
           font-weight: 800;
           font-size: 0.7rem;
           padding: 3px 10px;
           border-radius: 9999px;
-          border: 1px solid #fcd34d;
+          border: 1px solid rgba(245, 158, 11, 0.4);
           white-space: nowrap;
         }
       }
@@ -862,14 +862,14 @@ export const OFFICIAL_SUPERVISORS: OfficialSupervisor[] = [];
       }
 
       .bvw-card {
-        background: #ffffff;
-        border: 1px solid #fde68a;
+        background: var(--bg-card);
+        border: 1px solid var(--border-subtle);
         border-radius: 8px;
         padding: 10px 14px;
         display: flex;
         flex-direction: column;
         gap: 4px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+        box-shadow: var(--shadow-card);
 
         .bvw-card-top {
           display: flex;
@@ -879,29 +879,29 @@ export const OFFICIAL_SUPERVISORS: OfficialSupervisor[] = [];
           .bvw-plate {
             font-weight: 800;
             font-size: 0.82rem;
-            color: #0f172a;
+            color: var(--text-primary);
           }
         }
 
         .bvw-obs {
           font-size: 0.78rem;
           font-weight: 600;
-          color: #b45309;
+          color: var(--warning, #b45309);
           line-height: 1.35;
         }
 
         .bvw-meta {
           font-size: 0.7rem;
-          color: #64748b;
+          color: var(--text-muted);
           margin-top: 2px;
         }
       }
     }
 
     .modal-vehicle-alert {
-      background: #fffbeb;
-      border: 1px solid #fef3c7;
-      border-left: 4px solid #f59e0b;
+      background: var(--warning-bg, #fffbeb);
+      border: 1px solid rgba(245, 158, 11, 0.35);
+      border-left: 4px solid var(--warning);
       border-radius: var(--radius-md);
       padding: 10px 14px;
       display: flex;
@@ -914,7 +914,7 @@ export const OFFICIAL_SUPERVISORS: OfficialSupervisor[] = [];
         gap: 8px;
         font-size: 0.82rem;
         font-weight: 800;
-        color: #92400e;
+        color: var(--warning, #92400e);
       }
 
       .mva-list {

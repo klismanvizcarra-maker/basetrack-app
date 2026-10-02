@@ -785,13 +785,13 @@ export interface GeneralAverages {
       }
 
       &.active {
-        background: #eef2ff;
-        border-color: #031795;
-        color: #031795;
+        background: var(--primary-bg-subtle);
+        border-color: var(--primary-purple);
+        color: var(--primary-purple);
 
         .dot-indicator {
-          background: #031795;
-          box-shadow: 0 0 6px rgba(3, 23, 149, 0.4);
+          background: var(--primary-purple);
+          box-shadow: 0 0 6px var(--primary-glow);
         }
       }
 
@@ -1720,9 +1720,9 @@ export interface GeneralAverages {
       transition: var(--transition-smooth);
 
       &.active {
-        background: #eef2ff;
-        border-color: #031795;
-        color: #031795;
+        background: var(--primary-bg-subtle);
+        border-color: var(--primary-purple);
+        color: var(--primary-purple);
       }
     }
 
@@ -1853,7 +1853,7 @@ export interface GeneralAverages {
       .list-title {
         font-size: 0.78rem;
         font-weight: 700;
-        color: #475569;
+        color: var(--text-secondary);
       }
     }
 
@@ -1863,8 +1863,8 @@ export interface GeneralAverages {
       justify-content: space-between;
       gap: 10px;
       padding: 10px 14px;
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
+      background: var(--bg-card-subtle);
+      border: 1px solid var(--border-subtle);
       border-radius: 8px;
 
       .row-info {
@@ -1875,17 +1875,17 @@ export interface GeneralAverages {
 
       .battery-pill {
         font-weight: 800;
-        color: #031795;
+        color: var(--primary-purple);
         font-size: 0.82rem;
-        background: #eef2ff;
+        background: var(--primary-bg-subtle);
         padding: 3px 8px;
         border-radius: 4px;
-        border: 1px solid #c7d2fe;
+        border: 1px solid var(--primary-border);
       }
 
       .detail-text {
         font-size: 0.78rem;
-        color: #334155;
+        color: var(--text-secondary);
       }
     }
 
@@ -1906,9 +1906,9 @@ export interface GeneralAverages {
     }
 
     .btn-danger-subtle {
-      background: #ffffff;
-      border: 1px solid #fca5a5;
-      color: #dc2626;
+      background: var(--bg-card);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      color: var(--danger);
       font-size: 0.75rem;
       font-weight: 600;
       padding: 5px 10px;
@@ -1916,7 +1916,7 @@ export interface GeneralAverages {
       cursor: pointer;
       transition: all 0.2s;
       &:hover {
-        background: #fef2f2;
+        background: rgba(239, 68, 68, 0.15);
       }
     }
   `]

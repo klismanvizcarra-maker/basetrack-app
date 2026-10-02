@@ -82,24 +82,24 @@ import { CommonModule } from '@angular/common';
       width: 44px;
       height: 44px;
       border-radius: var(--radius-md);
-      background: #eef2ff;
-      border: 1px solid #c7d2fe;
+      background: var(--primary-bg-subtle, #eef2ff);
+      border: 1px solid var(--primary-border, #c7d2fe);
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #031795;
-      box-shadow: 0 2px 6px rgba(3, 23, 149, 0.08);
+      color: var(--primary-purple, #031795);
+      box-shadow: 0 2px 6px var(--primary-glow, rgba(3, 23, 149, 0.08));
       flex-shrink: 0;
       transition: var(--transition-smooth);
 
       &:hover {
-        background: #e0e7ff;
-        border-color: #a5b4fc;
+        background: var(--bg-card-hover);
+        border-color: var(--primary-purple);
         transform: scale(1.05);
       }
 
       &.glow {
-        box-shadow: 0 2px 8px rgba(3, 23, 149, 0.16);
+        box-shadow: 0 2px 8px var(--primary-glow);
       }
     }
 

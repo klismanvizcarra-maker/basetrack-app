@@ -726,10 +726,10 @@ export interface PumpReport {
           }
 
           &.active {
-            background: #ffffff;
-            border: 1.5px solid #031795;
-            color: #031795;
-            box-shadow: 0 2px 8px rgba(3, 23, 149, 0.15);
+            background: var(--bg-card);
+            border: 1.5px solid var(--primary-purple);
+            color: var(--primary-purple);
+            box-shadow: var(--shadow-card);
           }
         }
       }
@@ -902,9 +902,9 @@ export interface PumpReport {
         }
 
         .date-input {
-          background: #ffffff;
-          border: 1px solid #cbd5e1;
-          color: #0f172a;
+          background: var(--bg-input);
+          border: 1px solid var(--border-subtle);
+          color: var(--text-primary);
           padding: 4px 10px;
           border-radius: var(--radius-sm);
           font-size: 0.84rem;

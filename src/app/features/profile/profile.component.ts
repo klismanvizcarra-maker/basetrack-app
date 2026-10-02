@@ -576,16 +576,16 @@ import { ThemeService } from '../../core/theme/theme.service';
       height: 124px;
       border-radius: var(--radius-full);
       padding: 4px;
-      background: #ffffff;
-      border: 3px solid #e2e8f0;
-      box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
+      background: var(--bg-card);
+      border: 3px solid var(--border-subtle);
+      box-shadow: var(--shadow-card);
 
       .preview-img {
         width: 100%;
         height: 100%;
         border-radius: var(--radius-full);
         object-fit: cover;
-        background: #f1f5f9;
+        background: var(--bg-canvas);
       }
 
       .btn-camera {
@@ -595,14 +595,14 @@ import { ThemeService } from '../../core/theme/theme.service';
         width: 36px;
         height: 36px;
         border-radius: var(--radius-full);
-        background: #031795;
+        background: var(--primary-purple);
         color: #ffffff;
-        border: 2px solid #ffffff;
+        border: 2px solid var(--bg-card);
         display: flex;
         align-items: center;
         justify-content: center;
         cursor: pointer;
-        box-shadow: 0 2px 8px rgba(3, 23, 149, 0.4);
+        box-shadow: 0 2px 8px var(--primary-glow);
         transition: transform 0.2s ease;
 
         &:hover {
@@ -663,8 +663,8 @@ import { ThemeService } from '../../core/theme/theme.service';
         width: 44px;
         height: 44px;
         border-radius: var(--radius-full);
-        border: 2px solid #e2e8f0;
-        background: #f8fafc;
+        border: 2px solid var(--border-subtle);
+        background: var(--bg-card-subtle);
         padding: 2px;
         cursor: pointer;
         transition: var(--transition-smooth);
@@ -677,13 +677,13 @@ import { ThemeService } from '../../core/theme/theme.service';
         }
 
         &:hover {
-          border-color: #031795;
+          border-color: var(--primary-purple);
           transform: translateY(-2px);
         }
 
         &.active {
-          border-color: #031795;
-          box-shadow: 0 0 0 3px rgba(3, 23, 149, 0.25);
+          border-color: var(--primary-purple);
+          box-shadow: 0 0 0 3px var(--primary-glow);
         }
       }
     }
@@ -716,18 +716,18 @@ import { ThemeService } from '../../core/theme/theme.service';
         width: 42px;
         height: 42px;
         border-radius: var(--radius-md);
-        background: #eef2ff;
-        color: #031795;
-        border: 1px solid #c7d2fe;
+        background: var(--primary-bg-subtle);
+        color: var(--primary-purple);
+        border: 1px solid var(--primary-border);
         display: flex;
         align-items: center;
         justify-content: center;
       }
 
       .security-icon {
-        background: #eef2ff;
-        color: #031795;
-        border-color: #c7d2fe;
+        background: var(--primary-bg-subtle);
+        color: var(--primary-purple);
+        border-color: var(--primary-border);
       }
 
       h3 {
@@ -776,10 +776,10 @@ import { ThemeService } from '../../core/theme/theme.service';
       }
 
       .input-disabled {
-        background: #f1f5f9;
+        background: var(--bg-card-subtle);
         color: var(--text-muted);
         cursor: not-allowed;
-        border-color: #e2e8f0;
+        border-color: var(--border-subtle);
       }
     }
 
@@ -798,7 +798,7 @@ import { ThemeService } from '../../core/theme/theme.service';
         right: 8px;
         background: transparent;
         border: none;
-        color: #031795;
+        color: var(--primary-purple);
         font-size: 0.75rem;
         font-weight: 600;
         cursor: pointer;
@@ -806,7 +806,7 @@ import { ThemeService } from '../../core/theme/theme.service';
         border-radius: var(--radius-sm);
 
         &:hover {
-          background: #eef2ff;
+          background: var(--primary-bg-subtle);
         }
       }
     }
@@ -865,9 +865,9 @@ import { ThemeService } from '../../core/theme/theme.service';
         gap: 5px;
         font-size: 0.74rem;
         font-weight: 700;
-        color: #031795;
-        background: #eef2ff;
-        border: 1px solid #c7d2fe;
+        color: var(--primary-purple);
+        background: var(--primary-bg-subtle);
+        border: 1px solid var(--primary-border);
         padding: 4px 10px;
         border-radius: var(--radius-full);
       }
@@ -875,8 +875,9 @@ import { ThemeService } from '../../core/theme/theme.service';
 
     .field-tag {
       font-size: 0.68rem;
-      background: #f1f5f9;
-      color: #475569;
+      background: var(--bg-card-subtle);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-subtle);
       padding: 1px 6px;
       border-radius: 4px;
       font-weight: 600;

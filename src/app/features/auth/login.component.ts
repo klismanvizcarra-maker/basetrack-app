@@ -346,6 +346,73 @@ import { AuthService } from '../../core/auth/auth.service';
         font-size: 1.3rem;
       }
     }
+
+    :host-context([data-theme="dark"]),
+    :host-context(.dark-theme) {
+      .login-wrapper {
+        background: radial-gradient(circle at 50% 20%, #0d1a3a 0%, #030712 100%), #030712;
+      }
+
+      .login-card {
+        background: rgba(19, 29, 53, 0.96);
+        border-color: #1e293b;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+      }
+
+      .brand-logo {
+        background: #0d1527;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(59, 130, 246, 0.25);
+      }
+
+      h2 {
+        color: #f8fafc;
+      }
+
+      .subtitle {
+        color: #94a3b8;
+      }
+
+      .security-badge {
+        background: rgba(59, 130, 246, 0.16);
+        border-color: rgba(59, 130, 246, 0.35);
+        color: #93c5fd;
+      }
+
+      .form-group label {
+        color: #cbd5e1;
+      }
+
+      .input-container input {
+        background: #0a1122;
+        border-color: #1e293b;
+        color: #f8fafc;
+
+        &:focus {
+          background: #0d1527;
+          border-color: #3b82f6;
+          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+        }
+
+        &::placeholder {
+          color: #64748b;
+        }
+      }
+
+      .toggle-pass-btn {
+        color: #94a3b8;
+        &:hover {
+          color: #f8fafc;
+        }
+      }
+
+      .login-footer {
+        border-top-color: #1e293b;
+      }
+
+      .plant-notice {
+        color: #64748b;
+      }
+    }
   `]
 })
 export class LoginComponent {

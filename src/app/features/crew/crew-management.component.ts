@@ -997,7 +997,7 @@ import { getRosterForDate, getCurrentActiveShift, getLocalDateString, DayRoster,
       gap: 6px;
       padding: 6px 12px;
       border-radius: var(--radius-md);
-      background: #f8fafc;
+      background: var(--bg-card-subtle);
       border: 1px dashed var(--border-subtle);
       font-size: 0.76rem;
       color: var(--text-muted);
@@ -1032,10 +1032,10 @@ import { getRosterForDate, getCurrentActiveShift, getLocalDateString, DayRoster,
       }
 
       &.active {
-        background: #ffffff;
-        color: #031795;
+        background: var(--bg-card);
+        color: var(--primary-purple);
         font-weight: 700;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        box-shadow: var(--shadow-card);
       }
     }
 
@@ -1046,11 +1046,11 @@ import { getRosterForDate, getCurrentActiveShift, getLocalDateString, DayRoster,
       font-size: 0.85rem;
       font-weight: 600;
       color: var(--text-primary);
-      background: #ffffff;
+      background: var(--bg-input);
       outline: none;
 
       &:focus {
-        border-color: #031795;
+        border-color: var(--primary-purple);
       }
     }
 
@@ -1187,19 +1187,19 @@ import { getRosterForDate, getCurrentActiveShift, getLocalDateString, DayRoster,
         font-weight: 700;
         cursor: pointer;
         transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        border: 1.5px solid #031795;
-        background: #ffffff;
-        color: #031795;
+        border: 1.5px solid var(--primary-purple);
+        background: var(--bg-card);
+        color: var(--primary-purple);
 
         &:hover {
-          background: #eef2ff;
+          background: var(--primary-bg-subtle);
           transform: translateY(-1px);
         }
 
         &.active-scope {
-          background: #031795;
+          background: var(--primary-purple);
           color: #ffffff;
-          box-shadow: 0 4px 12px rgba(3, 23, 149, 0.3);
+          box-shadow: 0 4px 12px var(--primary-glow);
         }
       }
 
@@ -1224,7 +1224,7 @@ import { getRosterForDate, getCurrentActiveShift, getLocalDateString, DayRoster,
       gap: 8px;
       font-size: 0.82rem;
       font-weight: 800;
-      color: #031795;
+      color: var(--primary-purple);
       letter-spacing: 0.06em;
       margin-top: 6px;
     }
@@ -1317,7 +1317,7 @@ import { getRosterForDate, getCurrentActiveShift, getLocalDateString, DayRoster,
       align-items: center;
       justify-content: center;
       font-size: 1.45rem;
-      background: #f8fafc;
+      background: var(--bg-card-subtle);
       border: 1px solid var(--border-subtle);
       flex-shrink: 0;
     }
@@ -1339,9 +1339,9 @@ import { getRosterForDate, getCurrentActiveShift, getLocalDateString, DayRoster,
     .badge-custom-pill {
       font-size: 0.68rem;
       font-weight: 800;
-      color: #031795;
-      background: #eef2ff;
-      border: 1px solid #c7d2fe;
+      color: var(--primary-purple);
+      background: var(--primary-bg-subtle);
+      border: 1px solid var(--primary-border);
       padding: 2px 8px;
       border-radius: var(--radius-full);
       letter-spacing: 0.04em;
@@ -1360,12 +1360,12 @@ import { getRosterForDate, getCurrentActiveShift, getLocalDateString, DayRoster,
       gap: 5px;
       padding: 3px 9px;
       border-radius: var(--radius-full);
-      background: #f1f5f9;
-      color: #475569;
+      background: var(--bg-card-subtle);
+      color: var(--text-secondary);
       font-size: 0.74rem;
       font-weight: 700;
       white-space: nowrap;
-      border: 1px solid #e2e8f0;
+      border: 1px solid var(--border-subtle);
     }
 
     /* Operator Selection */
@@ -1749,30 +1749,32 @@ import { getRosterForDate, getCurrentActiveShift, getLocalDateString, DayRoster,
     }
 
     .dni-badge {
-      background: #f1f5f9;
+      background: var(--bg-card-subtle);
       padding: 3px 6px;
       border-radius: var(--radius-sm);
       font-size: 0.76rem;
-      color: #334155;
+      color: var(--text-secondary);
+      border: 1px solid var(--border-subtle);
     }
 
     .role-badge {
       font-weight: 600;
-      color: #031795;
-      background: #eef2ff;
+      color: var(--primary-purple);
+      background: var(--primary-bg-subtle);
       padding: 3px 8px;
       border-radius: var(--radius-full);
       font-size: 0.75rem;
-      border: 1px solid #c7d2fe;
+      border: 1px solid var(--primary-border);
     }
 
     .guard-badge {
       font-weight: 700;
-      color: #475569;
-      background: #f1f5f9;
+      color: var(--text-secondary);
+      background: var(--bg-card-subtle);
       padding: 3px 8px;
       border-radius: var(--radius-full);
       font-size: 0.74rem;
+      border: 1px solid var(--border-subtle);
     }
 
     .radio-tag {
@@ -1780,7 +1782,7 @@ import { getRosterForDate, getCurrentActiveShift, getLocalDateString, DayRoster,
       align-items: center;
       gap: 5px;
       font-size: 0.76rem;
-      color: #475569;
+      color: var(--text-secondary);
     }
 
     .table-status-select {
@@ -1790,15 +1792,15 @@ import { getRosterForDate, getCurrentActiveShift, getLocalDateString, DayRoster,
       font-size: 0.78rem;
       font-weight: 600;
       color: var(--text-primary);
-      background: #ffffff;
+      background: var(--bg-input);
       outline: none;
     }
 
     .assigned-position-tag {
       font-weight: 700;
-      color: #0284c7;
-      background: #f0f9ff;
-      border: 1px solid #bae6fd;
+      color: var(--primary-lavender);
+      background: var(--primary-bg-subtle);
+      border: 1px solid var(--primary-border);
       padding: 2px 7px;
       border-radius: var(--radius-full);
       font-size: 0.74rem;
@@ -1809,7 +1811,8 @@ import { getRosterForDate, getCurrentActiveShift, getLocalDateString, DayRoster,
       height: 32px;
       border-radius: var(--radius-sm);
       border: 1px solid var(--border-subtle);
-      background: #ffffff;
+      background: var(--bg-card);
+      color: var(--text-secondary);
       cursor: pointer;
       display: inline-flex;
       align-items: center;
@@ -1817,8 +1820,9 @@ import { getRosterForDate, getCurrentActiveShift, getLocalDateString, DayRoster,
       transition: var(--transition-smooth);
 
       &:hover {
-        background: #fef2f2;
-        border-color: #fecaca;
+        background: rgba(239, 68, 68, 0.16);
+        border-color: rgba(239, 68, 68, 0.35);
+        color: var(--danger);
       }
     }
 
@@ -1884,8 +1888,8 @@ import { getRosterForDate, getCurrentActiveShift, getLocalDateString, DayRoster,
       align-items: center;
       gap: 4px;
       padding: 8px 4px;
-      background: #f8fafc;
-      border: 1.5px solid #e2e8f0;
+      background: var(--bg-card-subtle);
+      border: 1.5px solid var(--border-subtle);
       border-radius: var(--radius-md);
       cursor: pointer;
       transition: var(--transition-smooth);
@@ -1905,18 +1909,18 @@ import { getRosterForDate, getCurrentActiveShift, getLocalDateString, DayRoster,
       }
 
       &:hover {
-        background: #ffffff;
-        border-color: #031795;
+        background: var(--bg-card-hover);
+        border-color: var(--primary-purple);
         transform: translateY(-1px);
       }
 
       &.selected {
-        background: #eef2ff;
-        border-color: #031795;
-        box-shadow: 0 0 0 2px rgba(3, 23, 149, 0.2);
+        background: var(--primary-bg-subtle);
+        border-color: var(--primary-purple);
+        box-shadow: 0 0 0 2px var(--primary-glow);
 
         .icon-label {
-          color: #031795;
+          color: var(--primary-purple);
           font-weight: 700;
         }
       }

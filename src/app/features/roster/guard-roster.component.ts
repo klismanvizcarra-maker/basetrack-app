@@ -519,8 +519,9 @@ import { CrewService } from '../../core/services/crew.service';
 
     /* Today Status Card */
     .today-status-card {
-      border: 1px solid #c7d2fe;
-      background: linear-gradient(180deg, #f0f4ff 0%, #ffffff 100%);
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-card);
+      box-shadow: var(--shadow-card);
     }
 
     .today-header {
@@ -537,7 +538,7 @@ import { CrewService } from '../../core/services/crew.service';
       align-items: center;
       gap: 10px;
       font-size: 0.95rem;
-      color: #0f172a;
+      color: var(--text-primary);
 
       .live-pulse {
         width: 10px;
@@ -550,8 +551,9 @@ import { CrewService } from '../../core/services/crew.service';
 
       .block-tag {
         font-size: 0.75rem;
-        background: #e2e8f0;
-        color: #334155;
+        background: var(--bg-card-subtle);
+        color: var(--text-secondary);
+        border: 1px solid var(--border-subtle);
         font-weight: 700;
         padding: 3px 8px;
         border-radius: 6px;
@@ -572,15 +574,15 @@ import { CrewService } from '../../core/services/crew.service';
       letter-spacing: 0.03em;
 
       &.day-time {
-        background: #fef3c7;
-        color: #92400e;
-        border: 1px solid #fde68a;
+        background: var(--warning-bg, #fef3c7);
+        color: var(--warning, #92400e);
+        border: 1px solid rgba(245, 158, 11, 0.35);
       }
 
       &.night-time {
-        background: #ede9fe;
-        color: #5b21b6;
-        border: 1px solid #ddd6fe;
+        background: rgba(139, 92, 246, 0.16);
+        color: #a78bfa;
+        border: 1px solid rgba(139, 92, 246, 0.35);
       }
     }
 
@@ -591,15 +593,15 @@ import { CrewService } from '../../core/services/crew.service';
     }
 
     .shift-box {
-      border: 1px solid #e2e8f0;
+      border: 1px solid var(--border-subtle);
       border-radius: 12px;
       padding: 14px 16px;
-      background: #ffffff;
+      background: var(--bg-card-subtle);
       transition: all 0.2s ease;
 
       &.highlight-now {
-        border-color: #3b82f6;
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+        border-color: var(--primary-purple);
+        box-shadow: 0 0 0 3px var(--primary-glow);
       }
     }
 
@@ -613,7 +615,7 @@ import { CrewService } from '../../core/services/crew.service';
         font-size: 0.74rem;
         font-weight: 800;
         letter-spacing: 0.04em;
-        color: #475569;
+        color: var(--text-secondary);
       }
 
       .now-badge {
@@ -631,7 +633,7 @@ import { CrewService } from '../../core/services/crew.service';
       display: flex;
       align-items: center;
       gap: 12px;
-      border-left: 4px solid #031795;
+      border-left: 4px solid var(--primary-purple);
       padding-left: 10px;
     }
 
@@ -639,7 +641,7 @@ import { CrewService } from '../../core/services/crew.service';
       width: 44px;
       height: 44px;
       border-radius: 50%;
-      border: 2px solid #e2e8f0;
+      border: 2px solid var(--border-subtle);
       object-fit: cover;
     }
 
@@ -666,21 +668,22 @@ import { CrewService } from '../../core/services/crew.service';
     .stage-badge {
       font-size: 0.7rem;
       font-weight: 700;
-      color: #0369a1;
-      background: #e0f2fe;
+      color: var(--primary-lavender);
+      background: var(--primary-bg-subtle);
+      border: 1px solid var(--primary-border);
       padding: 1px 6px;
       border-radius: 4px;
     }
 
     .sup-fullname {
       font-size: 0.86rem;
-      color: #0f172a;
+      color: var(--text-primary);
       line-height: 1.2;
     }
 
     .sup-sub {
       font-size: 0.72rem;
-      color: #64748b;
+      color: var(--text-muted);
     }
 
     .off-guards-list {
@@ -690,8 +693,8 @@ import { CrewService } from '../../core/services/crew.service';
     }
 
     .off-guard-item {
-      background: #f8fafc;
-      border: 1px solid #f1f5f9;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
       border-radius: 8px;
       padding: 8px 10px;
     }
@@ -714,15 +717,15 @@ import { CrewService } from '../../core/services/crew.service';
     .off-stage-text {
       font-size: 0.68rem;
       font-weight: 700;
-      color: #b45309;
-      background: #fef3c7;
+      color: var(--warning, #b45309);
+      background: var(--warning-bg, #fef3c7);
       padding: 1px 6px;
       border-radius: 4px;
     }
 
     .off-sup-name {
       font-size: 0.76rem;
-      color: #334155;
+      color: var(--text-secondary);
       font-weight: 600;
     }
 
@@ -745,16 +748,16 @@ import { CrewService } from '../../core/services/crew.service';
         margin: 0;
         font-size: 1.15rem;
         font-weight: 800;
-        color: #0f172a;
+        color: var(--text-primary);
         min-width: 190px;
         text-align: center;
       }
     }
 
     .btn-nav-month {
-      background: #f1f5f9;
-      border: 1px solid #e2e8f0;
-      color: #334155;
+      background: var(--bg-card-subtle);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-secondary);
       width: 34px;
       height: 34px;
       border-radius: 8px;
@@ -765,24 +768,25 @@ import { CrewService } from '../../core/services/crew.service';
       transition: all 0.2s ease;
 
       &:hover {
-        background: #e2e8f0;
-        color: #0f172a;
+        background: var(--bg-card-hover);
+        color: var(--text-primary);
       }
     }
 
     .btn-today-quick {
-      background: #ffffff;
-      border: 1px solid #cbd5e1;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
       padding: 6px 12px;
       border-radius: 8px;
       font-size: 0.78rem;
       font-weight: 700;
-      color: #031795;
+      color: var(--primary-purple);
       cursor: pointer;
+      transition: var(--transition-smooth);
 
       &:hover {
-        background: #eff6ff;
-        border-color: #93c5fd;
+        background: var(--primary-bg-subtle);
+        border-color: var(--primary-purple);
       }
     }
 
@@ -797,12 +801,12 @@ import { CrewService } from '../../core/services/crew.service';
       align-items: center;
       gap: 6px;
       padding: 6px 12px;
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
+      background: var(--bg-card-subtle);
+      border: 1px solid var(--border-subtle);
       border-radius: 8px;
       font-size: 0.78rem;
       font-weight: 600;
-      color: #475569;
+      color: var(--text-secondary);
       cursor: pointer;
       transition: all 0.15s ease;
 
@@ -814,13 +818,13 @@ import { CrewService } from '../../core/services/crew.service';
       }
 
       &:hover {
-        background: #f1f5f9;
-        color: #0f172a;
+        background: var(--bg-card-hover);
+        color: var(--text-primary);
       }
 
       &.active {
-        background: #031795;
-        border-color: #031795;
+        background: var(--primary-purple);
+        border-color: var(--primary-purple);
         color: #ffffff;
       }
     }
@@ -841,7 +845,7 @@ import { CrewService } from '../../core/services/crew.service';
       text-align: center;
       font-size: 0.78rem;
       font-weight: 800;
-      color: #64748b;
+      color: var(--text-muted);
       text-transform: uppercase;
       letter-spacing: 0.04em;
       padding: 8px 0;
@@ -855,28 +859,28 @@ import { CrewService } from '../../core/services/crew.service';
 
     .calendar-day-cell {
       min-height: 110px;
-      border: 1px solid #e2e8f0;
+      border: 1px solid var(--border-subtle);
       border-radius: 10px;
       padding: 8px;
-      background: #ffffff;
+      background: var(--bg-card);
       display: flex;
       flex-direction: column;
       gap: 6px;
       transition: all 0.15s ease;
 
       &.is-today {
-        border: 2px solid #031795;
-        box-shadow: 0 0 0 3px rgba(3, 23, 149, 0.12);
-        background: #fafcff;
+        border: 2px solid var(--primary-purple);
+        box-shadow: 0 0 0 3px var(--primary-glow);
+        background: var(--primary-bg-subtle);
       }
 
       &.is-weekend {
-        background: #f8fafc;
+        background: var(--bg-card-subtle);
       }
 
       &.empty-cell {
         background: transparent;
-        border: 1px dashed #f1f5f9;
+        border: 1px dashed var(--border-subtle);
       }
     }
 
@@ -889,10 +893,10 @@ import { CrewService } from '../../core/services/crew.service';
     .day-num {
       font-size: 0.88rem;
       font-weight: 800;
-      color: #1e293b;
+      color: var(--text-primary);
 
       &.today-badge {
-        color: #031795;
+        color: var(--primary-purple);
         font-size: 0.95rem;
       }
     }
@@ -901,7 +905,7 @@ import { CrewService } from '../../core/services/crew.service';
       font-size: 0.62rem;
       font-weight: 800;
       color: #ffffff;
-      background: #031795;
+      background: var(--primary-purple);
       padding: 1px 5px;
       border-radius: 4px;
     }
@@ -909,7 +913,7 @@ import { CrewService } from '../../core/services/crew.service';
     .block-mini-label {
       font-size: 0.65rem;
       font-weight: 700;
-      color: #94a3b8;
+      color: var(--text-muted);
     }
 
     /* Shift Tag Rows */
@@ -930,16 +934,18 @@ import { CrewService } from '../../core/services/crew.service';
       border-left: 3px solid transparent;
 
       &.tag-day {
-        background: #eff6ff;
+        background: var(--primary-bg-subtle);
+        color: var(--text-primary);
       }
 
       &.tag-night {
-        background: #fbf5ff;
+        background: rgba(139, 92, 246, 0.18);
+        color: #c4b5fd;
       }
 
       &.tag-off {
-        background: #f1f5f9;
-        color: #64748b;
+        background: var(--bg-card-subtle);
+        color: var(--text-muted);
       }
 
       .tag-guard-code {
@@ -948,7 +954,7 @@ import { CrewService } from '../../core/services/crew.service';
 
       .tag-count {
         font-size: 0.64rem;
-        color: #64748b;
+        color: var(--text-muted);
         margin-left: auto;
       }
 
@@ -977,21 +983,21 @@ import { CrewService } from '../../core/services/crew.service';
       gap: 4px;
 
       &.box-dia {
-        background: #eff6ff;
-        border: 1px solid #bfdbfe;
-        color: #1e40af;
+        background: var(--primary-bg-subtle);
+        border: 1px solid var(--primary-border);
+        color: var(--primary-lavender);
       }
 
       &.box-noche {
-        background: #faf5ff;
-        border: 1px solid #e9d5ff;
-        color: #6b21a8;
+        background: rgba(139, 92, 246, 0.16);
+        border: 1px solid rgba(139, 92, 246, 0.35);
+        color: #c4b5fd;
       }
 
       &.box-descanso {
-        background: #f8fafc;
-        border: 1px dashed #cbd5e1;
-        color: #475569;
+        background: var(--bg-card-subtle);
+        border: 1px dashed var(--border-subtle);
+        color: var(--text-muted);
       }
 
       .status-top {
@@ -1013,7 +1019,7 @@ import { CrewService } from '../../core/services/crew.service';
       h4 {
         margin: 0 0 14px;
         font-size: 0.95rem;
-        color: #0f172a;
+        color: var(--text-primary);
       }
     }
 
@@ -1024,15 +1030,15 @@ import { CrewService } from '../../core/services/crew.service';
     }
 
     .block-card {
-      border: 1px solid #e2e8f0;
+      border: 1px solid var(--border-subtle);
       border-radius: 10px;
       padding: 12px 14px;
-      background: #f8fafc;
+      background: var(--bg-card-subtle);
 
       &.active-block {
-        border-color: #3b82f6;
-        background: #f0f7ff;
-        box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
+        border-color: var(--primary-purple);
+        background: var(--primary-bg-subtle);
+        box-shadow: 0 2px 8px var(--primary-glow);
       }
     }
 
@@ -1044,12 +1050,14 @@ import { CrewService } from '../../core/services/crew.service';
 
       strong {
         font-size: 0.86rem;
-        color: #0f172a;
+        color: var(--text-primary);
       }
 
       .days-span {
         font-size: 0.7rem;
-        background: #e2e8f0;
+        background: var(--bg-card);
+        color: var(--text-secondary);
+        border: 1px solid var(--border-subtle);
         padding: 1px 6px;
         border-radius: 4px;
         font-weight: 700;
@@ -1058,8 +1066,9 @@ import { CrewService } from '../../core/services/crew.service';
       .anchor-flag {
         font-size: 0.62rem;
         font-weight: 800;
-        color: #1d4ed8;
-        background: #dbeafe;
+        color: var(--primary-purple);
+        background: var(--primary-bg-subtle);
+        border: 1px solid var(--primary-border);
         padding: 1px 5px;
         border-radius: 4px;
       }
@@ -1068,7 +1077,7 @@ import { CrewService } from '../../core/services/crew.service';
     .block-row {
       font-size: 0.76rem;
       margin-bottom: 3px;
-      color: #334155;
+      color: var(--text-secondary);
     }
 
     /* PRINTABLE A4 STYLES (OCULTO EN PANTALLA) */
