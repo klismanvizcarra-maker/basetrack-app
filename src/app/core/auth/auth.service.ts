@@ -256,22 +256,44 @@ export class AuthService {
   }
 
   changePassword(data: { currentPassword?: string; newPassword: string }): Observable<{ success: boolean; message: string }> {
-    const user = this.currentUserSignal();
-    if (user && data.newPassword) {
-      const updated = { ...user, password: data.newPassword };
-      this.saveUserToRegistry(updated);
-      saveRealtimeData('user', updated);
-    }
-
     return this.http.put<any>(`${this.apiUrl}/change-password`, data).pipe(
+      tap(() => {
+        const user = this.currentUserSignal();
+        if (user && data.newPassword) {
+          const updated = { ...user, password: data.newPassword };
+          this.saveUserToRegistry(updated);
+          saveRealtimeData('user', updated);
+        }
+      }),
       map(res => ({
         success: true,
-        message: res?.message || 'Contraseña actualizada con Ã©xito'
+        message: res?.message || 'Contraseña actualizada con éxito'
       })),
-      catchError(() => of({
-        success: true,
-        message: 'Contraseña actualizada correctamente y respaldada'
-      }))
+      catchError(err => {
+        // If server actively returned an error status (400, 401, 403), do not mask it!
+        if (err?.status === 400 || err?.status === 401 || err?.status === 403) {
+          const msg = err.error?.message || 'No se pudo actualizar la contraseña. Verifique su clave actual.';
+          return throwError(() => new Error(msg));
+        }
+
+        // Fallback for Vercel static deployment or offline plant mode
+        const user = this.currentUserSignal();
+        if (user) {
+          const regUser = this.getUserFromRegistry(user.username);
+          const expectedPass = regUser?.password || user.password || user.document_id || 'Password123!';
+          if (data.currentPassword && data.currentPassword !== expectedPass && data.currentPassword !== user.document_id) {
+            return throwError(() => new Error('La contraseña actual no es correcta'));
+          }
+          const updated = { ...user, password: data.newPassword };
+          this.saveUserToRegistry(updated);
+          saveRealtimeData('user', updated);
+          return of({
+            success: true,
+            message: 'Contraseña actualizada correctamente y respaldada'
+          });
+        }
+        return throwError(() => new Error('Error al actualizar la contraseña'));
+      })
     );
   }
 
@@ -376,6 +398,9 @@ export class AuthService {
 
   private syncWithCrewCache(user: User): void {
     try {
+      if (user.role === 'ADMIN') {
+        return; // System Administrator is not an in-pit crew member
+      }
       const crewList = getRealtimeData<any[]>('crew_members', []);
       if (crewList && crewList.length > 0) {
         let changed = false;

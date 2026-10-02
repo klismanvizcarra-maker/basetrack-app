@@ -10,6 +10,7 @@ import { TailingsReportPdfComponent } from '../reports/tailings-report-pdf.compo
 import { AuthService } from '../../core/auth/auth.service';
 import { CrewService } from '../../core/services/crew.service';
 import { getCurrentActiveShift } from '../../shared/utils/roster.util';
+import { PlantParametersService } from '../../core/services/plant-parameters.service';
 
 export interface TailingsReport {
   id: string;
@@ -69,8 +70,8 @@ export interface TailingsReport {
         <div class="metric-box glass-panel">
           <span class="m-title">Borde Libre (Freeboard)</span>
           <span class="m-val">{{ latestFreeboard ? (latestFreeboard | number:'1.1-1') : '---' }} <small>metros</small></span>
-          <span class="m-status normal" *ngIf="latestFreeboard >= 2.5">Margen Seguro (> 2.5m)</span>
-          <span class="m-status warn" *ngIf="latestFreeboard > 0 && latestFreeboard < 2.5">Alerta Margen Bajo</span>
+          <span class="m-status normal" *ngIf="latestFreeboard >= plantParamsService.minFreeboard()">Margen Seguro (≥ {{ plantParamsService.minFreeboard() }}m)</span>
+          <span class="m-status warn" *ngIf="latestFreeboard > 0 && latestFreeboard < plantParamsService.minFreeboard()">Alerta Margen Bajo (< {{ plantParamsService.minFreeboard() }}m)</span>
           <span class="m-status" style="color: var(--text-muted)" *ngIf="!latestFreeboard">Sin registros</span>
         </div>
         <div class="metric-box glass-panel">
@@ -384,6 +385,7 @@ export class TailingsComponent implements OnInit {
   offlineSync = inject(OfflineSyncService);
   private crewService = inject(CrewService);
   private authService = inject(AuthService);
+  plantParamsService = inject(PlantParametersService);
 
   tailings: TailingsReport[] = [];
   isCreateModalOpen = false;

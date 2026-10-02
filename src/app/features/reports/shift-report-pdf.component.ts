@@ -135,6 +135,19 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
               <p class="notes-content">{{ reportData.pending_tasks }}</p>
             </div>
 
+            <div class="notes-box" *ngIf="reportData.checklist_data && reportData.checklist_data.length > 0">
+              <span class="notes-label">Protocolo de Verificación Operacional (Checklist de Relevo):</span>
+              <div class="pdf-checklist-grid">
+                <div class="pdf-chk-tag" *ngFor="let item of reportData.checklist_data">
+                  <span class="pdf-chk-status" [class.status-ok]="item.status === 'CONFORME'" [class.status-warn]="item.status === 'OBSERVADO'">
+                    {{ item.status === 'CONFORME' ? '✓' : '⚠️' }} {{ item.status }}
+                  </span>
+                  <span class="pdf-chk-name">{{ item.title }}</span>
+                  <span class="pdf-chk-detail" *ngIf="item.notes">({{ item.notes }})</span>
+                </div>
+              </div>
+            </div>
+
             <div class="notes-box">
               <span class="notes-label">Seguridad, Charlas y Medio Ambiente:</span>
               <p class="notes-content">{{ reportData.safety_incidents || 'Sin accidentes ni incidentes con tiempo perdido en el turno. Charla de 5 minutos realizada al inicio de guardia.' }}</p>
@@ -950,6 +963,51 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
         padding: 1px 5px;
         border-radius: 4px;
       }
+    }
+
+    .pdf-checklist-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    .pdf-chk-tag {
+      font-size: 0.68rem;
+      color: #334155;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .pdf-chk-status {
+      font-weight: 800;
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-size: 0.62rem;
+
+      &.status-ok {
+        background: #ecfdf5;
+        color: #059669;
+        border: 1px solid #a7f3d0;
+      }
+
+      &.status-warn {
+        background: #fffbeb;
+        color: #d97706;
+        border: 1px solid #fde68a;
+      }
+    }
+
+    .pdf-chk-name {
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    .pdf-chk-detail {
+      color: #64748b;
+      font-style: italic;
     }
 
     .doc-footer {

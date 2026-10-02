@@ -290,6 +290,14 @@ export function initDatabase() {
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
+    -- Plant Operational Parameters & Metallurgical Targets
+    CREATE TABLE IF NOT EXISTS plant_parameters (
+      id TEXT PRIMARY KEY DEFAULT 'current',
+      parameters_json TEXT NOT NULL,
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_by TEXT NOT NULL DEFAULT 'SYSTEM'
+    );
+
     -- Indexes for performance
     CREATE INDEX IF NOT EXISTS idx_pumps_tag ON pump_reports(tag);
     CREATE INDEX IF NOT EXISTS idx_pumps_created ON pump_reports(created_at);
@@ -547,6 +555,12 @@ export function initDatabase() {
   } catch {}
   try {
     db.prepare("ALTER TABLE shift_handovers ADD COLUMN incoming_role TEXT").run();
+  } catch {}
+  try {
+    db.prepare("ALTER TABLE shift_handovers ADD COLUMN assigned_crew TEXT").run();
+  } catch {}
+  try {
+    db.prepare("ALTER TABLE shift_handovers ADD COLUMN checklist_data TEXT").run();
   } catch {}
 
   // -------------------------------------------------------------

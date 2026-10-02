@@ -11,6 +11,7 @@ import { CloudSyncService } from '../../core/services/cloud-sync.service';
 import { getRealtimeData, saveRealtimeData } from '../../core/storage/local-store.util';
 import { CrewService, SupervisorData, CrewMember, SupervisorOperatorItem } from '../../core/services/crew.service';
 import { PermissionsService, ALL_PERMISSIONS, DEFAULT_ROLE_PERMISSIONS, PermissionKey, PermissionDefinition } from '../../core/auth/permissions.service';
+import { PlantParametersService, PlantParameters, DEFAULT_PLANT_PARAMETERS } from '../../core/services/plant-parameters.service';
 
 export interface UserItem {
   id: string;
@@ -187,6 +188,17 @@ const DEFAULT_LOGS: AuditLog[] = [
           <span class="tab-icon">🔐</span>
           <span class="tab-title">Matriz de Permisos</span>
           <span class="tab-badge">RBAC Híbrido</span>
+        </button>
+
+        <button 
+          type="button" 
+          class="nav-tab-btn" 
+          [class.active]="activeAdminTab === 'PLANT_PARAMETERS'" 
+          (click)="activeAdminTab = 'PLANT_PARAMETERS'"
+        >
+          <span class="tab-icon">⚙️</span>
+          <span class="tab-title">Parámetros de Planta</span>
+          <span class="tab-badge">Metas & Umbrales</span>
         </button>
       </div>
 
@@ -781,20 +793,30 @@ const DEFAULT_LOGS: AuditLog[] = [
       <div class="permissions-matrix-section animate-fade-in" *ngIf="activeAdminTab === 'PERMISSIONS_MATRIX'">
         
         <!-- Header Banner Card -->
-        <div class="section-card glass-panel header-banner-card">
+        <div class="section-card glass-panel header-banner-card rbac-banner">
           <div class="card-head">
             <div class="head-with-icon">
-              <span class="fleet-icon">🔐</span>
+              <div class="rbac-icon-badge">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+              </div>
               <div>
-                <h3>Matriz de Permisos & Control de Accesos (RBAC Híbrido)</h3>
-                <p class="section-sub">Configuración de capacidades por rol del sistema y excepciones especiales por usuario</p>
+                <div class="rbac-title-row">
+                  <h3>Matriz de Permisos & Control de Accesos (RBAC Híbrido)</h3>
+                  <span class="live-sync-badge">
+                    <span class="live-dot"></span> Sincronizado en Tiempo Real
+                  </span>
+                </div>
+                <p class="section-sub">Configuración granular de capacidades por rol del sistema y excepciones operacionales por usuario</p>
               </div>
             </div>
             <div class="head-actions">
               <button type="button" class="btn btn-secondary btn-sm" (click)="resetPermissionsToDefault()" title="Restablecer matriz a los valores predeterminados de fábrica">
                 ↺ Restaurar Valores por Defecto
               </button>
-              <button type="button" class="btn btn-primary btn-sm" (click)="saveRolePermissionsMatrix()">
+              <button type="button" class="btn btn-primary btn-sm rbac-save-btn" (click)="saveRolePermissionsMatrix()">
                 💾 Guardar Matriz de Roles
               </button>
             </div>
@@ -806,12 +828,119 @@ const DEFAULT_LOGS: AuditLog[] = [
           </div>
         </div>
 
+        <!-- Role Summary KPI Cards -->
+        <div class="rbac-stats-grid">
+          <!-- Operador -->
+          <div class="rbac-stat-card">
+            <div class="stat-role-info">
+              <div class="role-avatar-icon role-operator">👷</div>
+              <div class="stat-role-meta">
+                <span class="role-stat-name">OPERADOR</span>
+                <span class="role-stat-sub">Personal de Campo & Guardia</span>
+              </div>
+            </div>
+            <div class="stat-count-pill" [class.badge-active]="getRolePermCount('OPERATOR') > 0">
+              <strong>{{ getRolePermCount('OPERATOR') }}</strong> / {{ allPermissionsList.length }} Habilitados
+            </div>
+            <div class="role-quick-actions">
+              <button type="button" class="quick-link-btn" (click)="setAllPermsForRole('OPERATOR', true)">Activar Todo</button>
+              <span class="divider">•</span>
+              <button type="button" class="quick-link-btn" (click)="setAllPermsForRole('OPERATOR', false)">Desactivar Todo</button>
+            </div>
+          </div>
+
+          <!-- Supervisor -->
+          <div class="rbac-stat-card">
+            <div class="stat-role-info">
+              <div class="role-avatar-icon role-supervisor">🦺</div>
+              <div class="stat-role-meta">
+                <span class="role-stat-name">SUPERVISOR</span>
+                <span class="role-stat-sub">Líder de Guardia & Control</span>
+              </div>
+            </div>
+            <div class="stat-count-pill" [class.badge-active]="getRolePermCount('SUPERVISOR') > 0">
+              <strong>{{ getRolePermCount('SUPERVISOR') }}</strong> / {{ allPermissionsList.length }} Habilitados
+            </div>
+            <div class="role-quick-actions">
+              <button type="button" class="quick-link-btn" (click)="setAllPermsForRole('SUPERVISOR', true)">Activar Todo</button>
+              <span class="divider">•</span>
+              <button type="button" class="quick-link-btn" (click)="setAllPermsForRole('SUPERVISOR', false)">Desactivar Todo</button>
+            </div>
+          </div>
+
+          <!-- Administrador -->
+          <div class="rbac-stat-card is-admin-card">
+            <div class="stat-role-info">
+              <div class="role-avatar-icon role-admin">👑</div>
+              <div class="stat-role-meta">
+                <span class="role-stat-name">ADMINISTRADOR</span>
+                <span class="role-stat-sub">Superusuario Total</span>
+              </div>
+            </div>
+            <div class="stat-count-pill admin-pill">
+              <strong>{{ allPermissionsList.length }}</strong> / {{ allPermissionsList.length }} Acceso Total
+            </div>
+            <div class="role-quick-actions">
+              <span class="locked-hint">🔒 No revocable (Ghost/Root)</span>
+            </div>
+          </div>
+        </div>
+
         <!-- 1. Tabla de Permisos por Rol -->
         <div class="section-card glass-panel" style="margin-top: 16px;">
-          <div class="card-head">
+          <div class="card-head rbac-table-head">
             <div>
               <h4>1. Permisos Predeterminados por Rol del Sistema</h4>
               <p class="section-sub">Define las capacidades base que aplican a todos los usuarios de cada rol</p>
+            </div>
+
+            <!-- Toolbar con Categorías y Búsqueda -->
+            <div class="perm-table-toolbar">
+              <div class="category-tabs">
+                <button 
+                  type="button" 
+                  class="cat-tab-btn" 
+                  [class.active]="permFilterCategory === 'ALL'" 
+                  (click)="permFilterCategory = 'ALL'">
+                  Todas <span class="tab-count">{{ allPermissionsList.length }}</span>
+                </button>
+                <button 
+                  type="button" 
+                  class="cat-tab-btn cat-operaciones" 
+                  [class.active]="permFilterCategory === 'OPERACIONES'" 
+                  (click)="permFilterCategory = 'OPERACIONES'">
+                  ⚙️ Operaciones
+                </button>
+                <button 
+                  type="button" 
+                  class="cat-tab-btn cat-gestion" 
+                  [class.active]="permFilterCategory === 'GESTIÓN'" 
+                  (click)="permFilterCategory = 'GESTIÓN'">
+                  📋 Gestión
+                </button>
+                <button 
+                  type="button" 
+                  class="cat-tab-btn cat-seguridad" 
+                  [class.active]="permFilterCategory === 'SEGURIDAD'" 
+                  (click)="permFilterCategory = 'SEGURIDAD'">
+                  🛡️ Seguridad
+                </button>
+              </div>
+
+              <div class="perm-search-box">
+                <span class="search-icon">🔍</span>
+                <input 
+                  type="text" 
+                  class="form-control perm-search-input" 
+                  placeholder="Buscar capacidad o permiso..." 
+                  [(ngModel)]="permSearchQuery" 
+                />
+                <button 
+                  *ngIf="permSearchQuery" 
+                  type="button" 
+                  class="clear-search-btn" 
+                  (click)="permSearchQuery = ''">✕</button>
+              </div>
             </div>
           </div>
 
@@ -820,60 +949,109 @@ const DEFAULT_LOGS: AuditLog[] = [
               <thead>
                 <tr>
                   <th style="width: 34%;">Capacidad / Permiso</th>
-                  <th style="width: 18%;">Categoría</th>
-                  <th style="width: 16%; text-align: center;">OPERADOR</th>
-                  <th style="width: 16%; text-align: center;">SUPERVISOR</th>
-                  <th style="width: 16%; text-align: center;">ADMINISTRADOR</th>
+                  <th style="width: 15%; text-align: center;">Categoría</th>
+                  <th style="width: 17%; text-align: center;">
+                    <div class="col-role-header">
+                      <span class="role-badge-tag role-tag-operator">👷 OPERADOR</span>
+                      <small class="col-sub">Personal de Campo</small>
+                    </div>
+                  </th>
+                  <th style="width: 17%; text-align: center;">
+                    <div class="col-role-header">
+                      <span class="role-badge-tag role-tag-supervisor">🦺 SUPERVISOR</span>
+                      <small class="col-sub">Líder de Guardia</small>
+                    </div>
+                  </th>
+                  <th style="width: 17%; text-align: center;">
+                    <div class="col-role-header">
+                      <span class="role-badge-tag role-tag-admin">👑 ADMINISTRADOR</span>
+                      <small class="col-sub">Superusuario</small>
+                    </div>
+                  </th>
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let perm of allPermissionsList">
+                <tr *ngFor="let perm of filteredPermissionsList" class="perm-row">
                   <td>
                     <div class="perm-info">
                       <strong class="perm-label">{{ perm.label }}</strong>
                       <span class="perm-desc">{{ perm.description }}</span>
                     </div>
                   </td>
-                  <td>
-                    <span class="badge" [class.badge-primary]="perm.category === 'OPERACIONES'" [class.badge-warning]="perm.category === 'GESTIÓN'" [class.badge-danger]="perm.category === 'SEGURIDAD'">
-                      {{ perm.category }}
+                  <td style="text-align: center;">
+                    <span class="category-pill-badge" 
+                      [class.badge-cat-operaciones]="perm.category === 'OPERACIONES'" 
+                      [class.badge-cat-gestion]="perm.category === 'GESTIÓN'" 
+                      [class.badge-cat-seguridad]="perm.category === 'SEGURIDAD'">
+                      <span class="cat-icon">{{ perm.category === 'OPERACIONES' ? '⚙️' : perm.category === 'GESTIÓN' ? '📋' : '🛡️' }}</span>
+                      <span>{{ perm.category }}</span>
                     </span>
                   </td>
                   
-                  <!-- Checkbox OPERATOR -->
+                  <!-- Switch OPERATOR -->
                   <td style="text-align: center;">
-                    <label class="matrix-checkbox-wrap">
-                      <input 
-                        type="checkbox" 
-                        [checked]="isRolePermitted('OPERATOR', perm.key)" 
-                        (change)="toggleRolePerm('OPERATOR', perm.key, $event)" 
-                      />
-                      <span class="matrix-custom-check"></span>
-                    </label>
+                    <button 
+                      type="button" 
+                      class="perm-toggle-btn"
+                      [class.is-enabled]="isRolePermitted('OPERATOR', perm.key)"
+                      (click)="toggleRolePermDirect('OPERATOR', perm.key)"
+                      [title]="isRolePermitted('OPERATOR', perm.key) ? 'Habilitado para Operador (clic para revocar)' : 'Restringido para Operador (clic para habilitar)'"
+                    >
+                      <div class="toggle-pill">
+                        <span class="toggle-track"></span>
+                        <span class="toggle-thumb">
+                          <svg *ngIf="isRolePermitted('OPERATOR', perm.key)" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                          </svg>
+                          <svg *ngIf="!isRolePermitted('OPERATOR', perm.key)" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                          </svg>
+                        </span>
+                      </div>
+                      <span class="toggle-state-text">{{ isRolePermitted('OPERATOR', perm.key) ? 'Habilitado' : 'Restringido' }}</span>
+                    </button>
                   </td>
 
-                  <!-- Checkbox SUPERVISOR -->
+                  <!-- Switch SUPERVISOR -->
                   <td style="text-align: center;">
-                    <label class="matrix-checkbox-wrap">
-                      <input 
-                        type="checkbox" 
-                        [checked]="isRolePermitted('SUPERVISOR', perm.key)" 
-                        (change)="toggleRolePerm('SUPERVISOR', perm.key, $event)" 
-                      />
-                      <span class="matrix-custom-check"></span>
-                    </label>
+                    <button 
+                      type="button" 
+                      class="perm-toggle-btn"
+                      [class.is-enabled]="isRolePermitted('SUPERVISOR', perm.key)"
+                      (click)="toggleRolePermDirect('SUPERVISOR', perm.key)"
+                      [title]="isRolePermitted('SUPERVISOR', perm.key) ? 'Habilitado para Supervisor (clic para revocar)' : 'Restringido para Supervisor (clic para habilitar)'"
+                    >
+                      <div class="toggle-pill">
+                        <span class="toggle-track"></span>
+                        <span class="toggle-thumb">
+                          <svg *ngIf="isRolePermitted('SUPERVISOR', perm.key)" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                          </svg>
+                          <svg *ngIf="!isRolePermitted('SUPERVISOR', perm.key)" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                          </svg>
+                        </span>
+                      </div>
+                      <span class="toggle-state-text">{{ isRolePermitted('SUPERVISOR', perm.key) ? 'Habilitado' : 'Restringido' }}</span>
+                    </button>
                   </td>
 
-                  <!-- Checkbox ADMIN (Always enabled / locked) -->
+                  <!-- Locked Pill ADMIN -->
                   <td style="text-align: center;">
-                    <label class="matrix-checkbox-wrap">
-                      <input 
-                        type="checkbox" 
-                        [checked]="true" 
-                        disabled 
-                      />
-                      <span class="matrix-custom-check admin-locked" title="El rol Administrador siempre cuenta con acceso absoluto"></span>
-                    </label>
+                    <div class="admin-locked-pill" title="El rol Administrador cuenta con acceso absoluto e irrestricto en toda la plataforma">
+                      <span class="lock-icon">🔒</span>
+                      <span class="lock-text">Acceso Total</span>
+                    </div>
+                  </td>
+                </tr>
+
+                <tr *ngIf="filteredPermissionsList.length === 0">
+                  <td colspan="5" class="perm-empty-filter">
+                    <span class="empty-icon">🔍</span>
+                    <p>No se encontraron capacidades que coincidan con la búsqueda o filtro seleccionado.</p>
+                    <button type="button" class="btn btn-secondary btn-sm" (click)="permSearchQuery = ''; permFilterCategory = 'ALL'">Limpiar Filtro</button>
                   </td>
                 </tr>
               </tbody>
@@ -943,7 +1121,356 @@ const DEFAULT_LOGS: AuditLog[] = [
           </div>
 
         </div>
+      </div>
 
+      <!-- APARTADO 6: PARÁMETROS DE PLANTA & METAS OPERACIONALES -->
+      <div class="plant-parameters-section animate-fade-in" *ngIf="activeAdminTab === 'PLANT_PARAMETERS'">
+        <div class="section-card glass-panel header-banner-card">
+          <div class="card-head">
+            <div class="head-with-icon">
+              <span class="fleet-icon">⚙️</span>
+              <div>
+                <h3>Calibrador de Parámetros de Planta & Metas Operacionales</h3>
+                <p class="section-sub">
+                  Configuración centralizada de metas de producción, límites metalúrgicos y umbrales de seguridad operacional para toda la planta.
+                </p>
+              </div>
+            </div>
+            <div class="head-actions">
+              <button 
+                type="button" 
+                class="btn btn-secondary btn-sm" 
+                (click)="resetPlantParametersToDefaults()"
+                [disabled]="isSavingPlantParams"
+                title="Restablecer todos los umbrales a los valores nominales de fábrica"
+              >
+                <span>↺ Valores de Fábrica</span>
+              </button>
+              <button 
+                type="button" 
+                class="btn btn-primary btn-sm" 
+                (click)="savePlantParameters()"
+                [disabled]="isSavingPlantParams"
+                title="Guardar y propagar nuevos parámetros a toda la planta"
+              >
+                <span *ngIf="!isSavingPlantParams">💾 Guardar Parámetros</span>
+                <span *ngIf="isSavingPlantParams">Guardando...</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Feedback Alert Banners -->
+        <div *ngIf="plantParamsSuccessMessage" class="alert-banner alert-success animate-fade-in">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+          </svg>
+          <span>{{ plantParamsSuccessMessage }}</span>
+        </div>
+
+        <div *ngIf="plantParamsErrorMessage" class="alert-banner alert-danger animate-fade-in">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+          <span>{{ plantParamsErrorMessage }}</span>
+        </div>
+
+        <!-- Live Summary Metrics Bar -->
+        <div class="plant-metrics-bar glass-panel">
+          <div class="metric-pill">
+            <span class="m-icon">🎯</span>
+            <div class="m-content">
+              <span class="m-lbl">Meta Turno</span>
+              <strong class="m-val">{{ editablePlantParams.tonnage_target_shift | number }} <small>Ton</small></strong>
+            </div>
+          </div>
+          <div class="metric-pill">
+            <span class="m-icon">⚡</span>
+            <div class="m-content">
+              <span class="m-lbl">Tratamiento</span>
+              <strong class="m-val">{{ editablePlantParams.nominal_feed_rate_tph | number }} <small>TPH</small></strong>
+            </div>
+          </div>
+          <div class="metric-pill">
+            <span class="m-icon">🌀</span>
+            <div class="m-content">
+              <span class="m-lbl">Malla -200 OF</span>
+              <strong class="m-val">{{ editablePlantParams.cyclones_target_mesh200_of | number:'1.1-1' }}%</strong>
+            </div>
+          </div>
+          <div class="metric-pill">
+            <span class="m-icon">🛡️</span>
+            <div class="m-content">
+              <span class="m-lbl">Borde Libre Mín.</span>
+              <strong class="m-val">{{ editablePlantParams.tailings_min_freeboard_meters | number:'1.1-1' }} <small>m</small></strong>
+            </div>
+          </div>
+          <div class="metric-pill">
+            <span class="m-icon">🕒</span>
+            <div class="m-content">
+              <span class="m-lbl">Último Ajuste</span>
+              <strong class="m-val-sub">{{ editablePlantParams.updated_at | date:'dd/MM/yyyy HH:mm' }}</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4 Grid Cards of Operational Parameters -->
+        <div class="plant-params-grid">
+          <!-- CARD 1: Metas Generales de Producción & Turnos -->
+          <div class="param-card glass-panel">
+            <div class="param-card-header">
+              <span class="card-icon">🏭</span>
+              <div>
+                <h4>1. Producción & Turnos</h4>
+                <p class="card-desc">Nombre institucional, tonelaje de guardia y horarios de relevo</p>
+              </div>
+            </div>
+            <div class="param-card-body">
+              <div class="param-group">
+                <label>Nombre Oficial de la Planta</label>
+                <div class="param-input-wrap">
+                  <input type="text" [(ngModel)]="editablePlantParams.plant_name" placeholder="Ej. Planta Concentradora" />
+                </div>
+                <span class="param-hint">Encabezado principal en bitácoras y reportes PDF</span>
+              </div>
+
+              <div class="param-row-2">
+                <div class="param-group">
+                  <label>Meta de Tonelaje por Turno</label>
+                  <div class="param-input-wrap">
+                    <input type="number" [(ngModel)]="editablePlantParams.tonnage_target_shift" min="1000" step="500" />
+                    <span class="param-unit">Ton/T</span>
+                  </div>
+                  <span class="param-hint">Base de cálculo en Relevo de Guardia</span>
+                </div>
+                <div class="param-group">
+                  <label>Tratamiento Horario Nominal</label>
+                  <div class="param-input-wrap">
+                    <input type="number" [(ngModel)]="editablePlantParams.nominal_feed_rate_tph" min="100" step="10" />
+                    <span class="param-unit">TPH</span>
+                  </div>
+                  <span class="param-hint">Capacidad horaria nominal de molienda</span>
+                </div>
+              </div>
+
+              <div class="param-row-2">
+                <div class="param-group">
+                  <label>Horario Turno Día</label>
+                  <div class="param-input-wrap">
+                    <input type="text" [(ngModel)]="editablePlantParams.shift_day_hours" placeholder="07:00 - 19:00" />
+                  </div>
+                </div>
+                <div class="param-group">
+                  <label>Horario Turno Noche</label>
+                  <div class="param-input-wrap">
+                    <input type="text" [(ngModel)]="editablePlantParams.shift_night_hours" placeholder="19:00 - 07:00" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- CARD 2: Control Metalúrgico & Ciclones -->
+          <div class="param-card glass-panel">
+            <div class="param-card-header">
+              <span class="card-icon">🌀</span>
+              <div>
+                <h4>2. Metalurgia & Ciclones (D20 / Cyclopac)</h4>
+                <p class="card-desc">Criterios granulométricos, corte de clasificación y presión manifold</p>
+              </div>
+            </div>
+            <div class="param-card-body">
+              <div class="param-row-2">
+                <div class="param-group">
+                  <label>% Malla -200 Overflow (Objetivo)</label>
+                  <div class="param-input-wrap">
+                    <input type="number" [(ngModel)]="editablePlantParams.cyclones_target_mesh200_of" min="50" max="95" step="0.5" />
+                    <span class="param-unit">%</span>
+                  </div>
+                  <span class="param-hint">Granulometría objetivo para flotación</span>
+                </div>
+                <div class="param-group">
+                  <label>% Malla -200 Overflow (Mínimo)</label>
+                  <div class="param-input-wrap">
+                    <input type="number" [(ngModel)]="editablePlantParams.cyclones_min_mesh200_of" min="50" max="95" step="0.5" />
+                    <span class="param-unit">%</span>
+                  </div>
+                  <span class="param-hint">Límite inferior para alertar gruesos</span>
+                </div>
+              </div>
+
+              <div class="param-row-2">
+                <div class="param-group">
+                  <label>% Sólidos Underflow (Objetivo)</label>
+                  <div class="param-input-wrap">
+                    <input type="number" [(ngModel)]="editablePlantParams.cyclones_target_solids_uf" min="40" max="85" step="0.5" />
+                    <span class="param-unit">%</span>
+                  </div>
+                  <span class="param-hint">Descarga hacia remolienda</span>
+                </div>
+                <div class="param-group">
+                  <label>Densidad Alimentación Nominal</label>
+                  <div class="param-input-wrap">
+                    <input type="number" [(ngModel)]="editablePlantParams.cyclones_feed_density_nominal" min="1000" max="2200" step="10" />
+                    <span class="param-unit">g/L</span>
+                  </div>
+                  <span class="param-hint">Densidad de pulpa de alimentación</span>
+                </div>
+              </div>
+
+              <div class="param-row-2">
+                <div class="param-group">
+                  <label>Presión Mínima Manifold</label>
+                  <div class="param-input-wrap">
+                    <input type="number" [(ngModel)]="editablePlantParams.cyclones_feed_pressure_min" min="5" max="30" step="0.5" />
+                    <span class="param-unit">PSI</span>
+                  </div>
+                  <span class="param-hint">Alerta de baja presión</span>
+                </div>
+                <div class="param-group">
+                  <label>Presión Máxima Manifold</label>
+                  <div class="param-input-wrap">
+                    <input type="number" [(ngModel)]="editablePlantParams.cyclones_feed_pressure_max" min="10" max="50" step="0.5" />
+                    <span class="param-unit">PSI</span>
+                  </div>
+                  <span class="param-hint">Alerta de sobrepresión en Cyclopac</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- CARD 3: Transporte de Pulpa & Pozas Sentina -->
+          <div class="param-card glass-panel">
+            <div class="param-card-header">
+              <span class="card-icon">⚡</span>
+              <div>
+                <h4>3. Bombas de Pulpa & Sentinas</h4>
+                <p class="card-desc">Líneas slurry, capacidades volumétricas y niveles de poza</p>
+              </div>
+            </div>
+            <div class="param-card-body">
+              <div class="param-row-2">
+                <div class="param-group">
+                  <label>Flujo Objetivo Slurry</label>
+                  <div class="param-input-wrap">
+                    <input type="number" [(ngModel)]="editablePlantParams.pumps_slurry_flow_target" min="500" max="5000" step="50" />
+                    <span class="param-unit">m³/h</span>
+                  </div>
+                  <span class="param-hint">Régimen nominal de bombeo de relaves</span>
+                </div>
+                <div class="param-group">
+                  <label>Presión Crítica Línea Slurry</label>
+                  <div class="param-input-wrap">
+                    <input type="number" [(ngModel)]="editablePlantParams.pumps_critical_pressure_psi" min="30" max="150" step="5" />
+                    <span class="param-unit">PSI</span>
+                  </div>
+                  <span class="param-hint">Corte por sobrepresión de línea</span>
+                </div>
+              </div>
+
+              <div class="param-row-2">
+                <div class="param-group">
+                  <label>Nivel de Advertencia Poza Sentina</label>
+                  <div class="param-input-wrap">
+                    <input type="number" [(ngModel)]="editablePlantParams.sump_high_level_warning" min="50" max="95" step="1" />
+                    <span class="param-unit">%</span>
+                  </div>
+                  <span class="param-hint">Arranque automático de bombas de sentina</span>
+                </div>
+                <div class="param-group">
+                  <label>Nivel Crítico de Peligro en Poza</label>
+                  <div class="param-input-wrap">
+                    <input type="number" [(ngModel)]="editablePlantParams.sump_critical_level_danger" min="70" max="99" step="1" />
+                    <span class="param-unit">%</span>
+                  </div>
+                  <span class="param-hint">Riesgo inminente de rebose / parada</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- CARD 4: Depósito de Relaves & Presa -->
+          <div class="param-card glass-panel">
+            <div class="param-card-header">
+              <span class="card-icon">🌊</span>
+              <div>
+                <h4>4. Depósito de Relaves & Presa de Agua</h4>
+                <p class="card-desc">Criterios de seguridad geotécnica e hidrológica de presa</p>
+              </div>
+            </div>
+            <div class="param-card-body">
+              <div class="param-row-2">
+                <div class="param-group">
+                  <label>Borde Libre Mínimo (Freeboard)</label>
+                  <div class="param-input-wrap">
+                    <input type="number" [(ngModel)]="editablePlantParams.tailings_min_freeboard_meters" min="0.5" max="10" step="0.1" />
+                    <span class="param-unit">m</span>
+                  </div>
+                  <span class="param-hint">Margen reglamentario de seguridad minera</span>
+                </div>
+                <div class="param-group">
+                  <label>Cota Máxima Espejo de Agua</label>
+                  <div class="param-input-wrap">
+                    <input type="number" [(ngModel)]="editablePlantParams.tailings_max_dam_level_msnm" min="1000" max="6000" step="1" />
+                    <span class="param-unit">msnm</span>
+                  </div>
+                  <span class="param-hint">Cota de diseño autorizada</span>
+                </div>
+              </div>
+
+              <div class="param-row-2">
+                <div class="param-group">
+                  <label>Presión Piezométrica Máxima</label>
+                  <div class="param-input-wrap">
+                    <input type="number" [(ngModel)]="editablePlantParams.tailings_max_piezometer_kpa" min="10" max="500" step="5" />
+                    <span class="param-unit">kPa</span>
+                  </div>
+                  <span class="param-hint">Estabilidad del muro de contención</span>
+                </div>
+                <div class="param-group">
+                  <label>% Sólidos Nominales Descarga</label>
+                  <div class="param-input-wrap">
+                    <input type="number" [(ngModel)]="editablePlantParams.tailings_solids_nominal_pct" min="30" max="80" step="0.5" />
+                    <span class="param-unit">%</span>
+                  </div>
+                  <span class="param-hint">Densidad en línea de relaves espesados</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer Action Strip -->
+        <div class="params-footer-actions glass-panel">
+          <div class="footer-info">
+            <span class="info-dot"></span>
+            <span>Los cambios guardados se sincronizan automáticamente con el Módulo de Cambio de Guardia, Ciclones y Descarga.</span>
+          </div>
+          <div class="footer-btns">
+            <button 
+              type="button" 
+              class="btn btn-secondary" 
+              (click)="resetPlantParametersToDefaults()"
+              [disabled]="isSavingPlantParams"
+            >
+              ↺ Restablecer Valores de Fábrica
+            </button>
+            <button 
+              type="button" 
+              class="btn btn-primary" 
+              (click)="savePlantParameters()"
+              [disabled]="isSavingPlantParams"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+              <span>{{ isSavingPlantParams ? 'Guardando...' : 'Guardar y Aplicar Parámetros' }}</span>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -3701,41 +4228,622 @@ const DEFAULT_LOGS: AuditLog[] = [
       }
     }
 
-    /* PERMISSIONS MATRIX STYLING */
-    .permissions-table {
-      .perm-info {
+    /* PERMISSIONS MATRIX STYLING & INTERACTIVE SWITCHES */
+    .rbac-banner {
+      .rbac-icon-badge {
+        width: 44px;
+        height: 44px;
+        border-radius: var(--radius-md);
+        background: linear-gradient(135deg, #031795 0%, #1e3a8a 100%);
+        color: #ffffff;
         display: flex;
-        flex-direction: column;
-        gap: 2px;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        box-shadow: 0 4px 12px rgba(3, 23, 149, 0.25);
+      }
 
-        .perm-label {
-          font-size: 0.85rem;
-          color: var(--text-primary);
-        }
+      .rbac-title-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
 
-        .perm-desc {
-          font-size: 0.73rem;
-          color: var(--text-muted);
+        h3 {
+          margin: 0;
+          font-size: 1.15rem;
+          font-weight: 800;
         }
       }
 
-      .matrix-checkbox-wrap {
+      .live-sync-badge {
         display: inline-flex;
         align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        position: relative;
+        gap: 6px;
+        padding: 3px 10px;
+        border-radius: 999px;
+        background: rgba(16, 185, 129, 0.1);
+        border: 1px solid rgba(16, 185, 129, 0.3);
+        color: #059669;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.02em;
 
-        input[type="checkbox"] {
+        .live-dot {
+          width: 7px;
+          height: 7px;
+          border-radius: 50%;
+          background: #10b981;
+          box-shadow: 0 0 6px #10b981;
+          animation: rbac-pulse 2s infinite ease-in-out;
+        }
+      }
+
+      .rbac-save-btn {
+        background: #031795;
+        border-color: #031795;
+        color: #ffffff;
+        font-weight: 700;
+        box-shadow: 0 2px 8px rgba(3, 23, 149, 0.25);
+        transition: all 0.2s;
+
+        &:hover {
+          background: #02106a;
+          border-color: #02106a;
+          transform: translateY(-1px);
+        }
+      }
+    }
+
+    @keyframes rbac-pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.35); opacity: 0.6; }
+    }
+
+    /* 3 Role Coverage Summary Cards */
+    .rbac-stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 14px;
+      margin-top: 14px;
+
+      .rbac-stat-card {
+        background: var(--bg-card);
+        border: 1.5px solid var(--border-subtle);
+        border-radius: var(--radius-lg);
+        padding: 14px 18px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+
+        &:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+          border-color: rgba(3, 23, 149, 0.3);
+        }
+
+        &.is-admin-card {
+          background: linear-gradient(135deg, rgba(3, 23, 149, 0.03) 0%, rgba(99, 102, 241, 0.05) 100%);
+          border-color: rgba(3, 23, 149, 0.25);
+        }
+
+        .stat-role-info {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+
+          .role-avatar-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            flex-shrink: 0;
+
+            &.role-operator {
+              background: #eff6ff;
+              border: 1px solid #bfdbfe;
+            }
+
+            &.role-supervisor {
+              background: #f5f3ff;
+              border: 1px solid #ddd6fe;
+            }
+
+            &.role-admin {
+              background: #fef3c7;
+              border: 1px solid #fde68a;
+            }
+          }
+
+          .stat-role-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+
+            .role-stat-name {
+              font-size: 0.88rem;
+              font-weight: 800;
+              color: var(--text-primary);
+              letter-spacing: 0.03em;
+            }
+
+            .role-stat-sub {
+              font-size: 0.72rem;
+              color: var(--text-muted);
+            }
+          }
+        }
+
+        .stat-count-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 6px 12px;
+          border-radius: var(--radius-md);
+          font-size: 0.78rem;
+          background: var(--bg-card-subtle);
+          border: 1px solid var(--border-subtle);
+          color: var(--text-secondary);
+
+          strong {
+            font-size: 0.92rem;
+            color: var(--text-primary);
+          }
+
+          &.badge-active {
+            background: rgba(3, 23, 149, 0.06);
+            border-color: rgba(3, 23, 149, 0.2);
+            color: #031795;
+
+            strong {
+              color: #031795;
+            }
+          }
+
+          &.admin-pill {
+            background: rgba(3, 23, 149, 0.1);
+            border-color: rgba(3, 23, 149, 0.3);
+            color: #031795;
+            font-weight: 700;
+
+            strong {
+              color: #031795;
+            }
+          }
+        }
+
+        .role-quick-actions {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 0.74rem;
+
+          .quick-link-btn {
+            border: none;
+            background: transparent;
+            color: #031795;
+            font-weight: 700;
+            cursor: pointer;
+            padding: 2px 6px;
+            border-radius: 4px;
+            transition: background 0.15s;
+
+            &:hover {
+              background: rgba(3, 23, 149, 0.08);
+            }
+          }
+
+          .divider {
+            color: var(--border-subtle);
+          }
+
+          .locked-hint {
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: #031795;
+          }
+        }
+      }
+    }
+
+    /* Toolbar con Filtros y Buscador */
+    .rbac-table-head {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-items: stretch;
+    }
+
+    .perm-table-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 4px;
+
+      .category-tabs {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+
+        .cat-tab-btn {
+          padding: 6px 14px;
+          border-radius: 999px;
+          font-size: 0.76rem;
+          font-weight: 700;
+          border: 1.5px solid var(--border-subtle);
+          background: var(--bg-card);
+          color: var(--text-secondary);
+          cursor: pointer;
+          transition: all 0.2s;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+
+          .tab-count {
+            font-size: 0.68rem;
+            padding: 1px 6px;
+            border-radius: 999px;
+            background: var(--bg-card-subtle);
+            color: var(--text-muted);
+          }
+
+          &:hover {
+            border-color: #031795;
+            color: var(--text-primary);
+          }
+
+          &.active {
+            background: #031795;
+            color: #ffffff;
+            border-color: #031795;
+
+            .tab-count {
+              background: rgba(255, 255, 255, 0.25);
+              color: #ffffff;
+            }
+          }
+        }
+      }
+
+      .perm-search-box {
+        position: relative;
+        min-width: 260px;
+        display: flex;
+        align-items: center;
+
+        .search-icon {
+          position: absolute;
+          left: 12px;
+          font-size: 0.8rem;
+          pointer-events: none;
+          color: var(--text-muted);
+        }
+
+        .perm-search-input {
+          padding-left: 34px;
+          padding-right: 28px;
+          height: 34px;
+          font-size: 0.8rem;
+          border-radius: 999px;
+          border: 1.5px solid var(--border-subtle);
+          background: var(--bg-card);
+          color: var(--text-primary);
+          width: 100%;
+
+          &:focus {
+            border-color: #031795;
+            box-shadow: 0 0 0 2px rgba(3, 23, 149, 0.15);
+            outline: none;
+          }
+        }
+
+        .clear-search-btn {
+          position: absolute;
+          right: 10px;
+          background: none;
+          border: none;
+          color: var(--text-muted);
+          cursor: pointer;
+          font-size: 0.78rem;
+
+          &:hover {
+            color: var(--text-primary);
+          }
+        }
+      }
+    }
+
+    /* Role Header in Table */
+    .col-role-header {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+
+      .role-badge-tag {
+        font-size: 0.78rem;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        padding: 3px 8px;
+        border-radius: 6px;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+
+        &.role-tag-operator {
+          background: #eff6ff;
+          color: #1d4ed8;
+          border: 1px solid #bfdbfe;
+        }
+
+        &.role-tag-supervisor {
+          background: #f5f3ff;
+          color: #6d28d9;
+          border: 1px solid #ddd6fe;
+        }
+
+        &.role-tag-admin {
+          background: #fef3c7;
+          color: #b45309;
+          border: 1px solid #fde68a;
+        }
+      }
+
+      .col-sub {
+        font-size: 0.68rem;
+        font-weight: 500;
+        color: var(--text-muted);
+      }
+    }
+
+    /* Category Badges */
+    .category-pill-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+
+      &.badge-cat-operaciones {
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        color: #1d4ed8;
+      }
+
+      &.badge-cat-gestion {
+        background: #fffbeb;
+        border: 1px solid #fde68a;
+        color: #b45309;
+      }
+
+      &.badge-cat-seguridad {
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+        color: #b91c1c;
+      }
+    }
+
+    /* Interactive Custom Toggle Button */
+    .perm-toggle-btn {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      padding: 4px 8px;
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+      outline: none;
+      transition: transform 0.15s ease;
+
+      &:hover {
+        transform: scale(1.06);
+      }
+
+      &:active {
+        transform: scale(0.96);
+      }
+
+      .toggle-pill {
+        width: 44px;
+        height: 24px;
+        border-radius: 999px;
+        position: relative;
+        background: #cbd5e1;
+        transition: background 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+
+        .toggle-thumb {
           width: 18px;
           height: 18px;
-          cursor: pointer;
-          accent-color: #031795;
+          border-radius: 50%;
+          background: #ffffff;
+          position: absolute;
+          top: 3px;
+          left: 3px;
+          transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #94a3b8;
+        }
+      }
+
+      &.is-enabled {
+        .toggle-pill {
+          background: #031795;
+
+          .toggle-thumb {
+            transform: translateX(20px);
+            color: #031795;
+          }
         }
 
-        .admin-locked {
-          opacity: 0.7;
+        .toggle-state-text {
+          color: #031795;
+          font-weight: 800;
         }
+      }
+
+      &:not(.is-enabled) {
+        .toggle-state-text {
+          color: var(--text-muted);
+          font-weight: 600;
+        }
+      }
+
+      .toggle-state-text {
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        transition: color 0.2s;
+      }
+    }
+
+    /* Admin Locked Badge */
+    .admin-locked-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: rgba(3, 23, 149, 0.08);
+      border: 1.5px solid rgba(3, 23, 149, 0.25);
+      color: #031795;
+      font-size: 0.74rem;
+      font-weight: 800;
+      letter-spacing: 0.03em;
+      cursor: default;
+      box-shadow: 0 1px 3px rgba(3, 23, 149, 0.06);
+
+      .lock-icon {
+        font-size: 0.8rem;
+      }
+    }
+
+    /* Empty state for search/filters */
+    .perm-empty-filter {
+      text-align: center;
+      padding: 36px 20px;
+      color: var(--text-muted);
+
+      .empty-icon {
+        font-size: 2rem;
+        margin-bottom: 8px;
+        display: block;
+      }
+
+      p {
+        font-size: 0.85rem;
+        margin-bottom: 12px;
+      }
+    }
+
+    /* PERMISSIONS MATRIX STYLING */
+    .permissions-table {
+      .perm-row {
+        transition: background 0.15s ease;
+
+        &:hover {
+          background: rgba(3, 23, 149, 0.03);
+        }
+      }
+
+      .perm-info {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+
+        .perm-label {
+          font-size: 0.88rem;
+          color: var(--text-primary);
+          font-weight: 700;
+        }
+
+        .perm-desc {
+          font-size: 0.74rem;
+          color: var(--text-muted);
+          line-height: 1.3;
+        }
+      }
+    }
+
+    :host-context(.dark-theme) {
+      .rbac-banner .rbac-icon-badge {
+        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+      }
+      .rbac-stats-grid .rbac-stat-card {
+        background: rgba(30, 41, 59, 0.7);
+        border-color: rgba(255, 255, 255, 0.08);
+
+        &.is-admin-card {
+          background: rgba(99, 102, 241, 0.08);
+          border-color: rgba(99, 102, 241, 0.3);
+        }
+
+        .stat-count-pill.badge-active {
+          background: rgba(59, 130, 246, 0.15);
+          border-color: rgba(59, 130, 246, 0.4);
+          color: #93c5fd;
+          strong { color: #93c5fd; }
+        }
+
+        .stat-count-pill.admin-pill {
+          background: rgba(168, 85, 247, 0.15);
+          border-color: rgba(168, 85, 247, 0.4);
+          color: #d8b4fe;
+          strong { color: #d8b4fe; }
+        }
+
+        .role-quick-actions .quick-link-btn,
+        .role-quick-actions .locked-hint {
+          color: #93c5fd;
+        }
+      }
+
+      .perm-table-toolbar .category-tabs .cat-tab-btn {
+        background: rgba(30, 41, 59, 0.6);
+        border-color: rgba(255, 255, 255, 0.1);
+        color: #cbd5e1;
+
+        &.active {
+          background: #2563eb;
+          border-color: #3b82f6;
+          color: #ffffff;
+        }
+      }
+
+      .perm-toggle-btn {
+        .toggle-pill {
+          background: #334155;
+        }
+        &.is-enabled {
+          .toggle-pill {
+            background: #2563eb;
+          }
+          .toggle-state-text {
+            color: #60a5fa;
+          }
+        }
+        &:not(.is-enabled) .toggle-state-text {
+          color: #94a3b8;
+        }
+      }
+
+      .admin-locked-pill {
+        background: rgba(99, 102, 241, 0.15);
+        border-color: rgba(99, 102, 241, 0.35);
+        color: #a5b4fc;
       }
     }
 
@@ -3989,6 +5097,216 @@ const DEFAULT_LOGS: AuditLog[] = [
         font-weight: 700;
       }
     }
+
+    /* Plant Parameters Section Styles */
+    .plant-parameters-section {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .plant-metrics-bar {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 14px;
+      padding: 16px 20px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+
+      @media (max-width: 992px) {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      @media (max-width: 540px) {
+        grid-template-columns: 1fr;
+      }
+
+      .metric-pill {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 8px 12px;
+        background: var(--bg-card-subtle);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-md);
+
+        .m-icon {
+          font-size: 1.6rem;
+          line-height: 1;
+        }
+
+        .m-content {
+          display: flex;
+          flex-direction: column;
+
+          .m-lbl {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            font-weight: 600;
+            text-transform: uppercase;
+          }
+
+          .m-val {
+            font-size: 1.15rem;
+            font-weight: 800;
+            color: var(--text-primary);
+
+            small {
+              font-size: 0.75rem;
+              color: var(--text-muted);
+              font-weight: 600;
+            }
+          }
+
+          .m-val-sub {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--primary-purple);
+          }
+        }
+      }
+    }
+
+    .plant-params-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+
+      @media (max-width: 960px) {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .param-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .param-card-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border-subtle);
+
+      .card-icon {
+        font-size: 1.7rem;
+        line-height: 1;
+      }
+
+      h4 {
+        margin: 0 0 2px 0;
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: var(--text-primary);
+      }
+
+      .card-desc {
+        margin: 0;
+        font-size: 0.76rem;
+        color: var(--text-muted);
+      }
+    }
+
+    .param-card-body {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .param-row-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+
+      @media (max-width: 600px) {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .param-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+
+      label {
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: var(--text-secondary);
+      }
+
+      .param-input-wrap {
+        position: relative;
+        display: flex;
+        align-items: center;
+
+        input {
+          width: 100%;
+          padding: 8px 12px;
+          padding-right: 50px;
+          border-radius: var(--radius-md);
+          font-size: 0.88rem;
+          font-weight: 600;
+          color: var(--text-primary);
+        }
+
+        .param-unit {
+          position: absolute;
+          right: 12px;
+          font-size: 0.75rem;
+          font-weight: 700;
+          color: var(--primary-purple);
+          pointer-events: none;
+        }
+      }
+
+      .param-hint {
+        font-size: 0.68rem;
+        color: var(--text-muted);
+      }
+    }
+
+    .params-footer-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 16px 22px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      flex-wrap: wrap;
+
+      .footer-info {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: var(--text-secondary);
+
+        .info-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          background: #10b981;
+          box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+        }
+      }
+
+      .footer-btns {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+    }
   `]
 })
 export class AdminComponent implements OnInit {
@@ -3998,19 +5316,64 @@ export class AdminComponent implements OnInit {
   cloudSync = inject(CloudSyncService);
   crewService = inject(CrewService);
   permissionsService = inject(PermissionsService);
+  plantParamsService = inject(PlantParametersService);
 
   // Navegación por Apartados en Administrador
-  activeAdminTab: 'SUPERVISORS_CREW' | 'USERS_ROLES' | 'TERMINALS_SYNC' | 'AUDIT_LOGS' | 'PERMISSIONS_MATRIX' = 'SUPERVISORS_CREW';
+  activeAdminTab: 'SUPERVISORS_CREW' | 'USERS_ROLES' | 'TERMINALS_SYNC' | 'AUDIT_LOGS' | 'PERMISSIONS_MATRIX' | 'PLANT_PARAMETERS' = 'SUPERVISORS_CREW';
+
+  // Parámetros de Planta & Metas Operacionales
+  editablePlantParams: PlantParameters = { ...DEFAULT_PLANT_PARAMETERS };
+  isSavingPlantParams = false;
+  plantParamsSuccessMessage = '';
+  plantParamsErrorMessage = '';
 
   // Matriz de Permisos & Seguridad
   allPermissionsList = ALL_PERMISSIONS;
   selectedOverrideUserId = '';
   permissionsSaveMessage = '';
+  permFilterCategory: 'ALL' | 'OPERACIONES' | 'GESTIÓN' | 'SEGURIDAD' = 'ALL';
+  permSearchQuery = '';
+
+  get filteredPermissionsList(): PermissionDefinition[] {
+    return this.allPermissionsList.filter(p => {
+      const matchesCat = this.permFilterCategory === 'ALL' || p.category === this.permFilterCategory;
+      const q = (this.permSearchQuery || '').trim().toLowerCase();
+      const matchesQuery = !q || p.label.toLowerCase().includes(q) || p.description.toLowerCase().includes(q);
+      return matchesCat && matchesQuery;
+    });
+  }
+
+  getRolePermCount(role: 'ADMIN' | 'SUPERVISOR' | 'OPERATOR'): number {
+    if (role === 'ADMIN') return this.allPermissionsList.length;
+    const rolePerms = this.permissionsService.rolePermissionsSignal()[role] || DEFAULT_ROLE_PERMISSIONS[role] || [];
+    return rolePerms.length;
+  }
 
   isRolePermitted(role: 'ADMIN' | 'SUPERVISOR' | 'OPERATOR', key: PermissionKey): boolean {
     if (role === 'ADMIN') return true;
     const rolePerms = this.permissionsService.rolePermissionsSignal()[role] || DEFAULT_ROLE_PERMISSIONS[role] || [];
     return rolePerms.includes(key);
+  }
+
+  toggleRolePermDirect(role: 'SUPERVISOR' | 'OPERATOR', key: PermissionKey): void {
+    const current = [...(this.permissionsService.rolePermissionsSignal()[role] || DEFAULT_ROLE_PERMISSIONS[role] || [])];
+    const isCurrentlyPermitted = current.includes(key);
+    let updated: PermissionKey[];
+    if (isCurrentlyPermitted) {
+      updated = current.filter(k => k !== key);
+    } else {
+      updated = Array.from(new Set([...current, key]));
+    }
+    this.permissionsService.updateRolePermission(role, updated).subscribe();
+  }
+
+  setAllPermsForRole(role: 'SUPERVISOR' | 'OPERATOR', enable: boolean): void {
+    const allKeys = this.allPermissionsList.map(p => p.key);
+    const updated = enable ? allKeys : [];
+    this.permissionsService.updateRolePermission(role, updated).subscribe(() => {
+      this.permissionsSaveMessage = `⚡ Permisos para ${role} actualizados (${enable ? 'Todos Habilitados' : 'Todos Restringidos'}).`;
+      setTimeout(() => this.permissionsSaveMessage = '', 3500);
+    });
   }
 
   toggleRolePerm(role: 'SUPERVISOR' | 'OPERATOR', key: PermissionKey, event: Event): void {
@@ -4287,6 +5650,57 @@ export class AdminComponent implements OnInit {
     this.loadLogs();
     this.loadConnectedDevices();
     this.loadSupervisorsAndOperators();
+    this.loadPlantParameters();
+  }
+
+  loadPlantParameters(): void {
+    this.editablePlantParams = { ...this.plantParamsService.parameters() };
+    this.plantParamsService.fetchFromBackend().subscribe(params => {
+      if (params) {
+        this.editablePlantParams = { ...params };
+      }
+    });
+  }
+
+  savePlantParameters(): void {
+    this.isSavingPlantParams = true;
+    this.plantParamsSuccessMessage = '';
+    this.plantParamsErrorMessage = '';
+
+    this.plantParamsService.saveParameters(this.editablePlantParams).subscribe({
+      next: (res) => {
+        this.isSavingPlantParams = false;
+        if (res && res.data) {
+          this.editablePlantParams = { ...res.data };
+        }
+        this.plantParamsSuccessMessage = '¡Parámetros de planta y metas operacionales guardados con éxito!';
+        setTimeout(() => this.plantParamsSuccessMessage = '', 6000);
+      },
+      error: (err) => {
+        this.isSavingPlantParams = false;
+        this.plantParamsErrorMessage = err?.error?.message || err?.message || 'Error al guardar los parámetros.';
+        setTimeout(() => this.plantParamsErrorMessage = '', 6000);
+      }
+    });
+  }
+
+  resetPlantParametersToDefaults(): void {
+    if (confirm('¿Confirmas restablecer todos los parámetros de planta a los valores nominales de fábrica?')) {
+      this.isSavingPlantParams = true;
+      this.plantParamsService.resetToDefaults().subscribe({
+        next: (res) => {
+          this.isSavingPlantParams = false;
+          if (res && res.data) {
+            this.editablePlantParams = { ...res.data };
+          }
+          this.plantParamsSuccessMessage = 'Parámetros restablecidos a los valores nominales de fábrica.';
+          setTimeout(() => this.plantParamsSuccessMessage = '', 6000);
+        },
+        error: () => {
+          this.isSavingPlantParams = false;
+        }
+      });
+    }
   }
 
   loadFromStorage(): void {

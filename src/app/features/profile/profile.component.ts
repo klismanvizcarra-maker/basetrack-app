@@ -233,7 +233,7 @@ import { ThemeService } from '../../core/theme/theme.service';
               <div class="form-row">
                 <div class="form-group">
                   <label>
-                    <span>DNI / Documento de Identidad Minero *</span>
+                    <span>DNI / Documento de Identidad Minero {{ authService.currentUser()?.role === 'ADMIN' ? '(Opcional)' : '*' }}</span>
                     <span class="field-tag">Oficial</span>
                   </label>
                   <div class="input-icon-wrap">
@@ -244,10 +244,10 @@ import { ThemeService } from '../../core/theme/theme.service';
                       name="documentId"
                       placeholder="Ej. 41833717"
                       maxlength="12"
-                      required
+                      [required]="authService.currentUser()?.role !== 'ADMIN'"
                     />
                   </div>
-                  <span class="input-hint">Utilizado para tu credencial y asignación en relevos</span>
+                  <span class="input-hint">{{ authService.currentUser()?.role === 'ADMIN' ? 'Opcional para Administrador de Sistema' : 'Utilizado para tu credencial y asignación en relevos' }}</span>
                 </div>
 
                 <div class="form-group">
@@ -337,13 +337,14 @@ import { ThemeService } from '../../core/theme/theme.service';
 
             <form (ngSubmit)="changePassword()" class="profile-form">
               <div class="form-group">
-                <label>Contraseña Actual (Opcional en modo demo)</label>
+                <label>Contraseña Actual *</label>
                 <div class="password-wrap">
                   <input
                     [type]="showOldPass ? 'text' : 'password'"
                     [(ngModel)]="passwordForm.currentPassword"
                     name="currentPassword"
                     placeholder="••••••••"
+                    required
                   />
                   <button type="button" class="btn-toggle-eye" (click)="showOldPass = !showOldPass">
                     {{ showOldPass ? 'Ocultar' : 'Ver' }}
@@ -393,7 +394,7 @@ import { ThemeService } from '../../core/theme/theme.service';
                 <button
                   type="submit"
                   class="btn btn-secondary"
-                  [disabled]="isSavingPassword || !passwordForm.newPassword || passwordMismatch"
+                  [disabled]="isSavingPassword || !passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword || passwordMismatch"
                 >
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
@@ -500,15 +501,15 @@ import { ThemeService } from '../../core/theme/theme.service';
       font-weight: 600;
 
       &.alert-success {
-        background: #ecfdf5;
-        color: #065f46;
-        border: 1px solid #a7f3d0;
+        background: rgba(16, 185, 129, 0.12);
+        color: #10b981;
+        border: 1px solid rgba(16, 185, 129, 0.28);
       }
 
       &.alert-danger {
-        background: #fef2f2;
-        color: #991b1b;
-        border: 1px solid #fecaca;
+        background: rgba(239, 68, 68, 0.12);
+        color: #ef4444;
+        border: 1px solid rgba(239, 68, 68, 0.28);
       }
     }
 
@@ -963,9 +964,9 @@ import { ThemeService } from '../../core/theme/theme.service';
       .channel-chip {
         font-size: 0.74rem;
         font-weight: 700;
-        color: #031795;
-        background: #eef2ff;
-        border: 1px solid #c7d2fe;
+        color: var(--primary-purple);
+        background: var(--primary-bg-subtle);
+        border: 1px solid var(--primary-border);
         padding: 2px 8px;
         border-radius: 12px;
       }
@@ -977,10 +978,10 @@ import { ThemeService } from '../../core/theme/theme.service';
       gap: 6px;
       font-size: 0.72rem;
       font-weight: 600;
-      color: #031795;
+      color: var(--primary-purple);
       margin-top: 14px;
       padding-top: 10px;
-      border-top: 1px solid #f1f5f9;
+      border-top: 1px solid var(--border-subtle);
 
       .sync-dot {
         width: 7px;
@@ -1140,17 +1141,27 @@ export class ProfileComponent implements OnInit {
   ngOnInit(): void {
     const user = this.authService.currentUser();
     if (user) {
-      this.profileForm = {
-        fullName: user.fullName || '',
-        email: user.email || '',
-        shift: user.shift || 'G1',
-        avatarUrl: user.avatarUrl || this.presetAvatars[0].url,
-        document_id: user.document_id || '',
-        radio_channel: user.radio_channel || 'Canal 1 Operaciones',
-        phone_extension: user.phone_extension || 'Anexo 402',
-        primary_role: user.primary_role || (user.role === 'ADMIN' || user.role === 'SUPERVISOR' ? 'SUPERVISOR' : 'OPERADOR_BOMBAS')
-      };
+      this.populateForm(user);
     }
+    // Refresh asynchronously from /api/auth/me to ensure data freshness
+    this.authService.refreshCurrentUser().subscribe(fresh => {
+      if (fresh) {
+        this.populateForm(fresh);
+      }
+    });
+  }
+
+  private populateForm(user: any): void {
+    this.profileForm = {
+      fullName: user.fullName || '',
+      email: user.email || '',
+      shift: user.shift || 'G1',
+      avatarUrl: user.avatarUrl || this.presetAvatars[0].url,
+      document_id: user.document_id || '',
+      radio_channel: user.radio_channel || 'Canal 1 Operaciones',
+      phone_extension: user.phone_extension || 'Anexo 402',
+      primary_role: user.primary_role || (user.role === 'ADMIN' || user.role === 'SUPERVISOR' ? 'SUPERVISOR' : 'OPERADOR_BOMBAS')
+    };
   }
 
   formatPrimaryRole(role?: string): string {
@@ -1268,20 +1279,32 @@ export class ProfileComponent implements OnInit {
       return;
     }
 
+    const isOperational = this.authService.currentUser()?.role !== 'ADMIN';
+    if (isOperational && !this.profileForm.document_id?.trim()) {
+      this.showError('El DNI / Documento de Identidad es obligatorio para personal operativo.');
+      return;
+    }
+
     this.isSavingProfile = true;
     this.authService.updateProfile(this.profileForm).subscribe({
       next: (res) => {
         this.isSavingProfile = false;
-        this.showSuccess('¡Perfil y datos personales actualizados exitosamente!');
+        this.showSuccess('¡Perfil y ficha operacional actualizados exitosamente!');
       },
       error: (err) => {
         this.isSavingProfile = false;
-        this.showError('Error al guardar perfil. Se ha respaldado localmente.');
+        const msg = err?.error?.message || err?.message || 'Error al guardar perfil. Se ha respaldado localmente.';
+        this.showError(msg);
       }
     });
   }
 
   changePassword(): void {
+    if (!this.passwordForm.currentPassword) {
+      this.showError('Debes ingresar tu contraseña actual.');
+      return;
+    }
+
     if (this.passwordMismatch) {
       this.showError('Las contraseñas no coinciden.');
       return;
@@ -1306,9 +1329,10 @@ export class ProfileComponent implements OnInit {
           confirmPassword: ''
         };
       },
-      error: () => {
+      error: (err) => {
         this.isSavingPassword = false;
-        this.showError('No se pudo verificar la contraseña actual.');
+        const msg = err?.message || 'No se pudo verificar la contraseña actual.';
+        this.showError(msg);
       }
     });
   }

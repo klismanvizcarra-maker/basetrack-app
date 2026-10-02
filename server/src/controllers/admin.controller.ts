@@ -1389,3 +1389,103 @@ export function getMyPermissions(req: AuthenticatedRequest, res: Response) {
   }
 }
 
+const DEFAULT_PLANT_PARAMS = {
+  plant_name: 'Planta Concentradora San Rafael',
+  tonnage_target_shift: 24500,
+  nominal_feed_rate_tph: 2040,
+  shift_day_hours: '07:00 - 19:00',
+  shift_night_hours: '19:00 - 07:00',
+  cyclones_target_mesh200_of: 80.0,
+  cyclones_min_mesh200_of: 75.0,
+  cyclones_target_solids_uf: 70.0,
+  cyclones_feed_pressure_min: 12.0,
+  cyclones_feed_pressure_max: 16.0,
+  cyclones_feed_density_nominal: 1520,
+  pumps_slurry_flow_target: 1850,
+  pumps_critical_pressure_psi: 85.0,
+  sump_high_level_warning: 80.0,
+  sump_critical_level_danger: 92.0,
+  tailings_min_freeboard_meters: 2.5,
+  tailings_max_dam_level_msnm: 4450.0,
+  tailings_max_piezometer_kpa: 120.0,
+  tailings_solids_nominal_pct: 62.0
+};
+
+export function getPlantParameters(req: Request, res: Response) {
+  try {
+    const row = db.prepare('SELECT parameters_json, updated_at, updated_by FROM plant_parameters WHERE id = ?').get('current') as any;
+    if (!row) {
+      return res.json({
+        success: true,
+        data: {
+          ...DEFAULT_PLANT_PARAMS,
+          updated_at: new Date().toISOString(),
+          updated_by: 'SYSTEM'
+        }
+      });
+    }
+
+    const parsed = JSON.parse(row.parameters_json);
+    return res.json({
+      success: true,
+      data: {
+        ...DEFAULT_PLANT_PARAMS,
+        ...parsed,
+        updated_at: row.updated_at,
+        updated_by: row.updated_by
+      }
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+export function updatePlantParameters(req: AuthenticatedRequest, res: Response) {
+  try {
+    const body = req.body;
+    if (!body || typeof body !== 'object') {
+      return res.status(400).json({ success: false, message: 'Parámetros inválidos' });
+    }
+
+    const merged = {
+      ...DEFAULT_PLANT_PARAMS,
+      ...body
+    };
+
+    const username = req.user?.username || 'ADMIN';
+    const now = new Date().toISOString();
+
+    db.prepare(`
+      INSERT INTO plant_parameters (id, parameters_json, updated_at, updated_by)
+      VALUES ('current', ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET
+        parameters_json = excluded.parameters_json,
+        updated_at = excluded.updated_at,
+        updated_by = excluded.updated_by
+    `).run(JSON.stringify(merged), now, username);
+
+    logAudit(
+      req.user?.userId || 'admin',
+      username,
+      'UPDATE_PLANT_PARAMETERS',
+      'PLANT_CONFIG',
+      'current',
+      `Calibración de parámetros de planta y metas operacionales (Meta Tonelaje: ${merged.tonnage_target_shift})`,
+      req.ip || '127.0.0.1'
+    );
+
+    return res.json({
+      success: true,
+      message: 'Parámetros de planta y metas operacionales actualizados exitosamente',
+      data: {
+        ...merged,
+        updated_at: now,
+        updated_by: username
+      }
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+

@@ -717,6 +717,118 @@ test('22. POST /api/admin/reset-app: require admin password confirmation and per
   assert.strictEqual(usersJson.data[0].role, 'ADMIN');
 });
 
+test('23. POST, GET & PATCH /api/shift-handover: create, list with parsed crew/checklist, and accept', async () => {
+  // 1. Create shift handover with assigned_crew and checklist_data
+  const mockCrew = [
+    { key: 'PUMPS_OPERATOR', title: 'Operador de Bombas', operatorName: 'JUAN PEREZ', documentId: '12345678', radioChannel: 'Canal 1' }
+  ];
+  const mockChecklist = [
+    { id: 'CHK-1', title: 'Seguridad e IPERC', status: 'CONFORME', notes: 'Charla 5m OK' }
+  ];
+
+  const createRes = await fetch(`${baseUrl}/shift-handover`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${authToken}`
+    },
+    body: JSON.stringify({
+      shift_code: 'G4_DIA_TEST23',
+      date: '2026-10-02',
+      shift_type: 'DIA',
+      outgoing_supervisor: 'FERNANDEZ ASCURRA DANTE PACO',
+      outgoing_dni: '18110964',
+      outgoing_role: 'Supervisor de guardia',
+      incoming_supervisor: 'ALIAGA CASTAÑEDA EMILIO URIEL',
+      incoming_dni: '46593500',
+      incoming_role: 'Supervisor de guardia',
+      plant_status: 'Operación continua 100% estable',
+      tonnage_processed: 24500,
+      safety_incidents: 'Cero incidentes',
+      pending_tasks: 'Verificar nivel de poza sentina',
+      status: 'SUBMITTED',
+      assigned_crew: mockCrew,
+      checklist_data: mockChecklist
+    })
+  });
+  assert.strictEqual(createRes.status, 201);
+  const createJson = await createRes.json() as any;
+  assert.strictEqual(createJson.success, true);
+  const handoverId = createJson.id;
+  assert.ok(handoverId);
+
+  // 2. Fetch all and verify crew and checklist are parsed objects/arrays
+  const listRes = await fetch(`${baseUrl}/shift-handover`);
+  assert.strictEqual(listRes.status, 200);
+  const listJson = await listRes.json() as any;
+  assert.strictEqual(listJson.success, true);
+  const found = listJson.data.find((h: any) => h.id === handoverId);
+  assert.ok(found);
+  assert.strictEqual(found.shift_code, 'G4_DIA_TEST23');
+  assert.strictEqual(found.status, 'SUBMITTED');
+  assert.ok(Array.isArray(found.assigned_crew));
+  assert.strictEqual(found.assigned_crew[0].operatorName, 'JUAN PEREZ');
+  assert.ok(Array.isArray(found.checklist_data));
+  assert.strictEqual(found.checklist_data[0].status, 'CONFORME');
+
+  // 3. Accept handover
+  const acceptRes = await fetch(`${baseUrl}/shift-handover/${handoverId}/accept`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${authToken}`
+    },
+    body: JSON.stringify({
+      incoming_supervisor: 'ALIAGA CASTAÑEDA EMILIO URIEL',
+      incoming_dni: '46593500',
+      incoming_role: 'Supervisor de guardia'
+    })
+  });
+  assert.strictEqual(acceptRes.status, 200);
+  const acceptJson = await acceptRes.json() as any;
+  assert.strictEqual(acceptJson.success, true);
+});
+
+test('24. GET & PUT /api/admin/plant-parameters: fetch defaults and calibrate plant targets', async () => {
+  // 1. Fetch parameters
+  const getRes = await fetch(`${baseUrl}/admin/plant-parameters`, {
+    headers: { 'Authorization': `Bearer ${authToken}` }
+  });
+  assert.strictEqual(getRes.status, 200);
+  const getJson = await getRes.json() as any;
+  assert.strictEqual(getJson.success, true);
+  assert.ok(getJson.data);
+  assert.strictEqual(getJson.data.tonnage_target_shift, 24500);
+  assert.strictEqual(getJson.data.tailings_min_freeboard_meters, 2.5);
+
+  // 2. Calibrate parameters
+  const putRes = await fetch(`${baseUrl}/admin/plant-parameters`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${authToken}`
+    },
+    body: JSON.stringify({
+      tonnage_target_shift: 25000,
+      cyclones_target_mesh200_of: 81.5,
+      tailings_min_freeboard_meters: 2.8
+    })
+  });
+  assert.strictEqual(putRes.status, 200);
+  const putJson = await putRes.json() as any;
+  assert.strictEqual(putJson.success, true);
+  assert.strictEqual(putJson.data.tonnage_target_shift, 25000);
+  assert.strictEqual(putJson.data.cyclones_target_mesh200_of, 81.5);
+  assert.strictEqual(putJson.data.tailings_min_freeboard_meters, 2.8);
+
+  // 3. Verify persistence
+  const verifyRes = await fetch(`${baseUrl}/admin/plant-parameters`, {
+    headers: { 'Authorization': `Bearer ${authToken}` }
+  });
+  const verifyJson = await verifyRes.json() as any;
+  assert.strictEqual(verifyJson.data.tonnage_target_shift, 25000);
+});
+
 test.after(async () => {
   // Purge any test users or links created during testing and restore clean slate
   try {

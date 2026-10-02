@@ -30,6 +30,8 @@ import {
   updateUserPermissionOverrides,
   resetPermissionsMatrix,
   getMyPermissions,
+  getPlantParameters,
+  updatePlantParameters,
   resetApp
 } from '../controllers/admin.controller.js';
 import { getCrewMembers, createCrewMember, updateCrewMember, deleteCrewMember, getAreaAssignments, saveAreaAssignment, checkinAreaAssignment, getCrewPositions, createCrewPosition, deleteCrewPosition } from '../controllers/crew.controller.js';
@@ -119,6 +121,10 @@ apiRouter.put('/admin/permissions/roles', authenticateToken, requireRoles('ADMIN
 apiRouter.put('/admin/permissions/users/:userId', authenticateToken, requireRoles('ADMIN'), updateUserPermissionOverrides);
 apiRouter.post('/admin/permissions/reset', authenticateToken, requireRoles('ADMIN'), resetPermissionsMatrix);
 apiRouter.get('/auth/permissions', authenticateToken, getMyPermissions);
+
+// Parámetros de Planta & Metas Operacionales
+apiRouter.get('/admin/plant-parameters', authenticateToken, getPlantParameters);
+apiRouter.put('/admin/plant-parameters', authenticateToken, requireRoles('ADMIN', 'SUPERVISOR'), updatePlantParameters);
 
 // 10. Crew & Area Assignments Routes (Gestión de Cuadrilla y Asignación por Área)
 apiRouter.get('/crew/members', authenticateToken, getCrewMembers);

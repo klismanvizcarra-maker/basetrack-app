@@ -25,6 +25,7 @@ export function purgeAndSetSoleAdmin() {
   db.prepare('DELETE FROM audit_logs').run();
   db.prepare('DELETE FROM sync_events').run();
   db.prepare('DELETE FROM connected_devices').run();
+  db.prepare('DELETE FROM plant_parameters').run();
 
   // 2. Delete all users
   db.prepare('DELETE FROM users').run();

@@ -219,8 +219,101 @@ export class CrewService {
     }
   ];
 
-  // Official supervisors dictionary by shift - Clean Slate: Populated exclusively from Database or CSV
-  public static readonly OFFICIAL_SUPERVISOR_MAP: Record<string, CrewMember> = {};
+  // Official supervisors dictionary by shift - Oficial Anglo American / BASETRACK
+  public static readonly OFFICIAL_SUPERVISOR_MAP: Record<string, CrewMember> = {
+    G1: {
+      id: 'sup-g1',
+      name: 'GONGORA ROJAS MIGUEL ALONSO',
+      document_id: '41833717',
+      primary_role: 'SUPERVISOR',
+      shift_code: 'G1',
+      radio_channel: 'Canal 1 Operaciones / Control',
+      phone_extension: 'Ext. 4125',
+      status: 'EN_TURNO',
+      avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=GONGORA'
+    },
+    G2: {
+      id: 'sup-g2',
+      name: 'ALIAGA CASTAÑEDA EMILIO URIEL',
+      document_id: '46593500',
+      primary_role: 'SUPERVISOR',
+      shift_code: 'G2',
+      radio_channel: 'Canal 1 Operaciones / Control',
+      phone_extension: 'Ext. 4125',
+      status: 'EN_TURNO',
+      avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=ALIAGA'
+    },
+    G3: {
+      id: 'sup-g3',
+      name: 'ARI MAMANI HUGO ANDRES',
+      document_id: '40132660',
+      primary_role: 'SUPERVISOR',
+      shift_code: 'G3',
+      radio_channel: 'Canal 1 Operaciones / Control',
+      phone_extension: 'Ext. 4125',
+      status: 'EN_TURNO',
+      avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=HUGO_ARI'
+    },
+    G4: {
+      id: 'sup-g4',
+      name: 'FERNANDEZ ASCURRA DANTE PACO',
+      document_id: '18110964',
+      primary_role: 'SUPERVISOR',
+      shift_code: 'G4',
+      radio_channel: 'Canal 1 Operaciones / Control',
+      phone_extension: 'Ext. 4125',
+      status: 'EN_TURNO',
+      avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=DANTE_FERNANDEZ'
+    }
+  };
+
+  // Baseline catalog of 32 official operational operators from Anglo American / BASETRACK master CSV
+  public static readonly OFFICIAL_CREW_CATALOG: Record<string, Record<string, { name: string; dni: string; radio: string }>> = {
+    G1: {
+      SUPERVISOR: { name: 'GONGORA ROJAS MIGUEL ALONSO', dni: '41833717', radio: 'Canal 1 Operaciones / Control' },
+      BOMBAS: { name: 'LLERENA CALLE - BRACAMONTE VICTOR ALEJANDRO II', dni: '71491945', radio: 'Canal 3 Bombas' },
+      CICLONES_1: { name: 'PILCO APAZA CARLOS EDUARDO', dni: '42324277', radio: 'Canal 2 Ciclones' },
+      CICLONES_2: { name: 'VIZCARRA CORI MANLEY KLISMAN', dni: '71209033', radio: 'Canal 2 Ciclones' },
+      DISTRIBUIDOR: { name: 'CAYO GOMEZ VALERIE JAZMINE', dni: '71719330', radio: 'Canal 6 Distribuidor' },
+      DESCARGA_1: { name: 'VILCHEZ NAVARRO LENIS AUDEL', dni: '70745703', radio: 'Canal 4 Presa / Descarga' },
+      DESCARGA_2: { name: 'MIRANDA ALARCON JULIO ALBERTO', dni: '80624359', radio: 'Canal 4 Presa / Descarga' },
+      MISCELANEOS: { name: 'COLLANTES PUMA ALVARO DEMTRIO', dni: '46082271', radio: 'Canal 5 Auxiliares' },
+      SALA_CONTROL: { name: 'VIZCARRA CORI MANLEY KLISMAN', dni: '71209033', radio: 'Canal 1 Operaciones / Control' }
+    },
+    G2: {
+      SUPERVISOR: { name: 'ALIAGA CASTAÑEDA EMILIO URIEL', dni: '46593500', radio: 'Canal 1 Operaciones / Control' },
+      BOMBAS: { name: 'ARI ACERO JULIO LUIS ANDREE', dni: '46022412', radio: 'Canal 3 Bombas' },
+      CICLONES_1: { name: 'CHAMA CAHUANA DIEGO', dni: '47345426', radio: 'Canal 2 Ciclones' },
+      CICLONES_2: { name: 'COAYLA RAMOS DEYVI ALBERTH', dni: '46108897', radio: 'Canal 2 Ciclones' },
+      DISTRIBUIDOR: { name: 'LAQUI FALCON ANGELA MAYUMY', dni: '47507242', radio: 'Canal 6 Distribuidor' },
+      DESCARGA_1: { name: 'LIMA MELO JUAN VICTOR', dni: '43830918', radio: 'Canal 4 Presa / Descarga' },
+      DESCARGA_2: { name: 'MOSCOSO SANCHEZ PEDRO JESUS PAULINO', dni: '45073740', radio: 'Canal 4 Presa / Descarga' },
+      MISCELANEOS: { name: 'ROMERO GIRALDO ELVIS MIGUEL', dni: '76676074', radio: 'Canal 5 Auxiliares' },
+      SALA_CONTROL: { name: 'ARI ACERO JULIO LUIS ANDREE', dni: '46022412', radio: 'Canal 1 Operaciones / Control' }
+    },
+    G3: {
+      SUPERVISOR: { name: 'ARI MAMANI HUGO ANDRES', dni: '40132660', radio: 'Canal 1 Operaciones / Control' },
+      BOMBAS: { name: 'CHOQUE MANZANO PEDRO IVAN', dni: '75555937', radio: 'Canal 3 Bombas' },
+      CICLONES_1: { name: 'MAMANI CUTIPA ANTHONY JESUS SMIT', dni: '72297288', radio: 'Canal 2 Ciclones' },
+      CICLONES_2: { name: 'ROSADO FALCON VILMA LUCIA', dni: '45564062', radio: 'Canal 2 Ciclones' },
+      DISTRIBUIDOR: { name: 'VILCAMIZA PEVE JORGE RICARDO', dni: '41748219', radio: 'Canal 6 Distribuidor' },
+      DESCARGA_1: { name: 'PARI COAYLA JHOFER LUIS', dni: '74924255', radio: 'Canal 4 Presa / Descarga' },
+      DESCARGA_2: { name: 'CRUZ APAZA PAUL', dni: '44428468', radio: 'Canal 4 Presa / Descarga' },
+      MISCELANEOS: { name: 'MONTES RODRIGUEZ DIEGO ALEXANDER', dni: '45437279', radio: 'Canal 5 Auxiliares' },
+      SALA_CONTROL: { name: 'CHOQUE MANZANO PEDRO IVAN', dni: '75555937', radio: 'Canal 1 Operaciones / Control' }
+    },
+    G4: {
+      SUPERVISOR: { name: 'FERNANDEZ ASCURRA DANTE PACO', dni: '18110964', radio: 'Canal 1 Operaciones / Control' },
+      BOMBAS: { name: 'CABELLO RODRIGUEZ JONATHAN SERGIO', dni: '46317960', radio: 'Canal 3 Bombas' },
+      CICLONES_1: { name: 'CALIZAYA CUAYLA MADELEYN WENDY', dni: '72471346', radio: 'Canal 2 Ciclones' },
+      CICLONES_2: { name: 'HILARI CABRERA EDSON EUSEBIO', dni: '40824273', radio: 'Canal 2 Ciclones' },
+      DISTRIBUIDOR: { name: 'MAMANCHURA PAQUERA DAVID PRUDENCIO', dni: '72297311', radio: 'Canal 6 Distribuidor' },
+      DESCARGA_1: { name: 'MAMANI MARCA ALEXIS RODRIGO', dni: '70858297', radio: 'Canal 4 Presa / Descarga' },
+      DESCARGA_2: { name: 'QUISPE MEDINA FERMIN HANDERSON', dni: '43656602', radio: 'Canal 4 Presa / Descarga' },
+      MISCELANEOS: { name: 'YAÑEZ PEREZ ROBERTO CARLOS', dni: '29679222', radio: 'Canal 5 Auxiliares' },
+      SALA_CONTROL: { name: 'CABELLO RODRIGUEZ JONATHAN SERGIO', dni: '46317960', radio: 'Canal 1 Operaciones / Control' }
+    }
+  };
 
   // Default staff catalog: Empty. All operational data is populated strictly from CSV / Database
   public readonly defaultMembers: CrewMember[] = [];
@@ -944,6 +1037,23 @@ export class CrewService {
         const officialSup = CrewService.OFFICIAL_SUPERVISOR_MAP[normShift];
         if (officialSup) return officialSup;
       }
+
+      const guardStaffRef = CrewService.OFFICIAL_CREW_CATALOG[normShift];
+      if (guardStaffRef && guardStaffRef[role]) {
+        const ref = guardStaffRef[role];
+        return {
+          id: `ref-${normShift}-${role}`,
+          name: ref.name,
+          document_id: ref.dni,
+          primary_role: role,
+          shift_code: normShift,
+          radio_channel: ref.radio,
+          phone_extension: '',
+          status: 'EN_TURNO',
+          avatar_url: `https://api.dicebear.com/7.x/bottts/svg?seed=${ref.name}`
+        };
+      }
+
       return {
         id: '',
         name: '--- Vacante ---',
