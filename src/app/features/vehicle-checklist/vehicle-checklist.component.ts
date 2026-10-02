@@ -236,6 +236,8 @@ export class VehicleChecklistComponent implements OnInit {
   }
 
   submitChecklist(): void {
+    if (this.isSubmitting) return;
+
     if (!this.formDriverName) {
       const u = this.authService.currentUser();
       const isAdmin = u?.role === 'ADMIN' || (u?.username || '').toLowerCase() === 'marckv';

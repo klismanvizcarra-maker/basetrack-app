@@ -262,16 +262,24 @@ export class VehicleChecklistService {
             created_at: item.created_at
           }));
 
-          // Merge remote + local cached + initialSamples without losing any records
-          const map = new Map<string, VehicleChecklist>();
-          for (const r of remoteMapped) map.set(r.id, r);
-          for (const c of cached) {
-            if (!map.has(c.id)) map.set(c.id, c);
+          // Deduplicate remote + local cached + initialSamples by both ID and logical uniqueness (plate, date, time, odometer, dni)
+          const seenIds = new Set<string>();
+          const seenLogical = new Set<string>();
+          const deduplicated: VehicleChecklist[] = [];
+
+          for (const item of [...remoteMapped, ...cached, ...initialSamples]) {
+            if (!item || !item.id) continue;
+            if (seenIds.has(item.id)) continue;
+
+            const logicalKey = `${item.vehicle_plate}_${item.date}_${item.time}_${item.odometer}_${item.driver_dni}`;
+            if (seenLogical.has(logicalKey)) continue;
+
+            seenIds.add(item.id);
+            seenLogical.add(logicalKey);
+            deduplicated.push(item);
           }
-          for (const s of initialSamples) {
-            if (!map.has(s.id)) map.set(s.id, s);
-          }
-          const merged = Array.from(map.values()).sort((a, b) => (b.date + ' ' + b.time).localeCompare(a.date + ' ' + a.time));
+
+          const merged = deduplicated.sort((a, b) => (b.date + ' ' + b.time).localeCompare(a.date + ' ' + a.time));
 
           if (this.selectedPlateSignal() === plate) {
             this.checklistsSignal.set(merged);
@@ -302,8 +310,14 @@ export class VehicleChecklistService {
       currentList = [...initialSamples];
     }
 
-    // Prepend new checklist and deduplicate
-    const updatedList = [completeChecklist, ...currentList.filter(item => item.id !== newId)];
+    // Prepend new checklist and deduplicate by logical key and id
+    const logicalKeyNew = `${completeChecklist.vehicle_plate}_${completeChecklist.date}_${completeChecklist.time}_${completeChecklist.odometer}_${completeChecklist.driver_dni}`;
+    const filtered = currentList.filter(item => {
+      if (item.id === newId) return false;
+      const k = `${item.vehicle_plate}_${item.date}_${item.time}_${item.odometer}_${item.driver_dni}`;
+      return k !== logicalKeyNew;
+    });
+    const updatedList = [completeChecklist, ...filtered];
     saveRealtimeData(`basetrack_checklists_${targetPlate}`, updatedList);
 
     // If currently selected plate matches, update signal immediately
@@ -330,11 +344,9 @@ export class VehicleChecklistService {
     this.vehiclesSignal.set(updatedVehicles);
     saveRealtimeData('basetrack_vehicles_summary', updatedVehicles);
 
-    // Queue for sync and broadcast across tabs/devices
-    this.cloudSync.broadcastChange('vehicle_checklists', 'CREATE', completeChecklist, `basetrack_checklists_${targetPlate}`);
-
-    // Send to central Render Cloud backend
+    // Send to central Render Cloud backend with client id
     const payload = {
+      id: newId,
       vehicle_plate: checklist.vehicle_plate,
       date: checklist.date,
       time: checklist.time,
@@ -354,8 +366,18 @@ export class VehicleChecklistService {
     return new Observable(observer => {
       this.http.post<{ success: boolean; id: string }>(`${this.apiUrl}/checklists`, payload).subscribe({
         next: (res) => {
+          const finalId = res?.id || newId;
+          // Actualizar id en storage local si el servidor confirmó otro id
+          if (finalId !== newId) {
+            const list = getRealtimeData<VehicleChecklist[]>(`basetrack_checklists_${targetPlate}`, []);
+            const updated = list.map(item => item.id === newId ? { ...item, id: finalId } : item);
+            saveRealtimeData(`basetrack_checklists_${targetPlate}`, updated);
+            if (this.selectedPlateSignal() === targetPlate) {
+              this.checklistsSignal.set(updated);
+            }
+          }
           this.refreshVehicles();
-          observer.next({ success: true, id: res?.id || newId });
+          observer.next({ success: true, id: finalId });
           observer.complete();
         },
         error: (err) => {

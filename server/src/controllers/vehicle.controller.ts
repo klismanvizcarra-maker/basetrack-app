@@ -71,16 +71,23 @@ export function getVehicleChecklists(req: Request, res: Response) {
 
     const rows = db.prepare(query).all(...params) as any[];
 
-    // Parse items_json
-    const parsed = rows.map(r => ({
-      ...r,
-      items: typeof r.items_json === 'string' ? JSON.parse(r.items_json) : r.items_json
-    }));
+    // Parse items_json & deduplicate by logical key (plate, date, time, odometer, dni)
+    const seen = new Set<string>();
+    const deduplicated: any[] = [];
+    for (const r of rows) {
+      const key = `${r.vehicle_plate}_${r.date}_${r.time}_${r.odometer}_${r.driver_dni}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      deduplicated.push({
+        ...r,
+        items: typeof r.items_json === 'string' ? JSON.parse(r.items_json) : r.items_json
+      });
+    }
 
     return res.json({
       success: true,
-      count: parsed.length,
-      data: parsed
+      count: deduplicated.length,
+      data: deduplicated
     });
   } catch (error: any) {
     return res.status(500).json({ success: false, message: error.message });
@@ -142,7 +149,25 @@ export function createVehicleChecklist(req: AuthenticatedRequest, res: Response)
       });
     }
 
-    const id = crypto.randomUUID();
+    const requestedId = (req.body.id && typeof req.body.id === 'string' && req.body.id.trim()) 
+      ? req.body.id.trim() 
+      : null;
+
+    // Idempotency & anti-duplicate guard: detect if identical checklist was already registered
+    const existing = db.prepare(`
+      SELECT id FROM vehicle_checklists 
+      WHERE (id = ?) OR (vehicle_plate = ? AND date = ? AND time = ? AND driver_dni = ? AND odometer = ?)
+    `).get(requestedId || '', plate, checkDate, checkTime, driver_dni, odoNum) as any;
+
+    if (existing) {
+      return res.status(200).json({
+        success: true,
+        message: `Checklist pre-uso para camioneta ${plate} ya registrado previamente`,
+        id: existing.id
+      });
+    }
+
+    const id = requestedId || crypto.randomUUID();
     const itemsJson = typeof items === 'string' ? items : JSON.stringify(items || []);
 
     if (itemsJson.length > 200000) {
