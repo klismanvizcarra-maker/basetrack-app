@@ -60,11 +60,19 @@
   ],
   "rewrites": [
     {
+      "source": "/api/(.*)",
+      "destination": "https://basetrack-app.onrender.com/api/$1"
+    },
+    {
+      "source": "/api",
+      "destination": "https://basetrack-app.onrender.com/api"
+    },
+    {
       "source": "/api/:match*",
       "destination": "https://basetrack-app.onrender.com/api/:match*"
     },
     {
-      "source": "/((?!sw\\.js|manifest\\.webmanifest|icons/|images/|favicon\\.ico).*)*",
+      "source": "/((?!api/|api$|sw\\.js|manifest\\.webmanifest|icons/|images/|favicon\\.ico).*)*",
       "destination": "/index.html"
     }
   ]
