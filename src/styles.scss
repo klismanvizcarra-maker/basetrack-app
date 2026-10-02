@@ -213,6 +213,41 @@ input, select, textarea {
   overscroll-behavior-x: contain;
 }
 
+@media (max-width: 768px) {
+  .table-responsive,
+  .items-table-wrapper,
+  .pumps-table-wrapper,
+  .cyclones-table-wrapper,
+  .tailings-table-wrapper {
+    position: relative;
+    box-shadow: inset -8px 0 10px -6px rgba(15, 23, 42, 0.12);
+  }
+}
+
+/* iOS Smooth Momentum Scrolling on Scrollable Containers */
+.page-body,
+.modal-body,
+.sidebar-content,
+.table-responsive,
+.overflow-y-auto,
+.overflow-x-auto {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Safe area padding on mobile header and root containers */
+@supports (padding: env(safe-area-inset-top)) {
+  .app-header {
+    padding-top: max(8px, env(safe-area-inset-top));
+    padding-left: max(12px, env(safe-area-inset-left));
+    padding-right: max(12px, env(safe-area-inset-right));
+  }
+  .mobile-bottom-bar {
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
+    padding-left: max(6px, env(safe-area-inset-left));
+    padding-right: max(6px, env(safe-area-inset-right));
+  }
+}
+
 /* Custom Clean Scrollbar */
 ::-webkit-scrollbar {
   width: 7px;
