@@ -176,7 +176,7 @@ export function createVehicle(req: AuthenticatedRequest, res: Response) {
  */
 export function updateVehicle(req: AuthenticatedRequest, res: Response) {
   try {
-    const idOrPlate = req.params.id;
+    const idOrPlate = String(req.params.id);
     const existing = db.prepare('SELECT * FROM vehicles WHERE id = ? OR plate = ?').get(idOrPlate, idOrPlate) as any;
 
     if (!existing) {
@@ -262,7 +262,7 @@ export function updateVehicle(req: AuthenticatedRequest, res: Response) {
  */
 export function toggleVehicleStatus(req: AuthenticatedRequest, res: Response) {
   try {
-    const idOrPlate = req.params.id;
+    const idOrPlate = String(req.params.id);
     const existing = db.prepare('SELECT * FROM vehicles WHERE id = ? OR plate = ?').get(idOrPlate, idOrPlate) as any;
 
     if (!existing) {
@@ -310,7 +310,7 @@ export function toggleVehicleStatus(req: AuthenticatedRequest, res: Response) {
  */
 export function deleteVehicle(req: AuthenticatedRequest, res: Response) {
   try {
-    const idOrPlate = req.params.id;
+    const idOrPlate = String(req.params.id);
     const existing = db.prepare('SELECT * FROM vehicles WHERE id = ? OR plate = ?').get(idOrPlate, idOrPlate) as any;
 
     if (!existing) {
