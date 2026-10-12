@@ -16,6 +16,7 @@ RUN npm ci || npm install
 # Copiar código fuente y compilar bundle de producción
 COPY angular.json tsconfig.json tsconfig.app.json ./
 COPY public/ ./public/
+COPY scripts/ ./scripts/
 COPY src/ ./src/
 RUN npm run build
 

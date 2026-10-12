@@ -14,7 +14,7 @@ export interface SyncEventPayload {
 
 export type SyncState = 'ONLINE' | 'SYNCING' | 'OFFLINE' | 'LOCAL';
 
-import { getApiBaseUrl } from '../constants/api.config';
+import { getApiBaseUrl, DEFAULT_CLOUD_BACKEND_URL } from '../constants/api.config';
 
 @Injectable({
   providedIn: 'root'
@@ -439,9 +439,14 @@ export class CloudSyncService {
 
   /**
    * Resolves the WebSocket endpoint URL dynamically according to environment (LAN, Localhost, or Cloud TLS)
+   * Note: On Vercel (serverless/CDN without persistent WebSocket proxy support),
+   * this connects directly to the persistent backend server (Render/Cloud) instead of Vercel origin.
    */
   public getWsUrl(): string {
-    const apiUrl = getApiBaseUrl();
+    let apiUrl = getApiBaseUrl();
+    if (typeof window !== 'undefined' && window.location?.hostname?.includes('vercel.app')) {
+      apiUrl = DEFAULT_CLOUD_BACKEND_URL;
+    }
     const wsProtocol = apiUrl.startsWith('https') ? 'wss:' : 'ws:';
     const base = apiUrl.replace(/^https?:/, '').replace(/\/api\/?$/, '');
     return `${wsProtocol}${base}/ws`;
