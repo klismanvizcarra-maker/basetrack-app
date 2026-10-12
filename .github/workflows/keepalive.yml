@@ -1,0 +1,24 @@
+name: Render Backend Keep-Alive
+# Render free tier goes to sleep after 15 minutes of inactivity (causing 25-50s cold boot latency).
+# This workflow sends a lightweight ping to the health endpoint every 14 minutes so the backend stays perpetually warm.
+
+on:
+  schedule:
+    # Runs every 14 minutes
+    - cron: '*/14 * * * *'
+  workflow_dispatch: # Allows manual trigger from GitHub Actions tab
+
+jobs:
+  keepalive:
+    name: Ping Render Backend Health Endpoint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping BASETRACK Render Backend
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 https://basetrack-app.onrender.com/api/health || echo "000")
+          echo "Render Backend Health Ping HTTP Status: $STATUS"
+          if [ "$STATUS" -ge 200 ] && [ "$STATUS" -lt 400 ]; then
+            echo "Render backend is warm and active."
+          else
+            echo "Warning: Response code $STATUS (may be currently waking up)."
+          fi
