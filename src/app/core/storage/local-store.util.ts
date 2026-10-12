@@ -4,6 +4,26 @@
  * Works seamlessly in offline mode and on cloud static deployments like Vercel.
  */
 
+/**
+ * Claves propias de esta terminal (sesión e identidad del dispositivo).
+ * Nunca se replican por CloudSync ni se aceptan desde eventos remotos:
+ * replicar el token haría que todas las terminales heredaran la sesión de quien inició sesión.
+ */
+const DEVICE_LOCAL_KEYS = new Set([
+  'basetrack_token',
+  'basetrack_auth_token',
+  'basetrack_user',
+  'basetrack_device_id',
+  'basetrack_device_name',
+  'basetrack_api_url'
+]);
+
+export function isDeviceLocalKey(key: string | undefined | null): boolean {
+  if (!key) return false;
+  const storageKey = key.startsWith('basetrack_') ? key : `basetrack_${key}`;
+  return DEVICE_LOCAL_KEYS.has(storageKey) || storageKey.startsWith('basetrack_sync_');
+}
+
 export function saveRealtimeData(key: string, data: any, options?: { skipBroadcast?: boolean }): void {
   if (typeof window === 'undefined' || typeof localStorage === 'undefined') return;
 

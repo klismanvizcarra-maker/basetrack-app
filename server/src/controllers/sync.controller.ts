@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { db } from '../database/db.js';
-import { broadcastWsEvent, getConnectedWsClientsCount } from '../websocket/ws.js';
+import { broadcastWsEvent, getConnectedWsClientsCount, isReservedSyncAction } from '../websocket/ws.js';
+import type { AuthenticatedRequest } from '../middlewares/auth.middleware.js';
 
 export interface SyncEventItem {
   entity: string;
@@ -46,12 +47,10 @@ export function upsertConnectedDevice(req: Request, deviceId?: string, userId?: 
   }
 }
 
-export async function pushEvents(req: Request, res: Response) {
+export async function pushEvents(req: AuthenticatedRequest, res: Response) {
   try {
-    const { deviceId, userId, events, username, deviceName } = req.body as {
+    const { deviceId, events, deviceName } = req.body as {
       deviceId: string;
-      userId?: string;
-      username?: string;
       deviceName?: string;
       events: SyncEventItem[];
     };
@@ -71,9 +70,18 @@ export async function pushEvents(req: Request, res: Response) {
     }
 
     const safeDeviceId = String(deviceId).slice(0, 100);
-    const safeUserId = userId ? String(userId).slice(0, 100) : undefined;
-    const safeUsername = username ? String(username).slice(0, 100) : undefined;
+    // La identidad del emisor se toma del JWT verificado, nunca del cuerpo de la petición
+    const safeUserId = req.user?.userId;
+    const safeUsername = req.user?.username;
     const safeDeviceName = deviceName ? String(deviceName).slice(0, 150) : undefined;
+
+    // Acciones de sistema (cierre de sesión remoto, recarga global) solo las emite el servidor o un ADMIN
+    if (req.user?.role !== 'ADMIN' && events.some(ev => isReservedSyncAction(ev?.action))) {
+      return res.status(403).json({
+        success: false,
+        message: 'Acción de sincronización reservada para el Administrador'
+      });
+    }
 
     upsertConnectedDevice(req, safeDeviceId, safeUserId, safeUsername, safeDeviceName);
 
@@ -151,15 +159,14 @@ export async function pushEvents(req: Request, res: Response) {
   }
 }
 
-export async function pullEvents(req: Request, res: Response) {
+export async function pullEvents(req: AuthenticatedRequest, res: Response) {
   try {
     const sinceId = Number(req.query['sinceId']) || 0;
     const deviceId = (req.query['deviceId'] as string) || '';
-    const username = (req.query['username'] as string) || '';
     const deviceName = (req.query['deviceName'] as string) || '';
 
     if (deviceId) {
-      upsertConnectedDevice(req, deviceId, undefined, username, deviceName);
+      upsertConnectedDevice(req, deviceId, req.user?.userId, req.user?.username, deviceName);
     }
 
     let query = `

@@ -1,7 +1,7 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of, catchError, map, timeout } from 'rxjs';
-import { getRealtimeData, saveRealtimeData } from '../storage/local-store.util';
+import { getRealtimeData, saveRealtimeData, isDeviceLocalKey } from '../storage/local-store.util';
 
 export interface SyncEventPayload {
   entity: string;
@@ -84,7 +84,12 @@ export class CloudSyncService {
       // Listen to local changes to automatically broadcast across tabs/cloud
       window.addEventListener('basetrack_local_change', (e: any) => {
         const detail = e.detail;
-        if (detail && detail.key && !detail.key.includes('sync_') && !detail.skipBroadcast) {
+        // Un nuevo inicio de sesión re-registra el socket con el token vigente (nunca se replica el token)
+        if (detail?.key === 'basetrack_token' && detail.data) {
+          this.registerWithServer();
+          this.forceSync();
+        }
+        if (detail && detail.key && !isDeviceLocalKey(detail.key) && !detail.skipBroadcast) {
           const entity = detail.key.replace('basetrack_', '');
           this.broadcastChange(entity, 'SET', detail.data, detail.key);
         }
@@ -199,6 +204,8 @@ export class CloudSyncService {
    */
   public flushQueue(): void {
     if (this.isProcessingQueue) return;
+    // Sin sesión el backend rechaza el push (401); la cola se conserva hasta el próximo login
+    if (!this.getSessionToken()) return;
     let queue = getRealtimeData<SyncEventPayload[]>('sync_queue', []);
     if (!Array.isArray(queue) || queue.length === 0) return;
 
@@ -261,9 +268,8 @@ export class CloudSyncService {
    * Pull new updates published by other devices
    */
   public pullRemoteUpdates(): Observable<any> {
-    const user = getRealtimeData<any>('user', null);
-    const username = user?.username || '';
-    const url = `${this.apiUrl}/pull?sinceId=${this.lastServerId}&deviceId=${this.deviceId}&deviceName=${encodeURIComponent(this.deviceName)}&username=${encodeURIComponent(username)}`;
+    if (!this.getSessionToken()) return of(null);
+    const url = `${this.apiUrl}/pull?sinceId=${this.lastServerId}&deviceId=${this.deviceId}&deviceName=${encodeURIComponent(this.deviceName)}`;
 
     return this.http.get<any>(url).pipe(
       timeout(4500),
@@ -352,6 +358,9 @@ export class CloudSyncService {
       const storageKey = payload?.key || ev.key;
       const eventData = payload?.data !== undefined ? payload.data : (payload !== undefined ? payload : ev.data);
 
+      // Ignorar intentos remotos de escribir sesión/identidad de esta terminal
+      if (isDeviceLocalKey(storageKey)) return;
+
       if (storageKey && eventData !== undefined) {
         const isMaint = storageKey.includes('maintenance') || (entity && entity.toLowerCase().includes('maintenance'));
         if (isMaint) {
@@ -400,6 +409,7 @@ export class CloudSyncService {
       this.lastSyncTime.set(new Date());
 
       // If a storage key was updated by another tab, persist locally
+      if (isDeviceLocalKey(key)) return;
       if (key && data !== undefined) {
         const isMaint = key.includes('maintenance') || (entity && entity.toLowerCase().includes('maintenance'));
         if (isMaint) {
@@ -518,14 +528,19 @@ export class CloudSyncService {
 
   public registerWithServer(): void {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
-    const user = getRealtimeData<any>('user', null);
+    const token = this.getSessionToken();
+    // El servidor identifica al usuario solo a partir del JWT; sin sesión no se registra
+    if (!token) return;
     this.ws.send(JSON.stringify({
       type: 'REGISTER',
       deviceId: this.deviceId,
       deviceName: this.deviceName,
-      username: user?.username || null,
-      userId: user?.id || null
+      token
     }));
+  }
+
+  private getSessionToken(): string | null {
+    return getRealtimeData<string | null>('token', null);
   }
 
   private startWsHeartbeat(): void {

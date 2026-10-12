@@ -46,13 +46,9 @@ export function requireRoles(...allowedRoles: Array<'ADMIN' | 'SUPERVISOR' | 'OP
       return res.status(401).json({ success: false, message: 'No autenticado' });
     }
 
-    // Super Admin Marckv / admin has unconditional access
-    const isSuperAdmin =
-      req.user.role === 'ADMIN' ||
-      req.user.username?.toLowerCase() === 'marckv' ||
-      req.user.username?.toLowerCase() === 'admin';
-
-    if (isSuperAdmin) {
+    // ADMIN tiene acceso incondicional. La autorización se basa solo en el rol firmado en el JWT,
+    // nunca en el nombre de usuario (un usuario llamado 'admin' con rol OPERATOR no debe escalar).
+    if (req.user.role === 'ADMIN') {
       return next();
     }
 
@@ -73,13 +69,9 @@ export function requirePermission(permission: PermissionKey) {
       return res.status(401).json({ success: false, message: 'No autenticado' });
     }
 
-    // Super Admin Marckv / admin has unconditional access
-    const isSuperAdmin =
-      req.user.role === 'ADMIN' ||
-      req.user.username?.toLowerCase() === 'marckv' ||
-      req.user.username?.toLowerCase() === 'admin';
-
-    if (isSuperAdmin) {
+    // ADMIN tiene acceso incondicional. La autorización se basa solo en el rol firmado en el JWT,
+    // nunca en el nombre de usuario (un usuario llamado 'admin' con rol OPERATOR no debe escalar).
+    if (req.user.role === 'ADMIN') {
       return next();
     }
 

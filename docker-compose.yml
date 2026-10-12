@@ -14,7 +14,8 @@ services:
       - PORT=3001
       - DB_PATH=/app/data/basetrack.db
       - CLIENT_DIST_PATH=/app/public
-      - JWT_SECRET=${JWT_SECRET:-basetrack_industrial_secret_key_2026_minera}
+      - JWT_SECRET=${JWT_SECRET:?Defina JWT_SECRET en el archivo .env (ver .env.example)}
+      - CORS_ORIGINS=${CORS_ORIGINS:-}
       - TZ=America/Lima
     volumes:
       # Persistencia de la base de datos SQLite y respaldos en el host

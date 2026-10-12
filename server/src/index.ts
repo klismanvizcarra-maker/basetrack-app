@@ -19,10 +19,22 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// CORS setup to allow Angular frontend, mobile PWAs and local network devices
+// CORS setup to allow Angular frontend, mobile PWAs and local network devices.
+// La API se autentica con Bearer token (no cookies), por lo que no se habilitan credenciales CORS.
+// Opcionalmente, CORS_ORIGINS (lista separada por comas) restringe los orígenes permitidos.
+const allowedOrigins = (process.env.CORS_ORIGINS || '')
+  .split(',')
+  .map(o => o.trim().replace(/\/+$/, ''))
+  .filter(Boolean);
+
 app.use(cors({
-  origin: true,
-  credentials: true,
+  origin: allowedOrigins.length === 0
+    ? true
+    : (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+        return callback(null, false);
+      },
+  credentials: false,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
 }));
