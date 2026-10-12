@@ -30,4 +30,4 @@ yarn-debug.log*
 Thumbs.db
 .idea/
 .vscode/
-.github/
+# .github/ se versiona: contiene el pipeline de CI

@@ -8,6 +8,7 @@ import { db, initDatabase } from '../src/database/db.js';
 import { seed } from '../src/database/seed.js';
 import { purgeAndSetSoleAdmin } from '../src/database/purge.js';
 import { errorHandler } from '../src/middlewares/error.middleware.js';
+import { generateToken } from '../src/config/jwt.js';
 
 import { WebSocket } from 'ws';
 import { initWebSocketServer, closeWebSocketServer } from '../src/websocket/ws.js';
@@ -23,6 +24,8 @@ let server: http.Server;
 let baseUrl: string;
 let wsUrl: string;
 let authToken: string;
+
+const authHeaders = () => ({ 'Authorization': `Bearer ${authToken}` });
 
 test.before(async () => {
   server = http.createServer(app);
@@ -71,7 +74,7 @@ test('3. GET /api/auth/me should return current user with valid token', async ()
 });
 
 test('4. GET /api/dashboard/metrics should return aggregated CRAVEAT-style KPIs', async () => {
-  const res = await fetch(`${baseUrl}/dashboard/metrics`);
+  const res = await fetch(`${baseUrl}/dashboard/metrics`, { headers: authHeaders() });
   assert.strictEqual(res.status, 200);
   const data = await res.json() as any;
   assert.strictEqual(data.success, true);
@@ -82,7 +85,7 @@ test('4. GET /api/dashboard/metrics should return aggregated CRAVEAT-style KPIs'
 });
 
 test('5. GET /api/pumps and PATCH /api/pumps/:id/status', async () => {
-  let listRes = await fetch(`${baseUrl}/pumps`);
+  let listRes = await fetch(`${baseUrl}/pumps`, { headers: authHeaders() });
   assert.strictEqual(listRes.status, 200);
   let listData = await listRes.json() as any;
   if (listData.count === 0) {
@@ -102,7 +105,7 @@ test('5. GET /api/pumps and PATCH /api/pumps/:id/status', async () => {
       })
     });
     assert.strictEqual(createRes.status, 201);
-    listRes = await fetch(`${baseUrl}/pumps`);
+    listRes = await fetch(`${baseUrl}/pumps`, { headers: authHeaders() });
     listData = await listRes.json() as any;
   }
   assert.ok(listData.count > 0);
@@ -141,7 +144,7 @@ test('6. POST /api/maintenance should create ticket with photo', async () => {
 });
 
 test('7. GET /api/cyclones/station-samples should return 2da Estación Ciclones samples and accurate averages', async () => {
-  const res = await fetch(`${baseUrl}/cyclones/station-samples?station=2DA%20ESTACI%C3%93N%20CICLONES`);
+  const res = await fetch(`${baseUrl}/cyclones/station-samples?station=2DA%20ESTACI%C3%93N%20CICLONES`, { headers: authHeaders() });
   assert.strictEqual(res.status, 200);
   const json = await res.json() as any;
   assert.strictEqual(json.success, true);
@@ -185,7 +188,7 @@ test('8. POST & DELETE /api/cyclones/station-samples should register and delete 
 });
 
 test('9. GET & POST /api/pumps/operational-sheet should fetch and save operational report', async () => {
-  const getRes = await fetch(`${baseUrl}/pumps/operational-sheet?date=2026-08-27&shift=G1`);
+  const getRes = await fetch(`${baseUrl}/pumps/operational-sheet?date=2026-08-27&shift=G1`, { headers: authHeaders() });
   assert.strictEqual(getRes.status, 200);
   const getJson = await getRes.json() as any;
   assert.strictEqual(getJson.success, true);
@@ -310,11 +313,10 @@ test('12. GET /api/admin/devices and POST /api/admin/devices/:id/revoke should l
   // Push an event from a test device to register it
   await fetch(`${baseUrl}/sync/push`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify({
       deviceId: 'test_tablet_plant_01',
       deviceName: 'Tablet Zona Bombas',
-      username: 'KlismanV',
       events: [{ entity: 'PUMPS', action: 'PING', payload: {}, timestamp: Date.now() }]
     })
   });
@@ -418,7 +420,7 @@ test('15. Security: changePassword must strictly require valid currentPassword',
 });
 
 test('16. GET /api/vehicles/summary should return exactly the 4 official mining trucks', async () => {
-  const res = await fetch(`${baseUrl}/vehicles/summary`);
+  const res = await fetch(`${baseUrl}/vehicles/summary`, { headers: authHeaders() });
   assert.strictEqual(res.status, 200);
   const json = await res.json() as any;
   assert.strictEqual(json.success, true);
@@ -479,7 +481,7 @@ test('17. POST & GET /api/vehicles/checklists: create checklist, reject unauthor
   assert.ok(createJson.id);
 
   // 3. Query history filtered by plate BMC715
-  const historyRes = await fetch(`${baseUrl}/vehicles/checklists?plate=BMC715`);
+  const historyRes = await fetch(`${baseUrl}/vehicles/checklists?plate=BMC715`, { headers: authHeaders() });
   assert.strictEqual(historyRes.status, 200);
   const historyJson = await historyRes.json() as any;
   assert.ok(historyJson.count >= 1);
@@ -759,7 +761,7 @@ test('23. POST, GET & PATCH /api/shift-handover: create, list with parsed crew/c
   assert.ok(handoverId);
 
   // 2. Fetch all and verify crew and checklist are parsed objects/arrays
-  const listRes = await fetch(`${baseUrl}/shift-handover`);
+  const listRes = await fetch(`${baseUrl}/shift-handover`, { headers: authHeaders() });
   assert.strictEqual(listRes.status, 200);
   const listJson = await listRes.json() as any;
   assert.strictEqual(listJson.success, true);
@@ -853,7 +855,7 @@ test('25. WebSocket: Connect, Register device, and Broadcast Realtime Events in 
     type: 'REGISTER',
     deviceId: 'test_ws_device_tablet',
     deviceName: 'Tablet Terreno Concentradora',
-    username: 'Marckv'
+    token: authToken
   }));
 
   const regA = await new Promise<any>((resolve, reject) => {
@@ -880,12 +882,24 @@ test('25. WebSocket: Connect, Register device, and Broadcast Realtime Events in 
       resolve();
     });
   });
+  const regBPromise = new Promise<void>((resolve, reject) => {
+    const timeout = setTimeout(() => reject(new Error('Timeout esperando REGISTERED en Client B')), 2000);
+    clientB.on('message', (data) => {
+      try {
+        if (JSON.parse(data.toString()).type === 'REGISTERED') {
+          clearTimeout(timeout);
+          resolve();
+        }
+      } catch {}
+    });
+  });
   clientB.send(JSON.stringify({
     type: 'REGISTER',
     deviceId: 'test_ws_device_scada',
     deviceName: 'PC Sala de Control',
-    username: 'ControlRoom'
+    token: authToken
   }));
+  await regBPromise;
 
   // 4. Client B listens for incoming real-time broadcast
   const receivedOnBPromise = new Promise<any>((resolve, reject) => {
@@ -1018,7 +1032,7 @@ test('26. Closed Operational Loop: Pumps Falla auto-creates OT, locks pump, and 
   assert.strictEqual(attendJson.data.targetPumpStatus, 'Mantenimiento');
 
   // Verify sheet now reflects 'Mantenimiento'
-  const sheetAfterAttendRes = await fetch(`${baseUrl}/pumps/operational-sheet?date=${testDate}&shift=${testShift}`);
+  const sheetAfterAttendRes = await fetch(`${baseUrl}/pumps/operational-sheet?date=${testDate}&shift=${testShift}`, { headers: authHeaders() });
   const sheetAfterAttendJson = await sheetAfterAttendRes.json() as any;
   const pumpInMaint = sheetAfterAttendJson.data.intermedia_pumps.find((p: any) => p.tag === 'PU012');
   assert.strictEqual(pumpInMaint.status, 'Mantenimiento', 'Pump must transition to Mantenimiento');
@@ -1043,7 +1057,7 @@ test('26. Closed Operational Loop: Pumps Falla auto-creates OT, locks pump, and 
   assert.strictEqual(passJson.data.operational_pass_by, 'Supervisor Mantenimiento Manuel');
 
   // Verify sheet now reflects 'Operativo'
-  const finalSheetRes = await fetch(`${baseUrl}/pumps/operational-sheet?date=${testDate}&shift=${testShift}`);
+  const finalSheetRes = await fetch(`${baseUrl}/pumps/operational-sheet?date=${testDate}&shift=${testShift}`, { headers: authHeaders() });
   const finalSheetJson = await finalSheetRes.json() as any;
   const restoredPump = finalSheetJson.data.intermedia_pumps.find((p: any) => p.tag === 'PU012');
   assert.strictEqual(restoredPump.status, 'Operativo', 'Pump must be restored to Operativo following maintenance pass');
@@ -1074,7 +1088,7 @@ test('27. Dynamic Mining Truck Fleet: Create truck, update plate/data, create ch
   const truckId = createTruckJson.data.id;
 
   // 2. Summary should now include 5 active trucks
-  const summaryRes = await fetch(`${baseUrl}/vehicles/summary`);
+  const summaryRes = await fetch(`${baseUrl}/vehicles/summary`, { headers: authHeaders() });
   const summaryJson = await summaryRes.json() as any;
   assert.strictEqual(summaryJson.success, true);
   assert.strictEqual(summaryJson.data.length, 5);
@@ -1192,6 +1206,89 @@ test('28. POST /api/admin/broadcast-update should broadcast real-time update sig
   const updateJson = await updateRes.json() as any;
   assert.strictEqual(updateJson.success, true);
   assert.strictEqual(updateJson.version, '1.1.0');
+});
+
+test('29. Security: data reads and cloud sync reject anonymous requests (401)', async () => {
+  const protectedReads = [
+    '/dashboard/metrics', '/pumps', '/pumps/operational-sheet', '/cyclones', '/cyclones/station-samples',
+    '/tailings', '/shift-handover', '/maintenance', '/vehicles/summary', '/vehicles/checklists', '/sync/pull'
+  ];
+  for (const path of protectedReads) {
+    const res = await fetch(`${baseUrl}${path}`);
+    assert.strictEqual(res.status, 401, `GET ${path} debe exigir token`);
+  }
+
+  const pushRes = await fetch(`${baseUrl}/sync/push`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      deviceId: 'anon_device',
+      events: [{ entity: 'AUTH', action: 'FORCE_LOGOUT', payload: { deviceId: 'victim' }, timestamp: Date.now() }]
+    })
+  });
+  assert.strictEqual(pushRes.status, 401);
+
+  // /sync/status permanece público para pruebas de conectividad
+  const statusRes = await fetch(`${baseUrl}/sync/status`);
+  assert.strictEqual(statusRes.status, 200);
+});
+
+test('30. Security: non-admin users cannot emit reserved sync actions nor escalate by username', async () => {
+  const operatorToken = generateToken({
+    userId: 'test_operator_no_db',
+    username: 'admin',
+    role: 'OPERATOR',
+    shift: 'G1',
+    fullName: 'Operador de Prueba'
+  });
+
+  const pushRes = await fetch(`${baseUrl}/sync/push`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${operatorToken}` },
+    body: JSON.stringify({
+      deviceId: 'operator_device',
+      events: [{ entity: 'AUTH', action: 'FORCE_LOGOUT', payload: { deviceId: 'victim' }, timestamp: Date.now() }]
+    })
+  });
+  assert.strictEqual(pushRes.status, 403);
+
+  // Un operador llamado 'admin' no obtiene privilegios de ADMIN
+  const backupRes = await fetch(`${baseUrl}/admin/backup`, {
+    headers: { 'Authorization': `Bearer ${operatorToken}` }
+  });
+  assert.strictEqual(backupRes.status, 403);
+});
+
+test('31. Security: unauthenticated WebSocket clients cannot receive nor emit realtime events', async () => {
+  const anon = new WebSocket(wsUrl);
+  const received: any[] = [];
+  anon.on('message', (data) => {
+    try { received.push(JSON.parse(data.toString())); } catch {}
+  });
+  await new Promise<void>((resolve, reject) => {
+    const timeout = setTimeout(() => reject(new Error('Timeout esperando OPEN')), 2000);
+    anon.on('open', () => { clearTimeout(timeout); resolve(); });
+  });
+
+  anon.send(JSON.stringify({ type: 'REGISTER', deviceId: 'anon_ws', deviceName: 'Anon', username: 'Marckv' }));
+  anon.send(JSON.stringify({ type: 'EVENT', event: { entity: 'AUTH', action: 'FORCE_LOGOUT', payload: {} } }));
+
+  // Un evento legítimo emitido por el servidor no debe llegar al socket anónimo
+  await fetch(`${baseUrl}/sync/push`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({
+      deviceId: 'admin_device_ws_check',
+      events: [{ entity: 'pumps', action: 'UPDATE', payload: { key: 'basetrack_pumps_telemetry', data: [] }, timestamp: Date.now() }]
+    })
+  });
+  await new Promise(r => setTimeout(r, 200));
+
+  const types = received.map(m => m.type);
+  assert.ok(types.includes('UNAUTHORIZED'), 'REGISTER sin token debe responder UNAUTHORIZED');
+  assert.ok(!types.includes('REGISTERED'), 'REGISTER sin token no debe registrarse');
+  assert.ok(!types.includes('EVENT'), 'Un socket anónimo no debe recibir eventos');
+  anon.close();
 });
 
 test.after(async () => {

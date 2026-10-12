@@ -24,7 +24,7 @@
 
 ## 3. Arquitectura y Contratos de Integración
 
-- **Frontend Stack**: Angular 19+ (Standalone Components, Signals, Router, PrimeNG / Custom Wrappers, PWA/Offline Sync).
+- **Frontend Stack**: Angular 22 (TypeScript 6) (Standalone Components, Signals, Router, PrimeNG / Custom Wrappers, PWA/Offline Sync).
 - **Backend Stack**: Node.js + Express + TypeScript con arquitectura limpia en capas (Controladores, Servicios, Repositorios).
 - **Base de Datos**: SQLite relacional con esquema normalizado, migraciones automatizadas, índices y seeds operativos.
 - **Seguridad**: Autenticación JWT, contraseñas hasheadas con bcrypt, RBAC (ADMIN, SUPERVISOR, OPERADOR), CORS seguro y cabeceras de protección.
@@ -96,6 +96,7 @@
 | `TASK-092` | Automatización de Pruebas en Safari macOS y Verificación de Rendimiento | Multi-Agent Team | `TASK-091` | `DONE` | 0/3 | (1) Automatización integral de Safari en macOS vía AppleScript osascript; (2) Navegación y prueba de los 10 módulos principales (/dashboard, /pumps, /cyclones, /tailings, /vehicle-checklist, /crew, /shift-handover, /admin) con respuesta en <= 1ms; (3) Consumo de memoria WebKit WebContent reducido drásticamente de 11 GB a 195 MB (0.4% RAM) y CPU a 0.0%; (4) Verificación de 0 fugas de memoria y bucle de eventos completamente erradicado |
 | `TASK-093` | Auto-Actualización en Vivo en Vercel & Cache-Busting Multi-Nivel | Multi-Agent Team | `TASK-092` | `DONE` | 0/3 | (1) Despliegue de public/version.json con timestamp y release metadata; (2) Reglas Cache-Control no-cache/no-store en vercel.json para version.json y sw.js; (3) Service Worker v10 con soporte SKIP_WAITING y controllerchange auto-reload inmediato; (4) Listener en CloudSyncService para eventos remotos APP_UPDATE y chequeo periódico; (5) Endpoint POST /api/admin/broadcast-update con test automatizado #28 (28/28 passing) y botón 'Actualizar Todos en Vivo' en Admin |
 | `TASK-094` | Resolución Directa de WebSockets en Vercel & Auto-Generación de Versiones | Multi-Agent Team | `TASK-093` | `DONE` | 0/3 | (1) getWsUrl() en CloudSyncService redirige sockets en Vercel directo al cloud backend Render (wss://basetrack-app.onrender.com/ws), desbloqueando telemetría viva < 20ms en Vercel; (2) scripts/generate-version.mjs integrado a npm run build con timestamps automáticos en cada compilación; (3) Actualización de Dockerfile con stage de scripts; suite 28/28 tests y build OK |
+| `TASK-095` | Blindaje de Seguridad: Autenticación de Sync/WebSocket, Lecturas Protegidas y Sesión No Replicable | Orchestrator & Multi-Agent | `TASK-094` | `DONE` | 0/3 | (1) JWT obligatorio en GET de datos operacionales y en /api/sync/push y /api/sync/pull (/health y /sync/status siguen públicos); (2) WebSocket: REGISTER exige JWT, sockets anónimos no reciben ni emiten eventos; identidad tomada del token, no del cliente; (3) FORCE_LOGOUT, APP_UPDATE y FORCE_REFRESH reservados a ADMIN; (4) Eliminada escalada por nombre de usuario ('admin'/'marckv') en requireRoles/requirePermission; (5) Sin secreto JWT conocido: aleatorio efímero en producción si falta JWT_SECRET, generateValue en render.yaml y obligatorio en docker-compose; (6) CORS sin credenciales con lista blanca opcional CORS_ORIGINS; (7) Token, usuario e identidad de dispositivo nunca se replican por CloudSync (isDeviceLocalKey); suite 31/31 y build OK |
 
 ---
 

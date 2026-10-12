@@ -12,3 +12,7 @@ services:
         value: production
       - key: PORT
         value: 10000
+      # Secreto de firma JWT: Render lo genera una vez al crear el servicio desde el Blueprint.
+      # Si el servicio ya existía, defínalo manualmente en Dashboard → Environment.
+      - key: JWT_SECRET
+        generateValue: true

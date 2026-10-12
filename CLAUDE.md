@@ -9,7 +9,7 @@ Este documento es la guía principal de contexto, arquitectura, comandos y regla
 **BASETRACK APP** es una plataforma enterprise para monitoreo y control operacional de plantas industriales y mineras (presas de relaves, salas de bombeo slurry, clasificación en ciclones, relevo de guardias, mantenimiento industrial, checklists de camionetas y administración).
 
 ### Stack Tecnológico
-- **Frontend**: Angular 19+ (Standalone Components, Signals, Router, SCSS modular, PWA offline con Service Worker).
+- **Frontend**: Angular 22 (TypeScript 6) (Standalone Components, Signals, Router, SCSS modular, PWA offline con Service Worker).
   - Dev server: `http://localhost:4200`
 - **Backend**: Node.js + Express + TypeScript con arquitectura en capas (rutas, controladores, servicios, base de datos).
   - Dev server: `http://localhost:3001`
@@ -26,7 +26,7 @@ Ejecutar siempre desde la raíz del proyecto:
 # Verificación integral obligatoria (Tests + Build):
 npm run verify
 
-# Ejecutar suite de pruebas del backend (27 tests automatizados):
+# Ejecutar suite de pruebas del backend (31 tests automatizados):
 npm run backend:test
 
 # Compilación de producción de Angular:
@@ -95,6 +95,6 @@ Para comprender el histórico y contexto profundo de cada módulo, consultar:
 ## 5. Criterios de Aceptación para Entregables ("Done")
 
 Una tarea sólo se considera terminada cuando:
-1. `npm run backend:test` aprueba **27 / 27 tests** sin fallos.
+1. `npm run backend:test` aprueba **31 / 31 tests** sin fallos.
 2. `npm run build` compila limpiamente sin errores de tipos TypeScript ni violaciones de budgets.
 3. Se documenta la modificación en el código preservando tipado estricto.

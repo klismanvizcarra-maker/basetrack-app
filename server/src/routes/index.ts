@@ -70,35 +70,35 @@ apiRouter.put('/auth/change-password', authenticateToken, changePassword);
 apiRouter.post('/auth/change-password', authenticateToken, changePassword);
 
 // 3. Dashboard Routes
-apiRouter.get('/dashboard/metrics', getDashboardMetrics);
+apiRouter.get('/dashboard/metrics', authenticateToken, getDashboardMetrics);
 
 // 4. Pumps Telemetry & Operational Sheet Routes
-apiRouter.get('/pumps/operational-sheet', getPumpOperationalSheet);
+apiRouter.get('/pumps/operational-sheet', authenticateToken, getPumpOperationalSheet);
 apiRouter.post('/pumps/operational-sheet', authenticateToken, requirePermission('CAN_RECORD_DATA'), savePumpOperationalSheet);
-apiRouter.get('/pumps', getAllPumps);
-apiRouter.get('/pumps/:id', getPumpById);
+apiRouter.get('/pumps', authenticateToken, getAllPumps);
+apiRouter.get('/pumps/:id', authenticateToken, getPumpById);
 apiRouter.post('/pumps', authenticateToken, requirePermission('CAN_RECORD_DATA'), createPumpReport);
 apiRouter.patch('/pumps/:id/status', authenticateToken, requirePermission('CAN_RECORD_DATA'), updatePumpStatus);
 
 // 5. Cyclones Routes
-apiRouter.get('/cyclones', getAllCyclones);
+apiRouter.get('/cyclones', authenticateToken, getAllCyclones);
 apiRouter.post('/cyclones', authenticateToken, requirePermission('CAN_RECORD_DATA'), createCycloneReport);
-apiRouter.get('/cyclones/station-samples', getStationSamples);
+apiRouter.get('/cyclones/station-samples', authenticateToken, getStationSamples);
 apiRouter.post('/cyclones/station-samples', authenticateToken, requirePermission('CAN_RECORD_DATA'), createStationSample);
 apiRouter.put('/cyclones/station-samples/:id', authenticateToken, requirePermission('CAN_RECORD_DATA'), updateStationSample);
 apiRouter.delete('/cyclones/station-samples/:id', authenticateToken, requirePermission('CAN_DELETE_RECORDS'), deleteStationSample);
 
 // 6. Tailings & Dam Routes
-apiRouter.get('/tailings', getAllTailings);
+apiRouter.get('/tailings', authenticateToken, getAllTailings);
 apiRouter.post('/tailings', authenticateToken, requirePermission('CAN_RECORD_DATA'), createTailingsReport);
 
 // 7. Shift Handover Routes
-apiRouter.get('/shift-handover', getAllShiftHandovers);
+apiRouter.get('/shift-handover', authenticateToken, getAllShiftHandovers);
 apiRouter.post('/shift-handover', authenticateToken, requirePermission('CAN_CLOSE_SHIFT'), createShiftHandover);
 apiRouter.patch('/shift-handover/:id/accept', authenticateToken, requirePermission('CAN_CLOSE_SHIFT'), acceptShiftHandover);
 
 // 8. Maintenance Routes
-apiRouter.get('/maintenance', getAllMaintenanceRequests);
+apiRouter.get('/maintenance', authenticateToken, getAllMaintenanceRequests);
 apiRouter.post('/maintenance', authenticateToken, requirePermission('CAN_RECORD_DATA'), createMaintenanceRequest);
 apiRouter.patch('/maintenance/:id/status', authenticateToken, requirePermission('CAN_RECORD_DATA'), updateMaintenanceStatus);
 
@@ -153,18 +153,19 @@ apiRouter.post('/crew/positions', authenticateToken, requirePermission('CAN_MANA
 apiRouter.delete('/crew/positions/:key', authenticateToken, requireRoles('ADMIN'), deleteCrewPosition);
 
 // 11. Cloud Realtime Sync Routes (Sincronización Multi-Dispositivo)
-apiRouter.post('/sync/push', pushEvents);
-apiRouter.get('/sync/pull', pullEvents);
+apiRouter.post('/sync/push', authenticateToken, pushEvents);
+apiRouter.get('/sync/pull', authenticateToken, pullEvents);
+// Público: solo expone contadores agregados; se usa para probar conectividad con un backend remoto.
 apiRouter.get('/sync/status', getSyncStatus);
 
 // 12. Vehicle Pre-Use Checklists & Fleet Management (Padrón de Camionetas Mineras 4x4)
 apiRouter.get('/vehicles', authenticateToken, getAllVehicles);
-apiRouter.get('/vehicles/summary', getVehiclesSummary);
+apiRouter.get('/vehicles/summary', authenticateToken, getVehiclesSummary);
 apiRouter.post('/vehicles', authenticateToken, requireRoles('ADMIN'), createVehicle);
 apiRouter.put('/vehicles/:id', authenticateToken, requireRoles('ADMIN'), updateVehicle);
 apiRouter.patch('/vehicles/:id/status', authenticateToken, requireRoles('ADMIN'), toggleVehicleStatus);
 apiRouter.delete('/vehicles/:id', authenticateToken, requireRoles('ADMIN'), deleteVehicle);
 
-apiRouter.get('/vehicles/checklists', getVehicleChecklists);
+apiRouter.get('/vehicles/checklists', authenticateToken, getVehicleChecklists);
 apiRouter.post('/vehicles/checklists', authenticateToken, requirePermission('CAN_FILL_VEHICLES'), createVehicleChecklist);
 

@@ -1,12 +1,26 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import type { Server as HttpServer } from 'node:http';
 import { db } from '../database/db.js';
+import { verifyToken } from '../config/jwt.js';
+
+/**
+ * Acciones de sistema que solo puede originar el servidor o un ADMIN.
+ * Un cliente común no debe poder forzar cierres de sesión ni recargas globales.
+ */
+const RESERVED_SYNC_ACTIONS = new Set(['FORCE_LOGOUT', 'APP_UPDATE', 'FORCE_REFRESH']);
+
+export function isReservedSyncAction(action: unknown): boolean {
+  return RESERVED_SYNC_ACTIONS.has(String(action || '').toUpperCase());
+}
 
 export interface WsClientMeta {
   deviceId: string;
   deviceName: string;
   username?: string;
   userId?: string;
+  role?: string;
+  /** true solo después de un REGISTER con JWT válido; antes no recibe ni emite eventos */
+  authenticated: boolean;
   ip: string;
   connectedAt: number;
   isAlive: boolean;
@@ -39,6 +53,7 @@ export function initWebSocketServer(server: HttpServer): WebSocketServer {
       deviceName: (req.headers['x-device-name'] as string) || 'Terminal Operativa',
       ip,
       connectedAt: Date.now(),
+      authenticated: false,
       isAlive: true
     };
 
@@ -121,10 +136,30 @@ function handleWsMessage(ws: WebSocket, meta: WsClientMeta, msg: any) {
 
   switch (msg.type) {
     case 'REGISTER': {
+      // La identidad se toma exclusivamente del JWT; sin token válido el socket queda sin privilegios
+      let decoded: ReturnType<typeof verifyToken> | null = null;
+      try {
+        decoded = msg.token ? verifyToken(String(msg.token)) : null;
+        if (decoded?.userId) {
+          const userRow = db.prepare('SELECT is_active FROM users WHERE id = ?').get(decoded.userId) as { is_active?: number } | undefined;
+          if (userRow && userRow.is_active === 0) decoded = null;
+        }
+      } catch {
+        decoded = null;
+      }
+
+      if (!decoded) {
+        meta.authenticated = false;
+        ws.send(JSON.stringify({ type: 'UNAUTHORIZED', message: 'Token requerido para el canal de tiempo real' }));
+        break;
+      }
+
+      meta.authenticated = true;
+      meta.userId = decoded.userId;
+      meta.username = decoded.username;
+      meta.role = decoded.role;
       if (msg.deviceId) meta.deviceId = String(msg.deviceId).slice(0, 100);
       if (msg.deviceName) meta.deviceName = String(msg.deviceName).slice(0, 150);
-      if (msg.username) meta.username = String(msg.username).slice(0, 100);
-      if (msg.userId) meta.userId = String(msg.userId).slice(0, 100);
 
       try {
         db.prepare(`
@@ -158,6 +193,14 @@ function handleWsMessage(ws: WebSocket, meta: WsClientMeta, msg: any) {
 
     case 'EVENT': {
       const ev = msg.event;
+      if (!meta.authenticated) {
+        ws.send(JSON.stringify({ type: 'UNAUTHORIZED', message: 'Registre el dispositivo con un token válido antes de emitir eventos' }));
+        break;
+      }
+      if (ev && isReservedSyncAction(ev.action) && meta.role !== 'ADMIN') {
+        ws.send(JSON.stringify({ type: 'FORBIDDEN', message: 'Acción de sincronización reservada para el Administrador' }));
+        break;
+      }
       if (ev) {
         try {
           const payloadStr = typeof ev.payload === 'string' ? ev.payload : JSON.stringify(ev.payload || { key: ev.key, data: ev.data });
@@ -222,7 +265,7 @@ export function broadcastWsEvent(event: {
   });
 
   for (const [ws, meta] of clients.entries()) {
-    if (ws.readyState === WebSocket.OPEN) {
+    if (ws.readyState === WebSocket.OPEN && meta.authenticated) {
       if (event.deviceId && meta.deviceId === event.deviceId) {
         continue;
       }
