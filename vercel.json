@@ -81,7 +81,7 @@
       "destination": "https://basetrack-app.onrender.com/api/:match*"
     },
     {
-      "source": "/((?!api/|api$|sw\\.js|manifest\\.webmanifest|icons/|images/|favicon\\.ico).*)*",
+      "source": "/((?!api/|api$|sw\\.js|version\\.json|manifest\\.webmanifest|icons/|images/|favicon\\.ico).*)*",
       "destination": "/index.html"
     }
   ]
