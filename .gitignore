@@ -16,6 +16,7 @@ server/.env
 *.db-journal
 *.db-wal
 *.db-shm
+data/
 server/data/
 
 # Vercel deployment artifacts
@@ -29,3 +30,4 @@ yarn-debug.log*
 Thumbs.db
 .idea/
 .vscode/
+.github/

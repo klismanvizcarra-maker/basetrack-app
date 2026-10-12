@@ -3,6 +3,7 @@ import crypto from 'node:crypto';
 import { db } from '../database/db.js';
 import { AuthenticatedRequest } from '../middlewares/auth.middleware.js';
 import { logAudit } from '../middlewares/error.middleware.js';
+import { broadcastWsEvent } from '../websocket/ws.js';
 
 export function getAllCyclones(req: Request, res: Response) {
   try {
@@ -50,12 +51,20 @@ export function createCycloneReport(req: AuthenticatedRequest, res: Response) {
 
 export function getStationSamples(req: Request, res: Response) {
   try {
-    const station = (req.query.station as string) || '2DA ESTACIÓN CICLONES';
+    const station = req.query.station as string;
     const shift = req.query.shift as string;
     const date = req.query.date as string;
 
-    let query = 'SELECT * FROM cyclone_station_samples WHERE station = ?';
-    const params: any[] = [station];
+    let query = 'SELECT * FROM cyclone_station_samples WHERE 1=1';
+    const params: any[] = [];
+
+    if (station && station !== 'ALL') {
+      query += ' AND station = ?';
+      params.push(station);
+    } else if (!station) {
+      query += ' AND station = ?';
+      params.push('2DA ESTACIÓN CICLONES');
+    }
 
     if (shift) {
       query += ' AND shift_code = ?';
@@ -81,24 +90,37 @@ export function getStationSamples(req: Request, res: Response) {
     };
 
     if (samples.length > 0) {
+      const counts = {
+        solids_feed: 0,
+        solids_of: 0,
+        solids_uf: 0,
+        mesh200_feed: 0,
+        mesh200_of: 0,
+        mesh200_uf: 0
+      };
       const totals = samples.reduce((acc, curr) => {
-        acc.solids_feed += Number(curr.solids_feed || 0);
-        acc.solids_of += Number(curr.solids_of || 0);
-        acc.solids_uf += Number(curr.solids_uf || 0);
-        acc.mesh200_feed += Number(curr.mesh200_feed || 0);
-        acc.mesh200_of += Number(curr.mesh200_of || 0);
-        acc.mesh200_uf += Number(curr.mesh200_uf || 0);
+        const sf = Number(curr.solids_feed || 0);
+        if (sf > 0) { acc.solids_feed += sf; counts.solids_feed++; }
+        const so = Number(curr.solids_of || 0);
+        if (so > 0) { acc.solids_of += so; counts.solids_of++; }
+        const su = Number(curr.solids_uf || 0);
+        if (su > 0) { acc.solids_uf += su; counts.solids_uf++; }
+        const mf = Number(curr.mesh200_feed || 0);
+        if (mf > 0) { acc.mesh200_feed += mf; counts.mesh200_feed++; }
+        const mo = Number(curr.mesh200_of || 0);
+        if (mo > 0) { acc.mesh200_of += mo; counts.mesh200_of++; }
+        const mu = Number(curr.mesh200_uf || 0);
+        if (mu > 0) { acc.mesh200_uf += mu; counts.mesh200_uf++; }
         return acc;
       }, { solids_feed: 0, solids_of: 0, solids_uf: 0, mesh200_feed: 0, mesh200_of: 0, mesh200_uf: 0 });
 
-      const n = samples.length;
       generalAverages = {
-        solids_feed: Number((totals.solids_feed / n).toFixed(2)),
-        solids_of: Number((totals.solids_of / n).toFixed(2)),
-        solids_uf: Number((totals.solids_uf / n).toFixed(2)),
-        mesh200_feed: Number((totals.mesh200_feed / n).toFixed(2)),
-        mesh200_of: Number((totals.mesh200_of / n).toFixed(2)),
-        mesh200_uf: Number((totals.mesh200_uf / n).toFixed(2))
+        solids_feed: counts.solids_feed > 0 ? Number((totals.solids_feed / counts.solids_feed).toFixed(2)) : 0,
+        solids_of: counts.solids_of > 0 ? Number((totals.solids_of / counts.solids_of).toFixed(2)) : 0,
+        solids_uf: counts.solids_uf > 0 ? Number((totals.solids_uf / counts.solids_uf).toFixed(2)) : 0,
+        mesh200_feed: counts.mesh200_feed > 0 ? Number((totals.mesh200_feed / counts.mesh200_feed).toFixed(2)) : 0,
+        mesh200_of: counts.mesh200_of > 0 ? Number((totals.mesh200_of / counts.mesh200_of).toFixed(2)) : 0,
+        mesh200_uf: counts.mesh200_uf > 0 ? Number((totals.mesh200_uf / counts.mesh200_uf).toFixed(2)) : 0
       };
     }
 
@@ -166,6 +188,17 @@ export function createStationSample(req: AuthenticatedRequest, res: Response) {
       req.ip || '127.0.0.1'
     );
 
+    broadcastWsEvent({
+      entity: 'CYCLONE_STATION_SAMPLE',
+      action: 'CREATE',
+      data: {
+        id, station, sample_time, battery_tag,
+        solids_feed, solids_of, solids_uf,
+        mesh200_feed, mesh200_of, mesh200_uf,
+        shift_code: finalShift, date: finalDate
+      }
+    });
+
     return res.status(201).json({ success: true, message: 'Muestra de estación guardada exitosamente', id });
   } catch (error: any) {
     return res.status(500).json({ success: false, message: error.message });
@@ -192,6 +225,12 @@ export function deleteStationSample(req: AuthenticatedRequest, res: Response) {
       `Eliminada muestra ${existing.station} ${existing.sample_time} ${existing.battery_tag}`,
       req.ip || '127.0.0.1'
     );
+
+    broadcastWsEvent({
+      entity: 'CYCLONE_STATION_SAMPLE',
+      action: 'DELETE',
+      data: { id, station: existing.station }
+    });
 
     return res.json({ success: true, message: 'Registro de muestra eliminado' });
   } catch (error: any) {

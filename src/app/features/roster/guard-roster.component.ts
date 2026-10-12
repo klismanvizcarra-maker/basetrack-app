@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, ChangeDetectorRef, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -1237,9 +1237,11 @@ import { CrewService } from '../../core/services/crew.service';
     }
   `]
 })
-export class GuardRosterComponent implements OnInit {
+export class GuardRosterComponent implements OnInit, OnDestroy {
   private pdfExportService = inject(PdfExportService);
   private crewService = inject(CrewService);
+  private cdr = inject(ChangeDetectorRef);
+  private ngZone = inject(NgZone);
   authService = inject(AuthService);
 
   guardsCatalog = GUARDS_CATALOG;
@@ -1281,12 +1283,29 @@ export class GuardRosterComponent implements OnInit {
     return `${capFirst} ${parts[0].charAt(0).toUpperCase()}.`;
   }
 
+  private syncListener = (e: any) => {
+    if (e.detail?.source === 'local') return;
+    const ent = (e.detail?.entity || '').toLowerCase();
+    const key = (e.detail?.key || '').toLowerCase();
+    if (ent.includes('crew') || ent.includes('cuadrilla') || ent.includes('user') || key.includes('crew')) {
+      this.ngZone.run(() => {
+        this.refreshPersonnelFromService();
+        this.cdr.markForCheck();
+        this.cdr.detectChanges();
+      });
+    }
+  };
+
   ngOnInit(): void {
     const now = new Date();
     this.selectedYear = now.getFullYear();
     this.selectedMonthIndex = now.getMonth();
     this.loadRoster();
     this.refreshPersonnelFromService();
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('basetrack_cloud_sync', this.syncListener);
+    }
   }
 
   refreshPersonnelFromService(): void {
@@ -1380,6 +1399,12 @@ export class GuardRosterComponent implements OnInit {
       console.error('[RosterComponent] Error exportando PDF:', err);
     } finally {
       this.isExportingPdf = false;
+    }
+  }
+
+  ngOnDestroy(): void {
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('basetrack_cloud_sync', this.syncListener);
     }
   }
 }

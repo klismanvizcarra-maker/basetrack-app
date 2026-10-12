@@ -1,7 +1,7 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { Observable, tap, catchError, of, map, throwError } from 'rxjs';
+import { Observable, tap, catchError, of, map, throwError, timeout } from 'rxjs';
 import { User, AuthResponse, LoginPayload, RegisterPayload } from './auth.models';
 import { getRealtimeData, saveRealtimeData, removeRealtimeData } from '../storage/local-store.util';
 
@@ -10,9 +10,10 @@ const DEFAULT_ADMIN_USER: User = {
   username: 'Marckv',
   email: 'marckvizcarra@basetrack.com',
   fullName: 'Marck Vizcarra',
-  document_id: '',
+  document_id: '91209966',
   role: 'ADMIN',
   shift: 'ADMIN',
+  password: '91209966',
   avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80'
 };
 
@@ -84,7 +85,7 @@ export class AuthService {
     delete updated['91209966'];
     delete updated['klismanv'];
     delete updated['71209033'];
-    saveRealtimeData('users_registry', updated);
+    saveRealtimeData('users_registry', updated, { skipBroadcast: true });
   }
 
   private getUserFromRegistry(usernameOrEmailOrDni: string): User | null {
@@ -142,6 +143,7 @@ export class AuthService {
     }
 
     return this.http.post<AuthResponse>(`${this.apiUrl}/login`, { username: cleanUsername, password: cleanPassword }).pipe(
+      timeout(5000),
       tap(res => {
         if (res.success && res.token && res.user) {
           this.saveUserToRegistry(res.user);
@@ -305,11 +307,12 @@ export class AuthService {
 
   refreshCurrentUser(): Observable<User | null> {
     return this.http.get<{ success: boolean; user: User }>(`${this.apiUrl}/me`).pipe(
+      timeout(3500),
       map(res => {
         if (res.success && res.user) {
           this.currentUserSignal.set(res.user);
           this.saveUserToRegistry(res.user);
-          saveRealtimeData('user', res.user);
+          saveRealtimeData('user', res.user, { skipBroadcast: true });
           return res.user;
         }
         return null;

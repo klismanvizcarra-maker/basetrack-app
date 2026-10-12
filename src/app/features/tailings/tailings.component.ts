@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, ChangeDetectorRef, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
@@ -380,12 +380,14 @@ export interface TailingsReport {
     }
   `]
 })
-export class TailingsComponent implements OnInit {
+export class TailingsComponent implements OnInit, OnDestroy {
   private http = inject(HttpClient);
   offlineSync = inject(OfflineSyncService);
   private crewService = inject(CrewService);
   private authService = inject(AuthService);
   plantParamsService = inject(PlantParametersService);
+  private cdr = inject(ChangeDetectorRef);
+  private ngZone = inject(NgZone);
 
   tailings: TailingsReport[] = [];
   isCreateModalOpen = false;
@@ -419,21 +421,47 @@ export class TailingsComponent implements OnInit {
     return this.tailings.length > 0 ? this.tailings[0].turbidity_ntu : 0;
   }
 
+  private syncListener = (e: any) => {
+    if (e.detail?.source === 'local') return;
+    const ent = (e.detail?.entity || '').toLowerCase();
+    const key = (e.detail?.key || '').toLowerCase();
+    if (ent.includes('tailing') || ent.includes('relave') || key.includes('tailing')) {
+      this.ngZone.run(() => {
+        this.loadTailings();
+        this.cdr.markForCheck();
+        this.cdr.detectChanges();
+      });
+    }
+  };
+
   ngOnInit(): void {
     this.loadTailings();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('basetrack_cloud_sync', this.syncListener);
+    }
+  }
+
+  ngOnDestroy(): void {
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('basetrack_cloud_sync', this.syncListener);
+    }
   }
 
   loadTailings(): void {
     const cached = getRealtimeData<TailingsReport[]>('tailings_reports', []);
     if (cached && cached.length > 0) {
       this.tailings = cached;
+      this.cdr.markForCheck();
+      this.cdr.detectChanges();
     }
 
     this.http.get<any>(`${getApiBaseUrl()}/tailings`).subscribe({
       next: (res) => {
         if (res.success && res.data && res.data.length > 0) {
           this.tailings = res.data;
-          saveRealtimeData('tailings_reports', this.tailings);
+          saveRealtimeData('tailings_reports', this.tailings, { skipBroadcast: true });
+          this.cdr.markForCheck();
+          this.cdr.detectChanges();
         } else if (!cached || cached.length === 0) {
           this.loadDefaultTailings();
         }
@@ -492,11 +520,24 @@ export class TailingsComponent implements OnInit {
           this.loadTailings();
         },
         error: () => {
-          this.offlineSync.queueAction(endpoint, 'POST', payload, 'Relaves ' + this.newTailings.station_tag);
+          this.offlineSync.queueAction(endpoint, 'POST', payload, 'Relaves ' + payload.station_tag);
         }
       });
     } else {
-      this.offlineSync.queueAction(endpoint, 'POST', payload, 'Relaves ' + this.newTailings.station_tag);
+      this.offlineSync.queueAction(endpoint, 'POST', payload, 'Relaves ' + payload.station_tag);
     }
+
+    // Reset form after saving
+    this.newTailings = {
+      station_tag: 'CANALETA-RELAVES-02',
+      flow_rate_m3h: 0,
+      solids_percentage: 0,
+      dam_level_meters: 0,
+      freeboard_meters: 0,
+      piezometer_kpa: 0,
+      turbidity_ntu: 0,
+      pumping_line_status: 'NORMAL',
+      notes: ''
+    };
   }
 }

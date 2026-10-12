@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { copyToClipboard } from '../../core/utils/clipboard.util';
+import { getRealtimeData, saveRealtimeData } from '../../core/storage/local-store.util';
 
 export type CalculatorTab = 'MARCY' | 'FLOCCULANT' | 'DILUTION' | 'PARSHALL';
 
@@ -1286,12 +1287,14 @@ export class MetallurgicalCalculatorsComponent implements OnInit {
     } else if (this.activeTab === 'FLOCCULANT') {
       this.flocPulpFlowM3h = 1850;
       this.flocSolidsWeightPct = 62.0;
+      this.flocGs = 2.70;
       this.flocTargetDoseGpt = 18.0;
       this.flocMotherConcPct = 0.10;
     } else if (this.activeTab === 'DILUTION') {
       this.dilInitialPulpFlowM3h = 1600;
       this.dilInitialSolidsPct = 65.0;
       this.dilTargetSolidsPct = 52.0;
+      this.dilGs = 2.70;
     } else if (this.activeTab === 'PARSHALL') {
       this.parshallThroatKey = '12in';
       this.parshallHeadCm = 18.5;
@@ -1349,13 +1352,17 @@ export class MetallurgicalCalculatorsComponent implements OnInit {
         marcyGs: this.marcyGs,
         flocPulpFlowM3h: this.flocPulpFlowM3h,
         flocSolidsWeightPct: this.flocSolidsWeightPct,
+        flocGs: this.flocGs,
         flocTargetDoseGpt: this.flocTargetDoseGpt,
+        flocMotherConcPct: this.flocMotherConcPct,
         dilInitialPulpFlowM3h: this.dilInitialPulpFlowM3h,
         dilInitialSolidsPct: this.dilInitialSolidsPct,
         dilTargetSolidsPct: this.dilTargetSolidsPct,
+        dilGs: this.dilGs,
         parshallThroatKey: this.parshallThroatKey,
         parshallHeadCm: this.parshallHeadCm
       };
+      saveRealtimeData('calc_state', data);
       localStorage.setItem('basetrack_calc_state', JSON.stringify(data));
     } catch {
       // Ignore localStorage error
@@ -1364,20 +1371,23 @@ export class MetallurgicalCalculatorsComponent implements OnInit {
 
   private loadSavedState(): void {
     try {
-      const cached = localStorage.getItem('basetrack_calc_state');
-      if (cached) {
-        const parsed = JSON.parse(cached);
+      const parsed = getRealtimeData<any>('calc_state', null) || 
+        (localStorage.getItem('basetrack_calc_state') ? JSON.parse(localStorage.getItem('basetrack_calc_state')!) : null);
+      if (parsed) {
         if (parsed.activeTab) this.activeTab = parsed.activeTab;
-        if (parsed.marcyWeightGrams) this.marcyWeightGrams = parsed.marcyWeightGrams;
-        if (parsed.marcyGs) this.marcyGs = parsed.marcyGs;
-        if (parsed.flocPulpFlowM3h) this.flocPulpFlowM3h = parsed.flocPulpFlowM3h;
-        if (parsed.flocSolidsWeightPct) this.flocSolidsWeightPct = parsed.flocSolidsWeightPct;
-        if (parsed.flocTargetDoseGpt) this.flocTargetDoseGpt = parsed.flocTargetDoseGpt;
-        if (parsed.dilInitialPulpFlowM3h) this.dilInitialPulpFlowM3h = parsed.dilInitialPulpFlowM3h;
-        if (parsed.dilInitialSolidsPct) this.dilInitialSolidsPct = parsed.dilInitialSolidsPct;
-        if (parsed.dilTargetSolidsPct) this.dilTargetSolidsPct = parsed.dilTargetSolidsPct;
+        if (parsed.marcyWeightGrams !== undefined) this.marcyWeightGrams = parsed.marcyWeightGrams;
+        if (parsed.marcyGs !== undefined) this.marcyGs = parsed.marcyGs;
+        if (parsed.flocPulpFlowM3h !== undefined) this.flocPulpFlowM3h = parsed.flocPulpFlowM3h;
+        if (parsed.flocSolidsWeightPct !== undefined) this.flocSolidsWeightPct = parsed.flocSolidsWeightPct;
+        if (parsed.flocGs !== undefined) this.flocGs = parsed.flocGs;
+        if (parsed.flocTargetDoseGpt !== undefined) this.flocTargetDoseGpt = parsed.flocTargetDoseGpt;
+        if (parsed.flocMotherConcPct !== undefined) this.flocMotherConcPct = parsed.flocMotherConcPct;
+        if (parsed.dilInitialPulpFlowM3h !== undefined) this.dilInitialPulpFlowM3h = parsed.dilInitialPulpFlowM3h;
+        if (parsed.dilInitialSolidsPct !== undefined) this.dilInitialSolidsPct = parsed.dilInitialSolidsPct;
+        if (parsed.dilTargetSolidsPct !== undefined) this.dilTargetSolidsPct = parsed.dilTargetSolidsPct;
+        if (parsed.dilGs !== undefined) this.dilGs = parsed.dilGs;
         if (parsed.parshallThroatKey) this.parshallThroatKey = parsed.parshallThroatKey;
-        if (parsed.parshallHeadCm) this.parshallHeadCm = parsed.parshallHeadCm;
+        if (parsed.parshallHeadCm !== undefined) this.parshallHeadCm = parsed.parshallHeadCm;
       }
     } catch {
       // Ignore

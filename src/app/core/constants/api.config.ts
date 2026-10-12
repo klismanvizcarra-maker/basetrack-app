@@ -33,25 +33,31 @@ export function getApiBaseUrl(): string {
     }
 
     const hostname = window.location.hostname;
-    const protocol = window.location.protocol;
+    const port = window.location.port;
+    const origin = window.location.origin;
 
-    // 2. If running locally on localhost/127.0.0.1, prioritize local dev server
-    if (hostname === 'localhost' || hostname === '127.0.0.1') {
-      return 'http://localhost:3001/api';
+    // 2. If running on local Angular development server (port 4200), route to local backend on port 3001
+    // (Supports localhost, 127.0.0.1, and local plant LAN IPs 192.168.x.x / 10.x.x.x without cloud latency)
+    if (port === '4200') {
+      return `http://${hostname}:3001/api`;
     }
 
-    // 3. Global Cloud Backend URL (used by Vercel, mobile phones, tablets and cloud production)
+    // 3. If running on Vercel static cloud deployment, use same-origin relative proxy (/api)
+    // (Eliminates CORS preflight latency, leverages Vercel edge rewrite in vercel.json)
+    if (hostname.includes('vercel.app')) {
+      return `${origin}/api`;
+    }
+
+    // 4. Unified Docker / LAN / Same-Origin Deployment (Server serves both SPA and /api)
+    if (origin && port !== '4200') {
+      return `${origin}/api`;
+    }
+
+    // 5. Global Cloud Backend URL fallback
     if (DEFAULT_CLOUD_BACKEND_URL && DEFAULT_CLOUD_BACKEND_URL.trim()) {
       let clean = DEFAULT_CLOUD_BACKEND_URL.trim().replace(/\/+$/, '');
-      if (!clean.endsWith('/api')) {
-        clean += '/api';
-      }
+      if (!clean.endsWith('/api')) clean += '/api';
       return clean;
-    }
-
-    // 4. Fallback for Local Area Network (LAN IP: 192.168.x.x) or non-localhost HTTP
-    if (hostname && protocol !== 'https:') {
-      return `http://${hostname}:3001/api`;
     }
   }
   return 'http://localhost:3001/api';

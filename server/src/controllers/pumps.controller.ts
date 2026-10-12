@@ -3,6 +3,7 @@ import crypto from 'node:crypto';
 import { db } from '../database/db.js';
 import { AuthenticatedRequest } from '../middlewares/auth.middleware.js';
 import { logAudit } from '../middlewares/error.middleware.js';
+import { broadcastWsEvent } from '../websocket/ws.js';
 
 export function getAllPumps(req: Request, res: Response) {
   try {
@@ -70,6 +71,69 @@ export function updatePumpStatus(req: AuthenticatedRequest, res: Response) {
       return res.status(404).json({ success: false, message: 'Bomba no encontrada' });
     }
 
+    // Check active maintenance ticket lock for this pump tag
+    const activeTicket = db.prepare(`
+      SELECT id, status, ticket_number FROM maintenance_requests 
+      WHERE equipment_tag = ? AND status IN ('PENDING', 'IN_PROGRESS')
+      ORDER BY created_at DESC LIMIT 1
+    `).get(pump.tag) as any;
+
+    let finalStatus = status;
+    if (activeTicket && (status === 'OPERATING' || status === 'STANDBY')) {
+      // Retain lock: only maintenance can release to operating
+      finalStatus = activeTicket.status === 'IN_PROGRESS' ? 'MAINTENANCE' : 'FAULT';
+    } else if (status === 'FAULT' && !activeTicket) {
+      // Auto-create maintenance request
+      const ticketId = crypto.randomUUID();
+      let nextNum = ((db.prepare('SELECT COUNT(*) as count FROM maintenance_requests').get() as { count: number }).count || 0) + 1;
+      let ticketNumber = `OT-2026-${String(nextNum).padStart(4, '0')}`;
+      while (db.prepare('SELECT id FROM maintenance_requests WHERE ticket_number = ?').get(ticketNumber)) {
+        nextNum++;
+        ticketNumber = `OT-2026-${String(nextNum).padStart(4, '0')}`;
+      }
+      const operator = req.user?.fullName || req.user?.username || 'Operador de Bombas';
+      db.prepare(`
+        INSERT INTO maintenance_requests (
+          id, ticket_number, equipment_tag, title, description,
+          priority, status, requester_name, assigned_to, photo_url,
+          estimated_hours, source_module, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+      `).run(
+        ticketId,
+        ticketNumber,
+        pump.tag,
+        `Falla reportada en Bomba ${pump.tag}`,
+        `Orden de trabajo generada automáticamente desde Telemetría de Bombas por ${operator}`,
+        'HIGH',
+        'PENDING',
+        operator,
+        'Equipo Mantenimiento Planta',
+        'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=600&q=80',
+        2,
+        'PUMPS_STATION'
+      );
+
+      broadcastWsEvent({
+        entity: 'maintenance',
+        action: 'CREATE',
+        data: {
+          id: ticketId,
+          ticket_number: ticketNumber,
+          equipment_tag: pump.tag,
+          title: `Falla reportada en Bomba ${pump.tag}`,
+          description: `Orden de trabajo generada automáticamente desde Telemetría de Bombas por ${operator}`,
+          priority: 'HIGH',
+          status: 'PENDING',
+          requester_name: operator,
+          assigned_to: 'Equipo Mantenimiento Planta',
+          source_module: 'PUMPS_STATION',
+          created_at: new Date().toISOString()
+        },
+        key: 'basetrack_maintenance_tickets',
+        deviceId: req.headers['x-device-id']?.toString() || 'server_api'
+      });
+    }
+
     db.prepare(`
       UPDATE pump_reports 
       SET status = COALESCE(?, status),
@@ -77,20 +141,41 @@ export function updatePumpStatus(req: AuthenticatedRequest, res: Response) {
           flow_rate_m3h = COALESCE(?, flow_rate_m3h),
           pressure_bar = COALESCE(?, pressure_bar)
       WHERE id = ?
-    `).run(status || null, notes || null, flow_rate_m3h ?? null, pressure_bar ?? null, id);
+    `).run(finalStatus || null, notes || null, flow_rate_m3h ?? null, pressure_bar ?? null, id);
 
-    logAudit(req.user?.userId || null, req.user?.username || 'system', 'UPDATE', 'PUMP_REPORT', id, `Actualización de estado a ${status}`, req.ip || '127.0.0.1');
+    logAudit(req.user?.userId || null, req.user?.username || 'system', 'UPDATE', 'PUMP_REPORT', id, `Actualización de estado a ${finalStatus}`, req.ip || '127.0.0.1');
 
-    return res.json({ success: true, message: 'Estado de bomba actualizado exitosamente' });
+    return res.json({ success: true, message: 'Estado de bomba actualizado exitosamente', status: finalStatus });
   } catch (error: any) {
     return res.status(500).json({ success: false, message: error.message });
   }
 }
 
+function normalizeDate(d?: string): string {
+  if (!d) return new Date().toISOString().slice(0, 10);
+  if (d.includes('/')) {
+    const parts = d.split('/');
+    if (parts.length === 3) {
+      const day = parts[0].padStart(2, '0');
+      const month = parts[1].padStart(2, '0');
+      const year = parts[2];
+      return `${year}-${month}-${day}`;
+    }
+  }
+  return d;
+}
+
+function normalizeShift(s?: string): string {
+  if (!s || s === '[object Object]') return 'G1';
+  if (s === 'GUARDIA_A') return 'G1';
+  if (s === 'GUARDIA_B') return 'G2';
+  return s;
+}
+
 export function getPumpOperationalSheet(req: Request, res: Response) {
   try {
-    const reportDate = (req.query.date as string) || new Date().toISOString().slice(0, 10);
-    const shiftCode = (req.query.shift as string) || 'G1';
+    const reportDate = normalizeDate((req.query.date as string) || new Date().toISOString().slice(0, 10));
+    const shiftCode = normalizeShift((req.query.shift as string) || 'G1');
 
     let sheet = db.prepare(`
       SELECT * FROM pump_station_sheets 
@@ -98,12 +183,16 @@ export function getPumpOperationalSheet(req: Request, res: Response) {
       ORDER BY created_at DESC LIMIT 1
     `).get(reportDate, shiftCode) as any;
 
+    let isFallback = false;
     if (!sheet) {
-      // Fallback to latest available sheet
+      // Fallback to latest available sheet for default machine tags and config
       sheet = db.prepare(`
         SELECT * FROM pump_station_sheets 
         ORDER BY report_date DESC, created_at DESC LIMIT 1
       `).get() as any;
+      if (sheet) {
+        isFallback = true;
+      }
     }
 
     if (sheet) {
@@ -125,9 +214,9 @@ export function getPumpOperationalSheet(req: Request, res: Response) {
       return res.json({
         success: true,
         data: {
-          id: sheet.id,
-          report_date: sheet.report_date,
-          shift_code: sheet.shift_code,
+          id: isFallback ? undefined : sheet.id,
+          report_date: isFallback ? reportDate : sheet.report_date,
+          shift_code: isFallback ? shiftCode : sheet.shift_code,
           operator_name: sheet.operator_name,
           sentina_pumps: JSON.parse(sheet.sentina_pumps_json),
           intermedia_pumps: JSON.parse(sheet.intermedia_pumps_json),
@@ -180,26 +269,129 @@ export function getPumpOperationalSheet(req: Request, res: Response) {
 export function savePumpOperationalSheet(req: AuthenticatedRequest, res: Response) {
   try {
     const {
-      report_date, shift_code, operator_name,
+      shift_code, operator_name,
       sentina_pumps, intermedia_pumps, torre5_pumps,
       levels, main_indicators, pozas_sentina, additional_obs
     } = req.body;
 
-    if (!report_date) {
+    const rawDate = req.body.report_date;
+    if (!rawDate) {
       return res.status(400).json({ success: false, message: 'La fecha del reporte es requerida' });
     }
-
-    const shift = shift_code || req.user?.shift || 'G1';
+    const report_date = normalizeDate(rawDate);
+    const shift = normalizeShift(shift_code || req.user?.shift || 'G1');
     const operator = req.user?.fullName || operator_name || 'Operador Central';
+
+    // Helper: Sanitize pumps list, enforce maintenance locks and auto-create OTs for 'Falla'
+    const sanitizeAndLinkPumps = (pumps: any[]) => {
+      if (!Array.isArray(pumps)) return [];
+      return pumps.map(p => {
+        if (!p || !p.tag) return p;
+        const activeTicket = db.prepare(`
+          SELECT id, status, ticket_number FROM maintenance_requests 
+          WHERE equipment_tag = ? AND status IN ('PENDING', 'IN_PROGRESS')
+          ORDER BY created_at DESC LIMIT 1
+        `).get(p.tag) as any;
+
+        if (activeTicket) {
+          // If maintenance ticket is active, pump is LOCKED: cannot be reverted to Operativo or Stand by
+          if (p.status === 'Operativo' || p.status === 'Stand by') {
+            p.status = activeTicket.status === 'IN_PROGRESS' ? 'Mantenimiento' : 'Falla';
+          }
+        } else if (p.status === 'Falla') {
+          // Auto-generate maintenance request for this pump tag
+          const ticketId = crypto.randomUUID();
+          let nextNum = ((db.prepare('SELECT COUNT(*) as count FROM maintenance_requests').get() as { count: number }).count || 0) + 1;
+          let ticketNumber = `OT-2026-${String(nextNum).padStart(4, '0')}`;
+          while (db.prepare('SELECT id FROM maintenance_requests WHERE ticket_number = ?').get(ticketNumber)) {
+            nextNum++;
+            ticketNumber = `OT-2026-${String(nextNum).padStart(4, '0')}`;
+          }
+
+          db.prepare(`
+            INSERT INTO maintenance_requests (
+              id, ticket_number, equipment_tag, title, description,
+              priority, status, requester_name, assigned_to, photo_url,
+              estimated_hours, source_module, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+          `).run(
+            ticketId,
+            ticketNumber,
+            p.tag,
+            `Falla reportada en Bomba ${p.tag}`,
+            `Orden de trabajo generada automáticamente desde la Planilla de Bombas por ${operator}`,
+            'HIGH',
+            'PENDING',
+            operator,
+            'Equipo Mantenimiento Planta',
+            'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=600&q=80',
+            2,
+            'PUMPS_STATION'
+          );
+
+          broadcastWsEvent({
+            entity: 'maintenance',
+            action: 'CREATE',
+            data: {
+              id: ticketId,
+              ticket_number: ticketNumber,
+              equipment_tag: p.tag,
+              title: `Falla reportada en Bomba ${p.tag}`,
+              description: `Orden de trabajo generada automáticamente desde la Planilla de Bombas por ${operator}`,
+              priority: 'HIGH',
+              status: 'PENDING',
+              requester_name: operator,
+              assigned_to: 'Equipo Mantenimiento Planta',
+              source_module: 'PUMPS_STATION',
+              created_at: new Date().toISOString()
+            },
+            key: 'maintenance_request_' + ticketId,
+            deviceId: req.headers['x-device-id']?.toString() || 'server_api'
+          });
+
+          logAudit(
+            req.user?.userId || null,
+            req.user?.username || 'system',
+            'CREATE',
+            'MAINTENANCE_REQUEST',
+            ticketId,
+            `Auto-generación de OT ${ticketNumber} por falla en bomba ${p.tag}`,
+            req.ip || '127.0.0.1'
+          );
+        }
+        return p;
+      });
+    };
+
+    const defaultSentinaTags = ['PU001', 'PU002', 'PU003', 'PU004', 'PU005', 'PU006', 'PU007', 'PU008'];
+    const defaultIntermediaTags = ['PU011', 'PU012', 'PU013', 'PU014', 'PU015', 'PU016'];
+    const defaultTorre5Tags = ['PU021', 'PU022', 'PU023', 'PU024', 'PU025', 'PU026', 'PU027', 'PU028', 'PU029', 'PU030'];
+
+    const mergeWithDefaults = (inputList: any[], defaultTags: string[]) => {
+      const map = new Map<string, any>();
+      defaultTags.forEach(tag => map.set(tag, { tag, status: 'Operativo' }));
+      if (Array.isArray(inputList)) {
+        inputList.forEach(p => {
+          if (p && p.tag) {
+            map.set(p.tag, { tag: p.tag, status: p.status || 'Operativo' });
+          }
+        });
+      }
+      return defaultTags.map(tag => map.get(tag));
+    };
+
+    const cleanSentinaPumps = sanitizeAndLinkPumps(mergeWithDefaults(sentina_pumps || [], defaultSentinaTags));
+    const cleanIntermediaPumps = sanitizeAndLinkPumps(mergeWithDefaults(intermedia_pumps || [], defaultIntermediaTags));
+    const cleanTorre5Pumps = sanitizeAndLinkPumps(mergeWithDefaults(torre5_pumps || [], defaultTorre5Tags));
 
     const existing = db.prepare(`
       SELECT id FROM pump_station_sheets 
       WHERE report_date = ? AND shift_code = ?
     `).get(report_date, shift) as any;
 
-    const sentinaJson = JSON.stringify(sentina_pumps || []);
-    const intermediaJson = JSON.stringify(intermedia_pumps || []);
-    const torre5Json = JSON.stringify(torre5_pumps || []);
+    const sentinaJson = JSON.stringify(cleanSentinaPumps);
+    const intermediaJson = JSON.stringify(cleanIntermediaPumps);
+    const torre5Json = JSON.stringify(cleanTorre5Pumps);
     const levelsJson = JSON.stringify(levels || {});
     const indicatorsJson = JSON.stringify(main_indicators || {});
     const pozasJson = JSON.stringify(pozas_sentina || []);
@@ -235,7 +427,26 @@ export function savePumpOperationalSheet(req: AuthenticatedRequest, res: Respons
       req.ip || '127.0.0.1'
     );
 
-    return res.status(200).json({ success: true, message: 'Reporte integral de bombas guardado exitosamente', id: sheetId });
+    const payload = {
+      ...req.body,
+      sentina_pumps: cleanSentinaPumps,
+      intermedia_pumps: cleanIntermediaPumps,
+      torre5_pumps: cleanTorre5Pumps
+    };
+
+    broadcastWsEvent({
+      entity: 'PUMP_STATION_SHEET',
+      action: existing ? 'UPDATE' : 'CREATE',
+      key: 'pump_sheet_' + report_date,
+      data: payload
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Reporte integral de bombas guardado exitosamente',
+      id: sheetId,
+      data: payload
+    });
   } catch (error: any) {
     return res.status(500).json({ success: false, message: error.message });
   }

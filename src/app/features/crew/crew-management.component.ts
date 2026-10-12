@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, ChangeDetectorRef, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -1958,10 +1958,12 @@ import { getRosterForDate, getCurrentActiveShift, getLocalDateString, DayRoster,
     }
   `]
 })
-export class CrewManagementComponent implements OnInit {
+export class CrewManagementComponent implements OnInit, OnDestroy {
   authService = inject(AuthService);
   crewService = inject(CrewService);
   permissionsService = inject(PermissionsService);
+  private cdr = inject(ChangeDetectorRef);
+  private ngZone = inject(NgZone);
 
   selectedShift: 'G1' | 'G2' | 'G3' | 'G4' | string = 'G1';
   selectedShiftType: 'DIA' | 'NOCHE' = 'DIA';
@@ -2109,6 +2111,26 @@ export class CrewManagementComponent implements OnInit {
     this.selectedShift = scheduled.code;
   }
 
+  private syncListener = (e: any) => {
+    if (e.detail?.source === 'local') return;
+    const ent = (e.detail?.entity || '').toLowerCase();
+    const key = (e.detail?.key || '').toLowerCase();
+    if (
+      ent.includes('crew') ||
+      ent.includes('cuadrilla') ||
+      ent.includes('assignment') ||
+      ent.includes('user') ||
+      key.includes('crew') ||
+      key.includes('assignment')
+    ) {
+      this.ngZone.run(() => {
+        this.loadData();
+        this.cdr.markForCheck();
+        this.cdr.detectChanges();
+      });
+    }
+  };
+
   ngOnInit(): void {
     const active = getCurrentActiveShift();
     this.selectedDate = active.dateStr;
@@ -2116,6 +2138,10 @@ export class CrewManagementComponent implements OnInit {
     this.selectedShift = active.activeGuard.code;
 
     this.loadData();
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('basetrack_cloud_sync', this.syncListener);
+    }
   }
 
   loadData(): void {
@@ -2205,6 +2231,7 @@ export class CrewManagementComponent implements OnInit {
   autoAssignDefaultStaff(): void {
     const staff = this.crewService.getOfficialShiftStaff(this.selectedShift);
     const roleMapping: Record<string, string> = {
+      'SUPERVISOR': staff.supervisor.id,
       'SALA_CONTROL': staff.controlRoom.id,
       'BOMBAS': staff.bombas.id,
       'CICLONES_1': staff.ciclones1.id,
@@ -2530,6 +2557,12 @@ export class CrewManagementComponent implements OnInit {
   onDeleteOperator(operator: CrewMember): void {
     if (confirm(`¿Confirma dar de baja al operador ${operator.name} de la cuadrilla?`)) {
       this.crewService.deleteCrewMember(operator.id).subscribe();
+    }
+  }
+
+  ngOnDestroy(): void {
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('basetrack_cloud_sync', this.syncListener);
     }
   }
 }

@@ -948,7 +948,7 @@ export class PumpReportPdfComponent implements OnInit {
   isDownloading = false;
   downloadSuccess = false;
   copiedText = false;
-  todayDate: string = new Date().toISOString().split('T')[0];
+  todayDate: string = getCurrentActiveShift().dateStr;
   operatorName = '--- Vacante ---';
   operatorDni = '---';
   operatorRole = 'Operador de bombas';

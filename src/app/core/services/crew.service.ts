@@ -2,8 +2,8 @@ import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, tap, catchError, of, map, timeout } from 'rxjs';
 import { OfflineSyncService } from '../offline/offline-sync.service';
-import { updateGuardsCatalog } from '../../shared/utils/roster.util';
-import { getRealtimeData } from '../storage/local-store.util';
+import { updateGuardsCatalog, getCurrentActiveShift } from '../../shared/utils/roster.util';
+import { getRealtimeData, saveRealtimeData } from '../storage/local-store.util';
 
 export type PositionKey = 'SUPERVISOR' | 'SALA_CONTROL' | 'BOMBAS' | 'CICLONES_1' | 'CICLONES_2' | 'DISTRIBUIDOR' | 'DESCARGA_1' | 'DESCARGA_2' | 'MISCELANEOS' | string;
 
@@ -546,7 +546,7 @@ export class CrewService {
     const completePayload: CrewAreaAssignment = {
       id: assignId,
       shift_code: payload.shift_code || 'G1',
-      shift_date: payload.shift_date || new Date().toISOString().split('T')[0],
+      shift_date: payload.shift_date || getCurrentActiveShift().dateStr,
       shift_type: payload.shift_type || 'DIA',
       position_key: payload.position_key || 'BOMBAS',
       position_title: payload.position_title || 'Operador',
@@ -1250,11 +1250,6 @@ export class CrewService {
   }
 
   private saveCache(key: string, data: any): void {
-    if (typeof window === 'undefined' || typeof localStorage === 'undefined') return;
-    try {
-      localStorage.setItem(key, JSON.stringify(data));
-    } catch (e) {
-      console.warn('[CrewService] Error guardando en localStorage:', e);
-    }
+    saveRealtimeData(key, data, { skipBroadcast: true });
   }
 }

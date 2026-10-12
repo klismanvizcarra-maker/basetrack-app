@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal, computed, ChangeDetectorRef, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { VehicleChecklistService, VehicleInfo, VehicleChecklist, InspectionCheckItem, DEFAULT_INSPECTION_ITEMS } from '../../core/services/vehicle-checklist.service';
@@ -15,10 +15,12 @@ import { getCurrentActiveShift, getLocalDateString } from '../../shared/utils/ro
   templateUrl: './vehicle-checklist.component.html',
   styleUrls: ['./vehicle-checklist.component.scss']
 })
-export class VehicleChecklistComponent implements OnInit {
+export class VehicleChecklistComponent implements OnInit, OnDestroy {
   checklistService = inject(VehicleChecklistService);
   authService = inject(AuthService);
   crewService = inject(CrewService);
+  private cdr = inject(ChangeDetectorRef);
+  private ngZone = inject(NgZone);
 
   // Modal State
   isCreateModalOpen = false;
@@ -31,7 +33,7 @@ export class VehicleChecklistComponent implements OnInit {
   successMessage = '';
 
   // Form State
-  formVehiclePlate: 'BMC715' | 'BKS921' | 'BKS913' | 'BPS747' = 'BMC715';
+  formVehiclePlate: string = 'BMC715';
   formDate = getLocalDateString();
   formTime = new Date().toTimeString().slice(0, 5);
   formShift: 'G1' | 'G2' | 'G3' | 'G4' = 'G1';
@@ -50,16 +52,43 @@ export class VehicleChecklistComponent implements OnInit {
   // Active Category filter in form
   activeCategory = 'TODAS';
 
+  private syncListener = (e: any) => {
+    if (e.detail?.source === 'local') return;
+    const ent = (e.detail?.entity || '').toLowerCase();
+    const key = (e.detail?.key || '').toLowerCase();
+    if (ent.includes('vehicle') || ent.includes('checklist') || key.includes('checklist') || key.includes('vehicle')) {
+      this.ngZone.run(() => {
+        this.checklistService.refreshVehicles();
+        this.checklistService.loadChecklistsForPlate(this.checklistService.selectedPlate());
+        this.cdr.markForCheck();
+        this.cdr.detectChanges();
+      });
+    }
+  };
+
   ngOnInit(): void {
     this.checklistService.refreshVehicles();
     this.checklistService.loadChecklistsForPlate(this.checklistService.selectedPlate());
+    if (typeof window !== 'undefined') {
+      window.addEventListener('basetrack_cloud_sync', this.syncListener);
+    }
+  }
+
+  ngOnDestroy(): void {
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('basetrack_cloud_sync', this.syncListener);
+    }
   }
 
   get vehicles(): VehicleInfo[] {
     return this.checklistService.vehicles();
   }
 
-  get selectedPlate(): 'BMC715' | 'BKS921' | 'BKS913' | 'BPS747' {
+  get activeVehicles(): VehicleInfo[] {
+    return this.checklistService.vehicles().filter(v => v.is_active !== 0 && v.is_active !== false);
+  }
+
+  get selectedPlate(): string {
     return this.checklistService.selectedPlate();
   }
 
@@ -75,7 +104,7 @@ export class VehicleChecklistComponent implements OnInit {
     return this.checklistService.isLoading();
   }
 
-  selectVehicle(plate: 'BMC715' | 'BKS921' | 'BKS913' | 'BPS747'): void {
+  selectVehicle(plate: string): void {
     this.checklistService.selectVehicle(plate);
   }
 

@@ -3,6 +3,7 @@ import crypto from 'node:crypto';
 import { db } from '../database/db.js';
 import { AuthenticatedRequest } from '../middlewares/auth.middleware.js';
 import { logAudit } from '../middlewares/error.middleware.js';
+import { broadcastWsEvent } from '../websocket/ws.js';
 
 export function getAllTailings(req: Request, res: Response) {
   try {
@@ -25,8 +26,8 @@ export function createTailingsReport(req: AuthenticatedRequest, res: Response) {
     }
 
     const id = crypto.randomUUID();
-    const operatorName = req.user?.fullName || req.body.operator_name || 'Operador de Presa';
-    const shiftCode = req.user?.shift || req.body.shift_code || 'G1';
+    const operatorName = req.body.operator_name || req.user?.fullName || 'Operador de Presa';
+    const shiftCode = req.body.shift_code || req.user?.shift || 'G1';
 
     db.prepare(`
       INSERT INTO tailings_reports (
@@ -39,6 +40,29 @@ export function createTailingsReport(req: AuthenticatedRequest, res: Response) {
       freeboard_meters || 0, piezometer_kpa || 0, turbidity_ntu || 0, pumping_line_status,
       operatorName, shiftCode, notes || null
     );
+
+    // Broadcast instant WebSocket update across all terminals
+    broadcastWsEvent({
+      entity: 'tailings',
+      action: 'CREATE',
+      data: {
+        id,
+        station_tag,
+        flow_rate_m3h: flow_rate_m3h || 0,
+        solids_percentage: solids_percentage || 0,
+        dam_level_meters: dam_level_meters || 0,
+        freeboard_meters: freeboard_meters || 0,
+        piezometer_kpa: piezometer_kpa || 0,
+        turbidity_ntu: turbidity_ntu || 0,
+        pumping_line_status,
+        operator_name: operatorName,
+        shift_code: shiftCode,
+        notes: notes || null
+      },
+      key: 'basetrack_tailings_reports',
+      deviceId: req.headers['x-device-id']?.toString() || 'server_api',
+      senderName: operatorName
+    });
 
     logAudit(req.user?.userId || null, req.user?.username || 'system', 'CREATE', 'TAILINGS_REPORT', id, `Reporte relaves en ${station_tag}`, req.ip || '127.0.0.1');
 

@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, ChangeDetectorRef, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
@@ -12,6 +12,7 @@ import { getRealtimeData, saveRealtimeData } from '../../core/storage/local-stor
 import { CrewService, SupervisorData, CrewMember, SupervisorOperatorItem } from '../../core/services/crew.service';
 import { PermissionsService, ALL_PERMISSIONS, DEFAULT_ROLE_PERMISSIONS, PermissionKey, PermissionDefinition } from '../../core/auth/permissions.service';
 import { PlantParametersService, PlantParameters, DEFAULT_PLANT_PARAMETERS } from '../../core/services/plant-parameters.service';
+import { VehicleChecklistService, VehicleInfo } from '../../core/services/vehicle-checklist.service';
 import { resetGuardsCatalog } from '../../shared/utils/roster.util';
 
 export interface UserItem {
@@ -200,6 +201,17 @@ const DEFAULT_LOGS: AuditLog[] = [
           <span class="tab-icon">⚙️</span>
           <span class="tab-title">Parámetros de Planta</span>
           <span class="tab-badge">Metas & Umbrales</span>
+        </button>
+
+        <button 
+          type="button" 
+          class="nav-tab-btn" 
+          [class.active]="activeAdminTab === 'VEHICLES_FLEET'" 
+          (click)="activeAdminTab = 'VEHICLES_FLEET'"
+        >
+          <span class="tab-icon">🛻</span>
+          <span class="tab-title">Padrón de Camionetas</span>
+          <span class="tab-badge">{{ vehiclesList.length }} Unidades</span>
         </button>
       </div>
 
@@ -454,6 +466,13 @@ const DEFAULT_LOGS: AuditLog[] = [
             </div>
           </div>
           <div class="head-actions">
+            <button class="btn btn-secondary btn-sm" (click)="broadcastGlobalUpdate()" [disabled]="isBroadcastingUpdate" title="Enviar señal de actualización en tiempo real a todas las terminales y celulares conectados">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M23 4v6h-6"></path>
+                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+              </svg>
+              {{ isBroadcastingUpdate ? 'Emitiendo...' : 'Actualizar Todos en Vivo' }}
+            </button>
             <button class="btn btn-secondary btn-sm" (click)="confirmPurgeStaleDevices()" [disabled]="isPurgingDevices" title="Limpiar terminales inactivas > 5 días o con sesión revocada">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="3 6 5 6 21 6"></polyline>
@@ -1473,6 +1492,294 @@ const DEFAULT_LOGS: AuditLog[] = [
           </div>
         </div>
       </div>
+
+      <!-- APARTADO 7: PADRÓN DE CAMIONETAS MINERAS 4X4 (Gestión de Flota) -->
+      <div class="vehicles-fleet-section animate-fade-in" *ngIf="activeAdminTab === 'VEHICLES_FLEET'">
+        <div class="section-card glass-panel header-banner-card">
+          <div class="card-head">
+            <div class="head-with-icon">
+              <span class="fleet-icon">🛻</span>
+              <div>
+                <h3>Padrón Oficial de Camionetas Mineras (Flota 4x4)</h3>
+                <p class="section-sub">
+                  Control oficial de unidades para inspección pre-uso (DS-024-2016-EM). Da de alta nuevas camionetas, actualiza placas o da de baja unidades operativas sin tocar código.
+                </p>
+              </div>
+            </div>
+            <div class="head-actions">
+              <button 
+                type="button" 
+                class="btn btn-secondary btn-sm" 
+                (click)="loadVehiclesFleet()"
+                [disabled]="isLoadingVehicles"
+                title="Actualizar listado de camionetas"
+              >
+                <span>↺ Refrescar Padrón</span>
+              </button>
+              <button 
+                type="button" 
+                class="btn btn-primary btn-sm" 
+                (click)="openCreateVehicleModal()"
+                title="Dar de alta una nueva camioneta en el padrón"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                <span>+ Dar de Alta Camioneta</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Feedback Alert Messages -->
+        <div *ngIf="vehicleActionSuccessMessage" class="feedback-banner glass-panel animate-fade-in" style="margin-bottom: 16px;">
+          <div class="feedback-icon">✅</div>
+          <div class="feedback-text">{{ vehicleActionSuccessMessage }}</div>
+        </div>
+        <div *ngIf="vehicleActionErrorMessage" class="feedback-banner glass-panel animate-fade-in" style="margin-bottom: 16px; border-color: rgba(239, 68, 68, 0.4); background: rgba(254, 242, 242, 0.9);">
+          <div class="feedback-icon">⚠️</div>
+          <div class="feedback-text" style="color: #991b1b;">{{ vehicleActionErrorMessage }}</div>
+        </div>
+
+        <!-- KPI Metrics Grid: Flota -->
+        <div class="fleet-kpi-grid">
+          <div class="fleet-kpi-card glass-panel">
+            <div class="kpi-icon-wrap" style="background: rgba(3, 23, 149, 0.08); color: #031795;">
+              <span style="font-size: 1.4rem;">🛻</span>
+            </div>
+            <div class="kpi-data">
+              <span class="kpi-label">Total en Padrón</span>
+              <strong class="kpi-num">{{ vehiclesList.length }}</strong>
+              <span class="kpi-hint">Unidades registradas</span>
+            </div>
+          </div>
+
+          <div class="fleet-kpi-card glass-panel">
+            <div class="kpi-icon-wrap" style="background: rgba(16, 185, 129, 0.1); color: #059669;">
+              <span style="font-size: 1.4rem;">✅</span>
+            </div>
+            <div class="kpi-data">
+              <span class="kpi-label">Activas en Operación</span>
+              <strong class="kpi-num" style="color: #059669;">{{ activeVehiclesCount }}</strong>
+              <span class="kpi-hint">Disponibles en checklists</span>
+            </div>
+          </div>
+
+          <div class="fleet-kpi-card glass-panel">
+            <div class="kpi-icon-wrap" style="background: rgba(239, 68, 68, 0.1); color: #dc2626;">
+              <span style="font-size: 1.4rem;">⛔</span>
+            </div>
+            <div class="kpi-data">
+              <span class="kpi-label">Dadas de Baja</span>
+              <strong class="kpi-num" style="color: #dc2626;">{{ decommissionedVehiclesCount }}</strong>
+              <span class="kpi-hint">Desmovilizadas / Inactivas</span>
+            </div>
+          </div>
+
+          <div class="fleet-kpi-card glass-panel">
+            <div class="kpi-icon-wrap" style="background: rgba(245, 158, 11, 0.1); color: #d97706;">
+              <span style="font-size: 1.4rem;">⏱️</span>
+            </div>
+            <div class="kpi-data">
+              <span class="kpi-label">Kilometraje Flota</span>
+              <strong class="kpi-num" style="color: #d97706;">{{ totalFleetOdometer | number }}</strong>
+              <span class="kpi-hint">Kilómetros acumulados</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filter & Search Toolbar -->
+        <div class="section-card glass-panel" style="padding: 16px 20px;">
+          <div class="fleet-toolbar">
+            <div class="search-input-wrap">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+              <input 
+                type="text" 
+                class="search-input" 
+                placeholder="Buscar por placa, tag (CAM-01), modelo, área o conductor..." 
+                [(ngModel)]="vehiclesSearchQuery"
+              />
+              <button *ngIf="vehiclesSearchQuery" class="clear-search-btn" (click)="vehiclesSearchQuery = ''">✕</button>
+            </div>
+
+            <div class="status-filters-group">
+              <button 
+                type="button" 
+                class="status-filter-btn" 
+                [class.active]="vehiclesFilterStatus === 'ALL'"
+                (click)="vehiclesFilterStatus = 'ALL'"
+              >
+                Todas ({{ vehiclesList.length }})
+              </button>
+              <button 
+                type="button" 
+                class="status-filter-btn" 
+                [class.active]="vehiclesFilterStatus === 'ACTIVE'"
+                (click)="vehiclesFilterStatus = 'ACTIVE'"
+              >
+                Solo Activas ({{ activeVehiclesCount }})
+              </button>
+              <button 
+                type="button" 
+                class="status-filter-btn" 
+                [class.active]="vehiclesFilterStatus === 'INACTIVE'"
+                (click)="vehiclesFilterStatus = 'INACTIVE'"
+              >
+                Dadas de Baja ({{ decommissionedVehiclesCount }})
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Vehicles Table -->
+        <div class="section-card glass-panel" style="padding: 0; overflow: hidden;">
+          <div class="table-responsive">
+            <table class="data-table fleet-table">
+              <thead>
+                <tr>
+                  <th style="width: 140px;">Placa Minera</th>
+                  <th style="width: 110px;">Código (Tag)</th>
+                  <th>Modelo & Color</th>
+                  <th>Área Operativa Asignada</th>
+                  <th style="text-align: right;">Odómetro Base</th>
+                  <th style="text-align: right;">Odómetro Actual</th>
+                  <th style="text-align: center;">Estado en Padrón</th>
+                  <th>Último Checklist</th>
+                  <th style="text-align: center; width: 180px;">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let veh of filteredVehiclesList" [class.row-inactive]="veh.is_active === 0 || veh.is_active === false">
+                  <!-- Placa Badge -->
+                  <td>
+                    <div class="mining-plate-badge" [class.plate-inactive]="veh.is_active === 0 || veh.is_active === false">
+                      <span class="plate-country">PERÚ</span>
+                      <strong class="plate-text">{{ veh.plate }}</strong>
+                    </div>
+                  </td>
+
+                  <!-- Tag -->
+                  <td>
+                    <span class="unit-code-badge">{{ veh.tag }}</span>
+                  </td>
+
+                  <!-- Modelo & Color -->
+                  <td>
+                    <div class="veh-model-cell">
+                      <strong class="veh-model-name">{{ veh.model }}</strong>
+                      <span class="veh-color-name">{{ veh.color }}</span>
+                    </div>
+                  </td>
+
+                  <!-- Área Operativa -->
+                  <td>
+                    <span class="veh-area-pill">{{ veh.area }}</span>
+                  </td>
+
+                  <!-- Odómetro Base -->
+                  <td style="text-align: right; font-variant-numeric: tabular-nums;">
+                    {{ veh.baseOdometer | number }} km
+                  </td>
+
+                  <!-- Odómetro Actual -->
+                  <td style="text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; color: #031795;">
+                    {{ veh.currentOdometer | number }} km
+                  </td>
+
+                  <!-- Estado en Padrón -->
+                  <td style="text-align: center;">
+                    <span 
+                      class="fleet-status-badge"
+                      [class.status-active]="veh.is_active !== 0 && veh.is_active !== false"
+                      [class.status-decommissioned]="veh.is_active === 0 || veh.is_active === false"
+                    >
+                      <span class="status-indicator-dot"></span>
+                      {{ (veh.is_active !== 0 && veh.is_active !== false) ? 'Activa en Faena' : 'Dada de Baja' }}
+                    </span>
+                  </td>
+
+                  <!-- Último Checklist -->
+                  <td>
+                    <div class="last-chk-cell" *ngIf="veh.lastChecklistDate; else noChecklistYet">
+                      <span class="chk-date">{{ veh.lastChecklistDate }} {{ veh.lastChecklistTime || '' }}</span>
+                      <span class="chk-driver">{{ veh.lastDriverName || 'Operador' }}</span>
+                      <span 
+                        class="chk-status-pill"
+                        [class.pill-apto]="veh.lastOperationalStatus === 'APTO'"
+                        [class.pill-observado]="veh.lastOperationalStatus === 'OBSERVADO'"
+                        [class.pill-no_apto]="veh.lastOperationalStatus === 'NO_APTO'"
+                      >
+                        {{ veh.lastOperationalStatus }}
+                      </span>
+                    </div>
+                    <ng-template #noChecklistYet>
+                      <span class="no-chk-muted">Sin inspecciones aún</span>
+                    </ng-template>
+                  </td>
+
+                  <!-- Acciones -->
+                  <td style="text-align: center;">
+                    <div class="fleet-actions-cell">
+                      <!-- Editar datos y placa -->
+                      <button 
+                        type="button" 
+                        class="btn btn-secondary btn-xs" 
+                        (click)="openEditVehicleModal(veh)"
+                        title="Editar datos de camioneta o actualizar placa"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                        </svg>
+                        <span>Editar</span>
+                      </button>
+
+                      <!-- Dar de baja / Reactivar -->
+                      <button 
+                        type="button" 
+                        class="btn btn-xs"
+                        [class.btn-warning-outline]="veh.is_active !== 0 && veh.is_active !== false"
+                        [class.btn-emerald-outline]="veh.is_active === 0 || veh.is_active === false"
+                        (click)="toggleVehicleActiveStatus(veh)"
+                        [title]="(veh.is_active !== 0 && veh.is_active !== false) ? 'Dar de baja de la faena' : 'Reactivar en faena'"
+                      >
+                        <span>{{ (veh.is_active !== 0 && veh.is_active !== false) ? 'Baja' : 'Reactivar' }}</span>
+                      </button>
+
+                      <!-- Eliminar -->
+                      <button 
+                        type="button" 
+                        class="btn btn-danger-outline btn-xs" 
+                        (click)="deleteVehicleFromFleet(veh)"
+                        title="Eliminar del padrón"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <polyline points="3 6 5 6 21 6"></polyline>
+                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+
+                <tr *ngIf="filteredVehiclesList.length === 0">
+                  <td colspan="9" style="text-align: center; padding: 40px 20px;">
+                    <div style="font-size: 2rem; margin-bottom: 8px;">🔍</div>
+                    <h4 style="margin: 0 0 4px; color: var(--text-heading);">No se encontraron camionetas</h4>
+                    <p style="margin: 0; font-size: 0.85rem; color: var(--text-muted);">
+                      No hay unidades que coincidan con los filtros de búsqueda aplicados.
+                    </p>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     </div>
 
       <!-- Modal Bulk Import Users (Organizado por Guardias y Supervisores) -->
@@ -1737,7 +2044,7 @@ const DEFAULT_LOGS: AuditLog[] = [
         </div>
 
         <div footer class="modal-footer-actions">
-          <button type="button" class="btn btn-secondary" (click)="isBulkModalOpen = false">
+          <button type="button" class="btn btn-secondary" [disabled]="isImporting" (click)="isBulkModalOpen = false">
             Cancelar
           </button>
           <button
@@ -1749,7 +2056,9 @@ const DEFAULT_LOGS: AuditLog[] = [
             <span *ngIf="!isImporting">
               🚀 Confirmar e Importar {{ validBulkCount }} Trabajadores (Vincular a Guardias)
             </span>
-            <span *ngIf="isImporting">Importando y vinculando a supervisores...</span>
+            <span *ngIf="isImporting" class="btn-importing-status">
+              <span class="btn-spinner"></span> Importando y vinculando a supervisores...
+            </span>
           </button>
         </div>
       </app-modal>
@@ -2020,6 +2329,232 @@ const DEFAULT_LOGS: AuditLog[] = [
               [disabled]="!resetAppPassword || isResettingApp"
             >
               {{ isResettingApp ? 'Restableciendo Sistema...' : 'Confirmar y Limpiar Todo' }}
+            </button>
+          </div>
+        </div>
+      </app-modal>
+
+      <!-- Modal: Dar de Alta Camioneta Minera (4x4) -->
+      <app-modal
+        [isOpen]="isCreateVehicleModalOpen"
+        [title]="'Dar de Alta Camioneta Minera (4x4)'"
+        [showFooter]="false"
+        (close)="isCreateVehicleModalOpen = false"
+      >
+        <div class="vehicle-modal-body">
+          <div class="modal-intro-pill">
+            <span class="intro-icon">🛻</span>
+            <span>Registra una nueva unidad en el padrón activo de operaciones para habilitarla en checklists pre-uso.</span>
+          </div>
+
+          <div class="form-grid-2" style="margin-top: 14px;">
+            <div class="form-group">
+              <label>Placa Vehicular *</label>
+              <input 
+                type="text" 
+                class="modal-input" 
+                placeholder="Ej: BCV123 o BMC715" 
+                [(ngModel)]="vehicleFormPlate" 
+                (input)="vehicleFormPlate = vehicleFormPlate.toUpperCase()"
+                maxlength="10"
+                required
+              />
+              <span class="field-hint">Alfanumérico sin guiones ni espacios.</span>
+            </div>
+
+            <div class="form-group">
+              <label>Código Interno / Tag *</label>
+              <input 
+                type="text" 
+                class="modal-input" 
+                placeholder="Ej: CAM-05" 
+                [(ngModel)]="vehicleFormTag" 
+                (input)="vehicleFormTag = vehicleFormTag.toUpperCase()"
+                required
+              />
+              <span class="field-hint">Identificador radial/operativo.</span>
+            </div>
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label>Modelo de Unidad *</label>
+              <input 
+                type="text" 
+                class="modal-input" 
+                placeholder="Ej: Toyota Hilux 4x4 Turbodiésel" 
+                [(ngModel)]="vehicleFormModel" 
+                required
+              />
+            </div>
+
+            <div class="form-group">
+              <label>Color de Unidad</label>
+              <input 
+                type="text" 
+                class="modal-input" 
+                placeholder="Ej: Blanco Industrial" 
+                [(ngModel)]="vehicleFormColor" 
+              />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Área Operativa de Asignación *</label>
+            <select class="modal-input" [(ngModel)]="vehicleFormArea">
+              <option value="Supervisión de Operaciones">Supervisión de Operaciones</option>
+              <option value="Operaciones Bombas / Molienda">Operaciones Bombas / Molienda</option>
+              <option value="Operaciones Ciclones / Planta">Operaciones Ciclones / Planta</option>
+              <option value="Presa de Relaves / Auxiliares">Presa de Relaves / Auxiliares</option>
+              <option value="Geotecnia / Topografía">Geotecnia / Topografía</option>
+              <option value="Mantenimiento Mecánico">Mantenimiento Mecánico</option>
+              <option value="Seguridad & Medio Ambiente">Seguridad & Medio Ambiente</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Kilometraje Odómetro Base (km) *</label>
+            <input 
+              type="number" 
+              class="modal-input" 
+              placeholder="0" 
+              [(ngModel)]="vehicleFormBaseOdometer" 
+              min="0"
+            />
+            <span class="field-hint">Lectura inicial de kilometraje con la que ingresa al padrón.</span>
+          </div>
+
+          <div *ngIf="vehicleModalErrorMessage" class="modal-error-alert">
+            ⚠️ {{ vehicleModalErrorMessage }}
+          </div>
+
+          <div class="modal-buttons" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px;">
+            <button type="button" class="btn btn-secondary" (click)="isCreateVehicleModalOpen = false" [disabled]="isSavingVehicle">
+              Cancelar
+            </button>
+            <button 
+              type="button" 
+              class="btn btn-primary" 
+              (click)="submitCreateVehicle()" 
+              [disabled]="!vehicleFormPlate.trim() || isSavingVehicle"
+            >
+              {{ isSavingVehicle ? 'Guardando en Padrón...' : 'Dar de Alta Camioneta' }}
+            </button>
+          </div>
+        </div>
+      </app-modal>
+
+      <!-- Modal: Editar Datos de Camioneta & Actualizar Placa -->
+      <app-modal
+        [isOpen]="isEditVehicleModalOpen"
+        [title]="'Editar Unidad: ' + (selectedVehicleForEdit?.plate || '')"
+        [showFooter]="false"
+        (close)="isEditVehicleModalOpen = false"
+      >
+        <div class="vehicle-modal-body" *ngIf="selectedVehicleForEdit">
+          <div class="plate-update-notice-box">
+            <div class="notice-icon">💡</div>
+            <div class="notice-text">
+              <strong>Actualización de Placa sin tocar código:</strong>
+              <p>Puedes corregir o actualizar la placa vehicular. Todas las inspecciones previas se mantendrán vinculadas a la nueva placa de forma transparente e instantánea.</p>
+            </div>
+          </div>
+
+          <div class="form-grid-2" style="margin-top: 14px;">
+            <div class="form-group">
+              <label>Placa Vehicular *</label>
+              <input 
+                type="text" 
+                class="modal-input" 
+                [(ngModel)]="vehicleFormPlate" 
+                (input)="vehicleFormPlate = vehicleFormPlate.toUpperCase()"
+                maxlength="10"
+                required
+              />
+              <span class="field-hint">Placa oficial registrada.</span>
+            </div>
+
+            <div class="form-group">
+              <label>Código Interno / Tag *</label>
+              <input 
+                type="text" 
+                class="modal-input" 
+                [(ngModel)]="vehicleFormTag" 
+                (input)="vehicleFormTag = vehicleFormTag.toUpperCase()"
+                required
+              />
+            </div>
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label>Modelo de Unidad *</label>
+              <input 
+                type="text" 
+                class="modal-input" 
+                [(ngModel)]="vehicleFormModel" 
+                required
+              />
+            </div>
+
+            <div class="form-group">
+              <label>Color de Unidad</label>
+              <input 
+                type="text" 
+                class="modal-input" 
+                [(ngModel)]="vehicleFormColor" 
+              />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Área Operativa de Asignación *</label>
+            <select class="modal-input" [(ngModel)]="vehicleFormArea">
+              <option value="Supervisión de Operaciones">Supervisión de Operaciones</option>
+              <option value="Operaciones Bombas / Molienda">Operaciones Bombas / Molienda</option>
+              <option value="Operaciones Ciclones / Planta">Operaciones Ciclones / Planta</option>
+              <option value="Presa de Relaves / Auxiliares">Presa de Relaves / Auxiliares</option>
+              <option value="Geotecnia / Topografía">Geotecnia / Topografía</option>
+              <option value="Mantenimiento Mecánico">Mantenimiento Mecánico</option>
+              <option value="Seguridad & Medio Ambiente">Seguridad & Medio Ambiente</option>
+            </select>
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label>Kilometraje Odómetro Base (km)</label>
+              <input 
+                type="number" 
+                class="modal-input" 
+                [(ngModel)]="vehicleFormBaseOdometer" 
+                min="0"
+              />
+            </div>
+
+            <div class="form-group">
+              <label>Estado en Faena</label>
+              <select class="modal-input" [(ngModel)]="vehicleFormIsActive">
+                <option [ngValue]="true">Activa (Disponible para Inspección)</option>
+                <option [ngValue]="false">Dada de Baja (Inactiva)</option>
+              </select>
+            </div>
+          </div>
+
+          <div *ngIf="vehicleModalErrorMessage" class="modal-error-alert">
+            ⚠️ {{ vehicleModalErrorMessage }}
+          </div>
+
+          <div class="modal-buttons" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px;">
+            <button type="button" class="btn btn-secondary" (click)="isEditVehicleModalOpen = false" [disabled]="isSavingVehicle">
+              Cancelar
+            </button>
+            <button 
+              type="button" 
+              class="btn btn-primary" 
+              (click)="submitEditVehicle()" 
+              [disabled]="!vehicleFormPlate.trim() || isSavingVehicle"
+            >
+              {{ isSavingVehicle ? 'Guardando Cambios...' : 'Actualizar Camioneta' }}
             </button>
           </div>
         </div>
@@ -3625,6 +4160,26 @@ const DEFAULT_LOGS: AuditLog[] = [
       justify-content: flex-end;
       gap: 10px;
       width: 100%;
+    }
+
+    .btn-importing-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-spinner {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255, 255, 255, 0.35);
+      border-top-color: #ffffff;
+      border-radius: 50%;
+      animation: spin-import 0.8s linear infinite;
+    }
+
+    @keyframes spin-import {
+      to { transform: rotate(360deg); }
     }
 
     /* Fleet Manager & User Actions Styles */
@@ -5308,9 +5863,419 @@ const DEFAULT_LOGS: AuditLog[] = [
         flex-wrap: wrap;
       }
     }
+
+    /* =============================================================
+       PADRÓN DE CAMIONETAS MINERAS 4X4 (FLEET STYLES)
+       ============================================================= */
+    .vehicles-fleet-section {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .fleet-kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+    }
+
+    .fleet-kpi-card {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 18px 20px;
+      border-radius: var(--radius-lg);
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+
+      .kpi-icon-wrap {
+        width: 48px;
+        height: 48px;
+        border-radius: var(--radius-md);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+
+      .kpi-data {
+        display: flex;
+        flex-direction: column;
+
+        .kpi-label {
+          font-size: 0.78rem;
+          color: var(--text-muted);
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        .kpi-num {
+          font-size: 1.6rem;
+          color: var(--text-heading);
+          font-weight: 800;
+          line-height: 1.2;
+          font-variant-numeric: tabular-nums;
+        }
+
+        .kpi-hint {
+          font-size: 0.72rem;
+          color: var(--text-secondary);
+        }
+      }
+    }
+
+    .fleet-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+
+      .search-input-wrap {
+        position: relative;
+        flex: 1;
+        min-width: 280px;
+        display: flex;
+        align-items: center;
+
+        svg {
+          position: absolute;
+          left: 14px;
+          color: var(--text-muted);
+          pointer-events: none;
+        }
+
+        .search-input {
+          width: 100%;
+          padding: 10px 36px 10px 42px;
+          border-radius: var(--radius-md);
+          border: 1px solid var(--border-subtle);
+          background: var(--bg-input, #ffffff);
+          font-size: 0.88rem;
+          color: var(--text-heading);
+          transition: var(--transition-smooth);
+
+          &:focus {
+            outline: none;
+            border-color: #031795;
+            box-shadow: 0 0 0 3px rgba(3, 23, 149, 0.12);
+          }
+        }
+
+        .clear-search-btn {
+          position: absolute;
+          right: 12px;
+          background: none;
+          border: none;
+          color: var(--text-muted);
+          cursor: pointer;
+          font-size: 0.85rem;
+          padding: 2px 6px;
+        }
+      }
+
+      .status-filters-group {
+        display: flex;
+        gap: 6px;
+
+        .status-filter-btn {
+          padding: 8px 14px;
+          border-radius: var(--radius-md);
+          border: 1px solid var(--border-subtle);
+          background: transparent;
+          color: var(--text-secondary);
+          font-size: 0.82rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: var(--transition-smooth);
+
+          &:hover {
+            background: rgba(3, 23, 149, 0.05);
+            color: #031795;
+          }
+
+          &.active {
+            background: #031795;
+            color: #ffffff;
+            border-color: #031795;
+          }
+        }
+      }
+    }
+
+    .fleet-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+
+      .row-inactive {
+        background: rgba(241, 245, 249, 0.5);
+        opacity: 0.75;
+      }
+
+      td {
+        vertical-align: middle;
+      }
+    }
+
+    /* Mining License Plate UI */
+    .mining-plate-badge {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 4px 10px;
+      background: #ffffff;
+      border: 2px solid #0f172a;
+      border-radius: 6px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+      min-width: 95px;
+
+      .plate-country {
+        font-size: 0.6rem;
+        font-weight: 800;
+        letter-spacing: 1.5px;
+        color: #dc2626;
+        line-height: 1;
+        margin-bottom: 2px;
+      }
+
+      .plate-text {
+        font-family: 'Inter', monospace;
+        font-size: 1rem;
+        font-weight: 900;
+        letter-spacing: 1.5px;
+        color: #0f172a;
+        line-height: 1;
+      }
+
+      &.plate-inactive {
+        filter: grayscale(1);
+        border-color: #94a3b8;
+        background: #f1f5f9;
+
+        .plate-country, .plate-text {
+          color: #64748b;
+        }
+      }
+    }
+
+    .unit-code-badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: rgba(3, 23, 149, 0.08);
+      color: #031795;
+      font-weight: 700;
+      font-size: 0.84rem;
+      letter-spacing: 0.5px;
+    }
+
+    .veh-model-cell {
+      display: flex;
+      flex-direction: column;
+
+      .veh-model-name {
+        font-size: 0.88rem;
+        color: var(--text-heading);
+      }
+
+      .veh-color-name {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+      }
+    }
+
+    .veh-area-pill {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 12px;
+      background: rgba(2, 132, 199, 0.08);
+      color: #0369a1;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    .fleet-status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 0.78rem;
+      font-weight: 700;
+
+      .status-indicator-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+      }
+
+      &.status-active {
+        background: rgba(16, 185, 129, 0.12);
+        color: #047857;
+
+        .status-indicator-dot {
+          background: #10b981;
+          box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.25);
+        }
+      }
+
+      &.status-decommissioned {
+        background: rgba(239, 68, 68, 0.1);
+        color: #b91c1c;
+
+        .status-indicator-dot {
+          background: #ef4444;
+        }
+      }
+    }
+
+    .last-chk-cell {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+
+      .chk-date {
+        font-size: 0.76rem;
+        font-weight: 600;
+        color: var(--text-heading);
+      }
+
+      .chk-driver {
+        font-size: 0.72rem;
+        color: var(--text-muted);
+      }
+
+      .chk-status-pill {
+        display: inline-block;
+        padding: 1px 6px;
+        border-radius: 8px;
+        font-size: 0.68rem;
+        font-weight: 700;
+        width: fit-content;
+
+        &.pill-apto {
+          background: #ecfdf5;
+          color: #059669;
+        }
+
+        &.pill-observado {
+          background: #fffbeb;
+          color: #d97706;
+        }
+
+        &.pill-no_apto {
+          background: #fef2f2;
+          color: #dc2626;
+        }
+      }
+    }
+
+    .no-chk-muted {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      font-style: italic;
+    }
+
+    .fleet-actions-cell {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .btn-warning-outline {
+      background: transparent;
+      border: 1px solid #f59e0b;
+      color: #d97706;
+
+      &:hover {
+        background: #fef3c7;
+      }
+    }
+
+    .btn-emerald-outline {
+      background: transparent;
+      border: 1px solid #10b981;
+      color: #059669;
+
+      &:hover {
+        background: #ecfdf5;
+      }
+    }
+
+    .btn-danger-outline {
+      background: transparent;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #dc2626;
+      padding: 4px 6px;
+
+      &:hover {
+        background: #fef2f2;
+        border-color: #ef4444;
+      }
+    }
+
+    /* Modal vehicle styles */
+    .vehicle-modal-body {
+      padding: 10px 4px;
+
+      .modal-intro-pill {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 14px;
+        border-radius: var(--radius-md);
+        background: rgba(3, 23, 149, 0.05);
+        color: #031795;
+        font-size: 0.84rem;
+        font-weight: 500;
+      }
+
+      .plate-update-notice-box {
+        display: flex;
+        gap: 10px;
+        padding: 12px 14px;
+        border-radius: var(--radius-md);
+        background: rgba(245, 158, 11, 0.08);
+        border: 1px solid rgba(245, 158, 11, 0.3);
+        color: #92400e;
+        font-size: 0.82rem;
+
+        .notice-icon {
+          font-size: 1.2rem;
+          flex-shrink: 0;
+        }
+
+        p {
+          margin: 2px 0 0;
+          font-size: 0.78rem;
+          color: #78350f;
+        }
+      }
+
+      .field-hint {
+        display: block;
+        font-size: 0.72rem;
+        color: var(--text-muted);
+        margin-top: 3px;
+      }
+
+      .modal-error-alert {
+        margin-top: 14px;
+        padding: 8px 12px;
+        border-radius: var(--radius-sm);
+        background: #fef2f2;
+        border: 1px solid #fca5a5;
+        color: #991b1b;
+        font-size: 0.82rem;
+      }
+    }
   `]
 })
-export class AdminComponent implements OnInit {
+export class AdminComponent implements OnInit, OnDestroy {
   private http = inject(HttpClient);
   authService = inject(AuthService);
   offlineSync = inject(OfflineSyncService);
@@ -5318,9 +6283,62 @@ export class AdminComponent implements OnInit {
   crewService = inject(CrewService);
   permissionsService = inject(PermissionsService);
   plantParamsService = inject(PlantParametersService);
+  vehicleChecklistService = inject(VehicleChecklistService);
+  private cdr = inject(ChangeDetectorRef);
+  private ngZone = inject(NgZone);
 
   // Navegación por Apartados en Administrador
-  activeAdminTab: 'SUPERVISORS_CREW' | 'USERS_ROLES' | 'TERMINALS_SYNC' | 'AUDIT_LOGS' | 'PERMISSIONS_MATRIX' | 'PLANT_PARAMETERS' = 'SUPERVISORS_CREW';
+  activeAdminTab: 'SUPERVISORS_CREW' | 'USERS_ROLES' | 'TERMINALS_SYNC' | 'AUDIT_LOGS' | 'PERMISSIONS_MATRIX' | 'PLANT_PARAMETERS' | 'VEHICLES_FLEET' = 'SUPERVISORS_CREW';
+
+  // Flota de Camionetas Mineras 4x4
+  vehiclesList: VehicleInfo[] = [];
+  isLoadingVehicles = false;
+  vehiclesSearchQuery = '';
+  vehiclesFilterStatus: 'ALL' | 'ACTIVE' | 'INACTIVE' = 'ALL';
+  isCreateVehicleModalOpen = false;
+  isEditVehicleModalOpen = false;
+  selectedVehicleForEdit: VehicleInfo | null = null;
+  vehicleFormPlate = '';
+  vehicleFormTag = '';
+  vehicleFormModel = 'Toyota Hilux 4x4 Turbodiésel';
+  vehicleFormColor = 'Blanco Industrial';
+  vehicleFormArea = 'Supervisión de Operaciones';
+  vehicleFormBaseOdometer = 0;
+  vehicleFormIsActive = true;
+  isSavingVehicle = false;
+  vehicleActionSuccessMessage = '';
+  vehicleActionErrorMessage = '';
+  vehicleModalErrorMessage = '';
+
+  get activeVehiclesCount(): number {
+    return this.vehiclesList.filter(v => v.is_active !== 0 && v.is_active !== false).length;
+  }
+
+  get decommissionedVehiclesCount(): number {
+    return this.vehiclesList.filter(v => v.is_active === 0 || v.is_active === false).length;
+  }
+
+  get totalFleetOdometer(): number {
+    return this.vehiclesList.reduce((acc, v) => acc + (Number(v.currentOdometer) || Number(v.baseOdometer) || 0), 0);
+  }
+
+  get filteredVehiclesList(): VehicleInfo[] {
+    return this.vehiclesList.filter(veh => {
+      if (this.vehiclesFilterStatus === 'ACTIVE' && (veh.is_active === 0 || veh.is_active === false)) return false;
+      if (this.vehiclesFilterStatus === 'INACTIVE' && (veh.is_active !== 0 && veh.is_active !== false)) return false;
+
+      const q = (this.vehiclesSearchQuery || '').trim().toLowerCase();
+      if (!q) return true;
+
+      const matchesPlate = (veh.plate || '').toLowerCase().includes(q);
+      const matchesTag = (veh.tag || '').toLowerCase().includes(q);
+      const matchesModel = (veh.model || '').toLowerCase().includes(q);
+      const matchesArea = (veh.area || '').toLowerCase().includes(q);
+      const matchesDriver = (veh.lastDriverName || '').toLowerCase().includes(q);
+
+      return matchesPlate || matchesTag || matchesModel || matchesArea || matchesDriver;
+    });
+  }
 
   // Parámetros de Planta & Metas Operacionales
   editablePlantParams: PlantParameters = { ...DEFAULT_PLANT_PARAMETERS };
@@ -5639,6 +6657,41 @@ export class AdminComponent implements OnInit {
     shift: 'G1'
   };
 
+  private syncListener = (e: any) => {
+    if (e.detail?.source === 'local') return;
+    const ent = (e.detail?.entity || '').toLowerCase();
+    const key = (e.detail?.key || '').toLowerCase();
+    if (
+      ent.includes('user') ||
+      ent.includes('device') ||
+      ent.includes('terminal') ||
+      ent.includes('param') ||
+      ent.includes('planta') ||
+      ent.includes('permission') ||
+      ent.includes('crew') ||
+      ent.includes('cuadrilla') ||
+      ent.includes('vehicle') ||
+      ent.includes('camioneta') ||
+      key.includes('user') ||
+      key.includes('device') ||
+      key.includes('param') ||
+      key.includes('permission') ||
+      key.includes('crew') ||
+      key.includes('vehicle')
+    ) {
+      this.ngZone.run(() => {
+        this.loadUsers();
+        this.loadLogs();
+        this.loadConnectedDevices();
+        this.loadSupervisorsAndOperators();
+        this.loadPlantParameters();
+        this.loadVehiclesFleet();
+        this.cdr.markForCheck();
+        this.cdr.detectChanges();
+      });
+    }
+  };
+
   ngOnInit(): void {
     // Precarga síncrona instantánea (0ms) para Vercel y móviles
     const initialGuards = this.crewService.loadCachedSupervisorOperators();
@@ -5652,6 +6705,183 @@ export class AdminComponent implements OnInit {
     this.loadConnectedDevices();
     this.loadSupervisorsAndOperators();
     this.loadPlantParameters();
+    this.loadVehiclesFleet();
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('basetrack_cloud_sync', this.syncListener);
+    }
+  }
+
+  loadVehiclesFleet(): void {
+    this.isLoadingVehicles = true;
+    this.vehicleChecklistService.getAllVehiclesAdmin().subscribe({
+      next: (res) => {
+        this.isLoadingVehicles = false;
+        if (res && res.success && Array.isArray(res.data)) {
+          this.vehiclesList = res.data;
+        } else {
+          this.vehiclesList = this.vehicleChecklistService.vehicles();
+        }
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.isLoadingVehicles = false;
+        this.vehiclesList = this.vehicleChecklistService.vehicles();
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  openCreateVehicleModal(): void {
+    this.vehicleFormPlate = '';
+    const nextNum = this.vehiclesList.length + 1;
+    this.vehicleFormTag = `CAM-${nextNum < 10 ? '0' + nextNum : nextNum}`;
+    this.vehicleFormModel = 'Toyota Hilux 4x4 Turbodiésel';
+    this.vehicleFormColor = 'Blanco Industrial';
+    this.vehicleFormArea = 'Supervisión de Operaciones';
+    this.vehicleFormBaseOdometer = 0;
+    this.vehicleModalErrorMessage = '';
+    this.isCreateVehicleModalOpen = true;
+  }
+
+  submitCreateVehicle(): void {
+    const rawPlate = (this.vehicleFormPlate || '').toUpperCase().replace(/\s+/g, '').trim();
+    if (!rawPlate || rawPlate.length < 3) {
+      this.vehicleModalErrorMessage = 'La placa vehicular es obligatoria (mínimo 3 caracteres).';
+      return;
+    }
+
+    this.isSavingVehicle = true;
+    this.vehicleModalErrorMessage = '';
+
+    this.vehicleChecklistService.createVehicle({
+      plate: rawPlate,
+      tag: (this.vehicleFormTag || '').toUpperCase().trim(),
+      model: this.vehicleFormModel.trim(),
+      color: this.vehicleFormColor.trim(),
+      area: this.vehicleFormArea.trim(),
+      baseOdometer: Number(this.vehicleFormBaseOdometer) || 0,
+      is_active: 1
+    }).subscribe({
+      next: (res) => {
+        this.isSavingVehicle = false;
+        if (res && res.success) {
+          this.isCreateVehicleModalOpen = false;
+          this.vehicleActionSuccessMessage = `¡Camioneta ${rawPlate} dada de alta exitosamente en el padrón!`;
+          setTimeout(() => this.vehicleActionSuccessMessage = '', 5000);
+          this.loadVehiclesFleet();
+        } else {
+          this.vehicleModalErrorMessage = res?.message || 'Error al dar de alta la camioneta.';
+        }
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        this.isSavingVehicle = false;
+        this.vehicleModalErrorMessage = err?.error?.message || err?.message || 'Error al comunicarse con el servidor.';
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  openEditVehicleModal(veh: VehicleInfo): void {
+    this.selectedVehicleForEdit = veh;
+    this.vehicleFormPlate = veh.plate;
+    this.vehicleFormTag = veh.tag;
+    this.vehicleFormModel = veh.model;
+    this.vehicleFormColor = veh.color;
+    this.vehicleFormArea = veh.area;
+    this.vehicleFormBaseOdometer = veh.baseOdometer;
+    this.vehicleFormIsActive = veh.is_active !== 0 && veh.is_active !== false;
+    this.vehicleModalErrorMessage = '';
+    this.isEditVehicleModalOpen = true;
+  }
+
+  submitEditVehicle(): void {
+    if (!this.selectedVehicleForEdit) return;
+
+    const rawPlate = (this.vehicleFormPlate || '').toUpperCase().replace(/\s+/g, '').trim();
+    if (!rawPlate || rawPlate.length < 3) {
+      this.vehicleModalErrorMessage = 'La placa vehicular es obligatoria.';
+      return;
+    }
+
+    this.isSavingVehicle = true;
+    this.vehicleModalErrorMessage = '';
+
+    const idOrPlate = this.selectedVehicleForEdit.id || this.selectedVehicleForEdit.plate;
+
+    this.vehicleChecklistService.updateVehicle(idOrPlate, {
+      plate: rawPlate,
+      tag: (this.vehicleFormTag || '').toUpperCase().trim(),
+      model: this.vehicleFormModel.trim(),
+      color: this.vehicleFormColor.trim(),
+      area: this.vehicleFormArea.trim(),
+      baseOdometer: Number(this.vehicleFormBaseOdometer) || 0,
+      is_active: this.vehicleFormIsActive ? 1 : 0
+    }).subscribe({
+      next: (res) => {
+        this.isSavingVehicle = false;
+        if (res && res.success) {
+          this.isEditVehicleModalOpen = false;
+          this.vehicleActionSuccessMessage = `¡Camioneta ${rawPlate} actualizada con éxito en el padrón!`;
+          setTimeout(() => this.vehicleActionSuccessMessage = '', 5000);
+          this.loadVehiclesFleet();
+        } else {
+          this.vehicleModalErrorMessage = res?.message || 'Error al actualizar la camioneta.';
+        }
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        this.isSavingVehicle = false;
+        this.vehicleModalErrorMessage = err?.error?.message || err?.message || 'Error al actualizar datos.';
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  toggleVehicleActiveStatus(veh: VehicleInfo): void {
+    const isCurrentlyActive = veh.is_active !== 0 && veh.is_active !== false;
+    const confirmMsg = isCurrentlyActive
+      ? `¿Estás seguro de dar de baja la camioneta ${veh.plate} (${veh.tag})? Ya no estará disponible para realizar checklists en terreno.`
+      : `¿Deseas reactivar la camioneta ${veh.plate} (${veh.tag}) en el padrón operacional?`;
+
+    if (!confirm(confirmMsg)) return;
+
+    const idOrPlate = veh.id || veh.plate;
+    this.vehicleChecklistService.toggleVehicleStatus(idOrPlate, !isCurrentlyActive).subscribe({
+      next: (res) => {
+        if (res && res.success) {
+          this.vehicleActionSuccessMessage = `Camioneta ${veh.plate} ${isCurrentlyActive ? 'dada de baja' : 'reactivada'} exitosamente.`;
+          setTimeout(() => this.vehicleActionSuccessMessage = '', 5000);
+          this.loadVehiclesFleet();
+        }
+      },
+      error: (err) => {
+        this.vehicleActionErrorMessage = err?.error?.message || 'Error al cambiar estado de la unidad.';
+        setTimeout(() => this.vehicleActionErrorMessage = '', 5000);
+      }
+    });
+  }
+
+  deleteVehicleFromFleet(veh: VehicleInfo): void {
+    if (!confirm(`¿Deseas eliminar la camioneta ${veh.plate} (${veh.tag}) del padrón? Si tiene inspecciones registradas, se dará de baja automáticamente para resguardar la trazabilidad.`)) {
+      return;
+    }
+
+    const idOrPlate = veh.id || veh.plate;
+    this.vehicleChecklistService.deleteVehicle(idOrPlate).subscribe({
+      next: (res) => {
+        if (res && res.success) {
+          this.vehicleActionSuccessMessage = res.message || `Camioneta ${veh.plate} procesada del padrón.`;
+          setTimeout(() => this.vehicleActionSuccessMessage = '', 5000);
+          this.loadVehiclesFleet();
+        }
+      },
+      error: (err) => {
+        this.vehicleActionErrorMessage = err?.error?.message || 'Error al eliminar unidad.';
+        setTimeout(() => this.vehicleActionErrorMessage = '', 5000);
+      }
+    });
   }
 
   loadPlantParameters(): void {
@@ -5886,6 +7116,7 @@ export class AdminComponent implements OnInit {
   }
 
   openBulkModal(preselectedShift: string = 'TODAS'): void {
+    this.isImporting = false;
     this.isBulkModalOpen = true;
     this.bulkTab = 'CSV';
     this.pastedText = '';
@@ -5893,6 +7124,7 @@ export class AdminComponent implements OnInit {
     const validShift = ['G1', 'G2', 'G3', 'G4'].includes(preselectedShift) ? (preselectedShift as any) : 'TODAS';
     this.bulkTargetShift = validShift;
     this.bulkPreviewFilterShift = validShift;
+    this.cdr.markForCheck();
   }
 
   get validBulkCount(): number {
@@ -6147,97 +7379,128 @@ export class AdminComponent implements OnInit {
     if (validRows.length === 0) return;
 
     this.isImporting = true;
+    this.cdr.markForCheck();
 
     // Helper to register users locally and sync with crew members & supervisor_operators
     const applyLocalChanges = (isLocalFallback = false) => {
-      for (const r of validRows) {
-        const existingIdx = this.users.findIndex(u => u.username.toLowerCase() === r.username.toLowerCase());
-        if (existingIdx >= 0) {
-          this.users[existingIdx] = {
-            ...this.users[existingIdx],
-            full_name: r.full_name,
-            email: r.email,
-            role: r.role,
-            shift: r.shift
-          };
-        } else {
-          this.users.unshift({
-            id: 'u-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
-            username: r.username,
-            full_name: r.full_name,
-            email: r.email,
-            role: r.role,
-            shift: r.shift,
-            avatar_url: `https://api.dicebear.com/7.x/bottts/svg?seed=${r.username}`,
-            created_at: new Date().toISOString()
-          });
+      try {
+        for (const r of validRows) {
+          const existingIdx = this.users.findIndex(u => u.username.toLowerCase() === r.username.toLowerCase());
+          if (existingIdx >= 0) {
+            this.users[existingIdx] = {
+              ...this.users[existingIdx],
+              full_name: r.full_name,
+              email: r.email,
+              role: r.role,
+              shift: r.shift
+            };
+          } else {
+            this.users.unshift({
+              id: 'u-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
+              username: r.username,
+              full_name: r.full_name,
+              email: r.email,
+              role: r.role,
+              shift: r.shift,
+              avatar_url: `https://api.dicebear.com/7.x/bottts/svg?seed=${r.username}`,
+              created_at: new Date().toISOString()
+            });
+          }
         }
-      }
 
-      if (typeof localStorage !== 'undefined') {
-        localStorage.setItem('basetrack_admin_users', JSON.stringify(this.users));
+        if (typeof localStorage !== 'undefined') {
+          try {
+            localStorage.setItem('basetrack_admin_users', JSON.stringify(this.users));
+          } catch (e) {
+            console.warn('[Admin] Aviso guardando basetrack_admin_users en localStorage:', e);
+          }
 
-        // Sync simultaneously with crew members
-        try {
-          const storedCrew = localStorage.getItem('basetrack_crew_members');
-          const crewList = storedCrew ? JSON.parse(storedCrew) : [];
-          for (const r of validRows) {
-            if (r.role === 'OPERATOR' || r.role === 'SUPERVISOR') {
-              const existingCrewIdx = crewList.findIndex((m: any) => m.name === r.full_name || (r.document_id && m.document_id === r.document_id));
-              if (existingCrewIdx >= 0) {
-                crewList[existingCrewIdx] = {
-                  ...crewList[existingCrewIdx],
-                  name: r.full_name,
-                  document_id: r.document_id || crewList[existingCrewIdx].document_id,
-                  primary_role: r.primary_role || crewList[existingCrewIdx].primary_role,
-                  shift_code: r.shift || crewList[existingCrewIdx].shift_code,
-                  radio_channel: r.radio_channel || crewList[existingCrewIdx].radio_channel,
-                  phone_extension: r.phone_extension || crewList[existingCrewIdx].phone_extension
-                };
-              } else {
-                crewList.push({
-                  id: 'crew-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
-                  name: r.full_name,
-                  document_id: r.document_id || ('DNI-' + Math.floor(10000000 + Math.random() * 90000000)),
-                  primary_role: r.primary_role || (r.role === 'SUPERVISOR' ? 'SUPERVISOR' : 'OPERADOR_BOMBAS'),
-                  shift_code: r.shift || 'G1',
-                  radio_channel: r.radio_channel || 'Canal 1 Operaciones',
-                  phone_extension: r.phone_extension || '',
-                  status: 'EN_TURNO',
-                  avatar_url: `https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=250&q=80`
-                });
+          // Sync simultaneously with crew members
+          try {
+            const storedCrew = localStorage.getItem('basetrack_crew_members');
+            const crewList = storedCrew ? JSON.parse(storedCrew) : [];
+            for (const r of validRows) {
+              if (r.role === 'OPERATOR' || r.role === 'SUPERVISOR') {
+                const existingCrewIdx = crewList.findIndex((m: any) => m.name === r.full_name || (r.document_id && m.document_id === r.document_id));
+                if (existingCrewIdx >= 0) {
+                  crewList[existingCrewIdx] = {
+                    ...crewList[existingCrewIdx],
+                    name: r.full_name,
+                    document_id: r.document_id || crewList[existingCrewIdx].document_id,
+                    primary_role: r.primary_role || crewList[existingCrewIdx].primary_role,
+                    shift_code: r.shift || crewList[existingCrewIdx].shift_code,
+                    radio_channel: r.radio_channel || crewList[existingCrewIdx].radio_channel,
+                    phone_extension: r.phone_extension || crewList[existingCrewIdx].phone_extension
+                  };
+                } else {
+                  crewList.push({
+                    id: 'crew-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
+                    name: r.full_name,
+                    document_id: r.document_id || ('DNI-' + Math.floor(10000000 + Math.random() * 90000000)),
+                    primary_role: r.primary_role || (r.role === 'SUPERVISOR' ? 'SUPERVISOR' : 'OPERADOR_BOMBAS'),
+                    shift_code: r.shift || 'G1',
+                    radio_channel: r.radio_channel || 'Canal 1 Operaciones',
+                    phone_extension: r.phone_extension || '',
+                    status: 'EN_TURNO',
+                    avatar_url: `https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=250&q=80`
+                  });
+                }
               }
             }
+            saveRealtimeData('crew_members', crewList);
+          } catch (e) {
+            console.warn('[Admin] Error sincronizando cuadrilla:', e);
           }
-          saveRealtimeData('crew_members', crewList);
-        } catch (e) {
-          console.warn('Error sincronizando cuadrilla:', e);
-        }
 
-        // Also sync to persistent users_registry so they can authenticate
-        const registry = getRealtimeData<Record<string, any>>('users_registry', {});
-        for (const r of validRows) {
-          registry[r.username.toLowerCase()] = {
-            id: 'u-' + Math.random().toString(36).substring(2, 9),
-            username: r.username,
-            email: r.email,
-            fullName: r.full_name,
-            role: r.role,
-            shift: r.shift,
-            avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${r.username}`
-          };
+          // Also sync to persistent users_registry so they can authenticate
+          try {
+            const registry = getRealtimeData<Record<string, any>>('users_registry', {});
+            for (const r of validRows) {
+              registry[r.username.toLowerCase()] = {
+                id: 'u-' + Math.random().toString(36).substring(2, 9),
+                username: r.username,
+                email: r.email,
+                fullName: r.full_name,
+                role: r.role,
+                shift: r.shift,
+                avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${r.username}`
+              };
+            }
+            saveRealtimeData('users_registry', registry);
+          } catch (e) {
+            console.warn('[Admin] Error sincronizando registro de credenciales:', e);
+          }
         }
-        saveRealtimeData('users_registry', registry);
+      } catch (e) {
+        console.warn('[Admin] Error general en persistencia local de nómina:', e);
       }
     };
 
+    // Safety fallback timer to prevent infinite loading under any circumstances
+    const safetyTimer = setTimeout(() => {
+      if (this.isImporting) {
+        console.warn('[Admin] Safety timeout alcanzado (10s), desbloqueando interfaz.');
+        this.isImporting = false;
+        this.isBulkModalOpen = false;
+        this.cdr.detectChanges();
+      }
+    }, 10000);
+
     const bulkEndpoint = `${getApiBaseUrl()}/admin/users/bulk`;
     this.http.post<any>(bulkEndpoint, { users: validRows })
-      .pipe(timeout(20000))
+      .pipe(
+        timeout(10000),
+        finalize(() => {
+          clearTimeout(safetyTimer);
+          this.isImporting = false;
+          this.cdr.detectChanges();
+        })
+      )
       .subscribe({
         next: (res) => {
-          this.isImporting = false;
           this.isBulkModalOpen = false;
+          this.isImporting = false;
+          this.parsedBulkUsers = [];
           const count = res?.count || validRows.length;
           const autoLinked = res?.totalAutoLinked || 0;
 
@@ -6250,10 +7513,12 @@ export class AdminComponent implements OnInit {
           this.loadLogs();
           this.loadSupervisorsAndOperators();
           this.crewService.loadCrew().subscribe();
+          this.cdr.detectChanges();
         },
         error: (err) => {
-          this.isImporting = false;
           this.isBulkModalOpen = false;
+          this.isImporting = false;
+          this.parsedBulkUsers = [];
           console.warn('[Admin] Backend inaccesible o timeout, aplicando persistencia local y encolando:', err);
 
           applyLocalChanges(true);
@@ -6273,6 +7538,7 @@ export class AdminComponent implements OnInit {
           this.loadLogs();
           this.loadSupervisorsAndOperators();
           this.crewService.loadCrew().subscribe();
+          this.cdr.detectChanges();
         }
       });
   }
@@ -6383,6 +7649,31 @@ export class AdminComponent implements OnInit {
         this.connectedDevices = this.connectedDevices.filter(d => !d.is_revoked && (d.is_online || this.isRecentDevice(d.last_seen)));
         this.backupSuccessMessage = 'Depuración local de flota completada.';
         setTimeout(() => this.backupSuccessMessage = '', 4000);
+      }
+    });
+  }
+
+  isBroadcastingUpdate = false;
+
+  broadcastGlobalUpdate(): void {
+    if (!confirm('¿Desea emitir la señal global de actualización a todas las terminales y celulares conectados?\nTodos los clientes recibirán la notificación en tiempo real y recargarán a la última versión desplegada.')) {
+      return;
+    }
+
+    this.isBroadcastingUpdate = true;
+    this.http.post<any>(`${getApiBaseUrl()}/admin/broadcast-update`, {
+      version: '1.1.0',
+      message: 'Actualización en tiempo real desplegada por el Administrador'
+    }).subscribe({
+      next: (res) => {
+        this.isBroadcastingUpdate = false;
+        this.backupSuccessMessage = '✓ Señal de actualización emitida exitosamente a todas las terminales en vivo.';
+        setTimeout(() => this.backupSuccessMessage = '', 6000);
+      },
+      error: (err) => {
+        this.isBroadcastingUpdate = false;
+        this.backupSuccessMessage = 'Error al emitir señal de actualización: ' + (err?.error?.message || err.message);
+        setTimeout(() => this.backupSuccessMessage = '', 6000);
       }
     });
   }
@@ -6852,5 +8143,11 @@ export class AdminComponent implements OnInit {
   getGuardSquadProgress(s: SupervisorData): number {
     const count = s.operators_count || s.operators?.length || 0;
     return Math.min(100, Math.round((count / 7) * 100));
+  }
+
+  ngOnDestroy(): void {
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('basetrack_cloud_sync', this.syncListener);
+    }
   }
 }

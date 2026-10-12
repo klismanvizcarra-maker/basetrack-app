@@ -10,6 +10,7 @@
     "start": "node dist/index.js",
     "seed": "tsx src/database/seed.ts",
     "purge": "tsx src/database/purge.ts",
+    "backup": "tsx src/database/backup.ts",
     "test": "tsx --test tests/api.test.ts"
   },
   "dependencies": {
@@ -18,7 +19,8 @@
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.2",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "ws": "^8.22.0"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
@@ -26,6 +28,7 @@
     "@types/express": "^5.0.0",
     "@types/jsonwebtoken": "^9.0.8",
     "@types/node": "^22.13.4",
+    "@types/ws": "^8.18.2",
     "tsx": "^4.19.3"
   }
 }

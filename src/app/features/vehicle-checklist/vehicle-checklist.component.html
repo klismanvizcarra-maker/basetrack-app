@@ -4,7 +4,7 @@
     <div class="top-title-area">
       <div class="title-with-badge">
         <h2>Checklists Pre-Uso de Camionetas (4x4)</h2>
-        <span class="fleet-badge">Flota de 4 Unidades</span>
+        <span class="fleet-badge">Flota de {{ activeVehicles.length }} Unidades</span>
       </div>
       <p class="section-sub">Inspección diaria vehicular y control de operatividad en mina (DS-024-2016-EM)</p>
     </div>
@@ -25,7 +25,7 @@
     <div class="feedback-text">{{ successMessage }}</div>
   </div>
 
-  <!-- Section 1: Official Fleet Selector (Only 4 Authorized Vehicles) -->
+  <!-- Section 1: Official Fleet Selector -->
   <div class="fleet-section">
     <div class="section-header-compact">
       <div class="section-title-sm">
@@ -43,7 +43,7 @@
 
     <div class="vehicles-grid">
       <div 
-        *ngFor="let veh of vehicles" 
+        *ngFor="let veh of activeVehicles" 
         class="vehicle-card glass-panel"
         [class.active-card]="veh.plate === selectedPlate"
         (click)="selectVehicle(veh.plate)"

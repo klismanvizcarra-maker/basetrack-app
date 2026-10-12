@@ -47,22 +47,28 @@ export class PdfExportService {
       const contentWidth = pageWidth - (marginX * 2); // 200 mm
       const maxContentHeight = pageHeight - (marginY * 2); // 287 mm
 
-      // Calcular altura proporcional
-      let renderedHeight = (canvas.height * contentWidth) / canvas.width;
-      let finalWidth = contentWidth;
-      let finalHeight = renderedHeight;
-      let posX = marginX;
-      let posY = marginY;
+      // Calcular altura proporcional al ancho completo (200 mm)
+      const renderedHeight = (canvas.height * contentWidth) / canvas.width;
 
-      // Si la altura sobrepasa una sola hoja A4, escalar proporcionalmente para encajar en 1 hoja
-      if (renderedHeight > maxContentHeight) {
-        const ratio = maxContentHeight / renderedHeight;
-        finalHeight = maxContentHeight;
-        finalWidth = contentWidth * ratio;
-        posX = marginX + (contentWidth - finalWidth) / 2;
+      if (renderedHeight <= maxContentHeight) {
+        // Encaja en 1 sola hoja A4
+        pdf.addImage(imgData, 'PNG', marginX, marginY, contentWidth, renderedHeight, undefined, 'FAST');
+      } else {
+        // Documento multipágina: paginación nítida a ancho completo sin comprimir tipografía
+        let heightLeft = renderedHeight;
+        let position = marginY;
+
+        pdf.addImage(imgData, 'PNG', marginX, position, contentWidth, renderedHeight, undefined, 'FAST');
+        heightLeft -= maxContentHeight;
+
+        while (heightLeft > 0) {
+          position = marginY - (renderedHeight - heightLeft);
+          pdf.addPage();
+          pdf.addImage(imgData, 'PNG', marginX, position, contentWidth, renderedHeight, undefined, 'FAST');
+          heightLeft -= maxContentHeight;
+        }
       }
 
-      pdf.addImage(imgData, 'PNG', posX, posY, finalWidth, finalHeight, undefined, 'FAST');
       pdf.save(filename.endsWith('.pdf') ? filename : `${filename}.pdf`);
 
       this.isExporting = false;

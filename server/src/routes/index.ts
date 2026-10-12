@@ -32,11 +32,21 @@ import {
   getMyPermissions,
   getPlantParameters,
   updatePlantParameters,
-  resetApp
+  resetApp,
+  broadcastAppUpdate
 } from '../controllers/admin.controller.js';
 import { getCrewMembers, createCrewMember, updateCrewMember, deleteCrewMember, getAreaAssignments, saveAreaAssignment, checkinAreaAssignment, getCrewPositions, createCrewPosition, deleteCrewPosition } from '../controllers/crew.controller.js';
 import { pushEvents, pullEvents, getSyncStatus } from '../controllers/sync.controller.js';
-import { getVehiclesSummary, getVehicleChecklists, createVehicleChecklist } from '../controllers/vehicle.controller.js';
+import {
+  getVehiclesSummary,
+  getAllVehicles,
+  createVehicle,
+  updateVehicle,
+  toggleVehicleStatus,
+  deleteVehicle,
+  getVehicleChecklists,
+  createVehicleChecklist
+} from '../controllers/vehicle.controller.js';
 import { authenticateToken, requireRoles, requirePermission } from '../middlewares/auth.middleware.js';
 
 export const apiRouter = Router();
@@ -126,6 +136,9 @@ apiRouter.get('/auth/permissions', authenticateToken, getMyPermissions);
 apiRouter.get('/admin/plant-parameters', authenticateToken, getPlantParameters);
 apiRouter.put('/admin/plant-parameters', authenticateToken, requireRoles('ADMIN', 'SUPERVISOR'), updatePlantParameters);
 
+// Despliegue & Notificación Global en Tiempo Real
+apiRouter.post('/admin/broadcast-update', authenticateToken, requireRoles('ADMIN'), broadcastAppUpdate);
+
 // 10. Crew & Area Assignments Routes (Gestión de Cuadrilla y Asignación por Área)
 apiRouter.get('/crew/members', authenticateToken, getCrewMembers);
 apiRouter.get('/crew/my-operators', authenticateToken, getMyOperators);
@@ -144,8 +157,14 @@ apiRouter.post('/sync/push', pushEvents);
 apiRouter.get('/sync/pull', pullEvents);
 apiRouter.get('/sync/status', getSyncStatus);
 
-// 12. Vehicle Pre-Use Checklists (Checklists Pre-Uso de Camionetas)
+// 12. Vehicle Pre-Use Checklists & Fleet Management (Padrón de Camionetas Mineras 4x4)
+apiRouter.get('/vehicles', authenticateToken, getAllVehicles);
 apiRouter.get('/vehicles/summary', getVehiclesSummary);
+apiRouter.post('/vehicles', authenticateToken, requireRoles('ADMIN'), createVehicle);
+apiRouter.put('/vehicles/:id', authenticateToken, requireRoles('ADMIN'), updateVehicle);
+apiRouter.patch('/vehicles/:id/status', authenticateToken, requireRoles('ADMIN'), toggleVehicleStatus);
+apiRouter.delete('/vehicles/:id', authenticateToken, requireRoles('ADMIN'), deleteVehicle);
+
 apiRouter.get('/vehicles/checklists', getVehicleChecklists);
 apiRouter.post('/vehicles/checklists', authenticateToken, requirePermission('CAN_FILL_VEHICLES'), createVehicleChecklist);
 

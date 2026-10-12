@@ -1,4 +1,4 @@
-const CACHE_NAME = 'basetrack-cache-v8';
+const CACHE_NAME = 'basetrack-cache-v10';
 const PRECACHE_ASSETS = [
   '/',
   '/index.html',
@@ -17,6 +17,14 @@ const PRECACHE_ASSETS = [
   '/images/basetrack-logo-transparent.png'
 ];
 
+// Message Event: Allow web clients to trigger instant activation
+self.addEventListener('message', (event) => {
+  if (event.data && (event.data.type === 'SKIP_WAITING' || event.data === 'skipWaiting')) {
+    console.log('[ServiceWorker] SKIP_WAITING recibido desde cliente web');
+    self.skipWaiting();
+  }
+});
+
 // Install Event: Cache Core Shell
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -27,7 +35,7 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// Activate Event: Clean up all outdated caches (v1, v2, v3)
+// Activate Event: Clean up all outdated caches (v1 to v9)
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keyList) => {
@@ -48,8 +56,18 @@ self.addEventListener('fetch', (event) => {
   const request = event.request;
   const url = new URL(request.url);
 
-  // Ignore non-GET requests and browser extensions
-  if (request.method !== 'GET' || !url.protocol.startsWith('http')) {
+  // Ignore non-GET requests, browser extensions, version checks, and Vite dev server requests
+  if (
+    request.method !== 'GET' ||
+    !url.protocol.startsWith('http') ||
+    url.hostname === 'localhost' ||
+    url.hostname === '127.0.0.1' ||
+    url.port === '4200' ||
+    url.pathname.includes('@vite') ||
+    url.pathname.includes('@fs') ||
+    url.pathname.includes('/.angular/') ||
+    url.pathname.endsWith('/version.json')
+  ) {
     return;
   }
 
@@ -73,18 +91,33 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 2. API Requests: Network first with cache fallback
+  // 2. API Requests: Fast Network with 3.5s Timeout -> Immediate Cache Fallback (Never hang 25s+)
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(
-      fetch(request)
-        .then((response) => {
-          if (response && response.status === 200) {
-            const responseClone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, responseClone));
+      (async () => {
+        const cache = await caches.open(CACHE_NAME);
+        const cachedResponse = await cache.match(request);
+
+        // Controller with 3500ms timeout against sleeping/cold backend
+        const controller = new AbortController();
+        const timerId = setTimeout(() => controller.abort(), 3500);
+
+        try {
+          const networkResponse = await fetch(request, { signal: controller.signal });
+          clearTimeout(timerId);
+          if (networkResponse && networkResponse.status === 200) {
+            cache.put(request, networkResponse.clone());
           }
-          return response;
-        })
-        .catch(() => caches.match(request))
+          return networkResponse;
+        } catch (err) {
+          clearTimeout(timerId);
+          if (cachedResponse) {
+            return cachedResponse;
+          }
+          // If no cached response exists, re-throw to allow component offline handlers to activate
+          throw err;
+        }
+      })()
     );
     return;
   }

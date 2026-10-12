@@ -6,7 +6,8 @@ import { getRealtimeData, saveRealtimeData } from '../storage/local-store.util';
 import { CloudSyncService } from './cloud-sync.service';
 
 export interface VehicleInfo {
-  plate: 'BMC715' | 'BKS921' | 'BKS913' | 'BPS747';
+  id?: string;
+  plate: string;
   tag: string;
   model: string;
   color: string;
@@ -18,6 +19,9 @@ export interface VehicleInfo {
   lastDriverName: string | null;
   lastOperationalStatus: 'APTO' | 'OBSERVADO' | 'NO_APTO';
   totalChecklists: number;
+  is_active?: number | boolean;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface InspectionCheckItem {
@@ -30,7 +34,7 @@ export interface InspectionCheckItem {
 
 export interface VehicleChecklist {
   id: string;
-  vehicle_plate: 'BMC715' | 'BKS921' | 'BKS913' | 'BPS747';
+  vehicle_plate: string;
   date: string;
   time: string;
   shift: 'G1' | 'G2' | 'G3' | 'G4';
@@ -48,7 +52,7 @@ export interface VehicleChecklist {
 }
 
 export interface HandoverVehicleObservation {
-  plate: 'BMC715' | 'BKS921' | 'BKS913' | 'BPS747';
+  plate: string;
   tag: string;
   model: string;
   area: string;
@@ -68,6 +72,7 @@ export interface HandoverVehicleObservation {
 
 export const OFFICIAL_VEHICLES_METADATA: VehicleInfo[] = [
   {
+    id: 'veh-bmc715',
     plate: 'BMC715',
     tag: 'CAM-01',
     model: 'Toyota Hilux 4x4 Turbodiésel',
@@ -79,9 +84,11 @@ export const OFFICIAL_VEHICLES_METADATA: VehicleInfo[] = [
     lastChecklistTime: null,
     lastDriverName: null,
     lastOperationalStatus: 'APTO',
-    totalChecklists: 0
+    totalChecklists: 0,
+    is_active: 1
   },
   {
+    id: 'veh-bks921',
     plate: 'BKS921',
     tag: 'CAM-02',
     model: 'Toyota Hilux 4x4 Turbodiésel',
@@ -93,9 +100,11 @@ export const OFFICIAL_VEHICLES_METADATA: VehicleInfo[] = [
     lastChecklistTime: null,
     lastDriverName: null,
     lastOperationalStatus: 'APTO',
-    totalChecklists: 0
+    totalChecklists: 0,
+    is_active: 1
   },
   {
+    id: 'veh-bks913',
     plate: 'BKS913',
     tag: 'CAM-03',
     model: 'Toyota Hilux 4x4 Turbodiésel',
@@ -107,9 +116,11 @@ export const OFFICIAL_VEHICLES_METADATA: VehicleInfo[] = [
     lastChecklistTime: null,
     lastDriverName: null,
     lastOperationalStatus: 'APTO',
-    totalChecklists: 0
+    totalChecklists: 0,
+    is_active: 1
   },
   {
+    id: 'veh-bps747',
     plate: 'BPS747',
     tag: 'CAM-04',
     model: 'Toyota Hilux 4x4 Turbodiésel',
@@ -121,7 +132,8 @@ export const OFFICIAL_VEHICLES_METADATA: VehicleInfo[] = [
     lastChecklistTime: null,
     lastDriverName: null,
     lastOperationalStatus: 'APTO',
-    totalChecklists: 0
+    totalChecklists: 0,
+    is_active: 1
   }
 ];
 
@@ -188,7 +200,7 @@ export class VehicleChecklistService {
 
   // Reactive State Signals
   public vehiclesSignal = signal<VehicleInfo[]>(this.loadCachedVehicles());
-  public selectedPlateSignal = signal<'BMC715' | 'BKS921' | 'BKS913' | 'BPS747'>('BMC715');
+  public selectedPlateSignal = signal<string>('BMC715');
   public checklistsSignal = signal<VehicleChecklist[]>([]);
   public isLoadingSignal = signal<boolean>(false);
 
@@ -207,7 +219,7 @@ export class VehicleChecklistService {
     this.selectVehicle('BMC715');
   }
 
-  public selectVehicle(plate: 'BMC715' | 'BKS921' | 'BKS913' | 'BPS747'): void {
+  public selectVehicle(plate: string): void {
     this.selectedPlateSignal.set(plate);
     this.loadChecklistsForPlate(plate);
   }
@@ -217,7 +229,12 @@ export class VehicleChecklistService {
       tap(res => {
         if (res && res.success && Array.isArray(res.data)) {
           this.vehiclesSignal.set(res.data);
-          saveRealtimeData('basetrack_vehicles_summary', res.data);
+          saveRealtimeData('basetrack_vehicles_summary', res.data, { skipBroadcast: true });
+          // If selectedPlate is no longer active or empty, set to first available
+          const activePlates = res.data.filter(v => v.is_active !== 0 && v.is_active !== false);
+          if (activePlates.length > 0 && !activePlates.some(v => v.plate === this.selectedPlateSignal())) {
+            this.selectedPlateSignal.set(activePlates[0].plate);
+          }
         }
       }),
       catchError(() => {
@@ -226,7 +243,8 @@ export class VehicleChecklistService {
     ).subscribe();
   }
 
-  public loadChecklistsForPlate(plate: 'BMC715' | 'BKS921' | 'BKS913' | 'BPS747'): void {
+  public loadChecklistsForPlate(plate: string): void {
+    if (!plate) return;
     this.isLoadingSignal.set(true);
 
     // 1. Immediately display cached checklists for this plate with fallback to sample history
@@ -234,11 +252,11 @@ export class VehicleChecklistService {
     let cached = getRealtimeData<VehicleChecklist[]>(`basetrack_checklists_${plate}`, []);
     if (!Array.isArray(cached) || cached.length === 0) {
       cached = [...initialSamples];
-      saveRealtimeData(`basetrack_checklists_${plate}`, cached);
+      saveRealtimeData(`basetrack_checklists_${plate}`, cached, { skipBroadcast: true });
     }
     this.checklistsSignal.set(cached);
 
-    // 2. Fetch remote update from Render / Cloud
+    // 2. Fetch remote update from Cloud backend
     this.http.get<{ success: boolean; data: any[] }>(`${this.apiUrl}/checklists?plate=${plate}`).pipe(
       tap(res => {
         this.isLoadingSignal.set(false);
@@ -262,7 +280,7 @@ export class VehicleChecklistService {
             created_at: item.created_at
           }));
 
-          // Deduplicate remote + local cached + initialSamples by both ID and logical uniqueness (plate, date, time, odometer, dni)
+          // Deduplicate remote + local cached + initialSamples by both ID and logical uniqueness
           const seenIds = new Set<string>();
           const seenLogical = new Set<string>();
           const deduplicated: VehicleChecklist[] = [];
@@ -284,7 +302,7 @@ export class VehicleChecklistService {
           if (this.selectedPlateSignal() === plate) {
             this.checklistsSignal.set(merged);
           }
-          saveRealtimeData(`basetrack_checklists_${plate}`, merged);
+          saveRealtimeData(`basetrack_checklists_${plate}`, merged, { skipBroadcast: true });
         }
       }),
       catchError(err => {
@@ -303,7 +321,7 @@ export class VehicleChecklistService {
       created_at: new Date().toISOString()
     };
 
-    const targetPlate = checklist.vehicle_plate as 'BMC715' | 'BKS921' | 'BKS913' | 'BPS747';
+    const targetPlate = checklist.vehicle_plate;
     const initialSamples = SAMPLE_INITIAL_CHECKLISTS[targetPlate] || [];
     let currentList = getRealtimeData<VehicleChecklist[]>(`basetrack_checklists_${targetPlate}`, initialSamples);
     if (!Array.isArray(currentList) || currentList.length === 0) {
@@ -331,7 +349,7 @@ export class VehicleChecklistService {
       if (v.plate === targetPlate) {
         return {
           ...v,
-          currentOdometer: checklist.odometer,
+          currentOdometer: Math.max(v.currentOdometer || 0, checklist.odometer),
           lastChecklistDate: checklist.date,
           lastChecklistTime: checklist.time,
           lastDriverName: checklist.driver_name,
@@ -344,7 +362,7 @@ export class VehicleChecklistService {
     this.vehiclesSignal.set(updatedVehicles);
     saveRealtimeData('basetrack_vehicles_summary', updatedVehicles);
 
-    // Send to central Render Cloud backend with client id
+    // Send to central Cloud backend
     const payload = {
       id: newId,
       vehicle_plate: checklist.vehicle_plate,
@@ -367,7 +385,6 @@ export class VehicleChecklistService {
       this.http.post<{ success: boolean; id: string }>(`${this.apiUrl}/checklists`, payload).subscribe({
         next: (res) => {
           const finalId = res?.id || newId;
-          // Actualizar id en storage local si el servidor confirmó otro id
           if (finalId !== newId) {
             const list = getRealtimeData<VehicleChecklist[]>(`basetrack_checklists_${targetPlate}`, []);
             const updated = list.map(item => item.id === newId ? { ...item, id: finalId } : item);
@@ -382,7 +399,6 @@ export class VehicleChecklistService {
         },
         error: (err) => {
           console.warn('[VehicleChecklistService] Guardado en modo local contingencia:', err);
-          // Return success true because it was persisted in offline storage
           observer.next({ success: true, id: newId });
           observer.complete();
         }
@@ -390,12 +406,104 @@ export class VehicleChecklistService {
     });
   }
 
+  // -------------------------------------------------------------
+  // Fleet Management (Padrón de Camionetas Mineras - Admin Actions)
+  // -------------------------------------------------------------
+
+  public getAllVehiclesAdmin(): Observable<{ success: boolean; data: VehicleInfo[] }> {
+    return this.http.get<{ success: boolean; data: VehicleInfo[] }>(`${this.apiUrl}?includeInactive=true`).pipe(
+      tap(res => {
+        if (res && res.success && Array.isArray(res.data)) {
+          this.vehiclesSignal.set(res.data);
+          saveRealtimeData('basetrack_vehicles_summary', res.data);
+        }
+      })
+    );
+  }
+
+  public createVehicle(vehicle: {
+    plate: string;
+    tag: string;
+    model: string;
+    color: string;
+    area: string;
+    baseOdometer: number;
+    is_active?: number | boolean;
+  }): Observable<{ success: boolean; data?: VehicleInfo; message?: string }> {
+    return this.http.post<{ success: boolean; data?: VehicleInfo; message?: string }>(this.apiUrl, vehicle).pipe(
+      tap(res => {
+        if (res && res.success && res.data) {
+          const current = this.vehiclesSignal();
+          const exists = current.some(v => v.plate === res.data!.plate);
+          const updated = exists
+            ? current.map(v => v.plate === res.data!.plate ? { ...v, ...res.data } : v)
+            : [...current, res.data];
+          this.vehiclesSignal.set(updated);
+          saveRealtimeData('basetrack_vehicles_summary', updated);
+        }
+      })
+    );
+  }
+
+  public updateVehicle(idOrPlate: string, vehicle: Partial<VehicleInfo>): Observable<{ success: boolean; data?: VehicleInfo; message?: string }> {
+    return this.http.put<{ success: boolean; data?: VehicleInfo; message?: string }>(`${this.apiUrl}/${idOrPlate}`, vehicle).pipe(
+      tap(res => {
+        if (res && res.success && res.data) {
+          const updatedList = this.vehiclesSignal().map(v => 
+            (v.id === idOrPlate || v.plate === idOrPlate) ? { ...v, ...res.data } : v
+          );
+          this.vehiclesSignal.set(updatedList);
+          saveRealtimeData('basetrack_vehicles_summary', updatedList);
+          if (res.data.plate && this.selectedPlateSignal() === idOrPlate) {
+            this.selectedPlateSignal.set(res.data.plate);
+          }
+        }
+      })
+    );
+  }
+
+  public toggleVehicleStatus(idOrPlate: string, isActive?: boolean): Observable<{ success: boolean; message?: string; is_active?: number }> {
+    return this.http.patch<{ success: boolean; message?: string; is_active?: number }>(`${this.apiUrl}/${idOrPlate}/status`, { is_active: isActive }).pipe(
+      tap(res => {
+        if (res && res.success) {
+          const newStatus = res.is_active !== undefined ? res.is_active : (isActive ? 1 : 0);
+          const updatedList = this.vehiclesSignal().map(v => 
+            (v.id === idOrPlate || v.plate === idOrPlate) ? { ...v, is_active: newStatus } : v
+          );
+          this.vehiclesSignal.set(updatedList);
+          saveRealtimeData('basetrack_vehicles_summary', updatedList);
+        }
+      })
+    );
+  }
+
+  public deleteVehicle(idOrPlate: string): Observable<{ success: boolean; message?: string; decommissioned?: boolean }> {
+    return this.http.delete<{ success: boolean; message?: string; decommissioned?: boolean }>(`${this.apiUrl}/${idOrPlate}`).pipe(
+      tap(res => {
+        if (res && res.success) {
+          if (res.decommissioned) {
+            const updatedList = this.vehiclesSignal().map(v => 
+              (v.id === idOrPlate || v.plate === idOrPlate) ? { ...v, is_active: 0 } : v
+            );
+            this.vehiclesSignal.set(updatedList);
+            saveRealtimeData('basetrack_vehicles_summary', updatedList);
+          } else {
+            const updatedList = this.vehiclesSignal().filter(v => v.id !== idOrPlate && v.plate !== idOrPlate);
+            this.vehiclesSignal.set(updatedList);
+            saveRealtimeData('basetrack_vehicles_summary', updatedList);
+          }
+        }
+      })
+    );
+  }
+
   /**
    * Obtiene exclusivamente los vehículos con estado OBSERVADO o NO_APTO en su checklist más reciente.
    * Regla estricta: Si el vehículo está en estado APTO (Verde) sin fallas, se EXCLUYE totalmente del informe.
    */
   public getObservedOrNonAptoVehicles(customList?: VehicleChecklist[]): HandoverVehicleObservation[] {
-    const plates: Array<'BMC715' | 'BKS921' | 'BKS913' | 'BPS747'> = ['BMC715', 'BKS921', 'BKS913', 'BPS747'];
+    const activeVehicles = this.vehiclesSignal().filter(v => v.is_active !== 0 && v.is_active !== false);
+    const plates = activeVehicles.map(v => v.plate);
     const vehiclesMeta = this.vehiclesSignal();
     const result: HandoverVehicleObservation[] = [];
 

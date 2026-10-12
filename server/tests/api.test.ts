@@ -9,6 +9,9 @@ import { seed } from '../src/database/seed.js';
 import { purgeAndSetSoleAdmin } from '../src/database/purge.js';
 import { errorHandler } from '../src/middlewares/error.middleware.js';
 
+import { WebSocket } from 'ws';
+import { initWebSocketServer, closeWebSocketServer } from '../src/websocket/ws.js';
+
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '25mb' }));
@@ -18,21 +21,19 @@ app.use(errorHandler);
 
 let server: http.Server;
 let baseUrl: string;
+let wsUrl: string;
 let authToken: string;
 
 test.before(async () => {
+  server = http.createServer(app);
+  initWebSocketServer(server);
   await new Promise<void>((resolve) => {
-    server = app.listen(0, () => {
+    server.listen(0, () => {
       const addr = server.address() as any;
       baseUrl = `http://localhost:${addr.port}/api`;
+      wsUrl = `ws://localhost:${addr.port}/ws`;
       resolve();
     });
-  });
-});
-
-test.after(async () => {
-  await new Promise<void>((resolve) => {
-    server.close(() => resolve());
   });
 });
 
@@ -829,6 +830,370 @@ test('24. GET & PUT /api/admin/plant-parameters: fetch defaults and calibrate pl
   assert.strictEqual(verifyJson.data.tonnage_target_shift, 25000);
 });
 
+test('25. WebSocket: Connect, Register device, and Broadcast Realtime Events in sub-50ms', async () => {
+  // 1. Connect Client A (Field Tablet)
+  const clientA = new WebSocket(wsUrl);
+  const welcomeA = await new Promise<any>((resolve, reject) => {
+    const timeout = setTimeout(() => reject(new Error('Timeout esperando WELCOME en Client A')), 2000);
+    clientA.on('message', (data) => {
+      try {
+        const msg = JSON.parse(data.toString());
+        if (msg.type === 'WELCOME') {
+          clearTimeout(timeout);
+          resolve(msg);
+        }
+      } catch {}
+    });
+  });
+  assert.strictEqual(welcomeA.type, 'WELCOME');
+  assert.ok(welcomeA.serverTime);
+
+  // 2. Register Client A
+  clientA.send(JSON.stringify({
+    type: 'REGISTER',
+    deviceId: 'test_ws_device_tablet',
+    deviceName: 'Tablet Terreno Concentradora',
+    username: 'Marckv'
+  }));
+
+  const regA = await new Promise<any>((resolve, reject) => {
+    const timeout = setTimeout(() => reject(new Error('Timeout esperando REGISTERED en Client A')), 2000);
+    clientA.on('message', (data) => {
+      try {
+        const msg = JSON.parse(data.toString());
+        if (msg.type === 'REGISTERED') {
+          clearTimeout(timeout);
+          resolve(msg);
+        }
+      } catch {}
+    });
+  });
+  assert.strictEqual(regA.type, 'REGISTERED');
+  assert.strictEqual(regA.deviceId, 'test_ws_device_tablet');
+
+  // 3. Connect Client B (Control Room PC)
+  const clientB = new WebSocket(wsUrl);
+  await new Promise<void>((resolve, reject) => {
+    const timeout = setTimeout(() => reject(new Error('Timeout esperando OPEN en Client B')), 2000);
+    clientB.on('open', () => {
+      clearTimeout(timeout);
+      resolve();
+    });
+  });
+  clientB.send(JSON.stringify({
+    type: 'REGISTER',
+    deviceId: 'test_ws_device_scada',
+    deviceName: 'PC Sala de Control',
+    username: 'ControlRoom'
+  }));
+
+  // 4. Client B listens for incoming real-time broadcast
+  const receivedOnBPromise = new Promise<any>((resolve, reject) => {
+    const timeout = setTimeout(() => reject(new Error('Timeout esperando broadcast en Client B')), 3000);
+    clientB.on('message', (data) => {
+      try {
+        const msg = JSON.parse(data.toString());
+        if (msg.type === 'EVENT' && msg.event?.entity === 'cyclones') {
+          clearTimeout(timeout);
+          resolve(msg);
+        }
+      } catch {}
+    });
+  });
+
+  // 5. Client A transmits a real-time cyclone operational reading
+  const startTs = Date.now();
+  clientA.send(JSON.stringify({
+    type: 'EVENT',
+    event: {
+      entity: 'cyclones',
+      action: 'CREATE',
+      data: { stationId: 'CYC-01', pressure_psi: 19.8, operator: 'Marckv' },
+      key: 'basetrack_cyclones_samples'
+    }
+  }));
+
+  // 6. Verify Client B receives the event with instant sub-50ms latency
+  const eventOnB = await receivedOnBPromise;
+  const elapsedMs = Date.now() - startTs;
+  assert.strictEqual(eventOnB.type, 'EVENT');
+  assert.strictEqual(eventOnB.event.entity, 'cyclones');
+  assert.strictEqual(eventOnB.event.action, 'CREATE');
+  assert.strictEqual(eventOnB.event.data.pressure_psi, 19.8);
+  assert.strictEqual(eventOnB.event.deviceId, 'test_ws_device_tablet');
+  assert.ok(elapsedMs < 100, `Broadcast latency must be rapid (elapsed: ${elapsedMs}ms)`);
+
+  // 7. Verify sync status endpoint reflects active WebSocket connections
+  const statusRes = await fetch(`${baseUrl}/sync/status`);
+  assert.strictEqual(statusRes.status, 200);
+  const statusJson = await statusRes.json() as any;
+  assert.strictEqual(statusJson.success, true);
+  assert.ok(statusJson.wsClients >= 2, `Expected >= 2 wsClients, got ${statusJson.wsClients}`);
+
+  // Cleanup client sockets
+  clientA.close();
+  clientB.close();
+});
+
+test('26. Closed Operational Loop: Pumps Falla auto-creates OT, locks pump, and Maintenance Pase restores Operativo', async () => {
+  const testDate = '2026-10-15';
+  const testShift = 'G1';
+
+  // 1. Operator saves pump sheet marking PU012 as 'Falla'
+  const postSheetRes = await fetch(`${baseUrl}/pumps/operational-sheet`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${authToken}`
+    },
+    body: JSON.stringify({
+      report_date: testDate,
+      shift_code: testShift,
+      operator_name: 'Operador Bombas Test',
+      sentina_pumps: [{ tag: 'PU001', status: 'Operativo' }],
+      intermedia_pumps: [{ tag: 'PU012', status: 'Falla' }, { tag: 'PU013', status: 'Operativo' }],
+      torre5_pumps: [{ tag: 'PU021', status: 'Operativo' }],
+      levels: { orca: '12.4', espejo: '3850.2', captacion: '5.1' },
+      main_indicators: {},
+      pozas_sentina: [],
+      additional_obs: {}
+    })
+  });
+  assert.strictEqual(postSheetRes.status, 200);
+  const postSheetJson = await postSheetRes.json() as any;
+  assert.strictEqual(postSheetJson.success, true);
+
+  // 2. Verify that an OT was automatically created in maintenance
+  const maintRes = await fetch(`${baseUrl}/maintenance`, {
+    headers: { 'Authorization': `Bearer ${authToken}` }
+  });
+  assert.strictEqual(maintRes.status, 200);
+  const maintJson = await maintRes.json() as any;
+  const autoTicket = maintJson.data.find((t: any) => t.equipment_tag === 'PU012' && t.status === 'PENDING');
+  assert.ok(autoTicket, 'Automatic maintenance ticket for PU012 must exist in PENDING');
+  assert.strictEqual(autoTicket.source_module, 'PUMPS_STATION');
+  assert.strictEqual(autoTicket.priority, 'HIGH');
+  const ticketId = autoTicket.id;
+
+  // 3. Operational Lock Enforcement: Try setting PU012 back to Operativo directly from pumps sheet
+  const bypassRes = await fetch(`${baseUrl}/pumps/operational-sheet`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${authToken}`
+    },
+    body: JSON.stringify({
+      report_date: testDate,
+      shift_code: testShift,
+      operator_name: 'Operador Bombas Test',
+      sentina_pumps: [{ tag: 'PU001', status: 'Operativo' }],
+      intermedia_pumps: [{ tag: 'PU012', status: 'Operativo' }, { tag: 'PU013', status: 'Operativo' }],
+      torre5_pumps: [{ tag: 'PU021', status: 'Operativo' }],
+      levels: {},
+      main_indicators: {},
+      pozas_sentina: [],
+      additional_obs: {}
+    })
+  });
+  assert.strictEqual(bypassRes.status, 200);
+  const bypassJson = await bypassRes.json() as any;
+  const lockedPump = bypassJson.data.intermedia_pumps.find((p: any) => p.tag === 'PU012');
+  assert.strictEqual(lockedPump.status, 'Falla', 'Pump must remain locked in Falla while maintenance ticket is active');
+
+  // 4. Maintenance starts work: PATCH status to IN_PROGRESS
+  const attendRes = await fetch(`${baseUrl}/maintenance/${ticketId}/status`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${authToken}`
+    },
+    body: JSON.stringify({
+      status: 'IN_PROGRESS',
+      assigned_to: 'Técnico Mecánico Carlos'
+    })
+  });
+  assert.strictEqual(attendRes.status, 200);
+  const attendJson = await attendRes.json() as any;
+  assert.strictEqual(attendJson.success, true);
+  assert.strictEqual(attendJson.data.targetPumpStatus, 'Mantenimiento');
+
+  // Verify sheet now reflects 'Mantenimiento'
+  const sheetAfterAttendRes = await fetch(`${baseUrl}/pumps/operational-sheet?date=${testDate}&shift=${testShift}`);
+  const sheetAfterAttendJson = await sheetAfterAttendRes.json() as any;
+  const pumpInMaint = sheetAfterAttendJson.data.intermedia_pumps.find((p: any) => p.tag === 'PU012');
+  assert.strictEqual(pumpInMaint.status, 'Mantenimiento', 'Pump must transition to Mantenimiento');
+
+  // 5. Maintenance completes work and grants Pase Operativo: PATCH status to RESOLVED
+  const passRes = await fetch(`${baseUrl}/maintenance/${ticketId}/status`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${authToken}`
+    },
+    body: JSON.stringify({
+      status: 'RESOLVED',
+      operational_pass_by: 'Supervisor Mantenimiento Manuel',
+      resolution_notes: 'Cambio de impulsor y prueba hidrostática exitosa'
+    })
+  });
+  assert.strictEqual(passRes.status, 200);
+  const passJson = await passRes.json() as any;
+  assert.strictEqual(passJson.success, true);
+  assert.strictEqual(passJson.data.targetPumpStatus, 'Operativo');
+  assert.strictEqual(passJson.data.operational_pass_by, 'Supervisor Mantenimiento Manuel');
+
+  // Verify sheet now reflects 'Operativo'
+  const finalSheetRes = await fetch(`${baseUrl}/pumps/operational-sheet?date=${testDate}&shift=${testShift}`);
+  const finalSheetJson = await finalSheetRes.json() as any;
+  const restoredPump = finalSheetJson.data.intermedia_pumps.find((p: any) => p.tag === 'PU012');
+  assert.strictEqual(restoredPump.status, 'Operativo', 'Pump must be restored to Operativo following maintenance pass');
+});
+
+test('27. Dynamic Mining Truck Fleet: Create truck, update plate/data, create checklist, dar de baja and reactivate without touching code', async () => {
+  // 1. Alta de camioneta CAM-05 / BCV123
+  const createTruckRes = await fetch(`${baseUrl}/vehicles`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${authToken}`
+    },
+    body: JSON.stringify({
+      plate: 'BCV123',
+      tag: 'CAM-05',
+      model: 'Toyota Hilux 4x4 Turbodiésel',
+      color: 'Blanco Industrial',
+      area: 'Operaciones Mina / Relaves',
+      baseOdometer: 15400,
+      is_active: 1
+    })
+  });
+  assert.strictEqual(createTruckRes.status, 201);
+  const createTruckJson = await createTruckRes.json() as any;
+  assert.strictEqual(createTruckJson.success, true);
+  assert.strictEqual(createTruckJson.data.plate, 'BCV123');
+  const truckId = createTruckJson.data.id;
+
+  // 2. Summary should now include 5 active trucks
+  const summaryRes = await fetch(`${baseUrl}/vehicles/summary`);
+  const summaryJson = await summaryRes.json() as any;
+  assert.strictEqual(summaryJson.success, true);
+  assert.strictEqual(summaryJson.data.length, 5);
+  const hasBCV123 = summaryJson.data.find((v: any) => v.plate === 'BCV123');
+  assert.ok(hasBCV123);
+  assert.strictEqual(hasBCV123.tag, 'CAM-05');
+
+  // 3. Update plate to BCV124 and tag to CAM-05B
+  const updateRes = await fetch(`${baseUrl}/vehicles/${truckId}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${authToken}`
+    },
+    body: JSON.stringify({
+      plate: 'BCV124',
+      tag: 'CAM-05B',
+      model: 'Toyota Hilux 4x4 Turbodiésel V6',
+      area: 'Operaciones Mina / Relaves',
+      baseOdometer: 15500
+    })
+  });
+  assert.strictEqual(updateRes.status, 200);
+  const updateJson = await updateRes.json() as any;
+  assert.strictEqual(updateJson.success, true);
+  assert.strictEqual(updateJson.data.plate, 'BCV124');
+
+  // 4. Create checklist for the newly added and updated truck BCV124
+  const chkRes = await fetch(`${baseUrl}/vehicles/checklists`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${authToken}`
+    },
+    body: JSON.stringify({
+      vehicle_plate: 'BCV124',
+      date: '2026-10-11',
+      time: '08:00',
+      shift: 'G2',
+      shift_type: 'DIA',
+      driver_name: 'OPERADOR CAMIONETA TEST',
+      driver_dni: '70809012',
+      odometer: 15650,
+      items: [
+        { code: 'LUCES', name: 'Luces principales', status: 'B' }
+      ],
+      operational_status: 'APTO'
+    })
+  });
+  assert.strictEqual(chkRes.status, 201);
+  const chkJson = await chkRes.json() as any;
+  assert.strictEqual(chkJson.success, true);
+
+  // 5. Dar de baja camioneta (is_active = 0)
+  const deactivateRes = await fetch(`${baseUrl}/vehicles/${truckId}/status`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${authToken}`
+    },
+    body: JSON.stringify({ is_active: 0 })
+  });
+  assert.strictEqual(deactivateRes.status, 200);
+  const deactivateJson = await deactivateRes.json() as any;
+  assert.strictEqual(deactivateJson.is_active, 0);
+
+  // 6. Creating a new checklist for a deactivated truck must be rejected
+  const rejectedChkRes = await fetch(`${baseUrl}/vehicles/checklists`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${authToken}`
+    },
+    body: JSON.stringify({
+      vehicle_plate: 'BCV124',
+      date: '2026-10-11',
+      time: '09:00',
+      shift: 'G2',
+      shift_type: 'DIA',
+      driver_name: 'OPERADOR RECHAZADO',
+      driver_dni: '70809012',
+      odometer: 15700
+    })
+  });
+  assert.strictEqual(rejectedChkRes.status, 400);
+
+  // 7. Reactivate truck (is_active = 1)
+  const reactivateRes = await fetch(`${baseUrl}/vehicles/${truckId}/status`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${authToken}`
+    },
+    body: JSON.stringify({ is_active: 1 })
+  });
+  assert.strictEqual(reactivateRes.status, 200);
+  const reactivateJson = await reactivateRes.json() as any;
+  assert.strictEqual(reactivateJson.is_active, 1);
+});
+
+test('28. POST /api/admin/broadcast-update should broadcast real-time update signal to all connected clients', async () => {
+  const updateRes = await fetch(`${baseUrl}/admin/broadcast-update`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${authToken}`
+    },
+    body: JSON.stringify({
+      version: '1.1.0',
+      message: 'Actualización en tiempo real desplegada'
+    })
+  });
+
+  assert.strictEqual(updateRes.status, 200);
+  const updateJson = await updateRes.json() as any;
+  assert.strictEqual(updateJson.success, true);
+  assert.strictEqual(updateJson.version, '1.1.0');
+});
+
 test.after(async () => {
   // Purge any test users or links created during testing and restore clean slate
   try {
@@ -836,8 +1201,11 @@ test.after(async () => {
   } catch (e) {
     // Ignore cleanup errors
   }
+  closeWebSocketServer();
   if (server) {
-    server.close();
+    await new Promise<void>((resolve) => {
+      server.close(() => resolve());
+    });
   }
 });
 

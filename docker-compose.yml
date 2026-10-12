@@ -1,0 +1,32 @@
+services:
+  basetrack:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: basetrack-app:latest
+    container_name: basetrack_production
+    restart: unless-stopped
+    ports:
+      # Puerto configurable: cambia el primer número si deseas exponerlo en el puerto 80 u 8080
+      - "${HOST_PORT:-3001}:3001"
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - DB_PATH=/app/data/basetrack.db
+      - CLIENT_DIST_PATH=/app/public
+      - JWT_SECRET=${JWT_SECRET:-basetrack_industrial_secret_key_2026_minera}
+      - TZ=America/Lima
+    volumes:
+      # Persistencia de la base de datos SQLite y respaldos en el host
+      - ./data:/app/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "15m"
+        max-file: "5"

@@ -55,15 +55,22 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
         <button
           type="button"
           class="btn-sync-header"
+          [class.ws-live-pill]="cloudSync.isWsConnected()"
           [class.offline-pill]="!cloudSync.isOnline() && !offlineSync.isOnline()"
           [class.pending-pill]="cloudSync.pendingCount() > 0 || offlineSync.pendingCount() > 0"
           [class.syncing-pill]="cloudSync.isSyncing() || offlineSync.isSyncing()"
           (click)="offlineSync.openSyncDrawer()"
           title="Sincronización en la Nube Multi-Dispositivo"
         >
-          <span class="status-pulse-dot" [class.dot-green]="(cloudSync.isOnline() || offlineSync.isOnline()) && cloudSync.pendingCount() === 0 && offlineSync.pendingCount() === 0" [class.dot-orange]="(!cloudSync.isOnline() && !offlineSync.isOnline()) || cloudSync.pendingCount() > 0 || offlineSync.pendingCount() > 0"></span>
+          <span class="status-pulse-dot"
+            [class.dot-ws]="cloudSync.isWsConnected()"
+            [class.dot-green]="!cloudSync.isWsConnected() && (cloudSync.isOnline() || offlineSync.isOnline()) && cloudSync.pendingCount() === 0 && offlineSync.pendingCount() === 0"
+            [class.dot-orange]="(!cloudSync.isOnline() && !offlineSync.isOnline()) || cloudSync.pendingCount() > 0 || offlineSync.pendingCount() > 0"></span>
           <span *ngIf="cloudSync.isSyncing() || offlineSync.isSyncing()">Sincronizando...</span>
-          <span *ngIf="!cloudSync.isSyncing() && !offlineSync.isSyncing() && (cloudSync.isOnline() || offlineSync.isOnline()) && cloudSync.pendingCount() === 0 && offlineSync.pendingCount() === 0">
+          <span *ngIf="!cloudSync.isSyncing() && !offlineSync.isSyncing() && cloudSync.isWsConnected()">
+            En Vivo <span class="ws-indicator-tag">WS</span> ({{ cloudSync.activeDevicesCount() }})
+          </span>
+          <span *ngIf="!cloudSync.isSyncing() && !offlineSync.isSyncing() && !cloudSync.isWsConnected() && (cloudSync.isOnline() || offlineSync.isOnline()) && cloudSync.pendingCount() === 0 && offlineSync.pendingCount() === 0">
             Nube Activa ({{ cloudSync.activeDevicesCount() }})
           </span>
           <span *ngIf="!cloudSync.isSyncing() && !offlineSync.isSyncing() && (!cloudSync.isOnline() || cloudSync.pendingCount() > 0 || offlineSync.pendingCount() > 0)">
@@ -211,14 +218,20 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
           <!-- Multi-Device Cloud Realtime Card -->
           <div class="cloud-devices-card">
             <div class="cloud-card-header">
-              <span class="cloud-icon">☁️</span>
+              <span class="cloud-icon">{{ cloudSync.isWsConnected() ? '⚡' : '☁️' }}</span>
               <div class="cloud-info">
-                <strong>Sincronización en la Nube Multi-Dispositivo</strong>
-                <p>Terminal activa: <span class="badge-terminal">{{ cloudSync.deviceName }}</span></p>
+                <strong>Sincronización Multi-Dispositivo {{ cloudSync.isWsConnected() ? 'en Tiempo Real (WebSocket)' : 'en la Nube (HTTP)' }}</strong>
+                <p>Terminal: <span class="badge-terminal">{{ cloudSync.deviceName }}</span> • Latencia: <span class="badge-terminal">{{ cloudSync.wsLatencyMs() !== null ? cloudSync.wsLatencyMs() + ' ms' : '< 20 ms' }}</span></p>
               </div>
-              <span class="badge-devices">{{ cloudSync.activeDevicesCount() }} terminal{{ cloudSync.activeDevicesCount() > 1 ? 'es' : '' }} en red</span>
+              <span class="badge-devices" [class.badge-ws]="cloudSync.isWsConnected()">
+                {{ cloudSync.isWsConnected() ? '⚡ ' : '' }}{{ cloudSync.activeDevicesCount() }} terminal{{ cloudSync.activeDevicesCount() > 1 ? 'es' : '' }} en red
+              </span>
             </div>
             <div class="cloud-stats-row">
+              <div class="stat-col">
+                <span class="s-label">Canal de Datos:</span>
+                <span class="s-val">{{ cloudSync.isWsConnected() ? 'WebSocket Bi-direccional' : 'HTTP Polling (6s)' }}</span>
+              </div>
               <div class="stat-col">
                 <span class="s-label">Último Evento:</span>
                 <span class="s-val">{{ cloudSync.lastSyncedEntity() }}</span>
@@ -699,6 +712,27 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
         text-overflow: ellipsis;
       }
 
+      &.ws-live-pill {
+        background: rgba(16, 185, 129, 0.12);
+        border-color: rgba(16, 185, 129, 0.45);
+        color: #059669;
+
+        &:hover {
+          background: rgba(16, 185, 129, 0.22);
+          border-color: #10b981;
+        }
+      }
+
+      .ws-indicator-tag {
+        background: #10b981;
+        color: #ffffff;
+        font-size: 0.6rem;
+        padding: 1px 4px;
+        border-radius: 4px;
+        font-weight: 800;
+        margin: 0 1px;
+      }
+
       &.offline-pill, &.pending-pill {
         background: var(--warning-bg, #fffbeb);
         border-color: rgba(245, 158, 11, 0.35);
@@ -720,6 +754,12 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
       height: 8px;
       border-radius: 50%;
       display: inline-block;
+
+      &.dot-ws {
+        background: #10b981;
+        box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.3);
+        animation: pulse 1.8s infinite ease-in-out;
+      }
 
       &.dot-green {
         background: #10b981;
@@ -899,6 +939,11 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
           color: #ffffff;
           padding: 3px 8px;
           border-radius: 9999px;
+
+          &.badge-ws {
+            background: #059669;
+            box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+          }
         }
       }
 
@@ -1178,7 +1223,7 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
     }
   `]
 })
-export class HeaderComponent {
+export class HeaderComponent implements OnDestroy {
   authService = inject(AuthService);
   layoutService = inject(LayoutService);
   pwa = inject(PwaService);

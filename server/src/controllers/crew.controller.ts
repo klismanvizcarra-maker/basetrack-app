@@ -3,6 +3,7 @@ import crypto from 'node:crypto';
 import { db } from '../database/db.js';
 import { AuthenticatedRequest } from '../middlewares/auth.middleware.js';
 import { logAudit } from '../middlewares/error.middleware.js';
+import { broadcastWsEvent } from '../websocket/ws.js';
 
 export function getCrewMembers(req: Request, res: Response) {
   try {
@@ -63,6 +64,14 @@ export function createCrewMember(req: AuthenticatedRequest, res: Response) {
 
     logAudit(req.user?.userId || null, req.user?.username || 'system', 'CREATE', 'CREW_MEMBER', id, `Alta operador ${name} (${primary_role})`, req.ip || '127.0.0.1');
 
+    broadcastWsEvent({
+      entity: 'crew',
+      action: 'CREATE',
+      data: { id, name: name.trim(), document_id: document_id.trim(), primary_role, shift_code, status: status || 'EN_TURNO' },
+      key: 'basetrack_crew_members',
+      deviceId: req.headers['x-device-id']?.toString() || 'server_api'
+    });
+
     return res.status(201).json({ success: true, message: 'Operador registrado con éxito en la cuadrilla', id });
   } catch (error: any) {
     if (error.message && error.message.includes('UNIQUE constraint failed')) {
@@ -107,6 +116,14 @@ export function updateCrewMember(req: AuthenticatedRequest, res: Response) {
 
     logAudit(req.user?.userId || null, req.user?.username || 'system', 'UPDATE', 'CREW_MEMBER', id, `Actualización de datos operador ID ${id}`, req.ip || '127.0.0.1');
 
+    broadcastWsEvent({
+      entity: 'crew',
+      action: 'UPDATE',
+      data: { id, name, status, shift_code, radio_channel },
+      key: 'basetrack_crew_members',
+      deviceId: req.headers['x-device-id']?.toString() || 'server_api'
+    });
+
     return res.json({ success: true, message: 'Datos de operador actualizados exitosamente' });
   } catch (error: any) {
     return res.status(500).json({ success: false, message: error.message });
@@ -125,6 +142,14 @@ export function deleteCrewMember(req: AuthenticatedRequest, res: Response) {
     db.prepare('DELETE FROM crew_members WHERE id = ?').run(id);
 
     logAudit(req.user?.userId || null, req.user?.username || 'system', 'DELETE', 'CREW_MEMBER', id, `Baja de operador ID ${id}`, req.ip || '127.0.0.1');
+
+    broadcastWsEvent({
+      entity: 'crew',
+      action: 'DELETE',
+      data: { id },
+      key: 'basetrack_crew_members',
+      deviceId: req.headers['x-device-id']?.toString() || 'server_api'
+    });
 
     return res.json({ success: true, message: 'Operador dado de baja correctamente' });
   } catch (error: any) {
@@ -344,6 +369,14 @@ export function saveAreaAssignment(req: AuthenticatedRequest, res: Response) {
 
     logAudit(req.user?.userId || null, req.user?.username || 'system', 'ASSIGN', 'CREW_ASSIGNMENT', assignmentId, `Asignación ${position_key} a operador ${finalOperatorId || 'VACANTE'}`, req.ip || '127.0.0.1');
 
+    broadcastWsEvent({
+      entity: 'crew',
+      action: 'ASSIGN',
+      data: { id: assignmentId, shift_code, shift_date, shift_type: shiftTypeVal, position_key, operator_id: finalOperatorId },
+      key: `basetrack_assignments_${shift_date}_${shift_code}_${shiftTypeVal}`,
+      deviceId: req.headers['x-device-id']?.toString() || 'server_api'
+    });
+
     return res.json({ success: true, message: 'Asignación guardada exitosamente', id: assignmentId });
   } catch (error: any) {
     return res.status(500).json({ success: false, message: error.message });
@@ -370,6 +403,14 @@ export function checkinAreaAssignment(req: AuthenticatedRequest, res: Response) 
           updated_at = datetime('now')
       WHERE id = ?
     `).run(eppVal, safetyVal, id);
+
+    broadcastWsEvent({
+      entity: 'crew',
+      action: 'CHECKIN',
+      data: { id, epp_verified: eppVal, safety_talk_completed: safetyVal },
+      key: 'basetrack_crew_assignments',
+      deviceId: req.headers['x-device-id']?.toString() || 'server_api'
+    });
 
     return res.json({ success: true, message: 'Check-in actualizado correctamente' });
   } catch (error: any) {
@@ -409,6 +450,14 @@ export function createCrewPosition(req: AuthenticatedRequest, res: Response) {
 
     logAudit(req.user?.userId || null, req.user?.username || 'system', 'CREATE', 'CREW_POSITION', safeKey, `Creación de posición ${title}`, req.ip || '127.0.0.1');
 
+    broadcastWsEvent({
+      entity: 'crew',
+      action: 'CREATE_POSITION',
+      data: { key: safeKey, title: title.trim() },
+      key: 'basetrack_crew_positions',
+      deviceId: req.headers['x-device-id']?.toString() || 'server_api'
+    });
+
     return res.status(201).json({ success: true, message: 'Posición creada exitosamente', key: safeKey });
   } catch (error: any) {
     return res.status(500).json({ success: false, message: error.message });
@@ -421,6 +470,15 @@ export function deleteCrewPosition(req: AuthenticatedRequest, res: Response) {
     db.prepare('DELETE FROM crew_positions WHERE key = ?').run(key);
     db.prepare('DELETE FROM crew_area_assignments WHERE position_key = ?').run(key);
     logAudit(req.user?.userId || null, req.user?.username || 'system', 'DELETE', 'CREW_POSITION', key, `Baja de posición ${key}`, req.ip || '127.0.0.1');
+
+    broadcastWsEvent({
+      entity: 'crew',
+      action: 'DELETE_POSITION',
+      data: { key },
+      key: 'basetrack_crew_positions',
+      deviceId: req.headers['x-device-id']?.toString() || 'server_api'
+    });
+
     return res.json({ success: true, message: 'Posición eliminada correctamente' });
   } catch (error: any) {
     return res.status(500).json({ success: false, message: error.message });

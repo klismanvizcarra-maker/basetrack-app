@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { db } from '../database/db.js';
+import { broadcastWsEvent, getConnectedWsClientsCount } from '../websocket/ws.js';
 
 export interface SyncEventItem {
   entity: string;
@@ -119,6 +120,17 @@ export async function pushEvents(req: Request, res: Response) {
         lastServerId = Number(result?.lastInsertRowid || lastServerId + 1);
       }
       db.exec('COMMIT');
+
+      // Replicar instantáneamente a todas las demás terminales conectadas por WebSocket
+      for (const item of events) {
+        broadcastWsEvent({
+          entity: String(item.entity || 'general'),
+          action: String(item.action || 'UPDATE'),
+          payload: item.payload,
+          deviceId: safeDeviceId,
+          senderName: safeDeviceName
+        });
+      }
     } catch (txError) {
       db.exec('ROLLBACK');
       throw txError;
@@ -210,13 +222,16 @@ export async function getSyncStatus(req: Request, res: Response) {
     const totalEventsRow = db.prepare('SELECT COUNT(*) as count, MAX(id) as latestId, MAX(timestamp) as lastTimestamp FROM sync_events').get() as any;
     const devicesRow = db.prepare('SELECT COUNT(DISTINCT device_id) as deviceCount FROM sync_events').get() as any;
 
+    const wsCount = getConnectedWsClientsCount();
+
     return res.json({
       success: true,
       status: 'ONLINE',
       totalEvents: totalEventsRow?.count || 0,
       latestId: totalEventsRow?.latestId || 0,
       lastSyncTimestamp: totalEventsRow?.lastTimestamp || null,
-      activeDevices: devicesRow?.deviceCount || 0,
+      activeDevices: Math.max(devicesRow?.deviceCount || 0, wsCount),
+      wsClients: wsCount,
       serverTime: Date.now()
     });
   } catch (error: any) {

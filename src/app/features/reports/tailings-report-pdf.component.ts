@@ -697,7 +697,7 @@ export class TailingsReportPdfComponent implements OnInit {
   isDownloading = false;
   downloadSuccess = false;
   copiedText = false;
-  todayDate: string = new Date().toISOString().split('T')[0];
+  todayDate: string = getCurrentActiveShift().dateStr;
   displayShift: string = getCurrentActiveShift().activeGuard.code;
   operatorName = '--- Vacante ---';
   operatorDni = '---';

@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, ChangeDetectorRef, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
@@ -1921,9 +1921,11 @@ export interface GeneralAverages {
     }
   `]
 })
-export class CyclonesComponent implements OnInit {
+export class CyclonesComponent implements OnInit, OnDestroy {
   private http = inject(HttpClient);
   offlineSync = inject(OfflineSyncService);
+  private cdr = inject(ChangeDetectorRef);
+  private ngZone = inject(NgZone);
 
   cyclones: CycloneReport[] = [];
   rawStationSamples: StationSample[] = [];
@@ -1963,7 +1965,7 @@ export class CyclonesComponent implements OnInit {
     mesh200_feed: 0,
     mesh200_of: 0,
     mesh200_uf: 0,
-    date: new Date().toISOString().split('T')[0]
+    date: getCurrentActiveShift().dateStr
   };
 
   newCyclone = {
@@ -1980,12 +1982,36 @@ export class CyclonesComponent implements OnInit {
     notes: 'Inspección de rutina completada'
   };
 
+  private syncListener = (e: any) => {
+    if (e.detail?.source === 'local') return;
+    const ent = (e.detail?.entity || '').toLowerCase();
+    const key = (e.detail?.key || '').toLowerCase();
+    if (ent.includes('cyclone') || ent.includes('ciclone') || key.includes('cyclone')) {
+      this.ngZone.run(() => {
+        this.loadStationSamples();
+        this.loadCyclones();
+        this.cdr.markForCheck();
+        this.cdr.detectChanges();
+      });
+    }
+  };
+
   ngOnInit(): void {
     this.newSample.shift_code = getCurrentActiveShift().activeGuard.code;
     // Inicializar con fallback de datos reales de inmediato
     this.useFallbackData();
     this.loadCyclones();
     this.loadStationSamples();
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('basetrack_cloud_sync', this.syncListener);
+    }
+  }
+
+  ngOnDestroy(): void {
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('basetrack_cloud_sync', this.syncListener);
+    }
   }
 
   selectStation(station: string): void {
@@ -2022,7 +2048,7 @@ export class CyclonesComponent implements OnInit {
       next: (res) => {
         if (res.success && res.data && res.data.length > 0) {
           this.rawStationSamples = res.data;
-          saveRealtimeData('cyclone_samples', this.rawStationSamples);
+          saveRealtimeData('cyclone_samples', this.rawStationSamples, { skipBroadcast: true });
           this.filterSamples();
         } else if (!cached || cached.length === 0) {
           this.useFallbackData();
@@ -2051,6 +2077,8 @@ export class CyclonesComponent implements OnInit {
     this.filteredStationSamples = list;
     this.groupSamples(list);
     this.computeAverages(list);
+    this.cdr.markForCheck();
+    this.cdr.detectChanges();
   }
 
   groupSamples(samples: StationSample[]): void {
@@ -2089,23 +2117,38 @@ export class CyclonesComponent implements OnInit {
       return;
     }
 
-    const n = samples.length;
-    const sum = samples.reduce((acc, c) => ({
-      solids_feed: acc.solids_feed + Number(c.solids_feed || 0),
-      solids_of: acc.solids_of + Number(c.solids_of || 0),
-      solids_uf: acc.solids_uf + Number(c.solids_uf || 0),
-      mesh200_feed: acc.mesh200_feed + Number(c.mesh200_feed || 0),
-      mesh200_of: acc.mesh200_of + Number(c.mesh200_of || 0),
-      mesh200_uf: acc.mesh200_uf + Number(c.mesh200_uf || 0)
-    }), { solids_feed: 0, solids_of: 0, solids_uf: 0, mesh200_feed: 0, mesh200_of: 0, mesh200_uf: 0 });
+    const counts = {
+      solids_feed: 0,
+      solids_of: 0,
+      solids_uf: 0,
+      mesh200_feed: 0,
+      mesh200_of: 0,
+      mesh200_uf: 0
+    };
+
+    const sum = samples.reduce((acc, c) => {
+      const sf = Number(c.solids_feed || 0);
+      if (sf > 0) { acc.solids_feed += sf; counts.solids_feed++; }
+      const so = Number(c.solids_of || 0);
+      if (so > 0) { acc.solids_of += so; counts.solids_of++; }
+      const su = Number(c.solids_uf || 0);
+      if (su > 0) { acc.solids_uf += su; counts.solids_uf++; }
+      const mf = Number(c.mesh200_feed || 0);
+      if (mf > 0) { acc.mesh200_feed += mf; counts.mesh200_feed++; }
+      const mo = Number(c.mesh200_of || 0);
+      if (mo > 0) { acc.mesh200_of += mo; counts.mesh200_of++; }
+      const mu = Number(c.mesh200_uf || 0);
+      if (mu > 0) { acc.mesh200_uf += mu; counts.mesh200_uf++; }
+      return acc;
+    }, { solids_feed: 0, solids_of: 0, solids_uf: 0, mesh200_feed: 0, mesh200_of: 0, mesh200_uf: 0 });
 
     this.generalAverages = {
-      solids_feed: Number((sum.solids_feed / n).toFixed(2)),
-      solids_of: Number((sum.solids_of / n).toFixed(2)),
-      solids_uf: Number((sum.solids_uf / n).toFixed(2)),
-      mesh200_feed: Number((sum.mesh200_feed / n).toFixed(2)),
-      mesh200_of: Number((sum.mesh200_of / n).toFixed(2)),
-      mesh200_uf: Number((sum.mesh200_uf / n).toFixed(2))
+      solids_feed: counts.solids_feed > 0 ? Number((sum.solids_feed / counts.solids_feed).toFixed(2)) : 0,
+      solids_of: counts.solids_of > 0 ? Number((sum.solids_of / counts.solids_of).toFixed(2)) : 0,
+      solids_uf: counts.solids_uf > 0 ? Number((sum.solids_uf / counts.solids_uf).toFixed(2)) : 0,
+      mesh200_feed: counts.mesh200_feed > 0 ? Number((sum.mesh200_feed / counts.mesh200_feed).toFixed(2)) : 0,
+      mesh200_of: counts.mesh200_of > 0 ? Number((sum.mesh200_of / counts.mesh200_of).toFixed(2)) : 0,
+      mesh200_uf: counts.mesh200_uf > 0 ? Number((sum.mesh200_uf / counts.mesh200_uf).toFixed(2)) : 0
     };
   }
 
@@ -2141,7 +2184,7 @@ export class CyclonesComponent implements OnInit {
     // Agregar la hora completa: exactamente dos muestras (CY3 y CY4 para 2da, o CY1 y CY2 para 1ra)
     const batteries = is1ra ? ['CY1', 'CY2'] : ['CY3', 'CY4'];
     const finalShift = this.selectedShift !== 'ALL' ? this.selectedShift : getCurrentActiveShift().activeGuard.code;
-    const finalDate = this.filterDate || new Date().toISOString().split('T')[0];
+    const finalDate = this.filterDate || getCurrentActiveShift().dateStr;
 
     for (const bat of batteries) {
       const newId = 'spl-' + Date.now() + '-' + bat.toLowerCase() + '-' + Math.random().toString(36).substring(2, 6);
@@ -2254,7 +2297,7 @@ export class CyclonesComponent implements OnInit {
       mesh200_of: Number(row.mesh200_of || 0),
       mesh200_uf: Number(row.mesh200_uf || 0),
       shift_code: row.shift_code || getCurrentActiveShift().activeGuard.code,
-      date: row.date || new Date().toISOString().split('T')[0]
+      date: row.date || getCurrentActiveShift().dateStr
     };
 
     if (this.offlineSync.isOnline()) {
@@ -2369,7 +2412,7 @@ export class CyclonesComponent implements OnInit {
       this.generalAverages.mesh200_of,
       this.generalAverages.mesh200_uf,
       this.selectedShift,
-      this.filterDate || new Date().toISOString().split('T')[0]
+      this.filterDate || getCurrentActiveShift().dateStr
     ]);
 
     const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');

@@ -1,6 +1,7 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, ChangeDetectorRef, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
+import { timeout, catchError, of } from 'rxjs';
 import { getApiBaseUrl } from '../../core/constants/api.config';
 import { StatCardComponent } from '../../shared/ui/stat-card.component';
 import { CircularGaugeComponent } from '../../shared/ui/circular-gauge.component';
@@ -323,8 +324,10 @@ import { WaveAreaChartComponent } from '../../shared/ui/wave-area-chart.componen
     }
   `]
 })
-export class DashboardComponent implements OnInit {
+export class DashboardComponent implements OnInit, OnDestroy {
   private http = inject(HttpClient);
+  private cdr = inject(ChangeDetectorRef);
+  private ngZone = inject(NgZone);
 
   kpiCards = [
     { title: 'Caudal Total Slurry', value: '0 m³/h', trend: 'Sincronizado', isPositive: true },
@@ -396,14 +399,33 @@ export class DashboardComponent implements OnInit {
     { label: 'dic', value: 58 }
   ];
 
+  private syncListener = (e: any) => {
+    if (e?.detail?.source === 'local') return;
+    this.ngZone.run(() => {
+      this.fetchMetrics();
+    });
+  };
+
   ngOnInit(): void {
     this.fetchMetrics();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('basetrack_cloud_sync', this.syncListener);
+    }
+  }
+
+  ngOnDestroy(): void {
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('basetrack_cloud_sync', this.syncListener);
+    }
   }
 
   fetchMetrics(): void {
-    this.http.get<any>(`${getApiBaseUrl()}/dashboard/metrics`).subscribe({
+    this.http.get<any>(`${getApiBaseUrl()}/dashboard/metrics`).pipe(
+      timeout(3500),
+      catchError(() => of(null))
+    ).subscribe({
       next: (res) => {
-        if (res.success && res.data) {
+        if (res && res.success && res.data) {
           const d = res.data;
           if (d.kpiCards) this.kpiCards = d.kpiCards;
           if (d.operationSummary?.gauges) this.operationGauges = d.operationSummary.gauges;
@@ -411,10 +433,9 @@ export class DashboardComponent implements OnInit {
           if (d.topCriticalEquipment) this.topEquipment = d.topCriticalEquipment;
           if (d.weeklyComparison?.days) this.weeklyComparisonData = d.weeklyComparison.days;
           if (d.productionCurve?.points) this.productionCurveData = d.productionCurve.points;
+          this.cdr.markForCheck();
+          this.cdr.detectChanges();
         }
-      },
-      error: (err) => {
-        console.warn('[Dashboard] Usando datos locales de telemetría (fallback PWA offline)');
       }
     });
   }

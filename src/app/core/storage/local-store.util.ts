@@ -4,7 +4,7 @@
  * Works seamlessly in offline mode and on cloud static deployments like Vercel.
  */
 
-export function saveRealtimeData(key: string, data: any): void {
+export function saveRealtimeData(key: string, data: any, options?: { skipBroadcast?: boolean }): void {
   if (typeof window === 'undefined' || typeof localStorage === 'undefined') return;
 
   const storageKey = key.startsWith('basetrack_') ? key : `basetrack_${key}`;
@@ -35,12 +35,14 @@ export function saveRealtimeData(key: string, data: any): void {
     }
   }
 
-  // Dispatch local notification event for CloudSyncService
-  if (typeof window !== 'undefined' && !storageKey.includes('sync_')) {
+  // Dispatch local notification event for CloudSyncService and active UI components
+  if (typeof window !== 'undefined' && !storageKey.includes('sync_') && !options?.skipBroadcast) {
     try {
+      const entity = storageKey.replace('basetrack_', '');
       window.dispatchEvent(new CustomEvent('basetrack_local_change', {
-        detail: { key: storageKey, data, timestamp: Date.now() }
+        detail: { key: storageKey, entity, data, timestamp: Date.now() }
       }));
+
     } catch {
       // Ignore event error
     }

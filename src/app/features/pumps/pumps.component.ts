@@ -1,7 +1,8 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, ChangeDetectorRef, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
+import { Router } from '@angular/router';
 import { getApiBaseUrl } from '../../core/constants/api.config';
 import { ModalComponent } from '../../shared/ui/modal.component';
 import { OfflineSyncService } from '../../core/offline/offline-sync.service';
@@ -166,7 +167,7 @@ export interface PumpReport {
             </div>
             <div class="header-right">
               <span class="date-label">FECHA:</span>
-              <input type="text" class="date-input" [(ngModel)]="sheet.report_date" (change)="onDateChange()" />
+              <input type="date" class="date-input" [(ngModel)]="sheet.report_date" (change)="onDateChange()" />
             </div>
           </div>
 
@@ -197,10 +198,12 @@ export interface PumpReport {
                   <td class="cell-status">
                     <button *ngIf="sheet.sentina_pumps[idx]" 
                             class="status-badge-btn" 
-                            [ngClass]="getStatusClass(sheet.sentina_pumps[idx].status)"
+                            [ngClass]="getStatusClass(sheet.sentina_pumps[idx]?.status || 'Operativo')"
+                            [class.is-locked]="isLockedByMaintenance(sheet.sentina_pumps[idx])"
                             (click)="cycleStatus(sheet.sentina_pumps[idx])"
-                            title="Click para cambiar estado">
-                      {{ sheet.sentina_pumps[idx].status }}
+                            [title]="isLockedByMaintenance(sheet.sentina_pumps[idx]) ? 'Bloqueo: Requiere pase de Mantenimiento' : 'Click para cambiar estado'">
+                      <span *ngIf="isLockedByMaintenance(sheet.sentina_pumps[idx])" class="lock-icon-inline">🔒</span>
+                      {{ sheet.sentina_pumps[idx]?.status || 'Operativo' }}
                     </button>
                   </td>
 
@@ -211,10 +214,12 @@ export interface PumpReport {
                   <td class="cell-status">
                     <button *ngIf="sheet.intermedia_pumps[idx]" 
                             class="status-badge-btn" 
-                            [ngClass]="getStatusClass(sheet.intermedia_pumps[idx].status)"
+                            [ngClass]="getStatusClass(sheet.intermedia_pumps[idx]?.status || 'Operativo')"
+                            [class.is-locked]="isLockedByMaintenance(sheet.intermedia_pumps[idx])"
                             (click)="cycleStatus(sheet.intermedia_pumps[idx])"
-                            title="Click para cambiar estado">
-                      {{ sheet.intermedia_pumps[idx].status }}
+                            [title]="isLockedByMaintenance(sheet.intermedia_pumps[idx]) ? 'Bloqueo: Requiere pase de Mantenimiento' : 'Click para cambiar estado'">
+                      <span *ngIf="isLockedByMaintenance(sheet.intermedia_pumps[idx])" class="lock-icon-inline">🔒</span>
+                      {{ sheet.intermedia_pumps[idx]?.status || 'Operativo' }}
                     </button>
                   </td>
 
@@ -225,10 +230,12 @@ export interface PumpReport {
                   <td class="cell-status">
                     <button *ngIf="sheet.torre5_pumps[idx]" 
                             class="status-badge-btn" 
-                            [ngClass]="getStatusClass(sheet.torre5_pumps[idx].status)"
+                            [ngClass]="getStatusClass(sheet.torre5_pumps[idx]?.status || 'Operativo')"
+                            [class.is-locked]="isLockedByMaintenance(sheet.torre5_pumps[idx])"
                             (click)="cycleStatus(sheet.torre5_pumps[idx])"
-                            title="Click para cambiar estado">
-                      {{ sheet.torre5_pumps[idx].status }}
+                            [title]="isLockedByMaintenance(sheet.torre5_pumps[idx]) ? 'Bloqueo: Requiere pase de Mantenimiento' : 'Click para cambiar estado'">
+                      <span *ngIf="isLockedByMaintenance(sheet.torre5_pumps[idx])" class="lock-icon-inline">🔒</span>
+                      {{ sheet.torre5_pumps[idx]?.status || 'Operativo' }}
                     </button>
                   </td>
                 </tr>
@@ -611,6 +618,31 @@ export interface PumpReport {
         </div>
       </app-modal>
 
+      <!-- Modal: Bloqueo Operacional de Mantenimiento -->
+      <app-modal [isOpen]="isLockModalOpen" [title]="'🔒 Bloqueo Operacional: Bomba ' + lockedPumpTag" (close)="isLockModalOpen = false">
+        <div class="lock-modal-content">
+          <div class="lock-alert-banner">
+            <span class="alert-icon">⚠️</span>
+            <div class="alert-text">
+              <h4>Unidad bajo Custodia de Mantenimiento</h4>
+              <p>La bomba <strong>{{ lockedPumpTag }}</strong> se encuentra actualmente en estado <strong>{{ lockedPumpStatus }}</strong>.</p>
+            </div>
+          </div>
+          <div class="lock-details-box">
+            <p><strong>Norma Operativa D.S. 024-2016-EM:</strong></p>
+            <p>Por control de seguridad y procedimiento de bloqueo (LOTO), el Operador de Bombas no puede restablecer la unidad a <em>Operativo</em> directamente.</p>
+            <p>El pase operativo debe ser emitido <strong>exclusivamente desde el Área de Mantenimiento</strong> tras culminar los trabajos mecánicos/eléctricos y resolver la Orden de Trabajo.</p>
+          </div>
+          <div class="modal-footer-actions">
+            <button type="button" class="btn btn-secondary" (click)="isLockModalOpen = false">Cerrar</button>
+            <button *ngIf="canDirectUnlock()" type="button" class="btn btn-warning" (click)="directUnlockPump()">
+              ⚡ Pase Directo (Supervisor/Admin)
+            </button>
+            <button type="button" class="btn btn-primary" (click)="navigateToMaintenance()">Ir a Mantenimiento</button>
+          </div>
+        </div>
+      </app-modal>
+
       <!-- Modal Exportar Reporte PDF Oficial a 1 Hoja -->
       <app-pump-report-pdf
         [isOpen]="isPdfModalOpen"
@@ -910,7 +942,7 @@ export interface PumpReport {
           font-size: 0.84rem;
           font-weight: 700;
           text-align: center;
-          width: 120px;
+          width: 140px;
         }
       }
 
@@ -1057,6 +1089,17 @@ export interface PumpReport {
       touch-action: manipulation;
       -webkit-tap-highlight-color: transparent;
       transition: var(--transition-smooth);
+
+      &.is-locked {
+        position: relative;
+        cursor: not-allowed;
+        box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.45);
+      }
+
+      .lock-icon-inline {
+        margin-right: 4px;
+        font-size: 0.72rem;
+      }
 
       &.status-operativo {
         background: rgba(16, 185, 129, 0.16);
@@ -1457,6 +1500,39 @@ export interface PumpReport {
       }
     }
 
+    .lock-modal-content {
+      padding: 10px 0;
+      .lock-alert-banner {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        background: rgba(239, 68, 68, 0.1);
+        border: 1px solid rgba(239, 68, 68, 0.3);
+        border-radius: var(--radius-md);
+        padding: 14px 18px;
+        margin-bottom: 16px;
+        .alert-icon { font-size: 1.8rem; }
+        .alert-text h4 { margin: 0 0 4px 0; color: #ef4444; font-size: 1rem; }
+        .alert-text p { margin: 0; color: var(--text-secondary); font-size: 0.9rem; }
+      }
+      .lock-details-box {
+        background: var(--bg-surface-secondary);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-md);
+        padding: 14px 18px;
+        margin-bottom: 20px;
+        font-size: 0.88rem;
+        line-height: 1.5;
+        color: var(--text-secondary);
+        p { margin: 0 0 8px 0; &:last-child { margin-bottom: 0; } }
+      }
+      .modal-footer-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+      }
+    }
+
     :host-context(.dark) {
       .inline-level-input.cyan-glow,
       .inline-ind-input,
@@ -1674,7 +1750,7 @@ export interface PumpReport {
     }
   `]
 })
-export class PumpsComponent implements OnInit {
+export class PumpsComponent implements OnInit, OnDestroy {
   private http = inject(HttpClient);
   offlineSync = inject(OfflineSyncService);
   private crewService = inject(CrewService);
@@ -1693,9 +1769,14 @@ export class PumpsComponent implements OnInit {
 
   // Max rows in Section A is 10 (Torre 5 has PU021..PU030)
   readonly maxRowsArray = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+  readonly DEFAULT_SENTINA_TAGS = ['PU001', 'PU002', 'PU003', 'PU004', 'PU005', 'PU006', 'PU007', 'PU008'];
+  readonly DEFAULT_INTERMEDIA_TAGS = ['PU011', 'PU012', 'PU013', 'PU014', 'PU015', 'PU016'];
+  readonly DEFAULT_TORRE5_TAGS = ['PU021', 'PU022', 'PU023', 'PU024', 'PU025', 'PU026', 'PU027', 'PU028', 'PU029', 'PU030'];
+
+  lockedPumpTags = new Set<string>();
 
   sheet: PumpStationSheet = {
-    report_date: new Date().toLocaleDateString('es-PE'),
+    report_date: getCurrentActiveShift().dateStr,
     shift_code: 'G1',
     operator_name: '--- Vacante ---',
     sentina_pumps: [
@@ -1824,10 +1905,116 @@ export class PumpsComponent implements OnInit {
     }
   }
 
+  private router = inject(Router);
+  private cdr = inject(ChangeDetectorRef);
+  private ngZone = inject(NgZone);
+  isLockModalOpen = false;
+  lockedPumpTag = '';
+  lockedPumpStatus = '';
+  isLocallyMutating = false;
+
+  private normalizePumpList(
+    existing: PumpStatusItem[] | undefined,
+    defaultTags: string[]
+  ): PumpStatusItem[] {
+    const list: PumpStatusItem[] = [];
+    const validStatuses = new Set(['Operativo', 'Stand by', 'Mantenimiento', 'Falla']);
+    defaultTags.forEach(tag => {
+      const found = Array.isArray(existing) ? existing.find(p => p && p.tag === tag) : undefined;
+      const status = (found && validStatuses.has(found.status)) ? found.status : 'Operativo';
+      list.push({ tag, status: status as any });
+    });
+    return list;
+  }
+
+  private applySheetData(data: any, targetDate: string, targetShift: string): void {
+    if (!data) return;
+    const sanitized = this.sanitizeSheetData(data);
+    this.sheet = {
+      ...this.sheet,
+      ...sanitized,
+      report_date: targetDate,
+      shift_code: targetShift === 'GUARDIA_A' ? 'G1' : (sanitized.shift_code || targetShift),
+      sentina_pumps: this.normalizePumpList(sanitized.sentina_pumps, this.DEFAULT_SENTINA_TAGS),
+      intermedia_pumps: this.normalizePumpList(sanitized.intermedia_pumps, this.DEFAULT_INTERMEDIA_TAGS),
+      torre5_pumps: this.normalizePumpList(sanitized.torre5_pumps, this.DEFAULT_TORRE5_TAGS),
+      levels: { ...this.sheet.levels, ...(sanitized.levels || {}) },
+      main_indicators: { ...this.sheet.main_indicators, ...(sanitized.main_indicators || {}) },
+      pozas_sentina: Array.isArray(sanitized.pozas_sentina) && sanitized.pozas_sentina.length > 0 
+        ? sanitized.pozas_sentina 
+        : this.sheet.pozas_sentina,
+      additional_obs: { ...this.sheet.additional_obs, ...(sanitized.additional_obs || {}) }
+    };
+  }
+
+  updateLockedPumpTags(): void {
+    try {
+      const raw = getRealtimeData<any>('maintenance_tickets', []);
+      const list = Array.isArray(raw) ? raw : (raw && Array.isArray(raw.data) ? raw.data : []);
+      const set = new Set<string>();
+      for (const t of list) {
+        if (t && t.equipment_tag && (t.status === 'PENDING' || t.status === 'IN_PROGRESS')) {
+          set.add(String(t.equipment_tag).trim().toUpperCase());
+        }
+      }
+      this.lockedPumpTags = set;
+    } catch {
+      this.lockedPumpTags = new Set<string>();
+    }
+  }
+
+  loadMaintenanceTickets(): void {
+    this.updateLockedPumpTags();
+    this.http.get<any>(`${getApiBaseUrl()}/maintenance`).subscribe({
+      next: (res) => {
+        if (res && res.success && Array.isArray(res.data)) {
+          saveRealtimeData('maintenance_tickets', res.data, { skipBroadcast: true });
+          this.updateLockedPumpTags();
+          this.cdr.markForCheck();
+          this.cdr.detectChanges();
+        }
+      },
+      error: () => { }
+    });
+  }
+
+  private syncListener = (e: any) => {
+    // 1. If actively mutating or autosaving, ignore echo to prevent race conditions
+    if (this.isLocallyMutating || this.isAutoSaving) {
+      return;
+    }
+
+    // 2. Ignore local intra-tab pump sheet events emitted by this very component
+    if (e.detail?.source === 'local') {
+      return;
+    }
+
+    const ent = (e.detail?.entity || '').toLowerCase();
+    const key = (e.detail?.key || '').toLowerCase();
+    if (
+      ent.includes('pump') ||
+      ent.includes('bomba') ||
+      ent.includes('maintenance') ||
+      ent.includes('mantenimiento') ||
+      key.includes('pump') ||
+      key.includes('maintenance')
+    ) {
+      this.ngZone.run(() => {
+        this.updateLockedPumpTags();
+        this.loadOperationalSheet();
+        this.loadTelemetryPumps();
+        this.loadMaintenanceTickets();
+        this.cdr.markForCheck();
+        this.cdr.detectChanges();
+      });
+    }
+  };
+
   ngOnInit(): void {
-    const activeShift = getCurrentActiveShift().activeGuard.code;
-    const assignedOp = this.crewService.getAssignedOperatorForPosition('BOMBAS', activeShift);
-    this.sheet.shift_code = activeShift;
+    const activeShift = getCurrentActiveShift();
+    this.sheet.shift_code = activeShift.activeGuard.code;
+    this.sheet.report_date = activeShift.dateStr;
+    const assignedOp = this.crewService.getAssignedOperatorForPosition('BOMBAS', activeShift.activeGuard.code);
     const currentUser = this.authService.currentUser();
     if (assignedOp && assignedOp.name) {
       this.sheet.operator_name = assignedOp.name;
@@ -1836,28 +2023,43 @@ export class PumpsComponent implements OnInit {
     } else {
       this.sheet.operator_name = '--- Vacante ---';
     }
+    this.updateLockedPumpTags();
     this.loadOperationalSheet();
     this.loadTelemetryPumps();
+    this.loadMaintenanceTickets();
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('basetrack_cloud_sync', this.syncListener);
+    }
+  }
+
+  ngOnDestroy(): void {
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('basetrack_cloud_sync', this.syncListener);
+    }
   }
 
   loadOperationalSheet(): void {
-    const cached = getRealtimeData<any>('pump_sheet_' + this.sheet.report_date, null) || getRealtimeData<any>('pump_sheet_latest', null);
+    const targetDate = this.sheet.report_date;
+    const targetShift = this.sheet.shift_code;
+    const cached = getRealtimeData<any>('pump_sheet_' + targetDate, null);
     if (cached) {
-      this.sheet = this.sanitizeSheetData({ ...this.sheet, ...cached });
-      if (this.sheet.shift_code === 'GUARDIA_A') this.sheet.shift_code = 'G1';
+      this.applySheetData(cached, targetDate, targetShift);
+      this.cdr.markForCheck();
+      this.cdr.detectChanges();
     }
 
-    this.http.get<any>(`${getApiBaseUrl()}/pumps/operational-sheet?date=${this.sheet.report_date}`).subscribe({
+    this.http.get<any>(`${getApiBaseUrl()}/pumps/operational-sheet?date=${encodeURIComponent(targetDate)}&shift=${encodeURIComponent(targetShift)}`).subscribe({
       next: (res) => {
+        if (this.isLocallyMutating || this.isAutoSaving) {
+          return;
+        }
         if (res.success && res.data) {
-          this.sheet = this.sanitizeSheetData({
-            ...this.sheet,
-            ...res.data,
-            report_date: res.data.report_date || this.sheet.report_date
-          });
-          if (this.sheet.shift_code === 'GUARDIA_A') this.sheet.shift_code = 'G1';
-          saveRealtimeData('pump_sheet_' + this.sheet.report_date, this.sheet);
-          saveRealtimeData('pump_sheet_latest', this.sheet);
+          this.applySheetData(res.data, targetDate, targetShift);
+          saveRealtimeData('pump_sheet_' + targetDate, this.sheet, { skipBroadcast: true });
+          saveRealtimeData('pump_sheet_latest', this.sheet, { skipBroadcast: true });
+          this.cdr.markForCheck();
+          this.cdr.detectChanges();
         }
       },
       error: () => {
@@ -1876,7 +2078,7 @@ export class PumpsComponent implements OnInit {
       next: (res) => {
         if (res.success && res.data && res.data.length > 0) {
           this.pumps = res.data;
-          saveRealtimeData('pumps_telemetry', this.pumps);
+          saveRealtimeData('pumps_telemetry', this.pumps, { skipBroadcast: true });
         }
       },
       error: () => {
@@ -1887,10 +2089,134 @@ export class PumpsComponent implements OnInit {
     });
   }
 
+  isLockedByMaintenance(pump: PumpStatusItem | undefined | null): boolean {
+    if (!pump || !pump.tag) return false;
+    const status = pump.status;
+    if (status !== 'Falla' && status !== 'Mantenimiento') return false;
+    return this.lockedPumpTags.has(pump.tag.trim().toUpperCase());
+  }
+
+  canDirectUnlock(): boolean {
+    const role = this.authService.currentUser()?.role;
+    return role === 'ADMIN' || role === 'SUPERVISOR';
+  }
+
+  directUnlockPump(): void {
+    const tag = this.lockedPumpTag;
+    if (!tag) return;
+
+    ['sentina_pumps', 'intermedia_pumps', 'torre5_pumps'].forEach(arrKey => {
+      const list = (this.sheet as any)[arrKey];
+      if (Array.isArray(list)) {
+        list.forEach((p: any) => {
+          if (p && p.tag === tag) {
+            p.status = 'Operativo';
+          }
+        });
+      }
+    });
+
+    const raw = getRealtimeData<any>('maintenance_tickets', []);
+    const tickets = Array.isArray(raw) ? raw : (raw && Array.isArray(raw.data) ? raw.data : []);
+    let resolvedTicketId: string | null = null;
+    tickets.forEach((t: any) => {
+      if (t && t.equipment_tag === tag && (t.status === 'PENDING' || t.status === 'IN_PROGRESS')) {
+        t.status = 'RESOLVED';
+        t.operational_pass_by = this.authService.currentUser()?.fullName || 'Supervisor de Guardia';
+        t.operational_pass_at = new Date().toISOString();
+        t.resolution_notes = 'Pase Operativo Directo otorgado por Administración/Supervisión';
+        resolvedTicketId = t.id;
+      }
+    });
+    saveRealtimeData('maintenance_tickets', tickets);
+    this.updateLockedPumpTags();
+
+    this.isLockModalOpen = false;
+    this.onSheetChange();
+
+    if (resolvedTicketId) {
+      this.http.patch<any>(`${getApiBaseUrl()}/maintenance/${resolvedTicketId}/status`, {
+        status: 'RESOLVED',
+        operational_pass_by: this.authService.currentUser()?.fullName || 'Supervisor de Guardia',
+        resolution_notes: 'Pase Operativo Directo otorgado por Administración/Supervisión'
+      }).subscribe();
+    }
+  }
+
+  navigateToMaintenance(): void {
+    this.isLockModalOpen = false;
+    this.router.navigate(['/maintenance']);
+  }
+
+  private createLocalMaintenanceTicket(tag: string): void {
+    const raw = getRealtimeData<any>('maintenance_tickets', []);
+    const existing = Array.isArray(raw) ? raw : (raw && Array.isArray(raw.data) ? raw.data : []);
+    const hasActive = existing.some((t: any) => t && t.equipment_tag === tag && (t.status === 'PENDING' || t.status === 'IN_PROGRESS'));
+    if (!hasActive) {
+      const currentYear = new Date().getFullYear();
+      const ticketNum = `OT-${currentYear}-${String(Math.floor(50 + Math.random() * 40)).padStart(4, '0')}`;
+      const newTicket = {
+        id: 'm-' + Date.now(),
+        ticket_number: ticketNum,
+        equipment_tag: tag,
+        title: `Falla reportada en Bomba ${tag}`,
+        description: `Orden de trabajo generada automáticamente desde la Planilla de Bombas por ${this.sheet.operator_name || 'Operador Central'}`,
+        priority: 'HIGH',
+        status: 'PENDING',
+        requester_name: this.sheet.operator_name || 'Operador de Bombas',
+        assigned_to: 'Equipo Mantenimiento Planta',
+        photo_url: 'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=600&q=80',
+        estimated_hours: 2,
+        source_module: 'PUMPS_STATION',
+        created_at: new Date().toISOString()
+      };
+      existing.unshift(newTicket);
+      saveRealtimeData('maintenance_tickets', existing);
+      this.updateLockedPumpTags();
+
+      // Replicate immediately to backend API so SQLite and other clients receive it
+      const endpoint = `${getApiBaseUrl()}/maintenance`;
+      const payload = {
+        equipment_tag: tag,
+        title: newTicket.title,
+        description: newTicket.description,
+        priority: newTicket.priority,
+        assigned_to: newTicket.assigned_to,
+        photo_url: newTicket.photo_url,
+        estimated_hours: newTicket.estimated_hours,
+        requester_name: newTicket.requester_name
+      };
+
+      if (this.offlineSync.isOnline()) {
+        this.http.post<any>(endpoint, payload).subscribe({
+          next: () => { },
+          error: () => {
+            this.offlineSync.queueAction(endpoint, 'POST', payload, 'OT Falla ' + tag);
+          }
+        });
+      } else {
+        this.offlineSync.queueAction(endpoint, 'POST', payload, 'OT Falla ' + tag);
+      }
+    }
+  }
+
   cycleStatus(pump: PumpStatusItem): void {
-    const states: Array<'Operativo' | 'Stand by' | 'Mantenimiento' | 'Falla'> = ['Operativo', 'Stand by', 'Mantenimiento', 'Falla'];
-    const idx = states.indexOf(pump.status);
-    pump.status = states[(idx + 1) % states.length];
+    if (this.isLockedByMaintenance(pump)) {
+      this.lockedPumpTag = pump.tag;
+      this.lockedPumpStatus = pump.status;
+      this.isLockModalOpen = true;
+      return;
+    }
+
+    if (pump.status === 'Operativo') {
+      pump.status = 'Stand by';
+    } else if (pump.status === 'Stand by') {
+      pump.status = 'Falla';
+      this.createLocalMaintenanceTicket(pump.tag);
+    } else {
+      pump.status = 'Operativo';
+    }
+
     this.onSheetChange();
   }
 
@@ -1919,9 +2245,12 @@ export class PumpsComponent implements OnInit {
   }
 
   onSheetChange(): void {
+    this.isLocallyMutating = true;
     // 1. Instant local persistence (zero latency)
     saveRealtimeData('pump_sheet_' + this.sheet.report_date, this.sheet);
     saveRealtimeData('pump_sheet_latest', this.sheet);
+    this.cdr.markForCheck();
+    this.cdr.detectChanges();
 
     // 2. Debounced automatic backend synchronization
     if (this.autoSaveTimer) {
@@ -1930,7 +2259,7 @@ export class PumpsComponent implements OnInit {
     this.isAutoSaving = true;
     this.autoSaveTimer = setTimeout(() => {
       this.executeAutoSave();
-    }, 600);
+    }, 300);
   }
 
   executeAutoSave(): void {
@@ -1938,20 +2267,22 @@ export class PumpsComponent implements OnInit {
       ...this.sheet,
       report_date: this.sheet.report_date
     };
-    saveRealtimeData('pump_sheet_' + this.sheet.report_date, payload);
-    saveRealtimeData('pump_sheet_latest', payload);
+    saveRealtimeData('pump_sheet_' + this.sheet.report_date, payload, { skipBroadcast: true });
+    saveRealtimeData('pump_sheet_latest', payload, { skipBroadcast: true });
 
     const endpoint = `${getApiBaseUrl()}/pumps/operational-sheet`;
     if (this.offlineSync.isOnline()) {
       this.http.post<any>(endpoint, payload).subscribe({
         next: () => {
           this.isAutoSaving = false;
+          setTimeout(() => { this.isLocallyMutating = false; }, 300);
           this.isSaving = false;
           this.lastAutoSavedTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         },
         error: () => {
           this.offlineSync.queueAction(endpoint, 'POST', payload, 'Reporte Bombas ' + this.sheet.report_date);
           this.isAutoSaving = false;
+          setTimeout(() => { this.isLocallyMutating = false; }, 300);
           this.isSaving = false;
           this.lastAutoSavedTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         }
@@ -1959,6 +2290,7 @@ export class PumpsComponent implements OnInit {
     } else {
       this.offlineSync.queueAction(endpoint, 'POST', payload, 'Reporte Bombas ' + this.sheet.report_date);
       this.isAutoSaving = false;
+      setTimeout(() => { this.isLocallyMutating = false; }, 300);
       this.isSaving = false;
       this.lastAutoSavedTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     }

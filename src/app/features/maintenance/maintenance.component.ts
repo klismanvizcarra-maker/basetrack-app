@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, ChangeDetectorRef, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
@@ -20,6 +20,10 @@ export interface MaintenanceRequest {
   assigned_to?: string;
   photo_url: string;
   estimated_hours: number;
+  source_module?: string;
+  operational_pass_by?: string;
+  operational_pass_at?: string;
+  resolution_notes?: string;
   created_at: string;
 }
 
@@ -50,6 +54,9 @@ export interface MaintenanceRequest {
             <div class="ticket-number-tag">
               <span class="ot-num">{{ t.ticket_number }}</span>
               <span class="eq-tag">{{ t.equipment_tag }}</span>
+              <span *ngIf="t.source_module === 'PUMPS_STATION' || t.equipment_tag?.startsWith('PU')" class="origin-badge">
+                ⚡ ORIGEN: BOMBAS
+              </span>
             </div>
             <div class="badges-group">
               <span class="badge" [ngClass]="getPriorityBadge(t.priority)">
@@ -87,13 +94,21 @@ export interface MaintenanceRequest {
               <span class="meta-label">Asignado a:</span>
               <span class="meta-val highlight-purple">{{ t.assigned_to || 'Sin asignar' }}</span>
             </div>
+            <div *ngIf="t.operational_pass_by" class="meta-row pass-meta-row">
+              <span class="meta-label">Pase Operativo:</span>
+              <span class="meta-val pass-badge">✅ {{ t.operational_pass_by }}</span>
+            </div>
+            <div *ngIf="t.resolution_notes" class="meta-row">
+              <span class="meta-label">Trabajo:</span>
+              <span class="meta-val highlight-green">{{ t.resolution_notes }}</span>
+            </div>
 
             <div class="status-action-row">
-              <button *ngIf="t.status === 'PENDING'" class="btn btn-secondary btn-sm" (click)="updateStatus(t, 'IN_PROGRESS')">
-                Iniciar Trabajo
+              <button *ngIf="t.status === 'PENDING'" class="btn btn-warning btn-sm btn-action" (click)="attendTicket(t)">
+                🛠️ Atender (Poner en Mantenimiento)
               </button>
-              <button *ngIf="t.status === 'IN_PROGRESS'" class="btn btn-success btn-sm" (click)="updateStatus(t, 'RESOLVED')">
-                Resolver OT
+              <button *ngIf="t.status === 'IN_PROGRESS'" class="btn btn-success btn-sm btn-action btn-pase" (click)="openPassModal(t)">
+                ✅ Dar Pase Operativo & Resolver OT
               </button>
             </div>
           </div>
@@ -164,6 +179,31 @@ export interface MaintenanceRequest {
           <div class="zoom-meta">
             <h4>{{ selectedTicket.equipment_tag }}: {{ selectedTicket.title }}</h4>
             <p>{{ selectedTicket.description }}</p>
+          </div>
+        </div>
+      </app-modal>
+
+      <!-- Modal: Dar Pase Operativo -->
+      <app-modal [isOpen]="isPassModalOpen" [title]="'✅ Dar Pase Operativo: Bomba ' + selectedPassTicket?.equipment_tag" (close)="isPassModalOpen = false">
+        <div class="pass-modal-body" *ngIf="selectedPassTicket">
+          <div class="pass-info-banner">
+            <span class="banner-icon">ℹ️</span>
+            <div>
+              <strong>Liberación de Custodia y Restitución Operativa</strong>
+              <p>Al otorgar el pase, la bomba <strong>{{ selectedPassTicket.equipment_tag }}</strong> retornará inmediatamente al estado <strong>OPERATIVO</strong> en la Planilla de Bombas y Telemetría.</p>
+            </div>
+          </div>
+          <div class="form-group" style="margin-bottom: 14px;">
+            <label style="font-weight: 600; font-size: 0.88rem; display: block; margin-bottom: 6px;">Técnico / Responsable que emite el pase:</label>
+            <input type="text" [(ngModel)]="passSignerName" style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-subtle); background: var(--bg-input); color: var(--text-primary);" placeholder="Nombre completo" />
+          </div>
+          <div class="form-group" style="margin-bottom: 20px;">
+            <label style="font-weight: 600; font-size: 0.88rem; display: block; margin-bottom: 6px;">Detalle del trabajo ejecutado / Observaciones técnicas:</label>
+            <textarea [(ngModel)]="passResolutionNotes" rows="3" style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-subtle); background: var(--bg-input); color: var(--text-primary);" placeholder="Ej: Cambio de sello mecánico, alineamiento láser y prueba en vacío exitosa."></textarea>
+          </div>
+          <div class="modal-footer-actions" style="display: flex; justify-content: flex-end; gap: 10px;">
+            <button type="button" class="btn btn-secondary" (click)="isPassModalOpen = false">Cancelar</button>
+            <button type="button" class="btn btn-success" (click)="confirmOperationalPass()">Firmar y Emitir Pase Operativo</button>
           </div>
         </div>
       </app-modal>
@@ -251,6 +291,55 @@ export interface MaintenanceRequest {
     .eq-tag {
       font-size: 0.75rem;
       color: var(--text-muted);
+    }
+
+    .origin-badge {
+      display: inline-flex;
+      align-items: center;
+      font-size: 0.68rem;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      padding: 2px 7px;
+      border-radius: var(--radius-sm);
+      background: rgba(3, 23, 149, 0.14);
+      color: #3b82f6;
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      margin-top: 4px;
+      width: fit-content;
+    }
+
+    .pass-meta-row {
+      background: rgba(16, 185, 129, 0.1);
+      border-radius: var(--radius-sm);
+      padding: 3px 6px;
+    }
+
+    .pass-badge {
+      color: #10b981;
+      font-weight: 700;
+      font-size: 0.8rem;
+    }
+
+    .btn-pase {
+      font-weight: 700;
+      letter-spacing: 0.3px;
+    }
+
+    .pass-modal-body {
+      padding: 4px 0;
+      .pass-info-banner {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        background: rgba(16, 185, 129, 0.12);
+        border: 1px solid rgba(16, 185, 129, 0.35);
+        border-radius: var(--radius-md);
+        padding: 12px 16px;
+        margin-bottom: 18px;
+        .banner-icon { font-size: 1.6rem; }
+        strong { color: #10b981; font-size: 0.95rem; display: block; margin-bottom: 2px; }
+        p { margin: 0; color: var(--text-secondary); font-size: 0.85rem; }
+      }
     }
 
     .badges-group {
@@ -424,10 +513,12 @@ export interface MaintenanceRequest {
     }
   `]
 })
-export class MaintenanceComponent implements OnInit {
+export class MaintenanceComponent implements OnInit, OnDestroy {
   private http = inject(HttpClient);
   offlineSync = inject(OfflineSyncService);
   private authService = inject(AuthService);
+  private cdr = inject(ChangeDetectorRef);
+  private ngZone = inject(NgZone);
 
   tickets: MaintenanceRequest[] = [];
   isCreateModalOpen = false;
@@ -445,21 +536,68 @@ export class MaintenanceComponent implements OnInit {
     estimated_hours: 2.5
   };
 
+  isPassModalOpen = false;
+  selectedPassTicket: MaintenanceRequest | null = null;
+  passSignerName = '';
+  passResolutionNotes = '';
+
+  private syncListener = (e: any) => {
+    if (e.detail?.source === 'local') return;
+    const ent = (e.detail?.entity || '').toLowerCase();
+    const key = (e.detail?.key || '').toLowerCase();
+    if (
+      ent.includes('maintenance') || 
+      ent.includes('mantenimiento') || 
+      ent.includes('pump') || 
+      ent.includes('bomba') ||
+      key.includes('maintenance') ||
+      key.includes('pump')
+    ) {
+      this.ngZone.run(() => {
+        this.loadTickets();
+        this.cdr.markForCheck();
+        this.cdr.detectChanges();
+      });
+    }
+  };
+
   ngOnInit(): void {
     this.loadTickets();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('basetrack_cloud_sync', this.syncListener);
+    }
+  }
+
+  ngOnDestroy(): void {
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('basetrack_cloud_sync', this.syncListener);
+    }
   }
 
   loadTickets(): void {
     const cached = getRealtimeData<MaintenanceRequest[]>('maintenance_tickets', []);
     if (cached && cached.length > 0) {
       this.tickets = cached;
+      this.cdr.markForCheck();
+      this.cdr.detectChanges();
     }
 
     this.http.get<any>(`${getApiBaseUrl()}/maintenance`).subscribe({
       next: (res) => {
-        if (res.success && res.data && res.data.length > 0) {
-          this.tickets = res.data;
-          saveRealtimeData('maintenance_tickets', this.tickets);
+        if (res.success && Array.isArray(res.data)) {
+          const serverTickets = res.data;
+          const merged = [...serverTickets];
+          if (cached && cached.length > 0) {
+            for (const c of cached) {
+              if (c && c.id && !merged.some(m => m.id === c.id || (m.equipment_tag === c.equipment_tag && m.status === c.status))) {
+                merged.unshift(c);
+              }
+            }
+          }
+          this.tickets = merged;
+          saveRealtimeData('maintenance_tickets', this.tickets, { skipBroadcast: true });
+          this.cdr.markForCheck();
+          this.cdr.detectChanges();
         } else if (!cached || cached.length === 0) {
           this.loadDefaultTickets();
         }
@@ -563,6 +701,8 @@ export class MaintenanceComponent implements OnInit {
   updateStatus(t: MaintenanceRequest, newStatus: any): void {
     t.status = newStatus;
     saveRealtimeData('maintenance_tickets', this.tickets);
+    this.cdr.markForCheck();
+    this.cdr.detectChanges();
 
     const endpoint = `${getApiBaseUrl()}/maintenance/${t.id}/status`;
     this.http.patch<any>(endpoint, { status: newStatus }).subscribe({
@@ -573,6 +713,95 @@ export class MaintenanceComponent implements OnInit {
         this.offlineSync.queueAction(endpoint, 'PATCH' as any, { status: newStatus }, `Estado OT ${t.ticket_number}`);
       }
     });
+  }
+
+  attendTicket(t: MaintenanceRequest): void {
+    this.updateStatus(t, 'IN_PROGRESS');
+    this.syncLocalPumpStatus(t.equipment_tag, 'Mantenimiento');
+  }
+
+  openPassModal(t: MaintenanceRequest): void {
+    this.selectedPassTicket = t;
+    this.passSignerName = this.authService.currentUser()?.fullName || 'Supervisor Mantenimiento';
+    this.passResolutionNotes = '';
+    this.isPassModalOpen = true;
+  }
+
+  confirmOperationalPass(): void {
+    if (!this.selectedPassTicket) return;
+    const t = this.selectedPassTicket;
+    const signer = this.passSignerName.trim() || this.authService.currentUser()?.fullName || 'Supervisor Mantenimiento';
+    const notes = this.passResolutionNotes.trim() || 'Mantenimiento correctivo concluido conforme';
+
+    t.status = 'RESOLVED';
+    t.operational_pass_by = signer;
+    t.operational_pass_at = new Date().toISOString();
+    t.resolution_notes = notes;
+
+    saveRealtimeData('maintenance_tickets', this.tickets);
+    this.syncLocalPumpStatus(t.equipment_tag, 'Operativo');
+    this.isPassModalOpen = false;
+    this.cdr.markForCheck();
+    this.cdr.detectChanges();
+
+    const endpoint = `${getApiBaseUrl()}/maintenance/${t.id}/status`;
+    this.http.patch<any>(endpoint, {
+      status: 'RESOLVED',
+      operational_pass_by: signer,
+      resolution_notes: notes
+    }).subscribe({
+      next: () => {
+        this.loadTickets();
+      },
+      error: () => {
+        this.offlineSync.queueAction(endpoint, 'PATCH' as any, {
+          status: 'RESOLVED',
+          operational_pass_by: signer,
+          resolution_notes: notes
+        }, `Pase Operativo OT ${t.ticket_number}`);
+      }
+    });
+  }
+
+  private syncLocalPumpStatus(tag: string, newStatus: 'Mantenimiento' | 'Operativo'): void {
+    try {
+      const keys = ['pump_sheet_latest'];
+      const todayDate = new Date().toISOString().slice(0, 10);
+      keys.push('pump_sheet_' + todayDate);
+      keys.push('pump_sheet_' + new Date().toLocaleDateString('es-PE'));
+
+      if (typeof localStorage !== 'undefined') {
+        for (let i = 0; i < localStorage.length; i++) {
+          const lk = localStorage.key(i);
+          if (lk && lk.startsWith('basetrack_pump_sheet_')) {
+            keys.push(lk.replace('basetrack_', ''));
+          }
+        }
+      }
+
+      const uniqueKeys = Array.from(new Set(keys));
+      for (const k of uniqueKeys) {
+        const sheet = getRealtimeData<any>(k, null);
+        if (sheet) {
+          let updated = false;
+          ['sentina_pumps', 'intermedia_pumps', 'torre5_pumps'].forEach(arrKey => {
+            if (Array.isArray(sheet[arrKey])) {
+              sheet[arrKey].forEach((p: any) => {
+                if (p && p.tag === tag) {
+                  p.status = newStatus;
+                  updated = true;
+                }
+              });
+            }
+          });
+          if (updated) {
+            saveRealtimeData(k, sheet, { skipBroadcast: false });
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('[Maintenance] Error updating local pump sheet cache:', e);
+    }
   }
 
   openPhotoPreview(t: MaintenanceRequest): void {

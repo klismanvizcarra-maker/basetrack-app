@@ -3,6 +3,7 @@ import crypto from 'node:crypto';
 import { db } from '../database/db.js';
 import { AuthenticatedRequest } from '../middlewares/auth.middleware.js';
 import { logAudit } from '../middlewares/error.middleware.js';
+import { broadcastWsEvent } from '../websocket/ws.js';
 
 export function getAllShiftHandovers(req: Request, res: Response) {
   try {
@@ -52,7 +53,8 @@ export function createShiftHandover(req: AuthenticatedRequest, res: Response) {
     const inDni = incoming_dni || null;
     const inRole = incoming_role || 'Supervisor de guardia';
 
-    const handoverDate = date || new Date().toISOString().split('T')[0];
+    // Gotcha #4: Peru timezone UTC-5 fallback so 19:00 night shift does not flip to tomorrow
+    const handoverDate = date || new Date(Date.now() - 5 * 3600 * 1000).toISOString().split('T')[0];
     const crewJson = assigned_crew ? (typeof assigned_crew === 'string' ? assigned_crew : JSON.stringify(assigned_crew)) : null;
     const checklistJson = checklist_data ? (typeof checklist_data === 'string' ? checklist_data : JSON.stringify(checklist_data)) : null;
 
@@ -70,6 +72,26 @@ export function createShiftHandover(req: AuthenticatedRequest, res: Response) {
       operational_highlights || null, pending_tasks || null, status || 'SUBMITTED',
       crewJson, checklistJson
     );
+
+    // Broadcast WebSocket event to all other terminals
+    broadcastWsEvent({
+      entity: 'shift_handover',
+      action: 'CREATE',
+      data: {
+        id,
+        shift_code,
+        date: handoverDate,
+        shift_type,
+        outgoing_supervisor: outSup,
+        incoming_supervisor: inSup,
+        plant_status: finalPlantStatus,
+        tonnage_processed: tonnage_processed || 0,
+        status: status || 'SUBMITTED'
+      },
+      key: 'basetrack_shift_handovers',
+      deviceId: req.headers['x-device-id']?.toString() || 'server_api',
+      senderName: outSup
+    });
 
     logAudit(req.user?.userId || null, req.user?.username || 'system', 'CREATE', 'SHIFT_HANDOVER', id, `Relevo de guardia creado: ${shift_code} (${outSup} -> ${inSup})`, req.ip || '127.0.0.1');
 
@@ -101,6 +123,16 @@ export function acceptShiftHandover(req: AuthenticatedRequest, res: Response) {
           incoming_role = COALESCE(?, incoming_role)
       WHERE id = ?
     `).run(inSup, inDni, inRole, id);
+
+    // Broadcast acceptance over WebSocket
+    broadcastWsEvent({
+      entity: 'shift_handover',
+      action: 'ACCEPT',
+      data: { id, status: 'ACCEPTED', incoming_supervisor: inSup },
+      key: 'basetrack_shift_handovers',
+      deviceId: req.headers['x-device-id']?.toString() || 'server_api',
+      senderName: inSup || 'Supervisor Entrante'
+    });
 
     logAudit(req.user?.userId || null, req.user?.username || 'system', 'ACCEPT', 'SHIFT_HANDOVER', id, `Relevo de guardia aceptado por ${inSup || 'Supervisor'}`, req.ip || '127.0.0.1');
 

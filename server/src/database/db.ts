@@ -158,6 +158,10 @@ export function initDatabase() {
       assigned_to TEXT,
       photo_url TEXT,
       estimated_hours REAL NOT NULL DEFAULT 1,
+      source_module TEXT DEFAULT 'MANUAL',
+      operational_pass_by TEXT,
+      operational_pass_at TEXT,
+      resolution_notes TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
@@ -247,10 +251,24 @@ export function initDatabase() {
       is_revoked INTEGER NOT NULL DEFAULT 0
     );
 
+    -- Mining Vehicles Fleet (Padrón de Camionetas Mineras 4x4)
+    CREATE TABLE IF NOT EXISTS vehicles (
+      id TEXT PRIMARY KEY,
+      plate TEXT UNIQUE NOT NULL,
+      tag TEXT NOT NULL,
+      model TEXT NOT NULL,
+      color TEXT NOT NULL,
+      area TEXT NOT NULL,
+      base_odometer INTEGER NOT NULL DEFAULT 0,
+      is_active INTEGER NOT NULL DEFAULT 1,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
     -- Vehicle Pre-Use Checklists (Camionetas Mineras 4x4)
     CREATE TABLE IF NOT EXISTS vehicle_checklists (
       id TEXT PRIMARY KEY,
-      vehicle_plate TEXT NOT NULL CHECK(vehicle_plate IN ('BMC715', 'BKS921', 'BKS913', 'BPS747')),
+      vehicle_plate TEXT NOT NULL,
       date TEXT NOT NULL,
       time TEXT NOT NULL,
       shift TEXT NOT NULL CHECK(shift IN ('G1', 'G2', 'G3', 'G4')),
@@ -310,10 +328,48 @@ export function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_sync_events_timestamp ON sync_events(timestamp);
     CREATE INDEX IF NOT EXISTS idx_sync_events_device ON sync_events(device_id);
     CREATE INDEX IF NOT EXISTS idx_devices_last_seen ON connected_devices(last_seen);
+    CREATE INDEX IF NOT EXISTS idx_vehicles_plate ON vehicles(plate);
+    CREATE INDEX IF NOT EXISTS idx_vehicles_active ON vehicles(is_active);
     CREATE INDEX IF NOT EXISTS idx_vehicle_checklists_plate ON vehicle_checklists(vehicle_plate, date DESC);
     CREATE INDEX IF NOT EXISTS idx_sup_op_supervisor ON supervisor_operators(supervisor_id);
     CREATE INDEX IF NOT EXISTS idx_sup_op_operator ON supervisor_operators(operator_id);
   `);
+
+  // Safe migration: remove CHECK constraint on vehicle_plate from existing vehicle_checklists if present
+  try {
+    const vCheckInfo = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='vehicle_checklists'").get() as { sql: string } | undefined;
+    if (vCheckInfo && vCheckInfo.sql && vCheckInfo.sql.includes('CHECK(vehicle_plate IN')) {
+      db.exec(`
+        PRAGMA foreign_keys=off;
+        CREATE TABLE IF NOT EXISTS vehicle_checklists_v2 (
+          id TEXT PRIMARY KEY,
+          vehicle_plate TEXT NOT NULL,
+          date TEXT NOT NULL,
+          time TEXT NOT NULL,
+          shift TEXT NOT NULL CHECK(shift IN ('G1', 'G2', 'G3', 'G4')),
+          shift_type TEXT NOT NULL CHECK(shift_type IN ('DIA', 'NOCHE')),
+          driver_name TEXT NOT NULL,
+          driver_dni TEXT NOT NULL,
+          driver_license TEXT,
+          odometer INTEGER NOT NULL,
+          items_json TEXT NOT NULL,
+          has_observations INTEGER NOT NULL DEFAULT 0,
+          observation_notes TEXT,
+          photo_url TEXT,
+          operational_status TEXT NOT NULL CHECK(operational_status IN ('APTO', 'OBSERVADO', 'NO_APTO')),
+          created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        INSERT OR IGNORE INTO vehicle_checklists_v2 SELECT * FROM vehicle_checklists;
+        DROP TABLE vehicle_checklists;
+        ALTER TABLE vehicle_checklists_v2 RENAME TO vehicle_checklists;
+        CREATE INDEX IF NOT EXISTS idx_vehicle_checklists_plate ON vehicle_checklists(vehicle_plate, date DESC);
+        PRAGMA foreign_keys=on;
+      `);
+      console.log('[Database] Migrated vehicle_checklists to support dynamic vehicle fleet without hardcoded plates.');
+    }
+  } catch (e) {
+    console.warn('[Database] vehicle_checklists migration check:', e);
+  }
 
   // Safe migration: remove CHECK constraint from existing crew_area_assignments if present
   try {
@@ -563,6 +619,20 @@ export function initDatabase() {
     db.prepare("ALTER TABLE shift_handovers ADD COLUMN checklist_data TEXT").run();
   } catch {}
 
+  // Migration: Add operational pass and module tracking to maintenance_requests
+  try {
+    db.prepare("ALTER TABLE maintenance_requests ADD COLUMN source_module TEXT DEFAULT 'MANUAL'").run();
+  } catch {}
+  try {
+    db.prepare("ALTER TABLE maintenance_requests ADD COLUMN operational_pass_by TEXT").run();
+  } catch {}
+  try {
+    db.prepare("ALTER TABLE maintenance_requests ADD COLUMN operational_pass_at TEXT").run();
+  } catch {}
+  try {
+    db.prepare("ALTER TABLE maintenance_requests ADD COLUMN resolution_notes TEXT").run();
+  } catch {}
+
   // -------------------------------------------------------------
   // SYSTEM INITIALIZATION: Ensure Admin and Positions
   // Operate ONLY with real data loaded via CSV / User Actions (Zero fake generated data)
@@ -611,9 +681,36 @@ export function initDatabase() {
         insertPos.run(p.key, p.title, p.default_location, p.default_radio, p.badge_class, p.icon_svg, p.description);
       }
     }
+
+    // 3. Ensure 4 Official Mining Trucks exist in vehicles table
+    seedDefaultVehicles();
   } catch (e) {
     console.warn('[Database] Initialization check warning:', e);
   }
 
   console.log('[Database] Tables and indexes initialized successfully.');
+}
+
+export function seedDefaultVehicles(): void {
+  try {
+    const count = (db.prepare('SELECT COUNT(*) as cnt FROM vehicles').get() as { cnt: number })?.cnt || 0;
+    if (count === 0) {
+      const defaultVehicles = [
+        { id: 'veh-bmc715', plate: 'BMC715', tag: 'CAM-01', model: 'Toyota Hilux 4x4 Turbodiésel', color: 'Blanco Industrial', area: 'Supervisión de Operaciones', base_odometer: 48250 },
+        { id: 'veh-bks921', plate: 'BKS921', tag: 'CAM-02', model: 'Toyota Hilux 4x4 Turbodiésel', color: 'Blanco Industrial', area: 'Operaciones Bombas / Molienda', base_odometer: 53120 },
+        { id: 'veh-bks913', plate: 'BKS913', tag: 'CAM-03', model: 'Toyota Hilux 4x4 Turbodiésel', color: 'Blanco Industrial', area: 'Operaciones Ciclones / Planta', base_odometer: 39800 },
+        { id: 'veh-bps747', plate: 'BPS747', tag: 'CAM-04', model: 'Toyota Hilux 4x4 Turbodiésel', color: 'Blanco Industrial', area: 'Presa de Relaves / Auxiliares', base_odometer: 61400 }
+      ];
+      const insertStmt = db.prepare(`
+        INSERT OR IGNORE INTO vehicles (id, plate, tag, model, color, area, base_odometer, is_active, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, 1, datetime('now'), datetime('now'))
+      `);
+      for (const v of defaultVehicles) {
+        insertStmt.run(v.id, v.plate, v.tag, v.model, v.color, v.area, v.base_odometer);
+      }
+      console.log('[Database] Seeded 4 official default mining trucks in vehicles table.');
+    }
+  } catch (e) {
+    console.warn('[Database] Error seeding default vehicles:', e);
+  }
 }

@@ -1,0 +1,36 @@
+# Dependencias y cachés
+node_modules
+server/node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Compilados locales
+dist
+server/dist
+.angular
+
+# Datos locales de SQLite (se montan por volumen externo)
+server/data/*.db
+server/data/*.db-shm
+server/data/*.db-wal
+data/
+
+# Archivos de entorno y git
+.git
+.gitignore
+.gitattributes
+.env
+.env.*
+!.env.example
+
+# IDEs y sistemas operativos
+.DS_Store
+Thumbs.db
+.vscode
+.idea
+.gemini
+
+# Documentos internos de agentes
+.agents
+*.log

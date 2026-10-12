@@ -6,30 +6,42 @@ Este documento rige la arquitectura, coordinación, límites y responsabilidades
 
 ## 1. Jerarquía y Roles del Equipo
 
-El equipo está compuesto por el **Orchestrator** (líder del sistema) y **3 Agentes Especializados**:
+El equipo está compuesto por el **Orchestrator** (líder del sistema y memoria central) y **6 Agentes Especializados**:
 
 ```
-                 +--------------------------------+
-                 |          ORCHESTRATOR          |
-                 | (Coordinación, Memoria Global, |
-                 |     Prioridades, Escala)       |
-                 +----------------+---------------+
+                                      +--------------------------------+
+                                      |          ORCHESTRATOR          |
+                                      | (Coordinación, Memoria Global, |
+                                      |     Prioridades, Escala)       |
+                                      +----------------+---------------+
+                                                       |
+         +------------------------+--------------------+------------------------+------------------------+
+         |                        |                    |                        |                        |
+         v                        v                    v                        v                        v
++-----------------+      +-----------------+  +-----------------+      +-----------------+      +-----------------+
+|  FRONTEND AGENT |      |  BACKEND & DATA |  |  TAILINGS & DAM |      | TELEMETRY & SYNC|      |  QA & SECURITY  |
+|  (UI/UX, Client |      |      AGENT      |  |ENGINEERING AGENT|      |      AGENT      |      |      AGENT      |
+|  Logic, Mocks,  |      | (APIs, Negocio, |  |(Presa, Geotecnia|      | (WebSockets, P2P|      |  (Tests, OWASP, |
+|  Responsive)    |      |  DB, Contratos) |  | Ciclones, Aguas)|      |  Offline Queue) |      |  Auditoría, Veto|
++-----------------+      +-----------------+  +-----------------+      +-----------------+      +-----------------+
                                   |
-         +------------------------+------------------------+
-         |                        |                        |
-         v                        v                        v
-+-----------------+      +-----------------+      +-----------------+
-|  FRONTEND AGENT |      |  BACKEND & DATA |      |  QA & SECURITY  |
-|  (UI/UX, Client |      |      AGENT      |      |      AGENT      |
-|  Logic, Mocks,  |      | (APIs, Negocio, |      |  (Tests, OWASP, |
-|  Responsive)    |      |  DB, Contratos) |      |  Auditoría, Veto|
-+-----------------+      +-----------------+      +-----------------+
+                                  v
+                         +-----------------+
+                         |   DEVOPS & INFRA|
+                         |      AGENT      |
+                         | (Docker, Deploy,|
+                         |  LAN, Backups)  |
+                         +-----------------+
 ```
 
-### 1.1. Orchestrator (Líder del Flujo)
+### 1.1. Orchestrator (Líder del Flujo & Memoria Central)
 - Analiza las fases del proyecto y divide el trabajo en tareas claras, atómicas y verificables.
 - Asigna tareas a los subagentes especializados según su competencia.
 - Mantiene actualizado el `GLOBAL_STATE.md` (única fuente de verdad compartida).
+- Custodia y consulta activamente la memoria del proyecto (ADRs, Gotchas y Data Map) vía la skill de memoria.
+- Archivo de Skill del Orquestador: `.agents/skills/orchestrator-agent/SKILL.md`
+- Archivo de Skill de Memoria: `.agents/skills/basetrack-brain/SKILL.md`
+- Bóveda de Memoria Central: `.agents/brain/` (`ADR_REGISTRY.md`, `GOTCHAS_LOG.md`, `DATA_MAP.md`, `PROTOCOL_VERIFICATION.md`)
 - Resuelve conflictos entre agentes y valida el cumplimiento estricto de los Criterios de Aceptación.
 - **Escalamiento**: Escala al Humano cuando se alcancen bloqueos o decisiones críticas.
 
@@ -45,14 +57,33 @@ El equipo está compuesto por el **Orchestrator** (líder del sistema) y **3 Age
 - Implementa autenticación (JWT, OAuth, RBAC), validaciones robustas y optimización de consultas.
 - Archivo de Skill: `.agents/skills/backend-agent/SKILL.md`
 
-### 1.4. QA & Security Agent (Guardián de Calidad y Seguridad)
+### 1.4. Tailings & Dam Engineering Agent (Especialista en Relaves, Geotecnia y Gestión Hídrica)
+- Custodia los estándares globales de relaves (**GISTM**) y la normativa minera (**D.S. 024-2016-EM**).
+- Supervisa la calidad de arenas de ciclones para recrecimiento del dique (control de finos % -200M y prevención de licuefacción).
+- Gobierna los umbrales de borde libre reglamentario, monitoreo piezométrico y niveles de espejo de agua.
+- Valida la hidráulica de transporte de pulpa slurry (velocidad crítica anti-sedimentación) y retorno de agua clara (Torre 5).
+- Archivo de Skill: `.agents/skills/tailings-engineering-agent/SKILL.md`
+
+### 1.5. Telemetry & Real-Time Sync Agent (Especialista en WebSockets y Resiliencia Offline)
+- Gobierna la comunicación bidireccional en tiempo real a través del servidor WebSocket (`/ws`) y `BroadcastChannel`.
+- Garantiza latencias ultra-bajas (< 20ms) y previene tormentas de eventos con la bandera `skipBroadcast`.
+- Administra el almacenamiento híbrido y la resolución de colas en IndexedDB ante fallos de conectividad.
+- Archivo de Skill: `.agents/skills/telemetry-sync-agent/SKILL.md`
+
+### 1.6. DevOps & Infrastructure Agent (Especialista en Contenedores y Despliegue)
+- Administra la contenedorización industrial multi-stage con Docker y Docker Compose.
+- Asegura la persistencia de datos en volúmenes (`./data`), modo SQLite WAL y respaldos en caliente.
+- Gestiona la conectividad en redes locales de faena minera (`192.168.x.x`, `10.x.x.x`) y despliegues cloud (Vercel, Render).
+- Archivo de Skill: `.agents/skills/devops-agent/SKILL.md`
+
+### 1.7. QA & Security Agent (Guardián de Calidad y Seguridad)
 - Diseña y ejecuta suites de pruebas (unitarias, integración, E2E y regresión).
 - Aplica controles de seguridad de software basados en OWASP Top 10, sanitización y manejo de secretos.
 - Tiene **Poder de Veto**: Puede rechazar entregables de Frontend o Backend que no cumplan criterios o presenten vulnerabilidades.
 - Monitorea el límite de iteraciones (máximo 3) antes de escalar a humano.
 - Archivo de Skill: `.agents/skills/qa-security-agent/SKILL.md`
 
-### 1.5. Human-in-the-loop
+### 1.8. Human-in-the-loop
 - Máxima autoridad. Aprueba alcance, autoriza despliegues a producción y resuelve ambigüedades insalvables.
 
 ---

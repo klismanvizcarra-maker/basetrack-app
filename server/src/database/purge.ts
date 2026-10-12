@@ -1,4 +1,4 @@
-import { db, initDatabase } from './db.js';
+import { db, initDatabase, seedDefaultVehicles } from './db.js';
 import bcrypt from 'bcryptjs';
 import crypto from 'node:crypto';
 
@@ -18,6 +18,7 @@ export function purgeAndSetSoleAdmin() {
   db.prepare('DELETE FROM tailings_reports').run();
   db.prepare('DELETE FROM maintenance_requests').run();
   db.prepare('DELETE FROM vehicle_checklists').run();
+  db.prepare('DELETE FROM vehicles').run();
   db.prepare('DELETE FROM crew_area_assignments').run();
   db.prepare('DELETE FROM supervisor_operators').run();
   db.prepare('DELETE FROM crew_members').run();
@@ -66,6 +67,9 @@ export function purgeAndSetSoleAdmin() {
       insertPos.run(p.key, p.title, p.default_location, p.default_radio, p.badge_class, p.icon_svg, p.description);
     }
   }
+
+  // 5. Ensure official mining trucks in vehicles table
+  seedDefaultVehicles();
 
   db.exec('PRAGMA foreign_keys = ON;');
 

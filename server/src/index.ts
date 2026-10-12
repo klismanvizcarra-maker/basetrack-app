@@ -1,12 +1,20 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import http from 'node:http';
+import path from 'node:path';
+import fs from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { initDatabase } from './database/db.js';
 import { seed } from './database/seed.js';
 import { apiRouter } from './routes/index.js';
 import { errorHandler } from './middlewares/error.middleware.js';
+import { initWebSocketServer } from './websocket/ws.js';
 
 dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -84,23 +92,48 @@ seed();
 // Register API Routes
 app.use('/api', apiRouter);
 
-// Root route
-app.get('/', (req, res) => {
-  res.json({
-    app: 'BASETRACK Industrial Monitoring Platform',
-    version: '1.0.0',
-    status: 'ACTIVE',
-    endpoints: '/api/dashboard/metrics, /api/auth, /api/pumps, /api/cyclones, /api/tailings, /api/shift-handover, /api/maintenance, /api/admin'
+// In production or Docker: serve compiled Angular SPA if dist directory is present
+const clientDistCandidates = [
+  process.env.CLIENT_DIST_PATH,
+  path.resolve(__dirname, '../../dist/frontend-temp/browser'),
+  path.resolve(__dirname, '../public'),
+  path.resolve(__dirname, './public')
+].filter(Boolean) as string[];
+
+const activeDistPath = clientDistCandidates.find(p => fs.existsSync(p) && fs.existsSync(path.join(p, 'index.html')));
+
+if (activeDistPath) {
+  console.log(`[Static] Serving Angular frontend from: ${activeDistPath}`);
+  app.use(express.static(activeDistPath));
+  app.get('*', (req, res, next) => {
+    if (req.originalUrl.startsWith('/api')) {
+      return next();
+    }
+    res.sendFile(path.join(activeDistPath, 'index.html'));
   });
-});
+} else {
+  // Root route fallback when backend runs independently
+  app.get('/', (req, res) => {
+    res.json({
+      app: 'BASETRACK Industrial Monitoring Platform',
+      version: '1.0.0',
+      status: 'ACTIVE',
+      endpoints: '/api/dashboard/metrics, /api/auth, /api/pumps, /api/cyclones, /api/tailings, /api/shift-handover, /api/maintenance, /api/admin'
+    });
+  });
+}
 
 // Error handling middleware
 app.use(errorHandler);
 
-app.listen(PORT, () => {
+const server = http.createServer(app);
+initWebSocketServer(server);
+
+server.listen(PORT, () => {
   console.log(`=======================================================`);
   console.log(`  BASETRACK BACKEND API SERVER RUNNING ON PORT ${PORT} `);
   console.log(`  Health: http://localhost:${PORT}/api/health          `);
   console.log(`  Metrics: http://localhost:${PORT}/api/dashboard/metrics`);
+  console.log(`  WebSocket: ws://localhost:${PORT}/ws                 `);
   console.log(`=======================================================`);
 });

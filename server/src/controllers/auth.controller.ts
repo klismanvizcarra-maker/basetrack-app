@@ -111,7 +111,7 @@ export async function getMe(req: AuthenticatedRequest, res: Response) {
     const user = db.prepare('SELECT id, username, email, full_name, role, shift, avatar_url, document_id, radio_channel, phone_extension, primary_role, created_at FROM users WHERE id = ?').get(req.user.userId) as any;
 
     if (!user) {
-      return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+      return res.status(401).json({ success: false, message: 'Usuario no encontrado o sesión no válida' });
     }
 
     return res.json({

@@ -3,10 +3,11 @@ import crypto from 'node:crypto';
 import bcrypt from 'bcryptjs';
 import fs from 'node:fs';
 import path from 'node:path';
-import { db } from '../database/db.js';
+import { db, seedDefaultVehicles } from '../database/db.js';
 import { AuthenticatedRequest } from '../middlewares/auth.middleware.js';
 import { logAudit } from '../middlewares/error.middleware.js';
 import { ALL_PERMISSIONS, DEFAULT_ROLE_PERMISSIONS, PermissionKey } from '../config/permissions.js';
+import { broadcastWsEvent } from '../websocket/ws.js';
 
 function normalizeShift(shift?: any): string {
   if (!shift) return 'G1';
@@ -48,11 +49,22 @@ export function createUsersBulk(req: AuthenticatedRequest, res: Response) {
     `);
 
     const insertCrew = db.prepare(`
-      INSERT INTO crew_members (id, name, document_id, primary_role, shift_code, radio_channel, phone_extension, status, avatar_url)
+      INSERT OR REPLACE INTO crew_members (id, name, document_id, primary_role, shift_code, radio_channel, phone_extension, status, avatar_url)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
-    const checkExistingUser = db.prepare('SELECT id FROM users WHERE username = ? OR email = ?');
+    let defaultBcryptHash: string | null = null;
+    const getBulkPasswordHash = (pwd: string): string => {
+      if (pwd === 'Basetrack2026!') {
+        if (!defaultBcryptHash) {
+          defaultBcryptHash = bcrypt.hashSync('Basetrack2026!', 10);
+        }
+        return defaultBcryptHash;
+      }
+      return bcrypt.hashSync(pwd, 10);
+    };
+
+    const checkExistingUser = db.prepare('SELECT id, role, username FROM users WHERE LOWER(username) = LOWER(?) OR LOWER(email) = LOWER(?)');
     const checkExistingCrewDoc = db.prepare('SELECT id FROM crew_members WHERE document_id = ?');
 
     let importedCount = 0;
@@ -85,8 +97,12 @@ export function createUsersBulk(req: AuthenticatedRequest, res: Response) {
 
         // Check if user already exists
         const existing = checkExistingUser.get(username, email) as any;
-        let finalUserId = crypto.randomUUID();
-        const hash = bcrypt.hashSync(password, 10);
+
+        // Never overwrite or demote admin account
+        if (existing && existing.role === 'ADMIN' && username.toLowerCase() !== 'marckv') {
+          skippedList.push({ username, email, reason: 'Conflicto protegido con cuenta Administradora' });
+          continue;
+        }
 
         let primaryRole = 'OPERADOR_BOMBAS';
         if (item.primary_role) {
@@ -105,7 +121,6 @@ export function createUsersBulk(req: AuthenticatedRequest, res: Response) {
         }
 
         if (existing) {
-          finalUserId = existing.id;
           db.prepare(`
             UPDATE users 
             SET full_name = ?, role = ?, shift = ?, document_id = ?, radio_channel = ?, phone_extension = ?, primary_role = ?, avatar_url = ?
@@ -122,6 +137,8 @@ export function createUsersBulk(req: AuthenticatedRequest, res: Response) {
             existing.id
           );
         } else {
+          const hash = getBulkPasswordHash(password);
+          const finalUserId = crypto.randomUUID();
           insertUser.run(
             finalUserId,
             username,
@@ -229,6 +246,21 @@ export function createUsersBulk(req: AuthenticatedRequest, res: Response) {
         req.ip || '127.0.0.1'
       );
 
+      broadcastWsEvent({
+        entity: 'users',
+        action: 'BULK_IMPORT',
+        data: { count: importedCount },
+        key: 'basetrack_users',
+        deviceId: req.headers['x-device-id']?.toString() || 'server_api'
+      });
+      broadcastWsEvent({
+        entity: 'crew',
+        action: 'BULK_IMPORT',
+        data: { count: importedCount },
+        key: 'basetrack_crew_members',
+        deviceId: req.headers['x-device-id']?.toString() || 'server_api'
+      });
+
       return res.status(201).json({
         success: true,
         message: `Carga completada: ${importedCount} usuarios importados y vinculados exitosamente por guardia`,
@@ -279,6 +311,8 @@ export function getDatabaseBackup(req: Request, res: Response) {
       crew_positions: db.prepare('SELECT * FROM crew_positions').all(),
       crew_area_assignments: db.prepare('SELECT * FROM crew_area_assignments').all(),
       supervisor_operators: db.prepare('SELECT * FROM supervisor_operators').all(),
+      vehicles: db.prepare('SELECT * FROM vehicles').all(),
+      vehicle_checklists: db.prepare('SELECT * FROM vehicle_checklists').all(),
       audit_logs: db.prepare('SELECT * FROM audit_logs').all(),
       exportedAt: new Date().toISOString(),
       system: 'BASETRACK_APP_V1'
@@ -496,6 +530,66 @@ export function restoreDatabaseBackup(req: AuthenticatedRequest, res: Response) 
         summary.supervisor_operators = count;
       }
 
+      // 12. Vehicles Fleet
+      if (Array.isArray(data.vehicles) && data.vehicles.length > 0) {
+        const stmt = db.prepare(`
+          INSERT OR REPLACE INTO vehicles (id, plate, tag, model, color, area, base_odometer, is_active, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, datetime('now')), COALESCE(?, datetime('now')))
+        `);
+        let count = 0;
+        for (const v of data.vehicles) {
+          if (v.id && v.plate) {
+            stmt.run(
+              v.id,
+              v.plate.toUpperCase().trim(),
+              v.tag || 'CAM-01',
+              v.model || 'Toyota Hilux 4x4 Turbodiésel',
+              v.color || 'Blanco Industrial',
+              v.area || 'Supervisión de Operaciones',
+              Number(v.base_odometer) || 0,
+              v.is_active !== undefined ? (v.is_active ? 1 : 0) : 1,
+              v.created_at || null,
+              v.updated_at || null
+            );
+            count++;
+          }
+        }
+        summary.vehicles = count;
+      }
+
+      // 13. Vehicle Checklists
+      if (Array.isArray(data.vehicle_checklists) && data.vehicle_checklists.length > 0) {
+        const stmt = db.prepare(`
+          INSERT OR REPLACE INTO vehicle_checklists (id, vehicle_plate, date, time, shift, shift_type, driver_name, driver_dni, driver_license, odometer, items_json, has_observations, observation_notes, photo_url, operational_status, created_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, datetime('now')))
+        `);
+        let count = 0;
+        for (const vc of data.vehicle_checklists) {
+          if (vc.id && vc.vehicle_plate) {
+            stmt.run(
+              vc.id,
+              vc.vehicle_plate.toUpperCase().trim(),
+              vc.date,
+              vc.time,
+              vc.shift || 'G1',
+              vc.shift_type || 'DIA',
+              vc.driver_name || 'Conductor',
+              vc.driver_dni || '---',
+              vc.driver_license || null,
+              Number(vc.odometer) || 0,
+              typeof vc.items_json === 'string' ? vc.items_json : JSON.stringify(vc.items || []),
+              vc.has_observations ? 1 : 0,
+              vc.observation_notes || null,
+              vc.photo_url || null,
+              vc.operational_status || 'APTO',
+              vc.created_at || null
+            );
+            count++;
+          }
+        }
+        summary.vehicle_checklists = count;
+      }
+
       db.exec('COMMIT;');
     } catch (innerErr) {
       db.exec('ROLLBACK;');
@@ -586,6 +680,8 @@ export function resetApp(req: AuthenticatedRequest, res: Response) {
       db.prepare('DELETE FROM audit_logs').run();
       db.prepare('DELETE FROM sync_events').run();
       db.prepare('DELETE FROM connected_devices').run();
+      db.prepare('DELETE FROM vehicles').run();
+      seedDefaultVehicles();
 
       // Wipe v2 / v3 backup tables if present
       try { db.prepare('DELETE FROM crew_area_assignments_v2').run(); } catch {}
@@ -666,6 +762,14 @@ export function updateUserRoleShift(req: AuthenticatedRequest, res: Response) {
       `Usuario ${user.username}: Rol cambiado a ${newRole}, Guardia cambiada a ${newShift}`,
       req.ip || '127.0.0.1'
     );
+
+    broadcastWsEvent({
+      entity: 'users',
+      action: 'UPDATE_ROLE_SHIFT',
+      data: { id, role: newRole, shift: newShift },
+      key: 'basetrack_users',
+      deviceId: req.headers['x-device-id']?.toString() || 'server_api'
+    });
 
     return res.json({
       success: true,
@@ -761,6 +865,14 @@ export function toggleUserStatus(req: AuthenticatedRequest, res: Response) {
       req.ip || '127.0.0.1'
     );
 
+    broadcastWsEvent({
+      entity: 'users',
+      action: 'TOGGLE_STATUS',
+      data: { id, isActive: newStatus === 1 },
+      key: 'basetrack_users',
+      deviceId: req.headers['x-device-id']?.toString() || 'server_api'
+    });
+
     return res.json({
       success: true,
       message: `Usuario ${user.username} ${newStatus === 1 ? 'activado' : 'suspendido'} exitosamente`,
@@ -834,6 +946,13 @@ export function revokeDeviceSession(req: AuthenticatedRequest, res: Response) {
       JSON.stringify({ deviceId, reason: 'Sesión revocada por el Administrador de Planta' }),
       Date.now()
     );
+
+    // Broadcast instantáneo por WebSocket a la terminal revocada
+    broadcastWsEvent({
+      entity: 'AUTH',
+      action: 'FORCE_LOGOUT',
+      payload: { deviceId, reason: 'Sesión revocada por el Administrador de Planta' }
+    });
 
     logAudit(
       req.user?.userId || null,
@@ -1050,6 +1169,14 @@ export function assignOperatorToSupervisor(req: AuthenticatedRequest, res: Respo
       req.ip || '127.0.0.1'
     );
 
+    broadcastWsEvent({
+      entity: 'crew',
+      action: 'ASSIGN_SUPERVISOR_OPERATOR',
+      data: { supervisor_id: finalSupervisorId, operator_id, shift_code: finalShift },
+      key: 'basetrack_supervisor_operators',
+      deviceId: req.headers['x-device-id']?.toString() || 'server_api'
+    });
+
     return res.json({
       success: true,
       message: `Operador ${operator.name} asignado exitosamente al supervisor`,
@@ -1087,6 +1214,14 @@ export function removeOperatorFromSupervisor(req: AuthenticatedRequest, res: Res
       `Operador ${operator_id} desvinculado del supervisor ${supUsername}`,
       req.ip || '127.0.0.1'
     );
+
+    broadcastWsEvent({
+      entity: 'crew',
+      action: 'REMOVE_SUPERVISOR_OPERATOR',
+      data: { supervisor_id: supUsername, operator_id },
+      key: 'basetrack_supervisor_operators',
+      deviceId: req.headers['x-device-id']?.toString() || 'server_api'
+    });
 
     return res.json({
       success: true,
@@ -1485,6 +1620,14 @@ export function updatePlantParameters(req: AuthenticatedRequest, res: Response) 
       req.ip || '127.0.0.1'
     );
 
+    broadcastWsEvent({
+      entity: 'plant_parameters',
+      action: 'UPDATE',
+      data: merged,
+      key: 'basetrack_plant_parameters',
+      deviceId: req.headers['x-device-id']?.toString() || 'server_api'
+    });
+
     return res.json({
       success: true,
       message: 'Parámetros de planta y metas operacionales actualizados exitosamente',
@@ -1493,6 +1636,51 @@ export function updatePlantParameters(req: AuthenticatedRequest, res: Response) 
         updated_at: now,
         updated_by: username
       }
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+/**
+ * Emite una señal global en tiempo real vía WebSocket a todos los navegadores
+ * y dispositivos móviles conectados para que se actualicen inmediatamente.
+ */
+export async function broadcastAppUpdate(req: AuthenticatedRequest, res: Response) {
+  try {
+    const username = req.user?.username || 'ADMIN';
+    const version = req.body?.version || '1.1.0';
+    const message = req.body?.message || 'Nueva versión de software desplegada';
+
+    broadcastWsEvent({
+      entity: 'system',
+      action: 'APP_UPDATE',
+      data: {
+        version,
+        message,
+        timestamp: Date.now(),
+        triggeredBy: username
+      },
+      key: 'basetrack_app_update',
+      deviceId: req.headers['x-device-id']?.toString() || 'server_api',
+      senderName: 'Servidor Central BASETRACK'
+    });
+
+    logAudit(
+      req.user?.userId || 'admin',
+      username,
+      'BROADCAST_APP_UPDATE',
+      'SYSTEM',
+      version,
+      `Notificación global de actualización de software enviada a todas las terminales conectadas (${version})`,
+      req.ip || '127.0.0.1'
+    );
+
+    return res.json({
+      success: true,
+      message: 'Notificación de actualización emitida a todos los dispositivos conectados en tiempo real',
+      version,
+      timestamp: Date.now()
     });
   } catch (error: any) {
     return res.status(500).json({ success: false, message: error.message });

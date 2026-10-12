@@ -710,8 +710,8 @@ export class CycloneReportPdfComponent implements OnInit {
   isDownloading = false;
   downloadSuccess = false;
   copiedText = false;
-  todayDate: string = new Date().toISOString().split('T')[0];
-  reportDate: string = new Date().toISOString().split('T')[0];
+  todayDate: string = getCurrentActiveShift().dateStr;
+  reportDate: string = getCurrentActiveShift().dateStr;
   operatorName = '--- Vacante ---';
   operatorDni = '---';
   operatorRole = 'Operador de Ciclones';
@@ -734,23 +734,37 @@ export class CycloneReportPdfComponent implements OnInit {
     if (list.length === 0) {
       return { solids_feed: 0, solids_of: 0, solids_uf: 0, mesh200_feed: 0, mesh200_of: 0, mesh200_uf: 0 };
     }
-    const sum = list.reduce((acc, curr) => ({
-      solids_feed: acc.solids_feed + curr.solids_feed,
-      solids_of: acc.solids_of + curr.solids_of,
-      solids_uf: acc.solids_uf + curr.solids_uf,
-      mesh200_feed: acc.mesh200_feed + curr.mesh200_feed,
-      mesh200_of: acc.mesh200_of + curr.mesh200_of,
-      mesh200_uf: acc.mesh200_uf + curr.mesh200_uf
-    }), { solids_feed: 0, solids_of: 0, solids_uf: 0, mesh200_feed: 0, mesh200_of: 0, mesh200_uf: 0 });
+    const counts = {
+      solids_feed: 0,
+      solids_of: 0,
+      solids_uf: 0,
+      mesh200_feed: 0,
+      mesh200_of: 0,
+      mesh200_uf: 0
+    };
+    const sum = list.reduce((acc, curr) => {
+      const sf = Number(curr.solids_feed || 0);
+      if (sf > 0) { acc.solids_feed += sf; counts.solids_feed++; }
+      const so = Number(curr.solids_of || 0);
+      if (so > 0) { acc.solids_of += so; counts.solids_of++; }
+      const su = Number(curr.solids_uf || 0);
+      if (su > 0) { acc.solids_uf += su; counts.solids_uf++; }
+      const mf = Number(curr.mesh200_feed || 0);
+      if (mf > 0) { acc.mesh200_feed += mf; counts.mesh200_feed++; }
+      const mo = Number(curr.mesh200_of || 0);
+      if (mo > 0) { acc.mesh200_of += mo; counts.mesh200_of++; }
+      const mu = Number(curr.mesh200_uf || 0);
+      if (mu > 0) { acc.mesh200_uf += mu; counts.mesh200_uf++; }
+      return acc;
+    }, { solids_feed: 0, solids_of: 0, solids_uf: 0, mesh200_feed: 0, mesh200_of: 0, mesh200_uf: 0 });
 
-    const n = list.length;
     return {
-      solids_feed: sum.solids_feed / n,
-      solids_of: sum.solids_of / n,
-      solids_uf: sum.solids_uf / n,
-      mesh200_feed: sum.mesh200_feed / n,
-      mesh200_of: sum.mesh200_of / n,
-      mesh200_uf: sum.mesh200_uf / n
+      solids_feed: counts.solids_feed > 0 ? Number((sum.solids_feed / counts.solids_feed).toFixed(2)) : 0,
+      solids_of: counts.solids_of > 0 ? Number((sum.solids_of / counts.solids_of).toFixed(2)) : 0,
+      solids_uf: counts.solids_uf > 0 ? Number((sum.solids_uf / counts.solids_uf).toFixed(2)) : 0,
+      mesh200_feed: counts.mesh200_feed > 0 ? Number((sum.mesh200_feed / counts.mesh200_feed).toFixed(2)) : 0,
+      mesh200_of: counts.mesh200_of > 0 ? Number((sum.mesh200_of / counts.mesh200_of).toFixed(2)) : 0,
+      mesh200_uf: counts.mesh200_uf > 0 ? Number((sum.mesh200_uf / counts.mesh200_uf).toFixed(2)) : 0
     };
   }
 
