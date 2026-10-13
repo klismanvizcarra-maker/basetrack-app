@@ -1,0 +1,594 @@
+<div class="admin-scope">
+  <div class="admin-page">
+    <div class="page-top-bar">
+      <div>
+        <h2>Administración de Planta y Copias de Seguridad</h2>
+        <p class="section-sub">Control de accesos RBAC, auditoría de eventos y respaldo de base de datos</p>
+      </div>
+      <div class="top-btns">
+        <button class="btn btn-secondary" (click)="openBulkModal()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+          </svg>
+          Carga por Lote (CSV/Excel)
+        </button>
+        <button class="btn btn-secondary" (click)="exportBackup()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          Exportar Backup JSON
+        </button>
+        <input #restoreFileInput type="file" accept=".json" (change)="onFileSelectedForRestore($event)" style="display: none" />
+        <button class="btn btn-secondary" (click)="restoreFileInput.click()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="17 8 12 3 7 8"></polyline>
+            <line x1="12" y1="3" x2="12" y2="15"></line>
+          </svg>
+          Restaurar Backup JSON
+        </button>
+        <button class="btn btn-danger btn-reset-app" (click)="openResetAppModal()" title="Restablecer completamente la aplicación a estado inicial limpio">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <path d="M3 6h18"></path>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            <line x1="10" y1="11" x2="10" y2="17"></line>
+            <line x1="14" y1="11" x2="14" y2="17"></line>
+          </svg>
+          Reset App (Limpieza Total)
+        </button>
+      </div>
+    </div>
+
+    <!-- Backup Notification Alert -->
+    <div *ngIf="backupSuccessMessage" class="backup-alert glass-panel animate-fade-in">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2.5">
+        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+      </svg>
+      <span>{{ backupSuccessMessage }}</span>
+    </div>
+
+    <!-- Navigation Tabs: Apartados de Administración -->
+    <div class="admin-nav-tabs glass-panel animate-fade-in">
+      <button 
+        type="button" 
+        class="nav-tab-btn" 
+        [class.active]="activeAdminTab === 'SUPERVISORS_CREW'" 
+        (click)="activeAdminTab = 'SUPERVISORS_CREW'"
+      >
+        <span class="tab-icon">🛡️</span>
+        <span class="tab-title">Guardias</span>
+        <span class="tab-badge">{{ supervisorsList.length || 4 }} Guardias</span>
+      </button>
+
+      <button 
+        type="button" 
+        class="nav-tab-btn" 
+        [class.active]="activeAdminTab === 'USERS_ROLES'" 
+        (click)="activeAdminTab = 'USERS_ROLES'"
+      >
+        <span class="tab-icon">👥</span>
+        <span class="tab-title">Usuarios & Cuentas</span>
+        <span class="tab-badge">{{ users.length }} Cuentas</span>
+      </button>
+
+      <button 
+        type="button" 
+        class="nav-tab-btn" 
+        [class.active]="activeAdminTab === 'TERMINALS_SYNC'" 
+        (click)="activeAdminTab = 'TERMINALS_SYNC'"
+      >
+        <span class="tab-icon">☁️</span>
+        <span class="tab-title">Dispositivos & Conectividad</span>
+        <span class="tab-badge">{{ deviceFleetStore.devices().length }}</span>
+      </button>
+
+      <button 
+        type="button" 
+        class="nav-tab-btn" 
+        [class.active]="activeAdminTab === 'AUDIT_LOGS'" 
+        (click)="activeAdminTab = 'AUDIT_LOGS'"
+      >
+        <span class="tab-icon">📜</span>
+        <span class="tab-title">Trazabilidad SCADA</span>
+        <span class="tab-badge">{{ auditLogStore.logs().length }}</span>
+      </button>
+
+      <button 
+        type="button" 
+        class="nav-tab-btn" 
+        [class.active]="activeAdminTab === 'PERMISSIONS_MATRIX'" 
+        (click)="activeAdminTab = 'PERMISSIONS_MATRIX'"
+      >
+        <span class="tab-icon">🔐</span>
+        <span class="tab-title">Matriz de Permisos</span>
+        <span class="tab-badge">RBAC Híbrido</span>
+      </button>
+
+      <button 
+        type="button" 
+        class="nav-tab-btn" 
+        [class.active]="activeAdminTab === 'PLANT_PARAMETERS'" 
+        (click)="activeAdminTab = 'PLANT_PARAMETERS'"
+      >
+        <span class="tab-icon">⚙️</span>
+        <span class="tab-title">Parámetros de Planta</span>
+        <span class="tab-badge">Metas & Umbrales</span>
+      </button>
+
+      <button 
+        type="button" 
+        class="nav-tab-btn" 
+        [class.active]="activeAdminTab === 'VEHICLES_FLEET'" 
+        (click)="activeAdminTab = 'VEHICLES_FLEET'"
+      >
+        <span class="tab-icon">🛻</span>
+        <span class="tab-title">Padrón de Camionetas</span>
+        <span class="tab-badge">{{ vehicleChecklistService.vehicles().length }} Unidades</span>
+      </button>
+    </div>
+
+    <app-admin-guards-tab *ngIf="activeAdminTab === 'SUPERVISORS_CREW'" (notify)="showNotice($event)" (openBulkImport)="openBulkModal($event)"></app-admin-guards-tab>
+    <app-admin-terminals-tab *ngIf="activeAdminTab === 'TERMINALS_SYNC'" (notify)="showNotice($event)" (openBackendConfig)="openBackendConfigModal()"></app-admin-terminals-tab>
+    <!-- Vercel Offline / Unlinked Backend Warning Banner -->
+    <div class="vercel-backend-warning glass-panel animate-fade-in" *ngIf="isVercelDeployment && !hasCustomCloudBackend">
+      <div class="warning-content">
+        <span class="warning-badge">⚠️ MODO ALMACENAMIENTO LOCAL (VERCEL)</span>
+        <div class="warning-body">
+          <strong>Los usuarios y cambios se guardan localmente en la memoria de este navegador.</strong>
+          <p>Al estar desplegado en Vercel sin servidor central vinculado, otros dispositivos (celulares, tablets, computadoras) no pueden ver los usuarios creados aquí ni iniciar sesión con ellos. Conecta la URL de tu backend cloud (Render, Railway o túnel HTTPS) para sincronizar todos tus dispositivos en tiempo real.</p>
+        </div>
+      </div>
+      <button class="btn btn-warning-action" (click)="openBackendConfigModal()">
+        🔗 Conectar Servidor Central
+      </button>
+    </div>
+
+    <app-admin-users-tab *ngIf="activeAdminTab === 'USERS_ROLES'" (notify)="showNotice($event)" (issuedCredentials)="showIssuedCredentials($event)"></app-admin-users-tab>
+    <!-- Audit Logs Table -->
+    <app-admin-audit-logs-tab *ngIf="activeAdminTab === 'AUDIT_LOGS'"></app-admin-audit-logs-tab>
+
+    <app-admin-permissions-tab *ngIf="activeAdminTab === 'PERMISSIONS_MATRIX'"></app-admin-permissions-tab>
+    <!-- APARTADO 6: PARÁMETROS DE PLANTA & METAS OPERACIONALES -->
+    <app-admin-plant-parameters-tab *ngIf="activeAdminTab === 'PLANT_PARAMETERS'"></app-admin-plant-parameters-tab>
+
+    <!-- APARTADO 7: PADRÓN DE CAMIONETAS MINERAS 4X4 (Gestión de Flota) -->
+    <app-admin-vehicles-tab *ngIf="activeAdminTab === 'VEHICLES_FLEET'"></app-admin-vehicles-tab>
+  </div>
+
+    <!-- Modal Bulk Import Users (Organizado por Guardias y Supervisores) -->
+    <app-modal
+      [isOpen]="isBulkModalOpen"
+      [title]="'Carga Masiva de Personal por Lote (Por Guardia y Supervisor)'"
+      [showFooter]="true"
+      (close)="isBulkModalOpen = false"
+    >
+      <div class="bulk-modal-container">
+        <!-- 1. Guardia Objetivo & Ámbito de Carga -->
+        <div class="bulk-scope-card">
+          <div class="scope-row">
+            <div class="scope-select-wrap">
+              <label class="scope-label">🎯 Guardia Destino:</label>
+              <select 
+                class="scope-select"
+                [(ngModel)]="bulkTargetShift"
+                (ngModelChange)="onTargetShiftChange($event)"
+              >
+                <option value="TODAS">🌟 Todas las Guardias (G1 a G4 - Planta Completa)</option>
+                <option value="G1">🛡️ Guardia 1 (G1)</option>
+                <option value="G2">🛡️ Guardia 2 (G2)</option>
+                <option value="G3">🛡️ Guardia 3 (G3)</option>
+                <option value="G4">🛡️ Guardia 4 (G4)</option>
+              </select>
+            </div>
+
+            <!-- Quick Template Download Buttons -->
+            <div class="scope-actions">
+              <button
+                type="button"
+                class="btn-tpl"
+                (click)="downloadTemplateCsv('TARGET')"
+                title="Descargar plantilla CSV con 1 Supervisor + 7 Operadores para la guardia seleccionada"
+              >
+                ⬇️ Plantilla {{ bulkTargetShift === 'TODAS' ? 'Guardia G1' : 'Guardia ' + bulkTargetShift }}
+              </button>
+              <button
+                type="button"
+                class="btn-tpl btn-tpl-primary"
+                (click)="downloadTemplateCsv('ALL')"
+                title="Descargar plantilla maestra completa de las 4 guardias oficiales (32 colaboradores)"
+              >
+                ⬇️ Plantilla Maestra (32 Puestos G1-G4)
+              </button>
+            </div>
+          </div>
+
+          <!-- Target Guard Supervisor Info Banner -->
+          <div class="guard-sup-banner" *ngIf="bulkTargetShift !== 'TODAS'">
+            <div class="sup-avatar-badge">
+              <img [src]="getSupervisorForShift(bulkTargetShift).avatar" alt="Supervisor" />
+              <span class="sup-crown">👑</span>
+            </div>
+            <div class="sup-banner-info">
+              <div class="sup-title">
+                <strong>Supervisor Responsable: {{ getSupervisorForShift(bulkTargetShift).name }}</strong>
+                <span class="badge badge-emerald">Jefatura {{ bulkTargetShift }}</span>
+              </div>
+              <div class="sup-meta">
+                <span>DNI: <strong>{{ getSupervisorForShift(bulkTargetShift).dni }}</strong></span>
+                <span>Usuario: <code>@{{ getSupervisorForShift(bulkTargetShift).username }}</code></span>
+                <span>Correo: {{ getSupervisorForShift(bulkTargetShift).email }}</span>
+              </div>
+              <div class="sup-note">
+                ℹ️ Los operadores cargados se asignarán a la <strong>Guardia {{ bulkTargetShift }}</strong> y se vincularán automáticamente bajo este supervisor.
+              </div>
+            </div>
+          </div>
+
+          <div class="guard-all-banner" *ngIf="bulkTargetShift === 'TODAS'">
+            <span class="banner-icon">📋</span>
+            <div>
+              <strong>Modo Multiguardia Activo:</strong> Se cargará la dotación para G1, G2, G3 y G4. Cada operador se vinculará automáticamente al supervisor de su respectiva guardia (1 Supervisor + 7 Operadores por guardia = 32 puestos oficiales).
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Mode Tabs (CSV vs Paste) -->
+        <div class="bulk-mode-tabs">
+          <button
+            type="button"
+            class="bulk-tab-btn"
+            [class.active]="bulkTab === 'CSV'"
+            (click)="bulkTab = 'CSV'"
+          >
+            📁 Subir Archivo (.csv)
+          </button>
+          <button
+            type="button"
+            class="bulk-tab-btn"
+            [class.active]="bulkTab === 'PASTE'"
+            (click)="bulkTab = 'PASTE'"
+          >
+            📋 Pegar desde Excel / Hojas de Cálculo
+          </button>
+        </div>
+
+        <!-- Tab 1: CSV Upload -->
+        <div class="bulk-input-section" *ngIf="bulkTab === 'CSV'">
+          <div class="upload-dropzone">
+            <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#031795" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+            <p class="dropzone-text">Selecciona o arrastra el archivo <strong>.csv</strong> con la nómina organizada</p>
+            <span class="dropzone-sub">Formato compatible: UTF-8, delimitado por comas (,) o punto y coma (;)</span>
+            <input
+              type="file"
+              accept=".csv,.txt"
+              class="file-input-hidden"
+              id="csvFileInput"
+              (change)="onCsvFileSelected($event)"
+            />
+            <label for="csvFileInput" class="btn btn-secondary btn-sm" style="cursor: pointer;">Examinar Archivo...</label>
+          </div>
+        </div>
+
+        <!-- Tab 2: Copy-Paste from Excel -->
+        <div class="bulk-input-section" *ngIf="bulkTab === 'PASTE'">
+          <label class="form-label" style="font-size: 0.8rem; font-weight: 700; color: var(--text-secondary);">
+            Pega las celdas copiadas directamente de Excel o Google Sheets:
+          </label>
+          <textarea
+            class="paste-textarea"
+            rows="5"
+            [(ngModel)]="pastedText"
+            (ngModelChange)="parsePastedText()"
+            placeholder="Ejemplo:&#10;op_g1_bombas&#9;Carlos Barrios Huamán&#9;carlos@mina.com&#9;&#9;OPERATOR&#9;G1&#9;70412891&#9;Canal 3 Bombas&#9;Ext. 4102&#9;OPERADOR_BOMBAS&#10;op_g1_ciclon1&#9;Fabián Morales Arce&#9;fabian@mina.com&#9;&#9;OPERATOR&#9;G1&#9;70412892&#9;Canal 2 Ciclones&#9;Ext. 4103&#9;OPERADOR_CICLONES_1"
+          ></textarea>
+          <span class="textarea-hint">Detecta automáticamente tabulaciones de Excel. Si falta la columna de guardia, se usará la guardia seleccionada: <strong>{{ bulkTargetShift }}</strong>.</span>
+        </div>
+
+        <!-- 3. Previsualización Organizada por Guardia y Supervisor -->
+        <div class="bulk-preview-section" *ngIf="parsedBulkUsers.length > 0">
+          <div class="preview-head">
+            <div class="head-title-wrap">
+              <h4>Nómina Detectada ({{ parsedBulkUsers.length }} Filas)</h4>
+              <div class="preview-stats">
+                <span class="stat-badge stat-valid">✓ {{ validBulkCount }} Listos</span>
+                <span class="stat-badge stat-invalid" *ngIf="invalidBulkCount > 0">⚠️ {{ invalidBulkCount }} Observados</span>
+              </div>
+            </div>
+
+            <!-- Filtro de Guardia en Previsualización -->
+            <div class="preview-shift-chips">
+              <button
+                type="button"
+                class="shift-chip"
+                [class.active]="bulkPreviewFilterShift === 'TODAS'"
+                (click)="bulkPreviewFilterShift = 'TODAS'"
+              >
+                Todas ({{ parsedBulkUsers.length }})
+              </button>
+              <button
+                *ngFor="let s of ['G1', 'G2', 'G3', 'G4']"
+                type="button"
+                class="shift-chip"
+                [class.active]="bulkPreviewFilterShift === s"
+                (click)="setBulkPreviewFilterShift(s)"
+              >
+                🛡️ {{ s }} ({{ getParsedUsersForShift(s).length }})
+              </button>
+            </div>
+          </div>
+
+          <!-- Previsualización por cada Guardia -->
+          <div class="preview-guards-accordion">
+            <div *ngFor="let shift of visibleShiftsInPreview" class="guard-accordion-item">
+              <div class="guard-accordion-head">
+                <div class="accordion-head-left">
+                  <span class="guard-badge">🛡️ Guardia {{ shift }}</span>
+                  <span class="guard-sup-name">
+                    Supervisor Oficial: <strong>{{ getSupervisorForShift(shift).name }}</strong>
+                  </span>
+                </div>
+                <div class="accordion-head-right">
+                  <span class="dotation-pill" [class.complete]="getParsedOperatorsForShift(shift).length >= 7">
+                    Dotación: {{ getParsedOperatorsForShift(shift).length }}/7 Operadores
+                    {{ getParsedSupervisorForShift(shift) ? '+ 1 Supervisor' : '' }}
+                  </span>
+                </div>
+              </div>
+
+              <!-- Supervisor Row / Banner -->
+              <div class="accordion-supervisor-block">
+                <div class="sup-card-mini" *ngIf="getParsedSupervisorForShift(shift) as sup">
+                  <span class="sup-tag">👑 SUPERVISOR REGISTRADO EN ARCHIVO</span>
+                  <div class="sup-row-content">
+                    <span class="sup-avatar">👑</span>
+                    <div class="sup-info">
+                      <strong>{{ sup.full_name }}</strong>
+                      <span class="sup-sub">@{{ sup.username }} | DNI: {{ sup.document_id || '---' }} | {{ sup.email }}</span>
+                    </div>
+                    <span class="status-indicator" [class.valid]="sup.isValid" [class.invalid]="!sup.isValid">
+                      {{ sup.isValid ? '✓ Listo' : '⚠️ ' + sup.validationMsg }}
+                    </span>
+                  </div>
+                </div>
+
+                <div class="sup-card-mini existing" *ngIf="!getParsedSupervisorForShift(shift)">
+                  <span class="sup-tag">👑 SUPERVISOR OFICIAL EXISTENTE (ASIGNADO)</span>
+                  <div class="sup-row-content">
+                    <img [src]="getSupervisorForShift(shift).avatar" class="sup-avatar-img" />
+                    <div class="sup-info">
+                      <strong>{{ getSupervisorForShift(shift).name }}</strong>
+                      <span class="sup-sub">@{{ getSupervisorForShift(shift).username }} | DNI: {{ getSupervisorForShift(shift).dni }} | {{ getSupervisorForShift(shift).email }}</span>
+                    </div>
+                    <span class="badge badge-emerald">Jefe Activo (Auto-vincular)</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Operators Table -->
+              <div class="accordion-operators-block">
+                <div class="preview-table-wrapper">
+                  <table class="preview-table">
+                    <thead>
+                      <tr>
+                        <th>ESTADO</th>
+                        <th>PUESTO OPERACIONAL</th>
+                        <th>NOMBRE COMPLETO</th>
+                        <th>DNI</th>
+                        <th>USUARIO</th>
+                        <th>CORREO</th>
+                        <th>CANAL RADIO</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let op of getParsedOperatorsForShift(shift)" [class.row-invalid]="!op.isValid">
+                        <td>
+                          <span class="status-indicator" [class.valid]="op.isValid" [class.invalid]="!op.isValid">
+                            {{ op.isValid ? '✓ Listo' : '⚠️ ' + op.validationMsg }}
+                          </span>
+                        </td>
+                        <td>
+                          <span class="op-position-pill">
+                            <span class="pos-icon">{{ formatPrimaryRole(op.primary_role).icon }}</span>
+                            <span class="pos-label">{{ formatPrimaryRole(op.primary_role).label }}</span>
+                          </span>
+                        </td>
+                        <td><strong>{{ op.full_name }}</strong></td>
+                        <td><code>{{ op.document_id || '---' }}</code></td>
+                        <td>{{ op.username }}</td>
+                        <td>{{ op.email }}</td>
+                        <td>{{ op.radio_channel || '---' }}</td>
+                      </tr>
+                      <tr *ngIf="getParsedOperatorsForShift(shift).length === 0">
+                        <td colspan="7" class="text-center text-muted" style="padding: 12px;">
+                          Sin operadores detectados para Guardia {{ shift }}.
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div footer class="modal-footer-actions">
+        <button type="button" class="btn btn-secondary" [disabled]="isImporting" (click)="isBulkModalOpen = false">
+          Cancelar
+        </button>
+        <button
+          type="button"
+          class="btn btn-primary"
+          [disabled]="validBulkCount === 0 || isImporting"
+          (click)="executeBulkImport()"
+        >
+          <span *ngIf="!isImporting">
+            🚀 Confirmar e Importar {{ validBulkCount }} Trabajadores (Vincular a Guardias)
+          </span>
+          <span *ngIf="isImporting" class="btn-importing-status">
+            <span class="btn-spinner"></span> Importando y vinculando a supervisores...
+          </span>
+        </button>
+      </div>
+    </app-modal>
+
+    <!-- Modal: Credenciales temporales emitidas (se muestran una sola vez) -->
+    <app-modal [isOpen]="isCredentialsModalOpen" [title]="'Contraseñas temporales emitidas'" (close)="closeCredentialsModal()">
+      <div class="edit-modal-form">
+        <p class="modal-help-text">
+          ⚠️ Entrega a cada persona su contraseña temporal. <strong>No se volverán a mostrar</strong>: descárgalas o cópialas ahora.
+          Al iniciar sesión, cada usuario deberá elegir su propia contraseña.
+        </p>
+        <div class="table-responsive" style="max-height: 320px; overflow-y: auto; margin-top: 12px;">
+          <table class="data-table">
+            <thead>
+              <tr><th>Usuario</th><th>Nombre</th><th>Contraseña temporal</th></tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let c of issuedCredentials">
+                <td><code>{{ c.username }}</code></td>
+                <td>{{ c.full_name }}</td>
+                <td><code>{{ c.temporaryPassword }}</code></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div footer class="modal-footer-actions">
+        <button type="button" class="btn btn-secondary" (click)="copyIssuedCredentials()">{{ credentialsCopied ? '✓ Copiado' : 'Copiar' }}</button>
+        <button type="button" class="btn btn-secondary" (click)="downloadIssuedCredentials()">Descargar CSV</button>
+        <button type="button" class="btn btn-primary" (click)="closeCredentialsModal()">Listo</button>
+      </div>
+    </app-modal>
+
+    <!-- Cloud Backend API Server Config Modal -->
+    <app-modal
+      [isOpen]="isBackendConfigModalOpen"
+      [title]="'Configuración de Servidor Central / Cloud Backend'"
+      (close)="isBackendConfigModalOpen = false"
+    >
+      <div class="cloud-backend-modal">
+        <p class="modal-description">
+          BASETRACK requiere una URL de servidor central HTTPS para sincronizar usuarios, reportes de guardia y parámetros operativos en tiempo real entre múltiples dispositivos (celulares, computadoras y tablets).
+        </p>
+
+        <div class="form-group" style="margin-top: 16px;">
+          <label style="font-weight: 600; display: block; margin-bottom: 6px;">URL del Servidor Backend (API URL):</label>
+          <div class="input-with-action">
+            <input
+              type="url"
+              [(ngModel)]="customApiUrlInput"
+              placeholder="Ej: https://basetrack-api.onrender.com/api"
+              class="modal-input"
+            />
+            <button
+              type="button"
+              class="btn btn-secondary btn-sm"
+              (click)="testBackendConnection()"
+              [disabled]="isTestingApiConnection"
+            >
+              {{ isTestingApiConnection ? 'Probando...' : 'Probar Conexión' }}
+            </button>
+          </div>
+          <span class="input-hint">Debe incluir <code>https://</code> y terminar en <code>/api</code> si está en producción.</span>
+        </div>
+
+        <!-- Connection Test Feedback -->
+        <div *ngIf="apiConnectionTestStatus !== 'idle'" 
+             class="conn-test-box" 
+             [class.conn-success]="apiConnectionTestStatus === 'success'"
+             [class.conn-error]="apiConnectionTestStatus === 'error'">
+          <div class="conn-test-icon">{{ apiConnectionTestStatus === 'success' ? '✅' : '❌' }}</div>
+          <div class="conn-test-text">{{ apiConnectionTestMessage }}</div>
+        </div>
+
+        <!-- Step-by-step deploy instructions for Render.com -->
+        <div class="cloud-guide-card">
+          <h5>🚀 ¿Cómo tener tu servidor cloud 100% gratuito en Render.com?</h5>
+          <ol class="guide-steps">
+            <li>Crea una cuenta gratuita en <a href="https://render.com" target="_blank" rel="noopener">Render.com</a>.</li>
+            <li>Haz clic en <strong>New +</strong> &rarr; <strong>Web Service</strong> y conecta este repositorio de GitHub.</li>
+            <li>Configura las opciones del servicio:
+              <ul>
+                <li><strong>Root Directory:</strong> <code>server</code></li>
+                <li><strong>Build Command:</strong> <code>npm install && npm run build</code></li>
+                <li><strong>Start Command:</strong> <code>npm start</code></li>
+              </ul>
+            </li>
+            <li>Copia la URL HTTPS generada (ej: <code>https://tu-servicio.onrender.com/api</code>) y pégala aquí.</li>
+          </ol>
+        </div>
+      </div>
+
+      <div footer class="modal-footer-actions">
+        <button type="button" class="btn btn-secondary" (click)="resetBackendToDefault()">Restaurar Local</button>
+        <button type="button" class="btn btn-primary" (click)="saveBackendConfig()">Guardar y Conectar</button>
+      </div>
+    </app-modal>
+
+    <!-- Modal: Reset App (Limpieza Total) con Confirmación de Clave -->
+    <app-modal
+      [isOpen]="isResetAppModalOpen"
+      [title]="'⚠️ Reset App: Restablecimiento Total del Sistema'"
+      [showFooter]="false"
+      (close)="isResetAppModalOpen = false"
+    >
+      <div class="reset-app-modal-body">
+        <div class="reset-app-warning-box">
+          <div class="warning-icon-large">⚠️</div>
+          <div class="warning-text">
+            <h4>¿Estás seguro de restablecer completamente la aplicación?</h4>
+            <p>Esta acción es <strong>IRREVERSIBLE</strong> y realizará una depuración total:</p>
+            <ul>
+              <li>❌ <strong>Eliminará todos los usuarios y operadores</strong> registrados.</li>
+              <li>❌ <strong>Eliminará todos los reportes</strong>: bitácoras de relevo de guardia, bombas, ciclones, relaves y checklists vehiculares.</li>
+              <li>❌ <strong>Eliminará todas las solicitudes de mantenimiento</strong> y asignaciones de cuadrilla.</li>
+              <li>✅ <strong>Dejará la app 100% limpia</strong>, conservando únicamente tu cuenta oficial de Administrador.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="reset-app-form-group">
+          <label for="resetPasswordInput">
+            <strong>Ingresa tu contraseña de Administrador para autorizar el reseteo:</strong>
+          </label>
+          <input 
+            id="resetPasswordInput" 
+            type="password" 
+            class="modal-input" 
+            [(ngModel)]="resetAppPassword" 
+            placeholder="Contraseña del Administrador..." 
+            autocomplete="current-password"
+            (keyup.enter)="confirmResetApp()"
+          />
+          <span class="reset-error-msg" *ngIf="resetAppErrorMessage">⚠️ {{ resetAppErrorMessage }}</span>
+        </div>
+
+        <div class="modal-buttons" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 14px;">
+          <button type="button" class="btn btn-secondary" (click)="isResetAppModalOpen = false" [disabled]="isResettingApp">
+            Cancelar
+          </button>
+          <button 
+            type="button" 
+            class="btn btn-danger btn-reset-app" 
+            (click)="confirmResetApp()" 
+            [disabled]="!resetAppPassword || isResettingApp"
+          >
+            {{ isResettingApp ? 'Restableciendo Sistema...' : 'Confirmar y Limpiar Todo' }}
+          </button>
+        </div>
+      </div>
+    </app-modal>
+
+</div>
