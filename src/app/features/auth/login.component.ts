@@ -443,7 +443,14 @@ export class LoginComponent {
     }).subscribe({
       next: () => {
         this.loading = false;
-        const returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/dashboard';
+        let returnUrl = this.route.snapshot.queryParams['returnUrl'];
+        if (this.authService.isMaintenance()) {
+          if (!returnUrl || returnUrl === '/dashboard') {
+            returnUrl = '/maintenance';
+          }
+        } else if (!returnUrl) {
+          returnUrl = '/dashboard';
+        }
         this.router.navigateByUrl(returnUrl);
       },
       error: (err) => {

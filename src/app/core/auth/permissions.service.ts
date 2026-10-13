@@ -66,7 +66,7 @@ export const ALL_PERMISSIONS: PermissionDefinition[] = [
   }
 ];
 
-export const DEFAULT_ROLE_PERMISSIONS: Record<'ADMIN' | 'SUPERVISOR' | 'OPERATOR', PermissionKey[]> = {
+export const DEFAULT_ROLE_PERMISSIONS: Record<'ADMIN' | 'SUPERVISOR' | 'OPERATOR' | 'MAINTENANCE', PermissionKey[]> = {
   ADMIN: [
     'CAN_VIEW_OPERATIONS',
     'CAN_RECORD_DATA',
@@ -87,6 +87,9 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<'ADMIN' | 'SUPERVISOR' | 'OPERATOR
     'CAN_VIEW_OPERATIONS',
     'CAN_RECORD_DATA',
     'CAN_FILL_VEHICLES'
+  ],
+  MAINTENANCE: [
+    'CAN_VIEW_OPERATIONS'
   ]
 };
 
@@ -102,7 +105,7 @@ export class PermissionsService {
   }
 
   // Reactive State Signals
-  public rolePermissionsSignal = signal<Record<'ADMIN' | 'SUPERVISOR' | 'OPERATOR', PermissionKey[]>>(
+  public rolePermissionsSignal = signal<Record<'ADMIN' | 'SUPERVISOR' | 'OPERATOR' | 'MAINTENANCE', PermissionKey[]>>(
     getRealtimeData('basetrack_role_permissions', DEFAULT_ROLE_PERMISSIONS)
   );
 
@@ -120,7 +123,7 @@ export class PermissionsService {
       return ALL_PERMISSIONS.map(p => p.key);
     }
 
-    const userRole = (user.role || 'OPERATOR') as 'ADMIN' | 'SUPERVISOR' | 'OPERATOR';
+    const userRole = (user.role || 'OPERATOR') as 'ADMIN' | 'SUPERVISOR' | 'OPERATOR' | 'MAINTENANCE';
     const roleMap = this.rolePermissionsSignal();
     let perms: PermissionKey[] = [...(roleMap[userRole] || DEFAULT_ROLE_PERMISSIONS[userRole] || [])];
 
@@ -159,7 +162,7 @@ export class PermissionsService {
     return this.effectivePermissions().includes(permission);
   }
 
-  public hasRole(roles: Array<'ADMIN' | 'SUPERVISOR' | 'OPERATOR'>): boolean {
+  public hasRole(roles: Array<'ADMIN' | 'SUPERVISOR' | 'OPERATOR' | 'MAINTENANCE'>): boolean {
     if (this.authService.isAdmin()) return true;
     const role = this.authService.currentUser()?.role;
     return !!role && roles.includes(role as any);
@@ -187,7 +190,7 @@ export class PermissionsService {
     ).subscribe();
   }
 
-  public updateRolePermission(role: 'ADMIN' | 'SUPERVISOR' | 'OPERATOR', permissions: PermissionKey[]): Observable<any> {
+  public updateRolePermission(role: 'ADMIN' | 'SUPERVISOR' | 'OPERATOR' | 'MAINTENANCE', permissions: PermissionKey[]): Observable<any> {
     const updated = { ...this.rolePermissionsSignal(), [role]: permissions };
     this.rolePermissionsSignal.set(updated);
     saveRealtimeData('basetrack_role_permissions', updated);

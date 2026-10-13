@@ -17,9 +17,21 @@ const DEFAULT_ADMIN_USER: User = {
   avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80'
 };
 
+const DEFAULT_MAINTENANCE_USER: User = {
+  id: 'u-mantenimiento',
+  username: 'mantenimiento',
+  email: 'mantenimiento@basetrack.com',
+  fullName: 'Personal de Mantenimiento',
+  document_id: '',
+  role: 'MAINTENANCE',
+  shift: 'GENERAL',
+  avatarUrl: 'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=250&q=80'
+};
+
 // Registro local de perfiles (nombre, rol, avatar) para mostrar el personal sin conexión. Nunca contiene contraseñas.
 const OFFICIAL_USERS_LIST: User[] = [
-  DEFAULT_ADMIN_USER
+  DEFAULT_ADMIN_USER,
+  DEFAULT_MAINTENANCE_USER
 ];
 
 const INITIAL_USERS_REGISTRY: Record<string, User> = {};
@@ -34,6 +46,7 @@ for (const u of OFFICIAL_USERS_LIST) {
 }
 INITIAL_USERS_REGISTRY['admin'] = DEFAULT_ADMIN_USER;
 INITIAL_USERS_REGISTRY['marckv'] = DEFAULT_ADMIN_USER;
+INITIAL_USERS_REGISTRY['mantenimiento'] = DEFAULT_MAINTENANCE_USER;
 
 import { getApiBaseUrl } from '../constants/api.config';
 
@@ -63,6 +76,7 @@ export class AuthService {
     );
   });
   public isSupervisor = computed(() => this.isAdmin() || this.currentUserSignal()?.role === 'SUPERVISOR');
+  public isMaintenance = computed(() => this.currentUserSignal()?.role === 'MAINTENANCE');
 
   constructor() {
     purgeStoredPasswords();

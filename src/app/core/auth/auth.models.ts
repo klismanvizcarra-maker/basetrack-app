@@ -1,4 +1,4 @@
-export type UserRole = 'ADMIN' | 'SUPERVISOR' | 'OPERATOR' | 'OPERADOR';
+export type UserRole = 'ADMIN' | 'SUPERVISOR' | 'OPERATOR' | 'OPERADOR' | 'MAINTENANCE';
 export type ShiftCode = 'G1' | 'G2' | 'G3' | 'G4' | 'ADMIN' | 'GENERAL';
 
 export interface User {

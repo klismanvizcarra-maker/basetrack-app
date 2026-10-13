@@ -124,7 +124,7 @@ export function createUsersBulk(req: AuthenticatedRequest, res: Response) {
             WHERE id = ?
           `).run(
             fullName,
-            ['ADMIN', 'SUPERVISOR', 'OPERATOR'].includes(role) ? role : 'OPERATOR',
+            ['ADMIN', 'SUPERVISOR', 'OPERATOR', 'MAINTENANCE'].includes(role) ? role : 'OPERATOR',
             shift,
             documentId,
             radio,
@@ -145,7 +145,7 @@ export function createUsersBulk(req: AuthenticatedRequest, res: Response) {
             email,
             hash,
             fullName,
-            ['ADMIN', 'SUPERVISOR', 'OPERATOR'].includes(role) ? role : 'OPERATOR',
+            ['ADMIN', 'SUPERVISOR', 'OPERATOR', 'MAINTENANCE'].includes(role) ? role : 'OPERATOR',
             shift,
             avatar,
             documentId,
@@ -733,7 +733,7 @@ export function updateUserRoleShift(req: AuthenticatedRequest, res: Response) {
       return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
     }
 
-    const newRole = role && ['ADMIN', 'SUPERVISOR', 'OPERATOR'].includes(role) ? String(role) : user.role;
+    const newRole = role && ['ADMIN', 'SUPERVISOR', 'OPERATOR', 'MAINTENANCE'].includes(role) ? String(role) : user.role;
     const newShift = shift ? normalizeShift(shift) : user.shift;
 
     db.prepare('UPDATE users SET role = ?, shift = ? WHERE id = ?').run(newRole, newShift, id);
@@ -1352,7 +1352,8 @@ export function getPermissionsMatrix(req: Request, res: Response) {
     const rolePermissions: Record<string, string[]> = {
       ADMIN: [...DEFAULT_ROLE_PERMISSIONS.ADMIN],
       SUPERVISOR: [...DEFAULT_ROLE_PERMISSIONS.SUPERVISOR],
-      OPERATOR: [...DEFAULT_ROLE_PERMISSIONS.OPERATOR]
+      OPERATOR: [...DEFAULT_ROLE_PERMISSIONS.OPERATOR],
+      MAINTENANCE: [...DEFAULT_ROLE_PERMISSIONS.MAINTENANCE]
     };
 
     for (const r of roleRows) {
@@ -1450,6 +1451,7 @@ export function resetPermissionsMatrix(req: AuthenticatedRequest, res: Response)
     stmt.run('ADMIN', JSON.stringify(DEFAULT_ROLE_PERMISSIONS.ADMIN));
     stmt.run('SUPERVISOR', JSON.stringify(DEFAULT_ROLE_PERMISSIONS.SUPERVISOR));
     stmt.run('OPERATOR', JSON.stringify(DEFAULT_ROLE_PERMISSIONS.OPERATOR));
+    stmt.run('MAINTENANCE', JSON.stringify(DEFAULT_ROLE_PERMISSIONS.MAINTENANCE));
 
     db.exec('DELETE FROM user_permission_overrides;');
 

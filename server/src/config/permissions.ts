@@ -59,7 +59,7 @@ export const ALL_PERMISSIONS: PermissionDefinition[] = [
   }
 ];
 
-export const DEFAULT_ROLE_PERMISSIONS: Record<'ADMIN' | 'SUPERVISOR' | 'OPERATOR', PermissionKey[]> = {
+export const DEFAULT_ROLE_PERMISSIONS: Record<'ADMIN' | 'SUPERVISOR' | 'OPERATOR' | 'MAINTENANCE', PermissionKey[]> = {
   ADMIN: [
     'CAN_VIEW_OPERATIONS',
     'CAN_RECORD_DATA',
@@ -80,5 +80,8 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<'ADMIN' | 'SUPERVISOR' | 'OPERATOR
     'CAN_VIEW_OPERATIONS',
     'CAN_RECORD_DATA',
     'CAN_FILL_VEHICLES'
+  ],
+  MAINTENANCE: [
+    'CAN_VIEW_OPERATIONS'
   ]
 };

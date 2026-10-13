@@ -143,6 +143,33 @@ export interface MaintenanceRequest {
         </div>
       </div>
 
+      <!-- Discipline / Specialty Filter Toolbar -->
+      <div class="discipline-toolbar">
+        <span class="discipline-label">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+          </svg>
+          Especialidad:
+        </span>
+        <div class="discipline-pills-row">
+          <button class="pill-discipline" [class.active]="selectedDiscipline === 'ALL'" (click)="setDisciplineFilter('ALL')">
+            Todas
+          </button>
+          <button class="pill-discipline" [class.active]="selectedDiscipline === 'MECANICA'" (click)="setDisciplineFilter('MECANICA')">
+            🔧 Mecánica ({{ getDisciplineCount('MECANICA') }})
+          </button>
+          <button class="pill-discipline" [class.active]="selectedDiscipline === 'ELECTRICIDAD'" (click)="setDisciplineFilter('ELECTRICIDAD')">
+            ⚡ Electricidad ({{ getDisciplineCount('ELECTRICIDAD') }})
+          </button>
+          <button class="pill-discipline" [class.active]="selectedDiscipline === 'INSTRUMENTACION'" (click)="setDisciplineFilter('INSTRUMENTACION')">
+            📡 Instrumentación & Control ({{ getDisciplineCount('INSTRUMENTACION') }})
+          </button>
+          <button class="pill-discipline" [class.active]="selectedDiscipline === 'LUBRICACION'" (click)="setDisciplineFilter('LUBRICACION')">
+            🛢️ Lubricación ({{ getDisciplineCount('LUBRICACION') }})
+          </button>
+        </div>
+      </div>
+
       <!-- Tickets Grid -->
       <div class="tickets-grid" *ngIf="filteredTickets.length > 0; else emptyState">
         <div *ngFor="let t of filteredTickets" class="ticket-card" [ngClass]="getCardStatusClass(t)">
@@ -167,6 +194,9 @@ export interface MaintenanceRequest {
               </div>
 
               <div class="header-badges">
+                <span class="custom-badge discipline-badge" *ngIf="getTicketDiscipline(t) as disc">
+                  {{ disc.icon }} {{ disc.label }}
+                </span>
                 <span class="custom-badge priority-badge" [ngClass]="getPriorityBadgeClass(t.priority)">
                   <span class="priority-dot"></span>
                   {{ formatPriorityText(t.priority) }}
@@ -726,6 +756,75 @@ export interface MaintenanceRequest {
       }
     }
 
+    /* Discipline / Specialty Toolbar */
+    .discipline-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      padding: 9px 14px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-card);
+      margin-top: -6px;
+
+      .discipline-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.74rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--text-muted);
+      }
+
+      .discipline-pills-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .pill-discipline {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        padding: 5px 12px;
+        border-radius: var(--radius-full);
+        border: 1px solid var(--border-subtle);
+        background: var(--bg-surface, rgba(0, 0, 0, 0.02));
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: all 0.2s ease;
+
+        &:hover {
+          border-color: var(--primary-border);
+          color: var(--text-primary);
+        }
+
+        &.active {
+          background: #0284c7;
+          color: #ffffff;
+          border-color: #0284c7;
+          box-shadow: 0 2px 8px rgba(2, 132, 199, 0.35);
+        }
+      }
+    }
+
+    .discipline-badge {
+      background: rgba(2, 132, 199, 0.1);
+      color: #0284c7;
+      border: 1px solid rgba(2, 132, 199, 0.25);
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: var(--radius-full);
+    }
+
     /* Tickets Grid */
     .tickets-grid {
       display: grid;
@@ -1194,6 +1293,28 @@ export interface MaintenanceRequest {
           color: #ffffff;
         }
       }
+
+      .discipline-toolbar {
+        background: #0b1329;
+        border-color: #1e293b;
+      }
+
+      .pill-discipline {
+        background: rgba(255, 255, 255, 0.05);
+        color: #94a3b8;
+        border-color: #1e293b;
+
+        &:hover {
+          border-color: #38bdf8;
+          color: #f8fafc;
+        }
+
+        &.active {
+          background: #0284c7;
+          color: #ffffff;
+          border-color: #0284c7;
+        }
+      }
     }
 
     /* Ticket Body */
@@ -1564,6 +1685,7 @@ export class MaintenanceComponent implements OnInit, OnDestroy {
   failedPhotos: Record<string, boolean> = {};
   searchQuery: string = '';
   selectedStatusFilter: 'ALL' | 'PENDING' | 'IN_PROGRESS' | 'RESOLVED' = 'ALL';
+  selectedDiscipline: 'ALL' | 'MECANICA' | 'ELECTRICIDAD' | 'INSTRUMENTACION' | 'LUBRICACION' = 'ALL';
 
   isCreateModalOpen = false;
   isPhotoZoomOpen = false;
@@ -1670,6 +1792,11 @@ export class MaintenanceComponent implements OnInit, OnDestroy {
         }
       }
 
+      // Filter by Discipline / Specialty
+      if (this.selectedDiscipline !== 'ALL') {
+        if (!this.matchesDiscipline(t, this.selectedDiscipline)) return false;
+      }
+
       // Filter by Search query
       if (this.searchQuery && this.searchQuery.trim() !== '') {
         const q = this.searchQuery.toLowerCase().trim();
@@ -1691,10 +1818,44 @@ export class MaintenanceComponent implements OnInit, OnDestroy {
     this.cdr.markForCheck();
   }
 
+  setDisciplineFilter(discipline: 'ALL' | 'MECANICA' | 'ELECTRICIDAD' | 'INSTRUMENTACION' | 'LUBRICACION'): void {
+    this.selectedDiscipline = discipline;
+    this.cdr.markForCheck();
+  }
+
   clearFilters(): void {
     this.searchQuery = '';
     this.selectedStatusFilter = 'ALL';
+    this.selectedDiscipline = 'ALL';
     this.cdr.markForCheck();
+  }
+
+  matchesDiscipline(t: MaintenanceRequest, discipline: 'MECANICA' | 'ELECTRICIDAD' | 'INSTRUMENTACION' | 'LUBRICACION'): boolean {
+    const text = `${t.equipment_tag || ''} ${t.title || ''} ${t.description || ''} ${t.assigned_to || ''} ${t.source_module || ''}`.toLowerCase();
+    switch (discipline) {
+      case 'MECANICA':
+        return /mec[aá]nic|bomba|sello|rodamiento|reductor|pp-|pu|v[aá]lvula|rotor|impulsor|faja|chute|alineaci|acople/.test(text);
+      case 'ELECTRICIDAD':
+        return /el[eé]ctric|motor|transformador|tablero|breaker|ccm|tensi[oó]n|volt|amper|aislamiento|bobinado/.test(text);
+      case 'INSTRUMENTACION':
+        return /instrument|sensor|fluj[oó]metro|presi[oó]n|transmisor|plc|scada|vfd|se[nñ]al|pt100|vibraci[oó]n|nivel/.test(text);
+      case 'LUBRICACION':
+        return /lubric|grasa|aceite|engrase|viscosidad|filtro|fuga/.test(text);
+      default:
+        return true;
+    }
+  }
+
+  getDisciplineCount(discipline: 'MECANICA' | 'ELECTRICIDAD' | 'INSTRUMENTACION' | 'LUBRICACION'): number {
+    return this.tickets.filter(t => this.matchesDiscipline(t, discipline)).length;
+  }
+
+  getTicketDiscipline(t: MaintenanceRequest): { label: string; icon: string } | null {
+    if (this.matchesDiscipline(t, 'MECANICA')) return { label: 'Mecánica', icon: '🔧' };
+    if (this.matchesDiscipline(t, 'ELECTRICIDAD')) return { label: 'Electricidad', icon: '⚡' };
+    if (this.matchesDiscipline(t, 'INSTRUMENTACION')) return { label: 'Instrumentación', icon: '📡' };
+    if (this.matchesDiscipline(t, 'LUBRICACION')) return { label: 'Lubricación', icon: '🛢️' };
+    return null;
   }
 
   getCountByStatus(status: 'PENDING' | 'IN_PROGRESS' | 'RESOLVED'): number {

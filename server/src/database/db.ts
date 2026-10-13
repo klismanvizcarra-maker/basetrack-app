@@ -44,7 +44,7 @@ export function initDatabase() {
       email TEXT UNIQUE NOT NULL,
       password_hash TEXT NOT NULL,
       full_name TEXT NOT NULL,
-      role TEXT NOT NULL CHECK(role IN ('ADMIN', 'SUPERVISOR', 'OPERATOR')),
+      role TEXT NOT NULL CHECK(role IN ('ADMIN', 'SUPERVISOR', 'OPERATOR', 'MAINTENANCE')),
       shift TEXT NOT NULL DEFAULT 'G1',
       avatar_url TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
@@ -532,6 +532,44 @@ export function initDatabase() {
     console.warn('[Database] users migration check:', e);
   }
 
+  // Safe migration: upgrade users table to allow MAINTENANCE role in CHECK constraint
+  try {
+    const tableInfo = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='users'").get() as { sql: string } | undefined;
+    if (tableInfo && tableInfo.sql && tableInfo.sql.includes("CHECK(role IN ('ADMIN', 'SUPERVISOR', 'OPERATOR'))")) {
+      db.exec(`
+        PRAGMA foreign_keys=off;
+        CREATE TABLE IF NOT EXISTS users_v4 (
+          id TEXT PRIMARY KEY,
+          username TEXT UNIQUE NOT NULL,
+          email TEXT UNIQUE NOT NULL,
+          password_hash TEXT NOT NULL,
+          full_name TEXT NOT NULL,
+          role TEXT NOT NULL CHECK(role IN ('ADMIN', 'SUPERVISOR', 'OPERATOR', 'MAINTENANCE')),
+          shift TEXT NOT NULL DEFAULT 'G1',
+          avatar_url TEXT,
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          is_active INTEGER NOT NULL DEFAULT 1,
+          document_id TEXT,
+          radio_channel TEXT DEFAULT 'Canal 1 Operaciones',
+          phone_extension TEXT,
+          primary_role TEXT DEFAULT 'OPERADOR_BOMBAS',
+          must_change_password INTEGER NOT NULL DEFAULT 0
+        );
+        INSERT OR IGNORE INTO users_v4 SELECT 
+          id, username, email, password_hash, full_name, role, shift, avatar_url, created_at,
+          COALESCE(is_active, 1), document_id, radio_channel, phone_extension, primary_role,
+          COALESCE(must_change_password, 0)
+        FROM users;
+        DROP TABLE users;
+        ALTER TABLE users_v4 RENAME TO users;
+        PRAGMA foreign_keys=on;
+      `);
+      console.log('[Database] Migrated users table to support MAINTENANCE role.');
+    }
+  } catch (e) {
+    console.warn('[Database] users MAINTENANCE role migration check:', e);
+  }
+
   // Safe migration: upgrade crew_members table to remove restrictive CHECKs and map to G1-G4
   try {
     const tableInfo = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='crew_members'").get() as { sql: string } | undefined;
@@ -689,6 +727,24 @@ export function initDatabase() {
       // Ensure existing admin has no operational DNI and is not in crew_members
       db.prepare("UPDATE users SET document_id = '' WHERE role = 'ADMIN' OR username = 'Marckv'").run();
       db.prepare("DELETE FROM crew_members WHERE LOWER(name) = 'marck vizcarra' OR document_id = '91209966'").run();
+    }
+
+    // 1b. Ensure Default Maintenance User: mantenimiento
+    const maintExists = (db.prepare("SELECT COUNT(*) as cnt FROM users WHERE role = 'MAINTENANCE' OR username = 'mantenimiento'").get() as { cnt: number })?.cnt > 0;
+    if (!maintExists) {
+      const maintId = crypto.randomUUID();
+      const maintHash = bcrypt.hashSync('mantenimiento123', 10);
+      db.prepare(`
+        INSERT INTO users (id, username, email, password_hash, full_name, role, shift, avatar_url, is_active, document_id, primary_role)
+        VALUES (?, ?, ?, ?, ?, 'MAINTENANCE', 'GENERAL', 'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=250&q=80', 1, '', 'MANTENIMIENTO')
+      `).run(
+        maintId,
+        'mantenimiento',
+        'mantenimiento@basetrack.com',
+        maintHash,
+        'Personal de Mantenimiento'
+      );
+      console.log('[Database] Seeded default maintenance user: mantenimiento');
     }
 
     // 2. Default operational positions in crew_positions

@@ -42,7 +42,7 @@ import { ThemeService } from '../../core/theme/theme.service';
 
       <!-- Navigation list -->
       <nav class="sidebar-nav">
-        <div class="nav-section-title">OPERACIONES</div>
+        <div class="nav-section-title">{{ authService.isMaintenance() ? 'MANTENIMIENTO' : 'OPERACIONES' }}</div>
         <ul class="nav-list">
           <li class="nav-item">
             <a routerLink="/dashboard" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" class="nav-link" (click)="onNavClick()">
@@ -58,7 +58,7 @@ import { ThemeService } from '../../core/theme/theme.service';
             </a>
           </li>
 
-          <li class="nav-item">
+          <li class="nav-item" *ngIf="!authService.isMaintenance()">
             <a routerLink="/shift-handover" routerLinkActive="active" class="nav-link" (click)="onNavClick()">
               <span class="nav-icon">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -72,7 +72,7 @@ import { ThemeService } from '../../core/theme/theme.service';
             </a>
           </li>
 
-          <li class="nav-item">
+          <li class="nav-item" *ngIf="!authService.isMaintenance()">
             <a routerLink="/crew" routerLinkActive="active" class="nav-link" (click)="onNavClick()">
               <span class="nav-icon">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -86,7 +86,7 @@ import { ThemeService } from '../../core/theme/theme.service';
             </a>
           </li>
 
-          <li class="nav-item">
+          <li class="nav-item" *ngIf="!authService.isMaintenance()">
             <a routerLink="/roster" routerLinkActive="active" class="nav-link" (click)="onNavClick()">
               <span class="nav-icon">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -100,7 +100,7 @@ import { ThemeService } from '../../core/theme/theme.service';
             </a>
           </li>
 
-          <li class="nav-item">
+          <li class="nav-item" *ngIf="!authService.isMaintenance()">
             <a routerLink="/pumps" routerLinkActive="active" class="nav-link" (click)="onNavClick()">
               <span class="nav-icon">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -116,7 +116,7 @@ import { ThemeService } from '../../core/theme/theme.service';
             </a>
           </li>
 
-          <li class="nav-item">
+          <li class="nav-item" *ngIf="!authService.isMaintenance()">
             <a routerLink="/cyclones" routerLinkActive="active" class="nav-link" (click)="onNavClick()">
               <span class="nav-icon">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -127,7 +127,7 @@ import { ThemeService } from '../../core/theme/theme.service';
             </a>
           </li>
 
-          <li class="nav-item">
+          <li class="nav-item" *ngIf="!authService.isMaintenance()">
             <a routerLink="/tailings" routerLinkActive="active" class="nav-link" (click)="onNavClick()">
               <span class="nav-icon">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -150,7 +150,7 @@ import { ThemeService } from '../../core/theme/theme.service';
             </a>
           </li>
 
-          <li class="nav-item">
+          <li class="nav-item" *ngIf="!authService.isMaintenance()">
             <a routerLink="/calculators" routerLinkActive="active" class="nav-link" (click)="onNavClick()">
               <span class="nav-icon">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -170,7 +170,7 @@ import { ThemeService } from '../../core/theme/theme.service';
             </a>
           </li>
 
-          <li class="nav-item">
+          <li class="nav-item" *ngIf="!authService.isMaintenance()">
             <a routerLink="/vehicle-checklist" routerLinkActive="active" class="nav-link" (click)="onNavClick()">
               <span class="nav-icon">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
