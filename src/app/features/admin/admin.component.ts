@@ -14,6 +14,8 @@ import { PermissionsService, ALL_PERMISSIONS, DEFAULT_ROLE_PERMISSIONS, Permissi
 import { VehicleChecklistService } from '../../core/services/vehicle-checklist.service';
 import { AdminVehiclesTabComponent } from './tabs/vehicles/vehicles-tab.component';
 import { AdminPlantParametersTabComponent } from './tabs/plant-parameters/plant-parameters-tab.component';
+import { AdminAuditLogsTabComponent } from './tabs/audit-logs/audit-logs-tab.component';
+import { AuditLogStore } from './tabs/audit-logs/audit-log.store';
 import { resetGuardsCatalog } from '../../shared/utils/roster.util';
 
 export interface UserItem {
@@ -41,16 +43,6 @@ export interface ConnectedDevice {
   is_online?: number | boolean;
 }
 
-export interface AuditLog {
-  id: string;
-  username: string;
-  action: string;
-  entity: string;
-  details: string;
-  ip_address: string;
-  timestamp: string;
-}
-
 const DEFAULT_USERS: UserItem[] = [
   {
     id: 'u-marckv',
@@ -65,23 +57,11 @@ const DEFAULT_USERS: UserItem[] = [
   }
 ];
 
-const DEFAULT_LOGS: AuditLog[] = [
-  {
-    id: 'l-1',
-    username: 'Marckv',
-    action: 'LOGIN',
-    entity: 'AUTH',
-    details: 'Inicio de sesion administrativo verificado con exito',
-    ip_address: '192.168.1.104',
-    timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19)
-  }
-];
-
 @Component({
   selector: 'app-admin',
   changeDetection: ChangeDetectionStrategy.Eager,
   standalone: true,
-  imports: [CommonModule, FormsModule, ModalComponent, AdminVehiclesTabComponent, AdminPlantParametersTabComponent],
+  imports: [CommonModule, FormsModule, ModalComponent, AdminVehiclesTabComponent, AdminPlantParametersTabComponent, AdminAuditLogsTabComponent],
   templateUrl: './admin.component.html',
   styleUrl: './admin.component.scss',
   // Estilos con alcance manual (.admin-scope) para compartirlos con los componentes de cada pestaña
@@ -95,6 +75,7 @@ export class AdminComponent implements OnInit, OnDestroy {
   crewService = inject(CrewService);
   permissionsService = inject(PermissionsService);
   vehicleChecklistService = inject(VehicleChecklistService);
+  auditLogStore = inject(AuditLogStore);
   private cdr = inject(ChangeDetectorRef);
   private ngZone = inject(NgZone);
 
@@ -233,7 +214,6 @@ export class AdminComponent implements OnInit, OnDestroy {
 
   // Inicialización con datos por defecto
   users: UserItem[] = [...DEFAULT_USERS];
-  logs: AuditLog[] = [...DEFAULT_LOGS];
 
   isCreateUserModalOpen = false;
   backupSuccessMessage = '';
@@ -409,7 +389,6 @@ export class AdminComponent implements OnInit, OnDestroy {
     setTimeout(() => this.backupSuccessMessage = '', 6000);
     this.cloudSync.forceSync();
     this.loadUsers();
-    this.loadLogs();
   }
 
   resetBackendToDefault(): void {
@@ -472,10 +451,11 @@ export class AdminComponent implements OnInit, OnDestroy {
     ) {
       this.ngZone.run(() => {
         this.loadUsers();
-        this.loadLogs();
         this.loadConnectedDevices();
         this.loadSupervisorsAndOperators();
         this.refreshVehicleCount();
+        // Con la pestaña de bitácora abierta, AdminAuditLogsTabComponent ya la recarga
+        if (this.activeAdminTab !== 'AUDIT_LOGS') this.auditLogStore.load();
         this.cdr.markForCheck();
         this.cdr.detectChanges();
       });
@@ -491,10 +471,10 @@ export class AdminComponent implements OnInit, OnDestroy {
 
     this.loadFromStorage();
     this.loadUsers();
-    this.loadLogs();
     this.loadConnectedDevices();
     this.loadSupervisorsAndOperators();
     this.refreshVehicleCount();
+    this.auditLogStore.load();
 
     if (typeof window !== 'undefined') {
       window.addEventListener('basetrack_cloud_sync', this.syncListener);
@@ -543,21 +523,6 @@ export class AdminComponent implements OnInit, OnDestroy {
           this.users = [...DEFAULT_USERS];
           localStorage.setItem('basetrack_admin_users', JSON.stringify(DEFAULT_USERS));
         }
-
-        const storedLogs = localStorage.getItem('basetrack_admin_logs');
-        if (storedLogs) {
-          const parsed = JSON.parse(storedLogs);
-          const hasOldLogs = Array.isArray(parsed) && parsed.some((l: any) => l.username === 'admin' || l.username === 'supervisor_a');
-          if (Array.isArray(parsed) && parsed.length > 0 && !hasOldLogs) {
-            this.logs = parsed;
-          } else {
-            this.logs = [...DEFAULT_LOGS];
-            localStorage.setItem('basetrack_admin_logs', JSON.stringify(DEFAULT_LOGS));
-          }
-        } else {
-          this.logs = [...DEFAULT_LOGS];
-          localStorage.setItem('basetrack_admin_logs', JSON.stringify(DEFAULT_LOGS));
-        }
       } catch (e) {
         console.warn('Error reading from storage', e);
       }
@@ -566,10 +531,8 @@ export class AdminComponent implements OnInit, OnDestroy {
 
   restoreDefaults(): void {
     this.users = [...DEFAULT_USERS];
-    this.logs = [...DEFAULT_LOGS];
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem('basetrack_admin_users', JSON.stringify(this.users));
-      localStorage.setItem('basetrack_admin_logs', JSON.stringify(this.logs));
     }
   }
 
@@ -585,22 +548,6 @@ export class AdminComponent implements OnInit, OnDestroy {
           );
           if (typeof localStorage !== 'undefined') {
             localStorage.setItem('basetrack_admin_users', JSON.stringify(this.users));
-          }
-        }
-      },
-      error: () => {
-        // Fallback enriquecido ya activo en el estado y almacenamiento
-      }
-    });
-  }
-
-  loadLogs(): void {
-    this.http.get<any>(`${getApiBaseUrl()}/admin/audit-logs`).subscribe({
-      next: (res) => {
-        if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
-          this.logs = res.data;
-          if (typeof localStorage !== 'undefined') {
-            localStorage.setItem('basetrack_admin_logs', JSON.stringify(this.logs));
           }
         }
       },
@@ -635,7 +582,7 @@ export class AdminComponent implements OnInit, OnDestroy {
           export_date: new Date().toISOString(),
           system: 'BASETRACK Industrial Platform',
           users: this.users,
-          audit_logs: this.logs
+          audit_logs: this.auditLogStore.logs()
         };
         const blob = new Blob([JSON.stringify(localBackup, null, 2)], { type: 'application/json' });
         const url = window.URL.createObjectURL(blob);
@@ -673,7 +620,6 @@ export class AdminComponent implements OnInit, OnDestroy {
               this.backupSuccessMessage = '¡Respaldo restaurado exitosamente! Los datos del sistema han sido sincronizados.';
               setTimeout(() => this.backupSuccessMessage = '', 6000);
               this.loadUsers();
-              this.loadLogs();
             }
           },
           error: (err) => {
@@ -1087,7 +1033,6 @@ export class AdminComponent implements OnInit, OnDestroy {
           this.showIssuedCredentials(res?.temporaryCredentials);
 
           this.loadUsers();
-          this.loadLogs();
           this.loadSupervisorsAndOperators();
           this.crewService.loadCrew().subscribe();
           this.cdr.detectChanges();
@@ -1112,7 +1057,6 @@ export class AdminComponent implements OnInit, OnDestroy {
           setTimeout(() => this.backupSuccessMessage = '', 7000);
 
           this.loadUsers();
-          this.loadLogs();
           this.loadSupervisorsAndOperators();
           this.crewService.loadCrew().subscribe();
           this.cdr.detectChanges();
@@ -1533,7 +1477,6 @@ export class AdminComponent implements OnInit, OnDestroy {
           setTimeout(() => this.backupSuccessMessage = '', 7000);
 
           this.loadUsers();
-          this.loadLogs();
           this.loadSupervisorsAndOperators();
           this.loadConnectedDevices();
           this.crewService.loadCrew().subscribe();

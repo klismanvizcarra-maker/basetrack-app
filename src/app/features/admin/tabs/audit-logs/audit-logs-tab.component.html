@@ -1,0 +1,36 @@
+<div class="section-card glass-panel animate-fade-in">
+  <div class="card-head">
+    <h3>Registro de Auditoría y Trazabilidad (SCADA Logs)</h3>
+    <span class="counter">{{ logs.length }} Eventos Registrados</span>
+  </div>
+
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Timestamp</th>
+          <th>Usuario</th>
+          <th>Acción</th>
+          <th>Módulo</th>
+          <th>Detalle del Evento</th>
+          <th>Dirección IP</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let log of logs">
+          <td class="font-mono">{{ log.timestamp }}</td>
+          <td><strong>{{ log.username }}</strong></td>
+          <td><span class="badge badge-primary">{{ log.action }}</span></td>
+          <td>{{ log.entity }}</td>
+          <td>{{ log.details }}</td>
+          <td class="font-mono">{{ log.ip_address }}</td>
+        </tr>
+        <tr *ngIf="logs.length === 0">
+          <td colspan="6" style="text-align: center; padding: 24px; color: var(--text-muted);">
+            No hay eventos de auditoría registrados.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
