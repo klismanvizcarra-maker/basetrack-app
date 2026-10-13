@@ -43,4 +43,14 @@ const newVersionData = {
 };
 
 fs.writeFileSync(versionFilePath, JSON.stringify(newVersionData, null, 2) + '\n', 'utf8');
+
+// La misma marca de tiempo se compila dentro del bundle: el cliente compara su propio
+// BUILD_TIME con el de public/version.json y solo recarga si hay un despliegue más nuevo.
+const buildInfoPath = path.join(rootDir, 'src', 'app', 'core', 'constants', 'build-info.ts');
+fs.writeFileSync(
+  buildInfoPath,
+  `// Generado automáticamente por scripts/generate-version.mjs en cada build. No editar a mano.\n` +
+  `export const BUILD_TIME = ${timeMs};\n`,
+  'utf8'
+);
 console.log(`[Version Generator] public/version.json actualizado: Build ${newVersionData.build} (${new Date(timeMs).toLocaleString()})`);
