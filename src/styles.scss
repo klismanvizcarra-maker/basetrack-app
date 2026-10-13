@@ -205,6 +205,13 @@ input, select, textarea {
   }
 }
 
+/* Contenedor de tablas: scroll horizontal propio para que una tabla ancha nunca
+   desplace la página completa en teléfonos (antes dependía de cada componente). */
+.table-responsive {
+  overflow-x: auto;
+  max-width: 100%;
+}
+
 /* Mobile Touch Optimization for Tables & Horizontal Data (iOS & Android) */
 .table-responsive,
 .items-table-wrapper,

@@ -753,6 +753,17 @@ import { CrewService } from '../../core/services/crew.service';
         min-width: 190px;
         text-align: center;
       }
+
+      @media (max-width: 600px) {
+        width: 100%;
+        flex-wrap: wrap;
+        justify-content: center;
+
+        h3 {
+          min-width: 0;
+          flex: 1;
+        }
+      }
     }
 
     .btn-nav-month {
