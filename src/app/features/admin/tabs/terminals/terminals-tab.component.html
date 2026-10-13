@@ -1,0 +1,222 @@
+<!-- Cloud Realtime Sync & Multi-Device Fleet Manager -->
+<div class="cloud-sync-card glass-panel animate-fade-in">
+  <div class="sync-card-left">
+    <div class="cloud-avatar-icon">☁️</div>
+    <div>
+      <h4>Sincronización en la Nube Multi-Dispositivo (Cloud Realtime Sync)</h4>
+      <p>Réplica bidireccional continua entre salas de control, tablets y teléfonos móviles de guardia.</p>
+      <div class="sync-pill-tags">
+        <span class="tag-item">Terminal Local: <strong>{{ cloudSync.deviceName }}</strong></span>
+        <span class="tag-item">ID Dispositivo: <code>{{ cloudSync.deviceId }}</code></span>
+        <span class="tag-item">Terminales en Red: <strong>{{ cloudSync.activeDevicesCount() }} activas</strong></span>
+        <span class="tag-item">Última Réplica: <strong>{{ (cloudSync.lastSyncTime() | date:'HH:mm:ss') || 'En vivo' }}</strong></span>
+        <span class="tag-item">Servidor API: <code>{{ currentApiUrl }}</code></span>
+      </div>
+    </div>
+  </div>
+  <div class="sync-card-right">
+    <div class="sync-status-indicator">
+      <span class="pulse-dot" [class.dot-green]="cloudSync.isOnline()" [class.dot-orange]="!cloudSync.isOnline()"></span>
+      <span class="status-label">{{ cloudSync.isSyncing() ? 'Sincronizando...' : (cloudSync.isOnline() ? 'En Línea • Conectado' : 'Modo Mina • Offline') }}</span>
+    </div>
+    <div class="sync-btns-group">
+      <button class="btn btn-secondary btn-sm" (click)="openBackendConfig.emit()" title="Configurar URL de Servidor Central / Render / Railway">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+        Servidor Cloud
+      </button>
+      <button class="btn btn-emerald-outline btn-sm" (click)="cloudSync.forceSync()" [disabled]="cloudSync.isSyncing()">
+        <span *ngIf="!cloudSync.isSyncing()">🔄 Forzar Réplica</span>
+        <span *ngIf="cloudSync.isSyncing()">Sincronizando...</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Fleet & Session Manager (Dispositivos Conectados) -->
+<div class="section-card glass-panel animate-fade-in">
+  <div class="card-head">
+    <div class="head-with-icon">
+      <span class="fleet-icon">📱</span>
+      <div>
+        <h3>Monitor de Flota y Dispositivos Conectados (Fleet & Session Manager)</h3>
+        <p class="section-sub">Auditoría en tiempo real de terminales, tablets y teléfonos móviles con control de acceso y desconexión remota</p>
+      </div>
+    </div>
+    <div class="head-actions">
+      <button class="btn btn-secondary btn-sm" (click)="broadcastGlobalUpdate()" [disabled]="isBroadcastingUpdate" title="Enviar señal de actualización en tiempo real a todas las terminales y celulares conectados">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M23 4v6h-6"></path>
+          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+        </svg>
+        {{ isBroadcastingUpdate ? 'Emitiendo...' : 'Actualizar Todos en Vivo' }}
+      </button>
+      <button class="btn btn-secondary btn-sm" (click)="confirmPurgeStaleDevices()" [disabled]="isPurgingDevices" title="Limpiar terminales inactivas > 5 días o con sesión revocada">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="3 6 5 6 21 6"></polyline>
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+        </svg>
+        {{ isPurgingDevices ? 'Depurando...' : 'Depurar Inactivos' }}
+      </button>
+      <button class="btn btn-primary btn-sm" (click)="loadConnectedDevices()" [disabled]="isLoadingDevices">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M23 4v6h-6"></path>
+          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+        </svg>
+        {{ isLoadingDevices ? 'Consultando...' : 'Refrescar Terminales' }}
+      </button>
+    </div>
+  </div>
+
+  <!-- Fleet Metric Cards (KPIs) -->
+  <div class="fleet-kpi-grid">
+    <div class="fleet-kpi-card" [class.active-filter]="deviceFilter === 'ALL'" (click)="deviceFilter = 'ALL'" title="Mostrar todos los dispositivos">
+      <span class="kpi-icon">💻</span>
+      <div class="kpi-info">
+        <span class="kpi-label">Total Terminales</span>
+        <span class="kpi-number">{{ fleetStats.total }}</span>
+      </div>
+    </div>
+    <div class="fleet-kpi-card kpi-online" [class.active-filter]="deviceFilter === 'ONLINE'" (click)="deviceFilter = 'ONLINE'" title="Filtrar sólo en línea">
+      <span class="kpi-icon">🟢</span>
+      <div class="kpi-info">
+        <span class="kpi-label">En Línea (Activos)</span>
+        <span class="kpi-number">{{ fleetStats.online }}</span>
+      </div>
+    </div>
+    <div class="fleet-kpi-card kpi-inactive" [class.active-filter]="deviceFilter === 'INACTIVE'" (click)="deviceFilter = 'INACTIVE'" title="Filtrar dispositivos inactivos">
+      <span class="kpi-icon">⚪</span>
+      <div class="kpi-info">
+        <span class="kpi-label">Inactivos / Reposo</span>
+        <span class="kpi-number">{{ fleetStats.inactive }}</span>
+      </div>
+    </div>
+    <div class="fleet-kpi-card kpi-revoked" [class.active-filter]="deviceFilter === 'REVOKED'" (click)="deviceFilter = 'REVOKED'" title="Filtrar sesiones revocadas">
+      <span class="kpi-icon">🔴</span>
+      <div class="kpi-info">
+        <span class="kpi-label">Sesiones Revocadas</span>
+        <span class="kpi-number">{{ fleetStats.revoked }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fleet Search and Filters Bar -->
+  <div class="fleet-toolbar">
+    <div class="fleet-search-box">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+      <input 
+        type="text" 
+        [(ngModel)]="deviceSearchQuery" 
+        placeholder="Buscar por terminal, usuario, IP o navegador..." 
+        class="fleet-search-input"
+      />
+      <button *ngIf="deviceSearchQuery" (click)="deviceSearchQuery = ''" class="btn-clear-search" title="Limpiar búsqueda">✕</button>
+    </div>
+    <div class="fleet-filter-pills">
+      <button class="pill-btn" [class.active]="deviceFilter === 'ALL'" (click)="deviceFilter = 'ALL'">Todos ({{ fleetStats.total }})</button>
+      <button class="pill-btn" [class.active]="deviceFilter === 'ONLINE'" (click)="deviceFilter = 'ONLINE'">🟢 En Línea ({{ fleetStats.online }})</button>
+      <button class="pill-btn" [class.active]="deviceFilter === 'INACTIVE'" (click)="deviceFilter = 'INACTIVE'">⚪ Inactivos ({{ fleetStats.inactive }})</button>
+      <button class="pill-btn" [class.active]="deviceFilter === 'REVOKED'" (click)="deviceFilter = 'REVOKED'">🔴 Revocados ({{ fleetStats.revoked }})</button>
+    </div>
+  </div>
+
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Dispositivo / Terminal</th>
+          <th>Usuario Activo</th>
+          <th>Dirección IP</th>
+          <th>Navegador / Plataforma</th>
+          <th>Último Latido (Ping)</th>
+          <th>Estado</th>
+          <th style="text-align: right;">Control de Sesión</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let dev of filteredDevices" [class.row-current-device]="isCurrentDevice(dev.device_id)">
+          <td>
+            <div class="device-cell">
+              <span class="device-type-badge">{{ getDeviceIcon(dev.device_name, dev.user_agent) }}</span>
+              <div>
+                <div class="device-name-row">
+                  <strong>{{ dev.device_name || 'Terminal Operativa' }}</strong>
+                  <span class="current-device-badge" *ngIf="isCurrentDevice(dev.device_id)">⭐ Este Terminal (Actual)</span>
+                </div>
+                <div class="device-sub-id">{{ dev.device_id }}</div>
+              </div>
+            </div>
+          </td>
+          <td>
+            <span class="user-chip" *ngIf="dev.username">👤 {{ dev.username }}</span>
+            <span class="text-muted" *ngIf="!dev.username">Esperando usuario</span>
+          </td>
+          <td>
+            <div class="ip-cell">
+              <code>{{ formatIpAddress(dev.ip_address) }}</code>
+              <span class="ip-tag" *ngIf="isLocalIp(dev.ip_address)">Red Local</span>
+            </div>
+          </td>
+          <td>
+            <span class="ua-badge" [title]="dev.user_agent || ''">{{ simplifyUserAgent(dev.user_agent) }}</span>
+          </td>
+          <td>
+            <span class="time-relative" [title]="dev.last_seen || ''">{{ formatRelativeTime(dev.last_seen) }}</span>
+          </td>
+          <td>
+            <span class="pulse-dot-wrapper">
+              <span class="pulse-dot" [class.dot-green]="dev.is_online && !dev.is_revoked" [class.dot-gray]="!dev.is_online && !dev.is_revoked" [class.dot-red]="dev.is_revoked"></span>
+              <span class="device-status-text" [class.text-green]="dev.is_online && !dev.is_revoked" [class.text-red]="dev.is_revoked">
+                {{ dev.is_revoked ? 'REVOCADO' : (dev.is_online ? 'EN LÍNEA' : 'INACTIVO') }}
+              </span>
+            </span>
+          </td>
+          <td style="text-align: right;">
+            <div class="device-actions-cell">
+              <button 
+                *ngIf="!dev.is_revoked" 
+                class="btn btn-action-danger" 
+                (click)="confirmRevokeDevice(dev)"
+                [title]="isCurrentDevice(dev.device_id) ? 'Advertencia: Esta es tu sesión actual' : 'Cerrar sesión remotamente en esta terminal'"
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+                Revocar Sesión
+              </button>
+              <span *ngIf="dev.is_revoked" class="badge badge-danger">Sesión Terminada</span>
+            
+              <button 
+                *ngIf="dev.is_revoked || !dev.is_online" 
+                class="btn btn-action-delete" 
+                (click)="confirmDeleteDevice(dev)"
+                [disabled]="deletingDeviceId === dev.device_id"
+                title="Desvincular y eliminar terminal de la flota"
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+              </button>
+            </div>
+          </td>
+        </tr>
+        <tr *ngIf="filteredDevices.length === 0">
+          <td colspan="7" style="text-align: center; padding: 32px 16px; color: var(--text-muted);">
+            <div class="empty-fleet-state">
+              <span style="font-size: 2rem; display: block; margin-bottom: 8px;">🔍</span>
+              <strong>No se encontraron terminales con el filtro o término especificado</strong>
+              <p style="font-size: 0.8rem; margin-top: 4px; color: #94a3b8;">Prueba cambiando el filtro de estado o la búsqueda.</p>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

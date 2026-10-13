@@ -16,6 +16,8 @@ import { AdminVehiclesTabComponent } from './tabs/vehicles/vehicles-tab.componen
 import { AdminPlantParametersTabComponent } from './tabs/plant-parameters/plant-parameters-tab.component';
 import { AdminAuditLogsTabComponent } from './tabs/audit-logs/audit-logs-tab.component';
 import { AuditLogStore } from './tabs/audit-logs/audit-log.store';
+import { AdminTerminalsTabComponent } from './tabs/terminals/terminals-tab.component';
+import { DeviceFleetStore } from './tabs/terminals/device-fleet.store';
 import { resetGuardsCatalog } from '../../shared/utils/roster.util';
 
 export interface UserItem {
@@ -29,18 +31,6 @@ export interface UserItem {
   created_at: string;
   is_active?: number | boolean;
   document_id?: string;
-}
-
-export interface ConnectedDevice {
-  device_id: string;
-  device_name: string;
-  user_id?: string | null;
-  username?: string | null;
-  ip_address?: string | null;
-  user_agent?: string | null;
-  last_seen: string;
-  is_revoked: number;
-  is_online?: number | boolean;
 }
 
 const DEFAULT_USERS: UserItem[] = [
@@ -61,7 +51,7 @@ const DEFAULT_USERS: UserItem[] = [
   selector: 'app-admin',
   changeDetection: ChangeDetectionStrategy.Eager,
   standalone: true,
-  imports: [CommonModule, FormsModule, ModalComponent, AdminVehiclesTabComponent, AdminPlantParametersTabComponent, AdminAuditLogsTabComponent],
+  imports: [CommonModule, FormsModule, ModalComponent, AdminVehiclesTabComponent, AdminPlantParametersTabComponent, AdminAuditLogsTabComponent, AdminTerminalsTabComponent],
   templateUrl: './admin.component.html',
   styleUrl: './admin.component.scss',
   // Estilos con alcance manual (.admin-scope) para compartirlos con los componentes de cada pestaña
@@ -76,6 +66,13 @@ export class AdminComponent implements OnInit, OnDestroy {
   permissionsService = inject(PermissionsService);
   vehicleChecklistService = inject(VehicleChecklistService);
   auditLogStore = inject(AuditLogStore);
+  deviceFleetStore = inject(DeviceFleetStore);
+
+  /** Muestra un mensaje en el aviso general (lo usan también las pestañas hijas) */
+  showNotice(notice: { text: string; ms: number }): void {
+    this.backupSuccessMessage = notice.text;
+    setTimeout(() => this.backupSuccessMessage = '', notice.ms);
+  }
   private cdr = inject(ChangeDetectorRef);
   private ngZone = inject(NgZone);
 
@@ -237,53 +234,6 @@ export class AdminComponent implements OnInit, OnDestroy {
   userSearchQuery = '';
   userFilterShift = 'TODAS';
   userFilterRole = 'TODOS';
-
-  // Connected Devices / Fleet Manager (Punto 5)
-  connectedDevices: ConnectedDevice[] = [];
-  isLoadingDevices = false;
-  deviceFilter: 'ALL' | 'ONLINE' | 'INACTIVE' | 'REVOKED' = 'ALL';
-  deviceSearchQuery = '';
-  isPurgingDevices = false;
-  deletingDeviceId: string | null = null;
-
-  get currentDeviceId(): string {
-    return this.cloudSync?.deviceId || '';
-  }
-
-  isCurrentDevice(deviceId?: string): boolean {
-    return !!deviceId && this.currentDeviceId === deviceId;
-  }
-
-  get fleetStats() {
-    const total = this.connectedDevices.length;
-    const online = this.connectedDevices.filter(d => d.is_online && !d.is_revoked).length;
-    const inactive = this.connectedDevices.filter(d => !d.is_online && !d.is_revoked).length;
-    const revoked = this.connectedDevices.filter(d => d.is_revoked).length;
-    return { total, online, inactive, revoked };
-  }
-
-  get filteredDevices(): ConnectedDevice[] {
-    let list = this.connectedDevices;
-    if (this.deviceFilter === 'ONLINE') {
-      list = list.filter(d => d.is_online && !d.is_revoked);
-    } else if (this.deviceFilter === 'INACTIVE') {
-      list = list.filter(d => !d.is_online && !d.is_revoked);
-    } else if (this.deviceFilter === 'REVOKED') {
-      list = list.filter(d => d.is_revoked);
-    }
-
-    if (this.deviceSearchQuery.trim()) {
-      const q = this.deviceSearchQuery.toLowerCase().trim();
-      list = list.filter(d => 
-        (d.device_name || '').toLowerCase().includes(q) ||
-        (d.device_id || '').toLowerCase().includes(q) ||
-        (d.username || '').toLowerCase().includes(q) ||
-        (d.ip_address || '').toLowerCase().includes(q) ||
-        (d.user_agent || '').toLowerCase().includes(q)
-      );
-    }
-    return list;
-  }
 
   // Modal: Edit User Role & Shift (Punto 1)
   isEditUserModalOpen = false;
@@ -451,7 +401,7 @@ export class AdminComponent implements OnInit, OnDestroy {
     ) {
       this.ngZone.run(() => {
         this.loadUsers();
-        this.loadConnectedDevices();
+        this.deviceFleetStore.load();
         this.loadSupervisorsAndOperators();
         this.refreshVehicleCount();
         // Con la pestaña de bitácora abierta, AdminAuditLogsTabComponent ya la recarga
@@ -471,7 +421,7 @@ export class AdminComponent implements OnInit, OnDestroy {
 
     this.loadFromStorage();
     this.loadUsers();
-    this.loadConnectedDevices();
+    this.deviceFleetStore.load();
     this.loadSupervisorsAndOperators();
     this.refreshVehicleCount();
     this.auditLogStore.load();
@@ -1065,206 +1015,6 @@ export class AdminComponent implements OnInit, OnDestroy {
   }
 
   // ==========================================
-  // PUNTO 5: MONITOR DE TERMINALES Y SESIONES
-  // ==========================================
-
-  loadConnectedDevices(): void {
-    this.isLoadingDevices = true;
-    this.http.get<any>(`${getApiBaseUrl()}/admin/devices`).subscribe({
-      next: (res) => {
-        this.isLoadingDevices = false;
-        const list = res?.devices || res?.data;
-        if (res && res.success && Array.isArray(list)) {
-          this.connectedDevices = list;
-        }
-      },
-      error: (err) => {
-        this.isLoadingDevices = false;
-        console.warn('[Admin] Fallo al consultar dispositivos conectados:', err);
-        if (this.connectedDevices.length === 0) {
-          this.connectedDevices = [
-            {
-              device_id: this.currentDeviceId || 'dev_current_local',
-              device_name: 'Estación Central (Actual)',
-              user_id: 'u-marckv',
-              username: 'Marckv',
-              ip_address: '127.0.0.1',
-              user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : 'Chrome / Windows',
-              last_seen: new Date().toISOString(),
-              is_revoked: 0,
-              is_online: 1
-            }
-          ];
-        }
-      }
-    });
-  }
-
-  confirmRevokeDevice(dev: ConnectedDevice): void {
-    const isSelf = this.isCurrentDevice(dev.device_id);
-    let msg = `¿Estás seguro de revocar la sesión para la terminal "${dev.device_name || dev.device_id}"?\nEl usuario ${dev.username || ''} será deslogueado remotamente de inmediato.`;
-    if (isSelf) {
-      msg = `⚠️ ADVERTENCIA CRÍTICA:\nEsta es tu terminal y sesión ACTUAL en este equipo.\nSi revocas esta sesión, serás deslogueado inmediatamente de la aplicación.\n\n¿Estás absolutamente seguro de continuar?`;
-    }
-
-    if (!confirm(msg)) {
-      return;
-    }
-
-    this.http.post<any>(`${getApiBaseUrl()}/admin/devices/${dev.device_id}/revoke`, {}).subscribe({
-      next: () => {
-        dev.is_revoked = 1;
-        dev.is_online = 0;
-        this.backupSuccessMessage = `Sesión terminada exitosamente para la terminal ${dev.device_name || dev.device_id}.`;
-        setTimeout(() => this.backupSuccessMessage = '', 5000);
-      },
-      error: (err) => {
-        console.warn('[Admin] Error revocando sesión en servidor, aplicando fallback local:', err);
-        dev.is_revoked = 1;
-        dev.is_online = 0;
-        this.backupSuccessMessage = `Sesión revocada para la terminal ${dev.device_name || dev.device_id}.`;
-        setTimeout(() => this.backupSuccessMessage = '', 5000);
-      }
-    });
-  }
-
-  confirmDeleteDevice(dev: ConnectedDevice): void {
-    if (!confirm(`¿Confirma desvincular y eliminar la terminal "${dev.device_name || dev.device_id}" del registro de flota?`)) {
-      return;
-    }
-
-    this.deletingDeviceId = dev.device_id;
-    this.http.delete<any>(`${getApiBaseUrl()}/admin/devices/${dev.device_id}`).subscribe({
-      next: () => {
-        this.deletingDeviceId = null;
-        this.connectedDevices = this.connectedDevices.filter(d => d.device_id !== dev.device_id);
-        this.backupSuccessMessage = `Terminal "${dev.device_name || dev.device_id}" eliminada de la flota.`;
-        setTimeout(() => this.backupSuccessMessage = '', 4000);
-      },
-      error: (err) => {
-        this.deletingDeviceId = null;
-        console.warn('[Admin] Fallo al eliminar en backend, actualizando local:', err);
-        this.connectedDevices = this.connectedDevices.filter(d => d.device_id !== dev.device_id);
-        this.backupSuccessMessage = `Terminal desvinculada del monitor de flota.`;
-        setTimeout(() => this.backupSuccessMessage = '', 4000);
-      }
-    });
-  }
-
-  confirmPurgeStaleDevices(): void {
-    if (!confirm('¿Desea depurar todas las terminales obsoletas (inactivas por más de 5 días o con sesión revocada)?\nEsta acción limpiará el monitor de flota.')) {
-      return;
-    }
-
-    this.isPurgingDevices = true;
-    this.http.post<any>(`${getApiBaseUrl()}/admin/devices/purge-stale`, {}).subscribe({
-      next: (res) => {
-        this.isPurgingDevices = false;
-        this.loadConnectedDevices();
-        this.backupSuccessMessage = res?.message || 'Depuración de flota completada exitosamente.';
-        setTimeout(() => this.backupSuccessMessage = '', 5000);
-      },
-      error: (err) => {
-        this.isPurgingDevices = false;
-        console.warn('[Admin] Fallo en purge backend, aplicando depuración local:', err);
-        this.connectedDevices = this.connectedDevices.filter(d => !d.is_revoked && (d.is_online || this.isRecentDevice(d.last_seen)));
-        this.backupSuccessMessage = 'Depuración local de flota completada.';
-        setTimeout(() => this.backupSuccessMessage = '', 4000);
-      }
-    });
-  }
-
-  isBroadcastingUpdate = false;
-
-  broadcastGlobalUpdate(): void {
-    if (!confirm('¿Desea emitir la señal global de actualización a todas las terminales y celulares conectados?\nTodos los clientes recibirán la notificación en tiempo real y recargarán a la última versión desplegada.')) {
-      return;
-    }
-
-    this.isBroadcastingUpdate = true;
-    this.http.post<any>(`${getApiBaseUrl()}/admin/broadcast-update`, {
-      version: '1.1.0',
-      message: 'Actualización en tiempo real desplegada por el Administrador'
-    }).subscribe({
-      next: (res) => {
-        this.isBroadcastingUpdate = false;
-        this.backupSuccessMessage = '✓ Señal de actualización emitida exitosamente a todas las terminales en vivo.';
-        setTimeout(() => this.backupSuccessMessage = '', 6000);
-      },
-      error: (err) => {
-        this.isBroadcastingUpdate = false;
-        this.backupSuccessMessage = 'Error al emitir señal de actualización: ' + (err?.error?.message || err.message);
-        setTimeout(() => this.backupSuccessMessage = '', 6000);
-      }
-    });
-  }
-
-  private isRecentDevice(timestamp?: string): boolean {
-    if (!timestamp) return false;
-    try {
-      const diffSec = (Date.now() - new Date(timestamp).getTime()) / 1000;
-      return diffSec < 5 * 86400; // Menos de 5 días
-    } catch {
-      return false;
-    }
-  }
-
-  simplifyUserAgent(ua?: string | null): string {
-    if (!ua) return 'Terminal Web';
-    const lower = ua.toLowerCase();
-    if (lower.startsWith('node') || lower.includes('axios') || lower.includes('node-fetch') || lower.includes('undici')) {
-      return 'Script API / Node.js';
-    }
-    if (lower.includes('curl') || lower.includes('postman')) {
-      return 'Cliente API Externa';
-    }
-    if (ua.includes('Edg/')) return 'Edge / Windows';
-    if (ua.includes('Chrome/')) {
-      return ua.includes('Android') ? 'Chrome / Android' : 'Chrome / Windows';
-    }
-    if (ua.includes('Firefox/')) return 'Firefox';
-    if (ua.includes('Safari/') && !ua.includes('Chrome')) return 'Safari / iOS';
-    return ua.length > 22 ? ua.substring(0, 22) + '...' : ua;
-  }
-
-  getDeviceIcon(name?: string, ua?: string | null): string {
-    const text = ((name || '') + ' ' + (ua || '')).toLowerCase();
-    if (text.includes('tablet') || text.includes('pad')) return '📱';
-    if (text.includes('android') || text.includes('iphone') || text.includes('mobile')) return '📲';
-    if (text.includes('laptop') || text.includes('portatil')) return '💻';
-    if (text.includes('node') || text.includes('script') || text.includes('api')) return '⚙️';
-    return '🖥️';
-  }
-
-  formatRelativeTime(timestamp?: string): string {
-    if (!timestamp) return 'Reciente';
-    try {
-      const diffSec = Math.floor((Date.now() - new Date(timestamp).getTime()) / 1000);
-      if (diffSec < 10) return 'Hace instantes';
-      if (diffSec < 60) return `Hace ${diffSec} seg`;
-      const diffMin = Math.floor(diffSec / 60);
-      if (diffMin < 60) return `Hace ${diffMin} min`;
-      const diffHours = Math.floor(diffMin / 60);
-      if (diffHours < 24) return `Hace ${diffHours} h`;
-      const diffDays = Math.floor(diffHours / 24);
-      return diffDays === 1 ? 'Hace 1 día' : `Hace ${diffDays} días`;
-    } catch {
-      return timestamp;
-    }
-  }
-
-  formatIpAddress(ip?: string | null): string {
-    if (!ip || ip === '::1' || ip === '::ffff:127.0.0.1') return '127.0.0.1';
-    return ip.replace('::ffff:', '');
-  }
-
-  isLocalIp(ip?: string | null): boolean {
-    if (!ip) return true;
-    const clean = this.formatIpAddress(ip);
-    return clean === '127.0.0.1' || clean.startsWith('192.168.') || clean.startsWith('10.') || clean.startsWith('172.');
-  }
-
-  // ==========================================
   // PUNTO 1: GESTIÓN DE USUARIOS Y ACCIONES
   // ==========================================
 
@@ -1478,7 +1228,7 @@ export class AdminComponent implements OnInit, OnDestroy {
 
           this.loadUsers();
           this.loadSupervisorsAndOperators();
-          this.loadConnectedDevices();
+          this.deviceFleetStore.load();
           this.crewService.loadCrew().subscribe();
         },
         error: (err) => {
