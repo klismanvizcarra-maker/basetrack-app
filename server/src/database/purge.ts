@@ -82,7 +82,7 @@ export function purgeAndSetSoleAdmin() {
   console.log('[Purge] Remaining Crew Members:', remainingCrew);
   console.log('[Purge] Remaining Area Assignments:', remainingAssignments);
   console.log('[Purge] Remaining Supervisor-Operator Links:', remainingSupOps);
-  console.log('[Purge] Clean slate complete! Exclusively 1 Administrator Marck Vizcarra (DNI: 91209966).');
+  console.log('[Purge] Clean slate complete! Exclusively 1 system administrator.');
 }
 
 if (process.argv[1]?.includes('purge.ts') || process.argv[1]?.includes('purge.js')) {
