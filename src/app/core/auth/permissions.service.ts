@@ -171,11 +171,12 @@ export class PermissionsService {
         if (res && res.success) {
           if (res.rolePermissions) {
             this.rolePermissionsSignal.set(res.rolePermissions);
-            saveRealtimeData('basetrack_role_permissions', res.rolePermissions);
+            // Caché de una lectura GET: no debe emitirse como cambio local (ADR-014/015)
+            saveRealtimeData('basetrack_role_permissions', res.rolePermissions, { skipBroadcast: true });
           }
           if (res.userOverrides) {
             this.userOverridesSignal.set(res.userOverrides);
-            saveRealtimeData('basetrack_user_permission_overrides', res.userOverrides);
+            saveRealtimeData('basetrack_user_permission_overrides', res.userOverrides, { skipBroadcast: true });
           }
         }
       }),

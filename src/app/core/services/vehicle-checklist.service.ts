@@ -415,7 +415,8 @@ export class VehicleChecklistService {
       tap(res => {
         if (res && res.success && Array.isArray(res.data)) {
           this.vehiclesSignal.set(res.data);
-          saveRealtimeData('basetrack_vehicles_summary', res.data);
+          // Caché de una lectura GET: no debe emitirse como cambio local (ADR-014/015)
+          saveRealtimeData('basetrack_vehicles_summary', res.data, { skipBroadcast: true });
         }
       })
     );
