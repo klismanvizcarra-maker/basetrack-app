@@ -149,3 +149,11 @@ export interface FreeboardEvaluation {
   borderColor: string;
   message: string;
 }
+
+export interface SheetSummary {
+  name: string;
+  rowCount: number;
+  hasDates: boolean;
+  isRecommended: boolean;
+  score: number;
+}

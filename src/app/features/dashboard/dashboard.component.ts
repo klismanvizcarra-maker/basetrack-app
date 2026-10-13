@@ -10,7 +10,7 @@ import { DistributionDonutComponent } from '../../shared/ui/distribution-donut.c
 import { WeeklyBarChartComponent } from '../../shared/ui/weekly-bar-chart.component';
 import { WaveAreaChartComponent } from '../../shared/ui/wave-area-chart.component';
 import { MasterSheetService } from '../../core/services/master-sheet.service';
-import { MasterSheetEntry } from '../../core/models/master-sheet.model';
+import { MasterSheetEntry, SheetSummary } from '../../core/models/master-sheet.model';
 
 @Component({
   selector: 'app-dashboard',
@@ -794,6 +794,22 @@ import { MasterSheetEntry } from '../../core/models/master-sheet.model';
               <div *ngIf="selectedFile" class="file-badge">
                 <span>{{ (selectedFile.size / 1024).toFixed(1) }} KB</span>
               </div>
+            </div>
+
+            <!-- Detected Sheet Selector (if workbook has multiple sheets) -->
+            <div *ngIf="availableSheets.length > 0" class="sheet-selector-wrapper">
+              <label class="sheet-label">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                </svg>
+                <span>Hoja de cálculo detectada:</span>
+              </label>
+              <select [(ngModel)]="selectedSheetName" class="sheet-select-dropdown">
+                <option *ngFor="let s of availableSheets" [value]="s.name">
+                  📄 {{ s.name }} ({{ s.rowCount }} filas {{ s.hasDates ? '• con fechas' : '' }}) {{ s.isRecommended ? '⭐ Recomendada' : '' }}
+                </option>
+              </select>
             </div>
 
             <!-- Ingestion Mode Selector -->
@@ -1876,6 +1892,37 @@ import { MasterSheetEntry } from '../../core/models/master-sheet.model';
       }
     }
 
+    .sheet-selector-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding: 12px 14px;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 8px;
+    }
+
+    .sheet-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #1e40af;
+    }
+
+    .sheet-select-dropdown {
+      padding: 8px 12px;
+      background: #ffffff;
+      border: 1px solid #93c5fd;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #0f172a;
+      outline: none;
+      cursor: pointer;
+    }
+
     .modal-footer {
       display: flex;
       align-items: center;
@@ -1900,6 +1947,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
   showUploadModal = false;
   isDragging = false;
   selectedFile: File | null = null;
+  availableSheets: SheetSummary[] = [];
+  selectedSheetName = '';
   uploadMode: 'merge' | 'replace' = 'merge';
   isProcessingUpload = false;
   uploadStatusMessage = '';
@@ -2072,6 +2121,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
   // --- Upload Modal Handlers ---
   openUploadModal(): void {
     this.selectedFile = null;
+    this.availableSheets = [];
+    this.selectedSheetName = '';
     this.uploadStatusMessage = '';
     this.isUploadSuccess = false;
     this.showUploadModal = true;
@@ -2080,6 +2131,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
   closeUploadModal(): void {
     this.showUploadModal = false;
     this.selectedFile = null;
+    this.availableSheets = [];
+    this.selectedSheetName = '';
     this.uploadStatusMessage = '';
   }
 
@@ -2088,21 +2141,34 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.isDragging = true;
   }
 
-  onFileDrop(e: DragEvent): void {
+  async onFileDrop(e: DragEvent): Promise<void> {
     e.preventDefault();
     this.isDragging = false;
     if (e.dataTransfer && e.dataTransfer.files.length > 0) {
-      this.selectedFile = e.dataTransfer.files[0];
-      this.uploadStatusMessage = '';
+      await this.handleFileSelection(e.dataTransfer.files[0]);
     }
   }
 
-  onFileSelected(e: Event): void {
+  async onFileSelected(e: Event): Promise<void> {
     const input = e.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
-      this.selectedFile = input.files[0];
-      this.uploadStatusMessage = '';
+      await this.handleFileSelection(input.files[0]);
     }
+  }
+
+  async handleFileSelection(file: File): Promise<void> {
+    this.selectedFile = file;
+    this.uploadStatusMessage = '';
+    this.availableSheets = [];
+    this.selectedSheetName = '';
+
+    const sheets = await this.masterService.inspectFile(file);
+    this.availableSheets = sheets;
+    if (sheets.length > 0) {
+      const rec = sheets.find(s => s.isRecommended) || sheets.find(s => s.rowCount > 0) || sheets[0];
+      this.selectedSheetName = rec ? rec.name : '';
+    }
+    this.cdr.detectChanges();
   }
 
   async processUpload(): Promise<void> {
@@ -2111,7 +2177,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.isProcessingUpload = true;
     this.uploadStatusMessage = 'Leyendo y procesando columnas de la planilla...';
 
-    const result = await this.masterService.parseUploadedFile(this.selectedFile, this.uploadMode);
+    const result = await this.masterService.parseUploadedFile(this.selectedFile, this.uploadMode, this.selectedSheetName);
     this.isProcessingUpload = false;
 
     if (result.success) {

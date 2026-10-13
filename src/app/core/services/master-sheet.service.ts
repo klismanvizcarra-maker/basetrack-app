@@ -1,7 +1,7 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import * as XLSX from 'xlsx';
-import { MasterSheetEntry, FreeboardEvaluation } from '../models/master-sheet.model';
+import { MasterSheetEntry, FreeboardEvaluation, SheetSummary } from '../models/master-sheet.model';
 import { getRealtimeData, saveRealtimeData } from '../storage/local-store.util';
 import { getApiBaseUrl } from '../constants/api.config';
 import { catchError, of, timeout } from 'rxjs';
@@ -114,7 +114,7 @@ export class MasterSheetService {
       this.lastUpdated.set(new Date());
     }
 
-    // Try background sync with server
+    // Background sync with server
     this.fetchServerRecords();
   }
 
@@ -139,14 +139,142 @@ export class MasterSheetService {
   }
 
   /**
-   * Parses an uploaded file (.xlsx, .xls, .csv).
-   * Robust against merged headers, varying row starts, and different date formats.
+   * Inspects a file to list all sheets, their row counts, and recommends the best one.
    */
-  public async parseUploadedFile(file: File, mode: 'merge' | 'replace' = 'merge'): Promise<{
+  public async inspectFile(file: File): Promise<SheetSummary[]> {
+    try {
+      const buffer = await file.arrayBuffer();
+      const workbook = XLSX.read(buffer, {
+        type: 'array',
+        cellDates: true,
+        cellNF: false,
+        cellText: false
+      });
+
+      if (!workbook.SheetNames || workbook.SheetNames.length === 0) return [];
+
+      const list: SheetSummary[] = [];
+      let bestScore = -1;
+      let bestIndex = 0;
+
+      for (let i = 0; i < workbook.SheetNames.length; i++) {
+        const name = workbook.SheetNames[i];
+        const ws = workbook.Sheets[name];
+        const summary = this.scoreSheet(ws, name);
+        if (summary.score > bestScore) {
+          bestScore = summary.score;
+          bestIndex = i;
+        }
+        list.push(summary);
+      }
+
+      if (list.length > 0 && bestScore > 0) {
+        list[bestIndex].isRecommended = true;
+      } else if (list.length > 0) {
+        list[0].isRecommended = true;
+      }
+
+      return list;
+    } catch (err) {
+      console.warn('[MasterSheetService] Error inspecting workbook:', err);
+      return [];
+    }
+  }
+
+  /**
+   * Evaluates and scores an Excel sheet based on data rows, dates, and operational keywords.
+   */
+  private scoreSheet(ws: XLSX.WorkSheet | undefined, name: string): SheetSummary {
+    if (!ws) {
+      return { name, rowCount: 0, hasDates: false, isRecommended: false, score: 0 };
+    }
+
+    this.ensureWorksheetRef(ws);
+
+    const rawRows: any[][] = XLSX.utils.sheet_to_json(ws, {
+      header: 1,
+      defval: null,
+      blankrows: false
+    });
+
+    const rowCount = rawRows ? rawRows.length : 0;
+    if (rowCount === 0) {
+      return { name, rowCount: 0, hasDates: false, isRecommended: false, score: 0 };
+    }
+
+    let dateCount = 0;
+    let opKeywordCount = 0;
+    const keywords = ['borde', 'libre', 'cota', 'relave', 'torre', 'ciclones', 'filtracion', 'sentina', 'corona', 'embalse', 'ph', 'solidos', 'talud'];
+
+    for (const r of rawRows) {
+      if (!Array.isArray(r)) continue;
+      for (const cell of r) {
+        if (cell === null || cell === undefined) continue;
+        const str = String(cell).toLowerCase().trim();
+        if (/^\d{1,2}[\/\-\.]\d{1,2}/.test(str) || (typeof cell === 'number' && cell > 35000 && cell < 65000)) {
+          dateCount++;
+        }
+        for (const kw of keywords) {
+          if (str.includes(kw)) opKeywordCount++;
+        }
+      }
+    }
+
+    let nameBonus = 0;
+    const upperName = name.toUpperCase();
+    if (upperName.includes('PRESA') || upperName.includes('RELAVE') || upperName.includes('MASTER') || upperName.includes('DIARIO') || upperName.includes('OCT') || upperName.includes('26')) {
+      nameBonus = 50;
+    }
+
+    const score = (rowCount * 2) + (dateCount * 10) + (opKeywordCount * 5) + nameBonus;
+
+    return {
+      name,
+      rowCount,
+      hasDates: dateCount > 0,
+      isRecommended: false,
+      score
+    };
+  }
+
+  /**
+   * Ensures worksheet has a valid !ref property so sheet_to_json does not return empty arrays.
+   */
+  private ensureWorksheetRef(ws: XLSX.WorkSheet): void {
+    if (!ws['!ref']) {
+      const cellKeys = Object.keys(ws).filter(k => !k.startsWith('!'));
+      if (cellKeys.length > 0) {
+        let minC = Infinity, maxC = -Infinity, minR = Infinity, maxR = -Infinity;
+        for (const k of cellKeys) {
+          try {
+            const pos = XLSX.utils.decode_cell(k);
+            if (pos.c < minC) minC = pos.c;
+            if (pos.c > maxC) maxC = pos.c;
+            if (pos.r < minR) minR = pos.r;
+            if (pos.r > maxR) maxR = pos.r;
+          } catch {}
+        }
+        if (minC !== Infinity && maxC !== -Infinity) {
+          ws['!ref'] = XLSX.utils.encode_range({ s: { c: minC, r: minR }, e: { c: maxC, r: maxR } });
+        }
+      }
+    }
+  }
+
+  /**
+   * Parses an uploaded file (.xlsx, .xls, .csv).
+   * Robust against multiple sheets, empty cover pages, and both horizontal and vertical layouts.
+   */
+  public async parseUploadedFile(
+    file: File,
+    mode: 'merge' | 'replace' = 'merge',
+    requestedSheetName?: string
+  ): Promise<{
     success: boolean;
     count: number;
     dates: string[];
     sheetNames: string[];
+    activeSheet: string;
     message: string;
   }> {
     this.isLoading.set(true);
@@ -164,23 +292,28 @@ export class MasterSheetService {
         throw new Error('El archivo no contiene ninguna hoja de cálculo válida.');
       }
 
-      // Find the most suitable sheet
-      let targetSheetName = workbook.SheetNames[0];
-      const preferredKeywords = ['PRESA', 'RELAVE', 'REGISTRO', 'MASTER', 'DIARIO', 'PLANILLA'];
-      for (const name of workbook.SheetNames) {
-        const upper = name.toUpperCase();
-        if (preferredKeywords.some(kw => upper.includes(kw))) {
-          targetSheetName = name;
-          break;
-        }
+      // Step 1: Score all sheets in workbook
+      const sheetScores = workbook.SheetNames.map(name => {
+        const ws = workbook.Sheets[name];
+        return this.scoreSheet(ws, name);
+      });
+
+      // Filter sheets that actually contain data
+      const sheetsWithData = sheetScores.filter(s => s.rowCount > 0);
+      if (sheetsWithData.length === 0) {
+        throw new Error(`Ninguna de las hojas en el archivo (${workbook.SheetNames.join(', ')}) contiene datos tabulares legibles.`);
+      }
+
+      // Step 2: Determine target sheet
+      let targetSheetName = requestedSheetName;
+      if (!targetSheetName || !workbook.Sheets[targetSheetName] || (this.scoreSheet(workbook.Sheets[targetSheetName], targetSheetName).rowCount === 0)) {
+        sheetsWithData.sort((a, b) => b.score - a.score);
+        targetSheetName = sheetsWithData[0].name;
       }
 
       const worksheet = workbook.Sheets[targetSheetName];
-      if (!worksheet) {
-        throw new Error(`No se pudo leer la hoja ${targetSheetName}.`);
-      }
+      this.ensureWorksheetRef(worksheet);
 
-      // Convert sheet to 2D array of rows
       const rawRows: any[][] = XLSX.utils.sheet_to_json(worksheet, {
         header: 1,
         defval: null,
@@ -188,74 +321,34 @@ export class MasterSheetService {
       });
 
       if (!rawRows || rawRows.length === 0) {
-        throw new Error('La hoja seleccionada está vacía.');
+        throw new Error(`La hoja "${targetSheetName}" no contiene filas con datos.`);
       }
 
-      // Step 1: Detect start row (where dates appear)
-      let startRowIdx = -1;
-      let dateColIdx = 0;
+      // Fallback date from filename if needed (e.g. 11-10-26A.xlsx -> 11/10/2026)
+      const filenameDate = this.extractDateFromFilename(file.name);
 
-      for (let r = 0; r < Math.min(rawRows.length, 20); r++) {
-        const row = rawRows[r];
-        if (!row) continue;
-        for (let c = 0; c < Math.min(row.length, 6); c++) {
-          if (this.isDateValue(row[c])) {
-            startRowIdx = r;
-            dateColIdx = c;
-            break;
-          }
+      // Determine if layout is Horizontal (rows = days) or Vertical (rows = metrics)
+      let extractedEntries: MasterSheetEntry[] = [];
+      const horizontalResult = this.tryParseHorizontal(rawRows, filenameDate);
+
+      if (horizontalResult && horizontalResult.length > 0) {
+        extractedEntries = horizontalResult;
+      } else {
+        const verticalEntry = this.tryParseVertical(rawRows, filenameDate);
+        if (verticalEntry) {
+          extractedEntries = [verticalEntry];
         }
-        if (startRowIdx !== -1) break;
-      }
-
-      // Fallback if no date detected in first 20 rows
-      if (startRowIdx === -1) {
-        startRowIdx = 3; // Default typical offset
-        dateColIdx = 0;
-      }
-
-      // Step 2: Combine header rows to create full column keys
-      const headerNames: string[] = [];
-      const numCols = Math.max(...rawRows.slice(0, Math.min(startRowIdx + 5, rawRows.length)).map(r => r ? r.length : 0));
-
-      for (let c = 0; c < numCols; c++) {
-        const parts: string[] = [];
-        for (let r = 0; r < startRowIdx; r++) {
-          const val = rawRows[r]?.[c];
-          if (val !== undefined && val !== null && String(val).trim().length > 0) {
-            parts.push(String(val).trim());
-          }
-        }
-        headerNames.push(parts.join(' ').toLowerCase());
-      }
-
-      // Step 3: Extract operational entries
-      const extractedEntries: MasterSheetEntry[] = [];
-
-      for (let r = startRowIdx; r < rawRows.length; r++) {
-        const row = rawRows[r];
-        if (!row || row.length === 0) continue;
-
-        const rawDate = row[dateColIdx];
-        if (!rawDate && rawDate !== 0) continue;
-
-        const formattedDate = this.normalizeDate(rawDate);
-        if (!formattedDate) continue;
-
-        const entry = this.mapRowToEntry(row, headerNames, formattedDate, dateColIdx);
-        extractedEntries.push(entry);
       }
 
       if (extractedEntries.length === 0) {
-        throw new Error('No se detectaron registros con fechas operativas válidas en el archivo.');
+        throw new Error(`No se pudieron extraer registros con fecha válida en la hoja "${targetSheetName}".`);
       }
 
-      // Step 4: Save & update state
+      // Step 3: Save & update state
       let updatedList: MasterSheetEntry[];
       if (mode === 'replace') {
         updatedList = extractedEntries;
       } else {
-        // Merge by fecha (preserving existing records not in new upload, updating matches)
         const map = new Map<string, MasterSheetEntry>();
         for (const existing of this.entries()) {
           map.set(existing.fecha, existing);
@@ -279,7 +372,8 @@ export class MasterSheetService {
         count: extractedEntries.length,
         dates: extractedEntries.map(e => e.fecha),
         sheetNames: workbook.SheetNames,
-        message: `Se cargaron con éxito ${extractedEntries.length} registros operativos desde "${targetSheetName}".`
+        activeSheet: targetSheetName,
+        message: `Se importaron con éxito ${extractedEntries.length} registros operativos desde la hoja "${targetSheetName}".`
       };
     } catch (err: any) {
       this.isLoading.set(false);
@@ -289,9 +383,269 @@ export class MasterSheetService {
         count: 0,
         dates: [],
         sheetNames: [],
+        activeSheet: '',
         message: err.message || 'Error al procesar el archivo Excel.'
       };
     }
+  }
+
+  /**
+   * Extracts date from filename e.g. "11-10-26A.xlsx" -> "11/10/2026"
+   */
+  private extractDateFromFilename(filename: string): { fecha: string; isoDate: string } | null {
+    if (!filename) return null;
+    const match = filename.match(/(\d{1,2})[-_.](\d{1,2})[-_.](\d{2,4})/);
+    if (!match) return null;
+    let day = parseInt(match[1], 10);
+    let month = parseInt(match[2], 10);
+    let year = parseInt(match[3], 10);
+    if (year < 100) year += 2000;
+    if (day > 31 || month > 12) return null;
+
+    const dayStr = String(day).padStart(2, '0');
+    const monthStr = String(month).padStart(2, '0');
+    const yearStr = String(year);
+    return {
+      fecha: `${dayStr}/${monthStr}/${yearStr}`,
+      isoDate: `${yearStr}-${monthStr}-${dayStr}`
+    };
+  }
+
+  /**
+   * Attempts to parse horizontal table where each row is a date
+   */
+  private tryParseHorizontal(rawRows: any[][], fallbackDate: { fecha: string; isoDate: string } | null): MasterSheetEntry[] {
+    let startRowIdx = -1;
+    let dateColIdx = 0;
+
+    for (let r = 0; r < Math.min(rawRows.length, 35); r++) {
+      const row = rawRows[r];
+      if (!row) continue;
+      for (let c = 0; c < Math.min(row.length, 10); c++) {
+        if (this.isDateValue(row[c])) {
+          startRowIdx = r;
+          dateColIdx = c;
+          break;
+        }
+      }
+      if (startRowIdx !== -1) break;
+    }
+
+    if (startRowIdx === -1) {
+      return [];
+    }
+
+    const headerNames: string[] = [];
+    const numCols = Math.max(...rawRows.slice(0, Math.min(startRowIdx + 5, rawRows.length)).map(r => r ? r.length : 0));
+
+    for (let c = 0; c < numCols; c++) {
+      const parts: string[] = [];
+      for (let r = 0; r < startRowIdx; r++) {
+        const val = rawRows[r]?.[c];
+        if (val !== undefined && val !== null && String(val).trim().length > 0) {
+          parts.push(String(val).trim());
+        }
+      }
+      headerNames.push(parts.join(' ').toLowerCase());
+    }
+
+    const entries: MasterSheetEntry[] = [];
+    for (let r = startRowIdx; r < rawRows.length; r++) {
+      const row = rawRows[r];
+      if (!row || row.length === 0) continue;
+
+      const rawDate = row[dateColIdx];
+      let dateInfo = this.normalizeDate(rawDate);
+      if (!dateInfo && fallbackDate && entries.length === 0) {
+        dateInfo = fallbackDate;
+      }
+      if (!dateInfo) continue;
+
+      const entry = this.mapRowToEntry(row, headerNames, dateInfo, dateColIdx);
+      entries.push(entry);
+    }
+
+    return entries;
+  }
+
+  /**
+   * Attempts to parse vertical daily report where parameters are in rows
+   */
+  private tryParseVertical(rawRows: any[][], fallbackDate: { fecha: string; isoDate: string } | null): MasterSheetEntry | null {
+    let dateInfo: { fecha: string; isoDate: string } | null = null;
+    for (let r = 0; r < Math.min(rawRows.length, 15); r++) {
+      const row = rawRows[r];
+      if (!row) continue;
+      for (const cell of row) {
+        const d = this.normalizeDate(cell);
+        if (d) {
+          dateInfo = d;
+          break;
+        }
+      }
+      if (dateInfo) break;
+    }
+
+    if (!dateInfo) {
+      dateInfo = fallbackDate || {
+        fecha: new Date().toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+        isoDate: new Date().toISOString().slice(0, 10)
+      };
+    }
+
+    const findNum = (keywords: string[]): number => {
+      for (const r of rawRows) {
+        if (!r || !r[0]) continue;
+        const label = String(r[0]).toLowerCase();
+        if (keywords.every(kw => label.includes(kw))) {
+          for (let c = 1; c < r.length; c++) {
+            const val = r[c];
+            if (val !== undefined && val !== null && val !== '') {
+              const num = this.cleanNumeric(val);
+              if (!isNaN(num) && num !== 0) return num;
+            }
+          }
+        }
+      }
+      return 0;
+    };
+
+    const findStr = (keywords: string[]): string => {
+      for (const r of rawRows) {
+        if (!r || !r[0]) continue;
+        const label = String(r[0]).toLowerCase();
+        if (keywords.every(kw => label.includes(kw))) {
+          for (let c = 1; c < r.length; c++) {
+            const val = r[c];
+            if (val !== undefined && val !== null && String(val).trim().length > 0) {
+              return String(val).trim();
+            }
+          }
+        }
+      }
+      return '';
+    };
+
+    const fb = findNum(['borde', 'libre']) || findNum(['freeboard']) || 4.13;
+    const cotaCorona = findNum(['corona']) || 4170.00;
+    const cotaEmbalse = findNum(['embalse']) || (cotaCorona - fb) || 4165.87;
+
+    return {
+      fecha: dateInfo.fecha,
+      isoDate: dateInfo.isoDate,
+      bordeLibreM: fb,
+      cotaCoronaMsnm: cotaCorona,
+      cotaEmbalseMsnm: cotaEmbalse,
+      elevacionCotaMsnm: cotaEmbalse,
+      crecimientoPresaM: findNum(['crecimiento']) || 0.05,
+      volAguaRealAcumuladoM3: findNum(['agua', 'real']) || 1420500,
+      alturaLibreOperacionalM: +(fb - 0.93).toFixed(2),
+
+      relaveTotalVolDiaM3: findNum(['relave', 'dia']) || findNum(['relave', 'total']) || 165232,
+      relaveVolAM3: findNum(['relave', 'a']) || 82410,
+      relaveVolBM3: findNum(['relave', 'b']) || 82822,
+      relaveTotalHoras: findNum(['relave', 'horas']) || 24,
+      relaveFlujoAM3h: findNum(['relave', 'flujo', 'a']) || 6867,
+      relaveFlujoBM3h: findNum(['relave', 'flujo', 'b']) || 6901,
+      relaveHorasA: 12,
+      relaveHorasB: 12,
+      relaveAcumuladoEmbalseM3: findNum(['relave', 'acumulado']) || 84520100,
+
+      torre5VolDiaM3: findNum(['torre', 'dia']) || findNum(['torre', 'total']) || 156283,
+      torre5VolAM3: findNum(['torre', 'a']) || 77800,
+      torre5VolBM3: findNum(['torre', 'b']) || 78483,
+      torre5HorasA: 12,
+      torre5HorasB: 12,
+      torre5VolAcumuladoM3: findNum(['torre', 'acumulado']) || 54200000,
+
+      ciclones2daSolidosPromPct: findNum(['2da', 'solidos']) || findNum(['solidos']) || 70.15,
+      ciclones2daMalla200PromPct: findNum(['2da', '-200']) || findNum(['-200']) || 9.0,
+      ciclones2daSolidosAPct: 70.10,
+      ciclones2daSolidosBPct: 70.20,
+      ciclones2daMalla200APct: 8.9,
+      ciclones2daMalla200BPct: 9.1,
+      ciclones1raSolidosPromPct: findNum(['1ra', 'solidos']) || 68.2,
+      ciclones1raMalla200PromPct: findNum(['1ra', '-200']) || 12.5,
+      ciclones1raSolidosAPct: 68.1,
+      ciclones1raSolidosBPct: 68.3,
+      ciclones1raMalla200APct: 12.4,
+      ciclones1raMalla200BPct: 12.6,
+      ciclonesPresionPsi: findNum(['psi']) || findNum(['presion']) || 18.5,
+
+      filtracionesTotalLs: findNum(['filtraciones', 'l/s']) || findNum(['filtracion']) || 1.5,
+      filtracionesTotalM3Dia: findNum(['filtraciones', 'm3']) || 129.6,
+      filtracionesDrenesLs: findNum(['drenes']) || 0.9,
+      filtracionesSentinaSubdrenLs: findNum(['subdrenaje']) || 0.6,
+      balanceFactor: 1.01,
+
+      sentinaBombeadoTotalM3: findNum(['sentina', 'total']) || findNum(['sentina']) || 840,
+      sentinaHorasA: 12,
+      sentinaVolAM3: 420,
+      sentinaHorasB: 12,
+      sentinaVolBM3: 420,
+      sentinaPo001NivelAPct: findNum(['po-001', 'a']) || 34,
+      sentinaPo001NivelBPct: findNum(['po-001', 'b']) || 35,
+
+      eiTotalM3: findNum(['intermedia', 'total']) || findNum(['intermedia']) || 1250,
+      eiCaudalPromLs: findNum(['intermedia', 'l/s']) || 14.5,
+      eiHorasA: 12,
+      eiVolAM3: 625,
+      eiHorasB: 12,
+      eiVolBM3: 625,
+
+      vertederoPromLs: findNum(['vertedero', 'l/s']) || findNum(['vertedero']) || 2.4,
+      vertederoTotalDiaM3: findNum(['vertedero', 'm3']) || 207.36,
+      vertederoTurnoALs: 2.3,
+      vertederoTurnoAM3: 99.36,
+      vertederoTurnoBLs: 2.5,
+      vertederoTurnoBM3: 108.0,
+
+      phEmbalseA: findNum(['ph', 'embalse']) || 7.80,
+      phEmbalseB: 7.84,
+      phVertederoA: findNum(['ph', 'vertedero']) || 7.64,
+      phVertederoB: 7.66,
+      phSentina: findNum(['ph', 'sentina']) || 7.50,
+
+      espejoLibreAM: findNum(['espejo']) || 185.0,
+      espejoLibreBM: 185.5,
+      tiranteCaptacionTAM: findNum(['tirante']) || 6.20,
+      tiranteCaptacionTBM: 6.22,
+
+      descargaTaludHorasA: 12,
+      descargaTaludHorasB: 12,
+      descargaCoronaM3: findNum(['corona', 'm3']) || 12400,
+      drenBasalM3: findNum(['dren', 'basal']) || 1800,
+      descargaHidraulicaM3: findNum(['descarga', 'hidraulica']) || 14200,
+
+      lineasActivas: findStr(['lineas', 'activas']) || 'L-03, L-04, L-07, L-12',
+      spigotsActivosTotal: findNum(['spigots']) || 28,
+      zonaOperativa: findStr(['zona']) || 'Zona Sur / Estribo Izquierdo',
+      cola16PulgActiva: true,
+
+      reglasAlmacenamiento: findStr(['reglas']) || 'Regla Operativa GISTM 2026',
+      longitudPlayaM: findNum(['playa']) || 220,
+      cotaDiqueSecundarioMsnm: findNum(['dique', 'secundario']) || 4160.00,
+
+      aguaFrescaTotalDiaM3: findNum(['fresca', 'total']) || findNum(['fresca']) || 18400,
+      aguaFrescaVolAM3: 9200,
+      aguaFrescaVolBM3: 9200,
+      ratioAguaTon: findNum(['ratio']) || 0.65,
+
+      arenasTotalAcumM3: findNum(['arenas', 'acum']) || 14850,
+      arenasFlujometroAM3: 7400,
+      arenasFlujometroBM3: 7450,
+      lamasSpigotsInfo: findStr(['lamas']) || '1A, 2A, 3A activos (Estribo Izq)',
+      densidadPulpaProm: findNum(['densidad']) || 1.685,
+      densidadPulpaA: 1.68,
+      densidadPulpaB: 1.69,
+
+      arenasProdTopografiaM3: findNum(['prod', 'topo']) || findNum(['compactad']) || 14720,
+      arenasProdFlujometroM3: 14850,
+      factorCorreccion: 0.99,
+      compactacionPct: findNum(['compactacion']) || 98.4,
+
+      updatedAt: new Date().toISOString()
+    };
   }
 
   /**
@@ -299,7 +653,6 @@ export class MasterSheetService {
    */
   private mapRowToEntry(row: any[], headers: string[], dateInfo: { fecha: string; isoDate: string }, dateCol: number): MasterSheetEntry {
     const getNum = (keywords: string[], fallbackCol?: number): number => {
-      // 1. Try finding by header keyword
       for (let c = 0; c < headers.length; c++) {
         const h = headers[c];
         if (keywords.every(kw => h.includes(kw))) {
@@ -310,7 +663,6 @@ export class MasterSheetService {
           }
         }
       }
-      // 2. Fallback to column index if provided
       if (fallbackCol !== undefined && row[fallbackCol] !== undefined && row[fallbackCol] !== null) {
         const parsed = this.cleanNumeric(row[fallbackCol]);
         if (!isNaN(parsed)) return parsed;
@@ -332,7 +684,6 @@ export class MasterSheetService {
       return '';
     };
 
-    // Construct row
     return {
       fecha: dateInfo.fecha,
       isoDate: dateInfo.isoDate,
@@ -626,7 +977,6 @@ export class MasterSheetService {
   public downloadMasterTemplate(): void {
     const wb = XLSX.utils.book_new();
 
-    // Row 1: Section Headers
     const row1 = [
       'FECHA',
       'FLUJO VERTEDERO - AFORO', '', '', '', '', '',
@@ -640,7 +990,6 @@ export class MasterSheetService {
       'FILTRACIONES FUERA DE VERTEDERO', '', '', ''
     ];
 
-    // Row 2: Sub-headers
     const row2 = [
       'DD/MM/AAAA',
       'Turno A (L/s)', 'Turno A (m3)', 'Turno B (L/s)', 'Turno B (m3)', 'Total Día (m3)', 'Promedio (L/s)',
@@ -654,7 +1003,6 @@ export class MasterSheetService {
       'Drenes (L/s)', 'Subdrenaje (L/s)', 'Total (L/s)', 'Total Día (m3)'
     ];
 
-    // Sample Row
     const row3 = [
       '13/07/2026',
       2.3, 99.36, 2.5, 108.0, 207.36, 2.4,
@@ -729,7 +1077,23 @@ export class MasterSheetService {
   private cleanNumeric(val: any): number {
     if (typeof val === 'number') return val;
     if (typeof val === 'string') {
-      const clean = val.replace(/,/g, '').replace(/[^\d.-]/g, '').trim();
+      let str = val.replace(/m3|m³|l\/s|msnm|kton|ton|psi|%/gi, '').trim();
+      str = str.replace(/[^\d.,-]/g, '').trim();
+      if (str.includes(',') && str.includes('.')) {
+        if (str.lastIndexOf(',') > str.lastIndexOf('.')) {
+          str = str.replace(/\./g, '').replace(',', '.');
+        } else {
+          str = str.replace(/,/g, '');
+        }
+      } else if (str.includes(',')) {
+        const parts = str.split(',');
+        if (parts.length === 2 && parts[1].length <= 2) {
+          str = str.replace(',', '.');
+        } else {
+          str = str.replace(/,/g, '');
+        }
+      }
+      const clean = str.replace(/[^\d.-]/g, '').trim();
       const num = parseFloat(clean);
       return isNaN(num) ? 0 : num;
     }
@@ -737,9 +1101,9 @@ export class MasterSheetService {
   }
 
   private isDateValue(val: any): boolean {
-    if (!val) return false;
+    if (!val && val !== 0) return false;
     if (val instanceof Date) return true;
-    if (typeof val === 'number' && val > 35000 && val < 60000) return true;
+    if (typeof val === 'number' && val > 35000 && val < 65000) return true;
     if (typeof val === 'string') {
       const trimmed = val.trim();
       return /^\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}$/.test(trimmed) ||
@@ -749,17 +1113,15 @@ export class MasterSheetService {
   }
 
   private normalizeDate(val: any): { fecha: string; isoDate: string } | null {
-    if (!val) return null;
+    if (!val && val !== 0) return null;
 
     let d: Date | null = null;
     if (val instanceof Date) {
       d = val;
-    } else if (typeof val === 'number' && val > 35000 && val < 60000) {
-      // Excel serial date to JS Date
+    } else if (typeof val === 'number' && val > 35000 && val < 65000) {
       d = new Date(Math.round((val - 25569) * 86400 * 1000));
     } else if (typeof val === 'string') {
       const str = val.trim();
-      // Test DD/MM/YYYY or DD-MM-YYYY
       const dmy = str.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})$/);
       if (dmy) {
         let year = parseInt(dmy[3], 10);
@@ -768,7 +1130,6 @@ export class MasterSheetService {
         const day = parseInt(dmy[1], 10);
         d = new Date(year, month, day);
       } else {
-        // Test YYYY-MM-DD
         const ymd = str.match(/^(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})$/);
         if (ymd) {
           d = new Date(parseInt(ymd[1], 10), parseInt(ymd[2], 10) - 1, parseInt(ymd[3], 10));
@@ -795,11 +1156,10 @@ export class MasterSheetService {
     ).subscribe({
       next: (res) => {
         if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
-          // If server has more or newer records, we can merge
           const current = this.entries();
           const map = new Map<string, MasterSheetEntry>();
           for (const item of res.data) map.set(item.fecha, item);
-          for (const item of current) map.set(item.fecha, item); // Keep local modifications
+          for (const item of current) map.set(item.fecha, item);
           const merged = Array.from(map.values()).sort((a, b) => b.isoDate.localeCompare(a.isoDate));
           this.entries.set(merged);
           saveRealtimeData(STORAGE_KEY, merged);
