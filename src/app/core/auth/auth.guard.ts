@@ -13,6 +13,11 @@ export const authGuard: CanActivateFn = (route, state) => {
       return router.createUrlTree(['/auth/login'], { queryParams: { returnUrl: state.url, expired: '1' } });
     }
 
+    // Con contraseña temporal solo se permite el perfil, donde debe cambiarla
+    if (authService.currentUser()?.mustChangePassword && !state.url.startsWith('/profile')) {
+      return router.createUrlTree(['/profile'], { queryParams: { changePassword: '1' } });
+    }
+
     const requiredRoles = route.data?.['roles'] as string[] | undefined;
     if (requiredRoles && requiredRoles.length > 0) {
       // Super Admin (Marckv / admin) has unconditional access to all administration routes

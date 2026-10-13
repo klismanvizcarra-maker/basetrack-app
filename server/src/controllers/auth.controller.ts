@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { PUBLIC_DEFAULT_PASSWORDS } from '../utils/temp-password.js';
 import bcrypt from 'bcryptjs';
 import crypto from 'node:crypto';
 import { db } from '../database/db.js';
@@ -53,14 +54,6 @@ export async function login(req: Request, res: Response) {
     match = false;
   }
 
-  // Fallback for legacy plaintext password upgrade
-  if (!match && user.password_hash === cleanPass) {
-    match = true;
-    try {
-      db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(bcrypt.hashSync(cleanPass, 10), user.id);
-    } catch {}
-  }
-
   if (!match) {
     return res.status(401).json({ success: false, message: 'Credenciales incorrectas' });
   }
@@ -90,7 +83,8 @@ export async function login(req: Request, res: Response) {
       document_id: user.role === 'ADMIN' ? '' : (user.document_id || ''),
       radio_channel: user.radio_channel,
       phone_extension: user.phone_extension,
-      primary_role: user.primary_role
+      primary_role: user.primary_role,
+      mustChangePassword: user.must_change_password === 1
     }
   });
 }
@@ -108,7 +102,7 @@ export async function getMe(req: AuthenticatedRequest, res: Response) {
   }
 
   try {
-    const user = db.prepare('SELECT id, username, email, full_name, role, shift, avatar_url, document_id, radio_channel, phone_extension, primary_role, created_at FROM users WHERE id = ?').get(req.user.userId) as any;
+    const user = db.prepare('SELECT id, username, email, full_name, role, shift, avatar_url, document_id, radio_channel, phone_extension, primary_role, created_at, must_change_password FROM users WHERE id = ?').get(req.user.userId) as any;
 
     if (!user) {
       return res.status(401).json({ success: false, message: 'Usuario no encontrado o sesión no válida' });
@@ -128,7 +122,8 @@ export async function getMe(req: AuthenticatedRequest, res: Response) {
         radio_channel: user.radio_channel,
         phone_extension: user.phone_extension,
         primary_role: user.primary_role,
-        createdAt: user.created_at
+        createdAt: user.created_at,
+        mustChangePassword: user.must_change_password === 1
       }
     });
   } catch (error: any) {
@@ -255,8 +250,14 @@ export async function changePassword(req: AuthenticatedRequest, res: Response) {
   try {
     const { currentPassword, newPassword } = req.body;
 
-    if (!newPassword || newPassword.length < 6) {
-      return res.status(400).json({ success: false, message: 'La nueva contraseña debe tener al menos 6 caracteres' });
+    if (!newPassword || typeof newPassword !== 'string' || newPassword.length < 8) {
+      return res.status(400).json({ success: false, message: 'La nueva contraseña debe tener al menos 8 caracteres' });
+    }
+    if (PUBLIC_DEFAULT_PASSWORDS.has(newPassword)) {
+      return res.status(400).json({ success: false, message: 'Esa contraseña es pública y no puede usarse. Elija otra.' });
+    }
+    if (newPassword === currentPassword) {
+      return res.status(400).json({ success: false, message: 'La nueva contraseña debe ser distinta de la actual' });
     }
 
     const userId = req.user.userId;
@@ -279,16 +280,13 @@ export async function changePassword(req: AuthenticatedRequest, res: Response) {
     } catch {
       isCurrentMatch = false;
     }
-    if (!isCurrentMatch && user.password_hash === currentPassword) {
-      isCurrentMatch = true;
-    }
 
     if (!isCurrentMatch) {
       return res.status(400).json({ success: false, message: 'La contraseña actual no es correcta' });
     }
 
     const newHash = bcrypt.hashSync(newPassword, 10);
-    db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(newHash, user.id);
+    db.prepare('UPDATE users SET password_hash = ?, must_change_password = 0 WHERE id = ?').run(newHash, user.id);
 
     logAudit(user.id, user.username, 'CHANGE_PASSWORD', 'USERS', user.id, 'Cambio de contraseña realizado exitosamente', req.ip || '127.0.0.1');
 

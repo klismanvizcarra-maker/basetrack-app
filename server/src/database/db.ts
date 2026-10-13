@@ -643,6 +643,11 @@ export function initDatabase() {
     db.prepare("ALTER TABLE maintenance_requests ADD COLUMN resolution_notes TEXT").run();
   } catch {}
 
+  // Usuarios con contraseña temporal deben cambiarla en su primer inicio de sesión
+  try {
+    db.prepare('ALTER TABLE users ADD COLUMN must_change_password INTEGER NOT NULL DEFAULT 0').run();
+  } catch {}
+
   // Limpieza de seguridad: versiones anteriores del cliente replicaban users_registry con
   // contraseñas en texto plano. Esos eventos de caché se eliminan del historial de sincronización.
   try {

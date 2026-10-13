@@ -1326,6 +1326,90 @@ test('33. Security: Reset App rejects the former public master passwords', async
   }
 });
 
+test('34. Bulk import assigns random temporary passwords that must be changed on first login', async () => {
+  const ts = Date.now();
+  const username = `op_temp_${ts}`;
+  const bulkRes = await fetch(`${baseUrl}/admin/bulk-upload`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({
+      users: [
+        { username, full_name: 'TEST TEMPORAL', email: `${username}@test.com`, role: 'OPERATOR', shift: 'G2', document_id: `81${ts.toString().slice(-6)}` },
+        // La contraseña pública de la plantilla se ignora y se reemplaza por una aleatoria
+        { username: `${username}_b`, full_name: 'TEST TEMPORAL B', email: `${username}_b@test.com`, password: 'Basetrack2026!', role: 'OPERATOR', shift: 'G2', document_id: `82${ts.toString().slice(-6)}` }
+      ]
+    })
+  });
+  assert.strictEqual(bulkRes.status, 201);
+  const bulkJson = await bulkRes.json() as any;
+  assert.strictEqual(bulkJson.temporaryCredentials.length, 2);
+  const temp = bulkJson.temporaryCredentials.find((c: any) => c.username === username).temporaryPassword;
+  assert.match(temp, /^[A-Za-z0-9]{4}-[A-Za-z0-9]{4}-[A-Za-z0-9]{4}$/);
+
+  // La contraseña pública ya no sirve
+  const publicLogin = await fetch(`${baseUrl}/auth/login`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username: `${username}_b`, password: 'Basetrack2026!' })
+  });
+  assert.strictEqual(publicLogin.status, 401);
+
+  // Con la temporal entra, pero marcado para cambiarla
+  const loginRes = await fetch(`${baseUrl}/auth/login`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password: temp })
+  });
+  assert.strictEqual(loginRes.status, 200);
+  const loginJson = await loginRes.json() as any;
+  assert.strictEqual(loginJson.user.mustChangePassword, true);
+  const opHeaders = { 'Authorization': `Bearer ${loginJson.token}` };
+
+  // Todo bloqueado salvo perfil y cambio de contraseña
+  const blocked = await fetch(`${baseUrl}/pumps`, { headers: opHeaders });
+  assert.strictEqual(blocked.status, 403);
+  assert.strictEqual(((await blocked.json()) as any).code, 'PASSWORD_CHANGE_REQUIRED');
+  const me = await fetch(`${baseUrl}/auth/me`, { headers: opHeaders });
+  assert.strictEqual(me.status, 200);
+  assert.strictEqual(((await me.json()) as any).user.mustChangePassword, true);
+
+  // No acepta una contraseña pública como definitiva
+  const weak = await fetch(`${baseUrl}/auth/change-password`, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json', ...opHeaders },
+    body: JSON.stringify({ currentPassword: temp, newPassword: 'Basetrack2026!' })
+  });
+  assert.strictEqual(weak.status, 400);
+
+  const change = await fetch(`${baseUrl}/auth/change-password`, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json', ...opHeaders },
+    body: JSON.stringify({ currentPassword: temp, newPassword: 'NuevaClaveSegura#2026' })
+  });
+  assert.strictEqual(change.status, 200);
+
+  const unblocked = await fetch(`${baseUrl}/pumps`, { headers: opHeaders });
+  assert.strictEqual(unblocked.status, 200);
+});
+
+test('35. Admin password reset generates a temporary password (never the DNI) and forces a change', async () => {
+  const usersRes = await fetch(`${baseUrl}/admin/users`, { headers: authHeaders() });
+  const users = ((await usersRes.json()) as any).data as any[];
+  const target = users.find(u => u.role !== 'ADMIN');
+  assert.ok(target, 'Debe existir un usuario no administrador');
+
+  const resetRes = await fetch(`${baseUrl}/admin/users/${target.id}/reset-password`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ newPassword: '' })
+  });
+  assert.strictEqual(resetRes.status, 200);
+  const resetJson = await resetRes.json() as any;
+  assert.match(resetJson.temporaryPassword, /^[A-Za-z0-9]{4}-[A-Za-z0-9]{4}-[A-Za-z0-9]{4}$/);
+  assert.notStrictEqual(resetJson.temporaryPassword, target.document_id);
+
+  const loginRes = await fetch(`${baseUrl}/auth/login`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username: target.username, password: resetJson.temporaryPassword })
+  });
+  assert.strictEqual(((await loginRes.json()) as any).user.mustChangePassword, true);
+});
+
 test.after(async () => {
   // Purge any test users or links created during testing and restore clean slate
   try {
