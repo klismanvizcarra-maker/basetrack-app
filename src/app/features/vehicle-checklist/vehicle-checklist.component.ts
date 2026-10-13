@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, inject, signal, computed, ChangeDetectorRef, NgZone } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal, computed, ChangeDetectorRef, NgZone, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { VehicleChecklistService, VehicleInfo, VehicleChecklist, InspectionCheckItem, DEFAULT_INSPECTION_ITEMS } from '../../core/services/vehicle-checklist.service';
@@ -10,6 +10,7 @@ import { getCurrentActiveShift, getLocalDateString } from '../../shared/utils/ro
 
 @Component({
   selector: 'app-vehicle-checklist',
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: true,
   imports: [CommonModule, FormsModule, ModalComponent, VehicleChecklistReportPdfComponent],
   templateUrl: './vehicle-checklist.component.html',

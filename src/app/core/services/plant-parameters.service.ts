@@ -99,7 +99,8 @@ export class PlantParametersService {
         if (res && res.success && res.data) {
           const merged = { ...DEFAULT_PLANT_PARAMETERS, ...res.data };
           this.parameters.set(merged);
-          saveRealtimeData(STORAGE_KEY, merged);
+          // Caché de una lectura GET: no debe emitirse como cambio local (ADR-014/015)
+          saveRealtimeData(STORAGE_KEY, merged, { skipBroadcast: true });
           return merged;
         }
         return this.parameters();

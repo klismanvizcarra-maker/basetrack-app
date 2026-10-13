@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { copyToClipboard } from '../../core/utils/clipboard.util';
@@ -14,6 +14,7 @@ interface MineralPreset {
 
 @Component({
   selector: 'app-metallurgical-calculators',
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
