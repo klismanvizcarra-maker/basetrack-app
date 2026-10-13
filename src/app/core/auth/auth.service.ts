@@ -3,21 +3,21 @@ import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Observable, tap, catchError, of, map, throwError, timeout } from 'rxjs';
 import { User, AuthResponse, LoginPayload, RegisterPayload } from './auth.models';
-import { getRealtimeData, saveRealtimeData, removeRealtimeData } from '../storage/local-store.util';
+import { getRealtimeData, saveRealtimeData, removeRealtimeData, purgeStoredPasswords } from '../storage/local-store.util';
 
 const DEFAULT_ADMIN_USER: User = {
   id: 'u-marckv',
   username: 'Marckv',
   email: 'marckvizcarra@basetrack.com',
   fullName: 'Marck Vizcarra',
-  document_id: '91209966',
+  // Administrador fantasma de sistema: sin DNI operativo (CLAUDE.md §3.1)
+  document_id: '',
   role: 'ADMIN',
   shift: 'ADMIN',
-  password: '91209966',
   avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80'
 };
 
-// Official staff registry with secure credentials (DNI or Password123!) for online & offline/Vercel support
+// Registro local de perfiles (nombre, rol, avatar) para mostrar el personal sin conexión. Nunca contiene contraseñas.
 const OFFICIAL_USERS_LIST: User[] = [
   DEFAULT_ADMIN_USER
 ];
@@ -65,6 +65,7 @@ export class AuthService {
   public isSupervisor = computed(() => this.isAdmin() || this.currentUserSignal()?.role === 'SUPERVISOR');
 
   constructor() {
+    purgeStoredPasswords();
     this.ensureRegistryInitialized();
     if (this.tokenSignal()) {
       this.refreshCurrentUser().subscribe();
@@ -157,33 +158,11 @@ export class AuthService {
           return throwError(() => new Error(msg));
         }
 
-        console.warn('[AuthService] Backend no disponible o Vercel cloud, autenticando desde registro seguro:', err);
-
-        // Fallback for Vercel static deployment or offline plant mode
-        const resolvedUser = this.getUserFromRegistry(cleanUsername);
-        if (!resolvedUser) {
-          return throwError(() => new Error('Credenciales inválidas. Usuario no registrado en el sistema.'));
-        }
-
-        const expectedPass = resolvedUser.password || resolvedUser.document_id || 'Password123!';
-        const expectedDni = resolvedUser.document_id;
-
-        const isPasswordCorrect = cleanPassword === expectedPass || (expectedDni && cleanPassword === expectedDni);
-
-        if (!isPasswordCorrect) {
-          return throwError(() => new Error('Contraseña incorrecta. Verifique sus credenciales.'));
-        }
-
-        // Generate dynamic secure session token
-        const secureToken = 'btk_' + Math.random().toString(36).substring(2) + Date.now().toString(36);
-        this.setSession(secureToken, resolvedUser);
-
-        return of({
-          success: true,
-          message: 'Autenticación exitosa',
-          token: secureToken,
-          user: resolvedUser
-        });
+        // Las credenciales solo las valida el servidor. Antes, si el servidor no respondía a tiempo,
+        // se aceptaban contraseñas guardadas en el dispositivo (o el DNI, o una clave por defecto),
+        // lo que permitía entrar sin credenciales válidas. Las sesiones ya abiertas siguen funcionando sin red.
+        console.warn('[AuthService] Servidor no disponible durante el inicio de sesión:', err);
+        return throwError(() => new Error('No se pudo conectar con el servidor. Verifique la conexión e intente nuevamente.'));
       })
     );
   }
@@ -196,8 +175,7 @@ export class AuthService {
       fullName: payload.fullName,
       role: (payload.role as any) || 'OPERATOR',
       shift: (payload.shift as any) || 'G1',
-      avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${payload.username}`,
-      password: payload.password
+      avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${payload.username}`
     };
     this.saveUserToRegistry(newUser);
 
@@ -259,14 +237,6 @@ export class AuthService {
 
   changePassword(data: { currentPassword?: string; newPassword: string }): Observable<{ success: boolean; message: string }> {
     return this.http.put<any>(`${this.apiUrl}/change-password`, data).pipe(
-      tap(() => {
-        const user = this.currentUserSignal();
-        if (user && data.newPassword) {
-          const updated = { ...user, password: data.newPassword };
-          this.saveUserToRegistry(updated);
-          saveRealtimeData('user', updated);
-        }
-      }),
       map(res => ({
         success: true,
         message: res?.message || 'Contraseña actualizada con éxito'
@@ -278,23 +248,8 @@ export class AuthService {
           return throwError(() => new Error(msg));
         }
 
-        // Fallback for Vercel static deployment or offline plant mode
-        const user = this.currentUserSignal();
-        if (user) {
-          const regUser = this.getUserFromRegistry(user.username);
-          const expectedPass = regUser?.password || user.password || user.document_id || 'Password123!';
-          if (data.currentPassword && data.currentPassword !== expectedPass && data.currentPassword !== user.document_id) {
-            return throwError(() => new Error('La contraseña actual no es correcta'));
-          }
-          const updated = { ...user, password: data.newPassword };
-          this.saveUserToRegistry(updated);
-          saveRealtimeData('user', updated);
-          return of({
-            success: true,
-            message: 'Contraseña actualizada correctamente y respaldada'
-          });
-        }
-        return throwError(() => new Error('Error al actualizar la contraseña'));
+        // El cambio de contraseña exige el servidor: nunca se guarda una copia en el dispositivo
+        return throwError(() => new Error('No se pudo conectar con el servidor. La contraseña no se cambió.'));
       })
     );
   }

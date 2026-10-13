@@ -1291,6 +1291,41 @@ test('31. Security: unauthenticated WebSocket clients cannot receive nor emit re
   anon.close();
 });
 
+test('32. Security: sync events never store or relay passwords', async () => {
+  const pushRes = await fetch(`${baseUrl}/sync/push`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({
+      deviceId: 'device_secret_check',
+      events: [{
+        entity: 'users_registry',
+        action: 'SET',
+        payload: { key: 'basetrack_users_registry', data: { marckv: { username: 'Marckv', password: 'SuperSecreta123' } } },
+        timestamp: Date.now()
+      }]
+    })
+  });
+  assert.strictEqual(pushRes.status, 200);
+
+  const pullRes = await fetch(`${baseUrl}/sync/pull?sinceId=0&deviceId=another_device`, { headers: authHeaders() });
+  const pullJson = await pullRes.json() as any;
+  const raw = JSON.stringify(pullJson.events);
+  assert.ok(raw.includes('users_registry'), 'El evento debe existir');
+  assert.ok(!raw.includes('SuperSecreta123'), 'La contraseña no debe almacenarse');
+  assert.ok(!raw.includes('"password"'), 'El campo password no debe almacenarse');
+});
+
+test('33. Security: Reset App rejects the former public master passwords', async () => {
+  for (const masterPassword of ['Basetrack2026!']) {
+    const res = await fetch(`${baseUrl}/admin/reset-app`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
+      body: JSON.stringify({ password: masterPassword })
+    });
+    assert.strictEqual(res.status, 401, `Reset App no debe aceptar ${masterPassword}`);
+  }
+});
+
 test.after(async () => {
   // Purge any test users or links created during testing and restore clean slate
   try {

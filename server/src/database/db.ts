@@ -643,6 +643,15 @@ export function initDatabase() {
     db.prepare("ALTER TABLE maintenance_requests ADD COLUMN resolution_notes TEXT").run();
   } catch {}
 
+  // Limpieza de seguridad: versiones anteriores del cliente replicaban users_registry con
+  // contraseñas en texto plano. Esos eventos de caché se eliminan del historial de sincronización.
+  try {
+    const purged = db.prepare(`DELETE FROM sync_events WHERE payload LIKE '%"password"%'`).run() as { changes?: number };
+    if (purged?.changes) {
+      console.log(`[Database] Eliminados ${purged.changes} eventos de sincronización que contenían contraseñas.`);
+    }
+  } catch {}
+
   // -------------------------------------------------------------
   // SYSTEM INITIALIZATION: Ensure Admin and Positions
   // Operate ONLY with real data loaded via CSV / User Actions (Zero fake generated data)

@@ -7813,17 +7813,8 @@ export class AdminComponent implements OnInit, OnDestroy {
         this.isResetPasswordModalOpen = false;
         console.warn('[Admin] Error restableciendo contraseña en servidor:', err);
 
-        // Actualizar registro seguro local de contingencia
-        const newPass = this.resetNewPassword.trim() || 'Password123!';
-        const registry = getRealtimeData<Record<string, any>>('users_registry', {});
-        const key = user.username.toLowerCase();
-        if (registry[key]) {
-          registry[key].password = newPass;
-          saveRealtimeData('users_registry', registry);
-        }
-
-        this.backupSuccessMessage = `Contraseña restablecida exitosamente para ${user.username}.`;
-        setTimeout(() => this.backupSuccessMessage = '', 6000);
+        // La contraseña solo existe en el servidor: si este falla, no se restableció
+        alert(`No se pudo restablecer la contraseña de ${user.username}: ${err?.error?.message || 'el servidor no respondió'}.`);
       }
     });
   }
@@ -7978,9 +7969,9 @@ export class AdminComponent implements OnInit, OnDestroy {
           }
 
           const isAdminRole = this.authService.currentUser()?.role === 'ADMIN';
-          const isMasterPass = password === '91209966' || password === 'Basetrack2026!';
 
-          if ((isAdminRole && isMasterPass) || (isAdminRole && (err?.status === 0 || err?.name === 'TimeoutError' || (err?.status && err.status >= 500)))) {
+          // Sin contraseñas maestras: solo se limpia el dispositivo si el servidor no respondió
+          if (isAdminRole && (err?.status === 0 || err?.name === 'TimeoutError' || (err?.status && err.status >= 500))) {
             this.isResetAppModalOpen = false;
             purgeLocalStorage();
             this.backupSuccessMessage = '✅ Reset App completado exitosamente. Se purgó el almacenamiento local y caché.';

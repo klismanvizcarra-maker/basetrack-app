@@ -646,9 +646,8 @@ export function resetApp(req: AuthenticatedRequest, res: Response) {
       return res.status(403).json({ success: false, message: 'Solo un usuario con rol ADMIN puede ejecutar esta acción.' });
     }
 
-    const isMatch = bcrypt.compareSync(password.trim(), adminUser.password_hash)
-      || (password.trim() === '91209966' && (adminUser.username.toLowerCase() === 'marckv' || adminUser.role === 'ADMIN'))
-      || (password.trim() === 'Basetrack2026!' && adminUser.role === 'ADMIN');
+    // Solo la contraseña real del administrador autoriza el borrado total (sin claves maestras)
+    const isMatch = bcrypt.compareSync(password.trim(), adminUser.password_hash);
     if (!isMatch) {
       return res.status(401).json({ 
         success: false, 
