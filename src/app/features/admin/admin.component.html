@@ -1,0 +1,2510 @@
+<div class="admin-scope">
+  <div class="admin-page">
+    <div class="page-top-bar">
+      <div>
+        <h2>Administración de Planta y Copias de Seguridad</h2>
+        <p class="section-sub">Control de accesos RBAC, auditoría de eventos y respaldo de base de datos</p>
+      </div>
+      <div class="top-btns">
+        <button class="btn btn-secondary" (click)="openBulkModal()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+          </svg>
+          Carga por Lote (CSV/Excel)
+        </button>
+        <button class="btn btn-secondary" (click)="exportBackup()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          Exportar Backup JSON
+        </button>
+        <input #restoreFileInput type="file" accept=".json" (change)="onFileSelectedForRestore($event)" style="display: none" />
+        <button class="btn btn-secondary" (click)="restoreFileInput.click()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="17 8 12 3 7 8"></polyline>
+            <line x1="12" y1="3" x2="12" y2="15"></line>
+          </svg>
+          Restaurar Backup JSON
+        </button>
+        <button class="btn btn-danger btn-reset-app" (click)="openResetAppModal()" title="Restablecer completamente la aplicación a estado inicial limpio">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <path d="M3 6h18"></path>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            <line x1="10" y1="11" x2="10" y2="17"></line>
+            <line x1="14" y1="11" x2="14" y2="17"></line>
+          </svg>
+          Reset App (Limpieza Total)
+        </button>
+      </div>
+    </div>
+
+    <!-- Backup Notification Alert -->
+    <div *ngIf="backupSuccessMessage" class="backup-alert glass-panel animate-fade-in">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2.5">
+        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+      </svg>
+      <span>{{ backupSuccessMessage }}</span>
+    </div>
+
+    <!-- Navigation Tabs: Apartados de Administración -->
+    <div class="admin-nav-tabs glass-panel animate-fade-in">
+      <button 
+        type="button" 
+        class="nav-tab-btn" 
+        [class.active]="activeAdminTab === 'SUPERVISORS_CREW'" 
+        (click)="activeAdminTab = 'SUPERVISORS_CREW'"
+      >
+        <span class="tab-icon">🛡️</span>
+        <span class="tab-title">Guardias</span>
+        <span class="tab-badge">{{ supervisorsList.length || 4 }} Guardias</span>
+      </button>
+
+      <button 
+        type="button" 
+        class="nav-tab-btn" 
+        [class.active]="activeAdminTab === 'USERS_ROLES'" 
+        (click)="activeAdminTab = 'USERS_ROLES'"
+      >
+        <span class="tab-icon">👥</span>
+        <span class="tab-title">Usuarios & Cuentas</span>
+        <span class="tab-badge">{{ users.length }} Cuentas</span>
+      </button>
+
+      <button 
+        type="button" 
+        class="nav-tab-btn" 
+        [class.active]="activeAdminTab === 'TERMINALS_SYNC'" 
+        (click)="activeAdminTab = 'TERMINALS_SYNC'"
+      >
+        <span class="tab-icon">☁️</span>
+        <span class="tab-title">Dispositivos & Conectividad</span>
+        <span class="tab-badge">{{ connectedDevices.length }}</span>
+      </button>
+
+      <button 
+        type="button" 
+        class="nav-tab-btn" 
+        [class.active]="activeAdminTab === 'AUDIT_LOGS'" 
+        (click)="activeAdminTab = 'AUDIT_LOGS'"
+      >
+        <span class="tab-icon">📜</span>
+        <span class="tab-title">Trazabilidad SCADA</span>
+        <span class="tab-badge">{{ logs.length }}</span>
+      </button>
+
+      <button 
+        type="button" 
+        class="nav-tab-btn" 
+        [class.active]="activeAdminTab === 'PERMISSIONS_MATRIX'" 
+        (click)="activeAdminTab = 'PERMISSIONS_MATRIX'"
+      >
+        <span class="tab-icon">🔐</span>
+        <span class="tab-title">Matriz de Permisos</span>
+        <span class="tab-badge">RBAC Híbrido</span>
+      </button>
+
+      <button 
+        type="button" 
+        class="nav-tab-btn" 
+        [class.active]="activeAdminTab === 'PLANT_PARAMETERS'" 
+        (click)="activeAdminTab = 'PLANT_PARAMETERS'"
+      >
+        <span class="tab-icon">⚙️</span>
+        <span class="tab-title">Parámetros de Planta</span>
+        <span class="tab-badge">Metas & Umbrales</span>
+      </button>
+
+      <button 
+        type="button" 
+        class="nav-tab-btn" 
+        [class.active]="activeAdminTab === 'VEHICLES_FLEET'" 
+        (click)="activeAdminTab = 'VEHICLES_FLEET'"
+      >
+        <span class="tab-icon">🛻</span>
+        <span class="tab-title">Padrón de Camionetas</span>
+        <span class="tab-badge">{{ vehiclesList.length }} Unidades</span>
+      </button>
+    </div>
+
+    <!-- APARTADO 1: GUARDIAS (Gestión de Personal G1 - G4) -->
+    <div class="supervisors-crew-section animate-fade-in" *ngIf="activeAdminTab === 'SUPERVISORS_CREW'">
+      <div class="section-card glass-panel header-banner-card">
+        <div class="card-head">
+          <div class="head-with-icon">
+            <span class="fleet-icon">🛡️</span>
+            <div>
+              <h3>Administración de Guardias</h3>
+              <p class="section-sub">
+                Asigna y organiza los operadores específicos de cada guardia (G1 a G4) a cargo de su supervisor para acelerar el relevo y la asignación operacional.
+              </p>
+            </div>
+          </div>
+          <div class="head-actions">
+            <a 
+              routerLink="/roster" 
+              class="btn btn-secondary btn-sm"
+              title="Abrir Calendario y Roster Oficial de Guardias 8x8"
+            >
+              <span>📅 Ver Roster & Rol 8x8</span>
+            </a>
+            <button 
+              type="button" 
+              class="btn btn-secondary btn-sm" 
+              (click)="openBulkModal(selectedSupervisor?.shift || 'TODAS')"
+              title="Cargar dotación de personal organizada por guardia y supervisor"
+            >
+              <span>📥 Cargar Dotación por Lote</span>
+            </button>
+            <button 
+              type="button" 
+              class="btn btn-secondary btn-sm" 
+              (click)="triggerAutoAssignByShift()" 
+              [disabled]="isAutoAssigning"
+              title="Vincular automáticamente todos los operadores de G1 a G4 con su supervisor oficial"
+            >
+              <span *ngIf="!isAutoAssigning">⚡ Auto-vincular Guardias</span>
+              <span *ngIf="isAutoAssigning">Procesando...</span>
+            </button>
+            <button 
+              type="button" 
+              class="btn btn-primary btn-sm" 
+              (click)="openAssignOperatorModal()" 
+              [disabled]="!selectedSupervisor"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              <span>Vincular Operador</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="supervisors-workspace-grid">
+        <!-- Left Column: Supervisors List -->
+        <div class="supervisors-list-panel glass-panel">
+          <div class="panel-header">
+            <h4>Guardias de Planta (G1 - G4)</h4>
+            <span class="panel-badge">{{ filteredSupervisors.length || 4 }} Guardias</span>
+          </div>
+
+          <div class="search-mini-box">
+            <input 
+              type="text" 
+              [(ngModel)]="supervisorSearchQuery" 
+              placeholder="Buscar guardia o supervisor..." 
+              class="mini-search-input"
+            />
+          </div>
+
+          <div class="supervisor-cards-list">
+            <div 
+              *ngFor="let s of filteredSupervisors" 
+              class="supervisor-card"
+              [class.selected]="selectedSupervisor?.id === s.id || selectedSupervisor?.username === s.username"
+              (click)="selectSupervisor(s)"
+            >
+              <img [src]="s.avatar_url || 'https://api.dicebear.com/7.x/bottts/svg?seed=' + s.username" class="sup-avatar" />
+              <div class="sup-info">
+                <div class="sup-name-row">
+                  <strong>{{ s.full_name }}</strong>
+                  <span class="badge badge-slate">{{ s.shift }}</span>
+                </div>
+                <div class="sup-meta-row">
+                  <span class="sup-role-tag">{{ s.role }}</span>
+                  <span class="sup-count-tag" [class.full-squad]="(s.operators_count || s.operators?.length || 0) >= 7">
+                    👥 {{ s.operators_count || s.operators?.length || 0 }}/7 Operadores ({{ getGuardSquadProgress(s) }}%)
+                  </span>
+                </div>
+                <div class="guard-progress-track" [title]="'Dotación: ' + (s.operators_count || s.operators?.length || 0) + '/7 (' + getGuardSquadProgress(s) + '%)'">
+                  <div 
+                    class="guard-progress-bar" 
+                    [style.width.%]="getGuardSquadProgress(s)"
+                    [class.complete]="(s.operators_count || s.operators?.length || 0) >= 7"
+                  ></div>
+                </div>
+              </div>
+            </div>
+
+            <div *ngIf="filteredSupervisors.length === 0" class="empty-state-card">
+              No se encontraron supervisores registrados.
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column: Assigned Operators Workspace -->
+        <div class="assigned-operators-panel glass-panel" *ngIf="selectedSupervisor">
+          <div class="selected-sup-header">
+            <div class="sup-summary-card">
+              <img [src]="selectedSupervisor.avatar_url || 'https://api.dicebear.com/7.x/bottts/svg?seed=' + selectedSupervisor.username" class="sup-big-avatar" />
+              <div class="sup-detail-text">
+                <h3>{{ selectedSupervisor.full_name }}</h3>
+                <div class="sup-tags-row">
+                  <span class="badge badge-primary">{{ selectedSupervisor.role }}</span>
+                  <span class="badge badge-slate">Guardia {{ selectedSupervisor.shift }}</span>
+                  <span class="tag-meta">👤 Usuario: <code>{{ selectedSupervisor.username }}</code></span>
+                  <span class="tag-meta">📧 {{ selectedSupervisor.email }}</span>
+                </div>
+              </div>
+              <button 
+                type="button" 
+                class="btn btn-primary btn-sm btn-link-op" 
+                (click)="openAssignOperatorModal()"
+              >
+                + Vincular Operador
+              </button>
+            </div>
+          </div>
+
+          <div class="operators-table-wrapper">
+            <div class="sub-table-header">
+              <div>
+                <h4>Operadores a Cargo de esta Cuadrilla ({{ selectedSupervisor.operators?.length || 0 }})</h4>
+                <p class="sub-table-help">Estos operadores son los que {{ selectedSupervisor.full_name }} visualizará en sus relevos y asignaciones para agilizar la bitácora diaria.</p>
+              </div>
+            </div>
+
+            <div class="operators-grid" *ngIf="(selectedSupervisor.operators?.length || 0) > 0">
+              <div *ngFor="let op of selectedSupervisor.operators" class="operator-item-card">
+                <img [src]="op.operator_avatar || 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&q=80'" class="op-card-avatar" />
+                <div class="op-card-body">
+                  <div class="op-card-title">{{ op.operator_name }}</div>
+                  <div class="op-card-sub">DNI: {{ op.document_id }} | Guardia: {{ op.shift_code }}</div>
+                  <div class="op-card-badges">
+                    <span class="badge badge-role">{{ formatRoleName(op.primary_role) }}</span>
+                    <span class="badge" [class.badge-success]="op.operator_status === 'EN_TURNO'" [class.badge-secondary]="op.operator_status !== 'EN_TURNO'">
+                      {{ op.operator_status || 'EN_TURNO' }}
+                    </span>
+                  </div>
+                  <div class="op-card-comms" *ngIf="op.radio_channel || op.phone_extension">
+                    <span *ngIf="op.radio_channel">📻 {{ op.radio_channel }}</span>
+                    <span *ngIf="op.phone_extension">📞 {{ op.phone_extension }}</span>
+                  </div>
+                </div>
+                <button 
+                  type="button" 
+                  class="btn-unlink-op" 
+                  (click)="confirmRemoveOperator(op.operator_id, op.operator_name)"
+                  title="Desvincular operador de este supervisor"
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                  <span>Desvincular</span>
+                </button>
+              </div>
+            </div>
+
+            <div *ngIf="!selectedSupervisor.operators || selectedSupervisor.operators.length === 0" class="empty-operators-banner">
+              <div class="empty-icon">🦺</div>
+              <h4>Sin operadores asignados todavía</h4>
+              <p>Este supervisor no tiene operadores vinculados a su cuadrilla. Puedes asignarle operadores manualmente o presionar el botón de auto-vinculación por guardia.</p>
+              <div class="empty-actions">
+                <button type="button" class="btn btn-primary btn-sm" (click)="openAssignOperatorModal()">
+                  + Vincular Operador Manualmente
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" (click)="triggerAutoAssignByShift()">
+                  ⚡ Auto-vincular de Guardia {{ selectedSupervisor.shift }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cloud Realtime Sync & Multi-Device Fleet Manager -->
+    <div class="cloud-sync-card glass-panel animate-fade-in" *ngIf="activeAdminTab === 'TERMINALS_SYNC'">
+      <div class="sync-card-left">
+        <div class="cloud-avatar-icon">☁️</div>
+        <div>
+          <h4>Sincronización en la Nube Multi-Dispositivo (Cloud Realtime Sync)</h4>
+          <p>Réplica bidireccional continua entre salas de control, tablets y teléfonos móviles de guardia.</p>
+          <div class="sync-pill-tags">
+            <span class="tag-item">Terminal Local: <strong>{{ cloudSync.deviceName }}</strong></span>
+            <span class="tag-item">ID Dispositivo: <code>{{ cloudSync.deviceId }}</code></span>
+            <span class="tag-item">Terminales en Red: <strong>{{ cloudSync.activeDevicesCount() }} activas</strong></span>
+            <span class="tag-item">Última Réplica: <strong>{{ (cloudSync.lastSyncTime() | date:'HH:mm:ss') || 'En vivo' }}</strong></span>
+            <span class="tag-item">Servidor API: <code>{{ currentApiUrl }}</code></span>
+          </div>
+        </div>
+      </div>
+      <div class="sync-card-right">
+        <div class="sync-status-indicator">
+          <span class="pulse-dot" [class.dot-green]="cloudSync.isOnline()" [class.dot-orange]="!cloudSync.isOnline()"></span>
+          <span class="status-label">{{ cloudSync.isSyncing() ? 'Sincronizando...' : (cloudSync.isOnline() ? 'En Línea • Conectado' : 'Modo Mina • Offline') }}</span>
+        </div>
+        <div class="sync-btns-group">
+          <button class="btn btn-secondary btn-sm" (click)="openBackendConfigModal()" title="Configurar URL de Servidor Central / Render / Railway">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+            Servidor Cloud
+          </button>
+          <button class="btn btn-emerald-outline btn-sm" (click)="cloudSync.forceSync()" [disabled]="cloudSync.isSyncing()">
+            <span *ngIf="!cloudSync.isSyncing()">🔄 Forzar Réplica</span>
+            <span *ngIf="cloudSync.isSyncing()">Sincronizando...</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Vercel Offline / Unlinked Backend Warning Banner -->
+    <div class="vercel-backend-warning glass-panel animate-fade-in" *ngIf="isVercelDeployment && !hasCustomCloudBackend">
+      <div class="warning-content">
+        <span class="warning-badge">⚠️ MODO ALMACENAMIENTO LOCAL (VERCEL)</span>
+        <div class="warning-body">
+          <strong>Los usuarios y cambios se guardan localmente en la memoria de este navegador.</strong>
+          <p>Al estar desplegado en Vercel sin servidor central vinculado, otros dispositivos (celulares, tablets, computadoras) no pueden ver los usuarios creados aquí ni iniciar sesión con ellos. Conecta la URL de tu backend cloud (Render, Railway o túnel HTTPS) para sincronizar todos tus dispositivos en tiempo real.</p>
+        </div>
+      </div>
+      <button class="btn btn-warning-action" (click)="openBackendConfigModal()">
+        🔗 Conectar Servidor Central
+      </button>
+    </div>
+
+    <!-- Fleet & Session Manager (Dispositivos Conectados) -->
+    <div class="section-card glass-panel animate-fade-in" *ngIf="activeAdminTab === 'TERMINALS_SYNC'">
+      <div class="card-head">
+        <div class="head-with-icon">
+          <span class="fleet-icon">📱</span>
+          <div>
+            <h3>Monitor de Flota y Dispositivos Conectados (Fleet & Session Manager)</h3>
+            <p class="section-sub">Auditoría en tiempo real de terminales, tablets y teléfonos móviles con control de acceso y desconexión remota</p>
+          </div>
+        </div>
+        <div class="head-actions">
+          <button class="btn btn-secondary btn-sm" (click)="broadcastGlobalUpdate()" [disabled]="isBroadcastingUpdate" title="Enviar señal de actualización en tiempo real a todas las terminales y celulares conectados">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M23 4v6h-6"></path>
+              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+            </svg>
+            {{ isBroadcastingUpdate ? 'Emitiendo...' : 'Actualizar Todos en Vivo' }}
+          </button>
+          <button class="btn btn-secondary btn-sm" (click)="confirmPurgeStaleDevices()" [disabled]="isPurgingDevices" title="Limpiar terminales inactivas > 5 días o con sesión revocada">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+            {{ isPurgingDevices ? 'Depurando...' : 'Depurar Inactivos' }}
+          </button>
+          <button class="btn btn-primary btn-sm" (click)="loadConnectedDevices()" [disabled]="isLoadingDevices">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M23 4v6h-6"></path>
+              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+            </svg>
+            {{ isLoadingDevices ? 'Consultando...' : 'Refrescar Terminales' }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Fleet Metric Cards (KPIs) -->
+      <div class="fleet-kpi-grid">
+        <div class="fleet-kpi-card" [class.active-filter]="deviceFilter === 'ALL'" (click)="deviceFilter = 'ALL'" title="Mostrar todos los dispositivos">
+          <span class="kpi-icon">💻</span>
+          <div class="kpi-info">
+            <span class="kpi-label">Total Terminales</span>
+            <span class="kpi-number">{{ fleetStats.total }}</span>
+          </div>
+        </div>
+        <div class="fleet-kpi-card kpi-online" [class.active-filter]="deviceFilter === 'ONLINE'" (click)="deviceFilter = 'ONLINE'" title="Filtrar sólo en línea">
+          <span class="kpi-icon">🟢</span>
+          <div class="kpi-info">
+            <span class="kpi-label">En Línea (Activos)</span>
+            <span class="kpi-number">{{ fleetStats.online }}</span>
+          </div>
+        </div>
+        <div class="fleet-kpi-card kpi-inactive" [class.active-filter]="deviceFilter === 'INACTIVE'" (click)="deviceFilter = 'INACTIVE'" title="Filtrar dispositivos inactivos">
+          <span class="kpi-icon">⚪</span>
+          <div class="kpi-info">
+            <span class="kpi-label">Inactivos / Reposo</span>
+            <span class="kpi-number">{{ fleetStats.inactive }}</span>
+          </div>
+        </div>
+        <div class="fleet-kpi-card kpi-revoked" [class.active-filter]="deviceFilter === 'REVOKED'" (click)="deviceFilter = 'REVOKED'" title="Filtrar sesiones revocadas">
+          <span class="kpi-icon">🔴</span>
+          <div class="kpi-info">
+            <span class="kpi-label">Sesiones Revocadas</span>
+            <span class="kpi-number">{{ fleetStats.revoked }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Fleet Search and Filters Bar -->
+      <div class="fleet-toolbar">
+        <div class="fleet-search-box">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input 
+            type="text" 
+            [(ngModel)]="deviceSearchQuery" 
+            placeholder="Buscar por terminal, usuario, IP o navegador..." 
+            class="fleet-search-input"
+          />
+          <button *ngIf="deviceSearchQuery" (click)="deviceSearchQuery = ''" class="btn-clear-search" title="Limpiar búsqueda">✕</button>
+        </div>
+        <div class="fleet-filter-pills">
+          <button class="pill-btn" [class.active]="deviceFilter === 'ALL'" (click)="deviceFilter = 'ALL'">Todos ({{ fleetStats.total }})</button>
+          <button class="pill-btn" [class.active]="deviceFilter === 'ONLINE'" (click)="deviceFilter = 'ONLINE'">🟢 En Línea ({{ fleetStats.online }})</button>
+          <button class="pill-btn" [class.active]="deviceFilter === 'INACTIVE'" (click)="deviceFilter = 'INACTIVE'">⚪ Inactivos ({{ fleetStats.inactive }})</button>
+          <button class="pill-btn" [class.active]="deviceFilter === 'REVOKED'" (click)="deviceFilter = 'REVOKED'">🔴 Revocados ({{ fleetStats.revoked }})</button>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Dispositivo / Terminal</th>
+              <th>Usuario Activo</th>
+              <th>Dirección IP</th>
+              <th>Navegador / Plataforma</th>
+              <th>Último Latido (Ping)</th>
+              <th>Estado</th>
+              <th style="text-align: right;">Control de Sesión</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let dev of filteredDevices" [class.row-current-device]="isCurrentDevice(dev.device_id)">
+              <td>
+                <div class="device-cell">
+                  <span class="device-type-badge">{{ getDeviceIcon(dev.device_name, dev.user_agent) }}</span>
+                  <div>
+                    <div class="device-name-row">
+                      <strong>{{ dev.device_name || 'Terminal Operativa' }}</strong>
+                      <span class="current-device-badge" *ngIf="isCurrentDevice(dev.device_id)">⭐ Este Terminal (Actual)</span>
+                    </div>
+                    <div class="device-sub-id">{{ dev.device_id }}</div>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <span class="user-chip" *ngIf="dev.username">👤 {{ dev.username }}</span>
+                <span class="text-muted" *ngIf="!dev.username">Esperando usuario</span>
+              </td>
+              <td>
+                <div class="ip-cell">
+                  <code>{{ formatIpAddress(dev.ip_address) }}</code>
+                  <span class="ip-tag" *ngIf="isLocalIp(dev.ip_address)">Red Local</span>
+                </div>
+              </td>
+              <td>
+                <span class="ua-badge" [title]="dev.user_agent || ''">{{ simplifyUserAgent(dev.user_agent) }}</span>
+              </td>
+              <td>
+                <span class="time-relative" [title]="dev.last_seen || ''">{{ formatRelativeTime(dev.last_seen) }}</span>
+              </td>
+              <td>
+                <span class="pulse-dot-wrapper">
+                  <span class="pulse-dot" [class.dot-green]="dev.is_online && !dev.is_revoked" [class.dot-gray]="!dev.is_online && !dev.is_revoked" [class.dot-red]="dev.is_revoked"></span>
+                  <span class="device-status-text" [class.text-green]="dev.is_online && !dev.is_revoked" [class.text-red]="dev.is_revoked">
+                    {{ dev.is_revoked ? 'REVOCADO' : (dev.is_online ? 'EN LÍNEA' : 'INACTIVO') }}
+                  </span>
+                </span>
+              </td>
+              <td style="text-align: right;">
+                <div class="device-actions-cell">
+                  <button 
+                    *ngIf="!dev.is_revoked" 
+                    class="btn btn-action-danger" 
+                    (click)="confirmRevokeDevice(dev)"
+                    [title]="isCurrentDevice(dev.device_id) ? 'Advertencia: Esta es tu sesión actual' : 'Cerrar sesión remotamente en esta terminal'"
+                  >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                    </svg>
+                    Revocar Sesión
+                  </button>
+                  <span *ngIf="dev.is_revoked" class="badge badge-danger">Sesión Terminada</span>
+                
+                  <button 
+                    *ngIf="dev.is_revoked || !dev.is_online" 
+                    class="btn btn-action-delete" 
+                    (click)="confirmDeleteDevice(dev)"
+                    [disabled]="deletingDeviceId === dev.device_id"
+                    title="Desvincular y eliminar terminal de la flota"
+                  >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="3 6 5 6 21 6"></polyline>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            <tr *ngIf="filteredDevices.length === 0">
+              <td colspan="7" style="text-align: center; padding: 32px 16px; color: var(--text-muted);">
+                <div class="empty-fleet-state">
+                  <span style="font-size: 2rem; display: block; margin-bottom: 8px;">🔍</span>
+                  <strong>No se encontraron terminales con el filtro o término especificado</strong>
+                  <p style="font-size: 0.8rem; margin-top: 4px; color: #94a3b8;">Prueba cambiando el filtro de estado o la búsqueda.</p>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Users Management Table -->
+    <div class="section-card glass-panel animate-fade-in" *ngIf="activeAdminTab === 'USERS_ROLES'">
+      <div class="card-head">
+        <div class="head-with-icon">
+          <span class="fleet-icon">👥</span>
+          <div>
+            <h3>Gestión de Usuarios y Permisos de Guardia</h3>
+            <p class="section-sub">Control de perfiles, roles RBAC, turnos de cuadrilla y credenciales operativas</p>
+          </div>
+        </div>
+        <span class="counter">{{ filteredUsers.length }} de {{ users.length }} Cuentas</span>
+      </div>
+
+      <!-- Filter and Search Bar -->
+      <div class="users-toolbar">
+        <div class="search-box">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input 
+            type="text" 
+            [(ngModel)]="userSearchQuery" 
+            placeholder="Buscar por usuario, nombre completo o correo..." 
+            class="toolbar-search-input"
+          />
+          <button *ngIf="userSearchQuery" (click)="userSearchQuery = ''" class="clear-search-btn">✕</button>
+        </div>
+
+        <div class="filters-container">
+          <div class="filter-item">
+            <label>Guardia:</label>
+            <select [(ngModel)]="userFilterShift" class="toolbar-select">
+              <option value="TODAS">Todas las Guardias</option>
+              <option value="G1">Guardia G1</option>
+              <option value="G2">Guardia G2</option>
+              <option value="G3">Guardia G3</option>
+              <option value="G4">Guardia G4</option>
+            </select>
+          </div>
+
+          <div class="filter-item">
+            <label>Rol:</label>
+            <select [(ngModel)]="userFilterRole" class="toolbar-select">
+              <option value="TODOS">Todos los Roles</option>
+              <option value="ADMIN">ADMIN</option>
+              <option value="SUPERVISOR">SUPERVISOR</option>
+              <option value="OPERATOR">OPERATOR</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Usuario</th>
+              <th>Nombre Completo</th>
+              <th>Correo Electrónico</th>
+              <th>Rol de Acceso</th>
+              <th>Turno / Guardia</th>
+              <th>Estado</th>
+              <th style="text-align: right;">Acciones Rápidas</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let u of filteredUsers">
+              <td>
+                <div class="user-cell">
+                  <img [src]="u.avatar_url || 'https://api.dicebear.com/7.x/bottts/svg?seed=' + u.username" class="user-thumb" />
+                  <strong>{{ u.username }}</strong>
+                </div>
+              </td>
+              <td>{{ u.full_name }}</td>
+              <td>{{ u.email }}</td>
+              <td>
+                <span class="badge" [class.badge-primary]="u.role === 'ADMIN'" [class.badge-success]="u.role === 'SUPERVISOR'" [class.badge-warning]="u.role === 'OPERATOR'">
+                  {{ u.role }}
+                </span>
+              </td>
+              <td><span class="badge badge-slate">{{ u.shift }}</span></td>
+              <td>
+                <span class="badge" [class.badge-success]="u.is_active !== 0" [class.badge-danger]="u.is_active === 0">
+                  {{ u.is_active === 0 ? 'SUSPENDIDO' : 'ACTIVO' }}
+                </span>
+              </td>
+              <td style="text-align: right;">
+                <div class="user-actions-row">
+                  <button class="btn-icon-action" (click)="openEditUserModal(u)" title="Editar Rol y Guardia">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M12 20h9"></path>
+                      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                    </svg>
+                  </button>
+                  <button class="btn-icon-action" (click)="openResetPasswordModal(u)" title="Restablecer Contraseña">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                    </svg>
+                  </button>
+                  <button 
+                    class="btn-icon-action" 
+                    [class.btn-icon-danger]="u.is_active !== 0"
+                    [class.btn-icon-success]="u.is_active === 0"
+                    (click)="toggleUserStatus(u)" 
+                    [title]="u.is_active === 0 ? 'Activar Cuenta' : 'Suspender Cuenta'"
+                    [disabled]="u.username === 'Marckv'"
+                  >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path>
+                      <line x1="12" y1="2" x2="12" y2="12"></line>
+                    </svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            <tr *ngIf="filteredUsers.length === 0">
+              <td colspan="7" style="text-align: center; padding: 24px; color: var(--text-muted);">
+                No se encontraron usuarios que coincidan con los filtros aplicados.
+                <button type="button" class="btn btn-secondary btn-sm" style="margin-left: 10px;" (click)="userSearchQuery = ''; userFilterShift = 'TODAS'; userFilterRole = 'TODOS';">
+                  Limpiar Filtros
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Audit Logs Table -->
+    <div class="section-card glass-panel animate-fade-in" *ngIf="activeAdminTab === 'AUDIT_LOGS'">
+      <div class="card-head">
+        <h3>Registro de Auditoría y Trazabilidad (SCADA Logs)</h3>
+        <span class="counter">{{ logs.length }} Eventos Registrados</span>
+      </div>
+
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Timestamp</th>
+              <th>Usuario</th>
+              <th>Acción</th>
+              <th>Módulo</th>
+              <th>Detalle del Evento</th>
+              <th>Dirección IP</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let log of logs">
+              <td class="font-mono">{{ log.timestamp }}</td>
+              <td><strong>{{ log.username }}</strong></td>
+              <td><span class="badge badge-primary">{{ log.action }}</span></td>
+              <td>{{ log.entity }}</td>
+              <td>{{ log.details }}</td>
+              <td class="font-mono">{{ log.ip_address }}</td>
+            </tr>
+            <tr *ngIf="logs.length === 0">
+              <td colspan="6" style="text-align: center; padding: 24px; color: var(--text-muted);">
+                No hay eventos de auditoría registrados.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- APARTADO 5: MATRIZ DE PERMISOS & SEGURIDAD (RBAC HÍBRIDO + EXCEPCIONES) -->
+    <div class="permissions-matrix-section animate-fade-in" *ngIf="activeAdminTab === 'PERMISSIONS_MATRIX'">
+    
+      <!-- Header Banner Card -->
+      <div class="section-card glass-panel header-banner-card rbac-banner">
+        <div class="card-head">
+          <div class="head-with-icon">
+            <div class="rbac-icon-badge">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
+            </div>
+            <div>
+              <div class="rbac-title-row">
+                <h3>Matriz de Permisos & Control de Accesos (RBAC Híbrido)</h3>
+                <span class="live-sync-badge">
+                  <span class="live-dot"></span> Sincronizado en Tiempo Real
+                </span>
+              </div>
+              <p class="section-sub">Configuración granular de capacidades por rol del sistema y excepciones operacionales por usuario</p>
+            </div>
+          </div>
+          <div class="head-actions">
+            <button type="button" class="btn btn-secondary btn-sm" (click)="resetPermissionsToDefault()" title="Restablecer matriz a los valores predeterminados de fábrica">
+              ↺ Restaurar Valores por Defecto
+            </button>
+            <button type="button" class="btn btn-primary btn-sm rbac-save-btn" (click)="saveRolePermissionsMatrix()">
+              💾 Guardar Matriz de Roles
+            </button>
+          </div>
+        </div>
+
+        <!-- Notification alert if saved -->
+        <div *ngIf="permissionsSaveMessage" class="backup-alert glass-panel animate-fade-in" style="margin-top: 10px;">
+          <span>{{ permissionsSaveMessage }}</span>
+        </div>
+      </div>
+
+      <!-- Role Summary KPI Cards -->
+      <div class="rbac-stats-grid">
+        <!-- Operador -->
+        <div class="rbac-stat-card">
+          <div class="stat-role-info">
+            <div class="role-avatar-icon role-operator">👷</div>
+            <div class="stat-role-meta">
+              <span class="role-stat-name">OPERADOR</span>
+              <span class="role-stat-sub">Personal de Campo & Guardia</span>
+            </div>
+          </div>
+          <div class="stat-count-pill" [class.badge-active]="getRolePermCount('OPERATOR') > 0">
+            <strong>{{ getRolePermCount('OPERATOR') }}</strong> / {{ allPermissionsList.length }} Habilitados
+          </div>
+          <div class="role-quick-actions">
+            <button type="button" class="quick-link-btn" (click)="setAllPermsForRole('OPERATOR', true)">Activar Todo</button>
+            <span class="divider">•</span>
+            <button type="button" class="quick-link-btn" (click)="setAllPermsForRole('OPERATOR', false)">Desactivar Todo</button>
+          </div>
+        </div>
+
+        <!-- Supervisor -->
+        <div class="rbac-stat-card">
+          <div class="stat-role-info">
+            <div class="role-avatar-icon role-supervisor">🦺</div>
+            <div class="stat-role-meta">
+              <span class="role-stat-name">SUPERVISOR</span>
+              <span class="role-stat-sub">Líder de Guardia & Control</span>
+            </div>
+          </div>
+          <div class="stat-count-pill" [class.badge-active]="getRolePermCount('SUPERVISOR') > 0">
+            <strong>{{ getRolePermCount('SUPERVISOR') }}</strong> / {{ allPermissionsList.length }} Habilitados
+          </div>
+          <div class="role-quick-actions">
+            <button type="button" class="quick-link-btn" (click)="setAllPermsForRole('SUPERVISOR', true)">Activar Todo</button>
+            <span class="divider">•</span>
+            <button type="button" class="quick-link-btn" (click)="setAllPermsForRole('SUPERVISOR', false)">Desactivar Todo</button>
+          </div>
+        </div>
+
+        <!-- Administrador -->
+        <div class="rbac-stat-card is-admin-card">
+          <div class="stat-role-info">
+            <div class="role-avatar-icon role-admin">👑</div>
+            <div class="stat-role-meta">
+              <span class="role-stat-name">ADMINISTRADOR</span>
+              <span class="role-stat-sub">Superusuario Total</span>
+            </div>
+          </div>
+          <div class="stat-count-pill admin-pill">
+            <strong>{{ allPermissionsList.length }}</strong> / {{ allPermissionsList.length }} Acceso Total
+          </div>
+          <div class="role-quick-actions">
+            <span class="locked-hint">🔒 No revocable (Ghost/Root)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 1. Tabla de Permisos por Rol -->
+      <div class="section-card glass-panel" style="margin-top: 16px;">
+        <div class="card-head rbac-table-head">
+          <div>
+            <h4>1. Permisos Predeterminados por Rol del Sistema</h4>
+            <p class="section-sub">Define las capacidades base que aplican a todos los usuarios de cada rol</p>
+          </div>
+
+          <!-- Toolbar con Categorías y Búsqueda -->
+          <div class="perm-table-toolbar">
+            <div class="category-tabs">
+              <button 
+                type="button" 
+                class="cat-tab-btn" 
+                [class.active]="permFilterCategory === 'ALL'" 
+                (click)="permFilterCategory = 'ALL'">
+                Todas <span class="tab-count">{{ allPermissionsList.length }}</span>
+              </button>
+              <button 
+                type="button" 
+                class="cat-tab-btn cat-operaciones" 
+                [class.active]="permFilterCategory === 'OPERACIONES'" 
+                (click)="permFilterCategory = 'OPERACIONES'">
+                ⚙️ Operaciones
+              </button>
+              <button 
+                type="button" 
+                class="cat-tab-btn cat-gestion" 
+                [class.active]="permFilterCategory === 'GESTIÓN'" 
+                (click)="permFilterCategory = 'GESTIÓN'">
+                📋 Gestión
+              </button>
+              <button 
+                type="button" 
+                class="cat-tab-btn cat-seguridad" 
+                [class.active]="permFilterCategory === 'SEGURIDAD'" 
+                (click)="permFilterCategory = 'SEGURIDAD'">
+                🛡️ Seguridad
+              </button>
+            </div>
+
+            <div class="perm-search-box">
+              <span class="search-icon">🔍</span>
+              <input 
+                type="text" 
+                class="form-control perm-search-input" 
+                placeholder="Buscar capacidad o permiso..." 
+                [(ngModel)]="permSearchQuery" 
+              />
+              <button 
+                *ngIf="permSearchQuery" 
+                type="button" 
+                class="clear-search-btn" 
+                (click)="permSearchQuery = ''">✕</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="data-table permissions-table">
+            <thead>
+              <tr>
+                <th style="width: 34%;">Capacidad / Permiso</th>
+                <th style="width: 15%; text-align: center;">Categoría</th>
+                <th style="width: 17%; text-align: center;">
+                  <div class="col-role-header">
+                    <span class="role-badge-tag role-tag-operator">👷 OPERADOR</span>
+                    <small class="col-sub">Personal de Campo</small>
+                  </div>
+                </th>
+                <th style="width: 17%; text-align: center;">
+                  <div class="col-role-header">
+                    <span class="role-badge-tag role-tag-supervisor">🦺 SUPERVISOR</span>
+                    <small class="col-sub">Líder de Guardia</small>
+                  </div>
+                </th>
+                <th style="width: 17%; text-align: center;">
+                  <div class="col-role-header">
+                    <span class="role-badge-tag role-tag-admin">👑 ADMINISTRADOR</span>
+                    <small class="col-sub">Superusuario</small>
+                  </div>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let perm of filteredPermissionsList" class="perm-row">
+                <td>
+                  <div class="perm-info">
+                    <strong class="perm-label">{{ perm.label }}</strong>
+                    <span class="perm-desc">{{ perm.description }}</span>
+                  </div>
+                </td>
+                <td style="text-align: center;">
+                  <span class="category-pill-badge" 
+                    [class.badge-cat-operaciones]="perm.category === 'OPERACIONES'" 
+                    [class.badge-cat-gestion]="perm.category === 'GESTIÓN'" 
+                    [class.badge-cat-seguridad]="perm.category === 'SEGURIDAD'">
+                    <span class="cat-icon">{{ perm.category === 'OPERACIONES' ? '⚙️' : perm.category === 'GESTIÓN' ? '📋' : '🛡️' }}</span>
+                    <span>{{ perm.category }}</span>
+                  </span>
+                </td>
+              
+                <!-- Switch OPERATOR -->
+                <td style="text-align: center;">
+                  <button 
+                    type="button" 
+                    class="perm-toggle-btn"
+                    [class.is-enabled]="isRolePermitted('OPERATOR', perm.key)"
+                    (click)="toggleRolePermDirect('OPERATOR', perm.key)"
+                    [title]="isRolePermitted('OPERATOR', perm.key) ? 'Habilitado para Operador (clic para revocar)' : 'Restringido para Operador (clic para habilitar)'"
+                  >
+                    <div class="toggle-pill">
+                      <span class="toggle-track"></span>
+                      <span class="toggle-thumb">
+                        <svg *ngIf="isRolePermitted('OPERATOR', perm.key)" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                          <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                        <svg *ngIf="!isRolePermitted('OPERATOR', perm.key)" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                          <line x1="18" y1="6" x2="6" y2="18"></line>
+                          <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                      </span>
+                    </div>
+                    <span class="toggle-state-text">{{ isRolePermitted('OPERATOR', perm.key) ? 'Habilitado' : 'Restringido' }}</span>
+                  </button>
+                </td>
+
+                <!-- Switch SUPERVISOR -->
+                <td style="text-align: center;">
+                  <button 
+                    type="button" 
+                    class="perm-toggle-btn"
+                    [class.is-enabled]="isRolePermitted('SUPERVISOR', perm.key)"
+                    (click)="toggleRolePermDirect('SUPERVISOR', perm.key)"
+                    [title]="isRolePermitted('SUPERVISOR', perm.key) ? 'Habilitado para Supervisor (clic para revocar)' : 'Restringido para Supervisor (clic para habilitar)'"
+                  >
+                    <div class="toggle-pill">
+                      <span class="toggle-track"></span>
+                      <span class="toggle-thumb">
+                        <svg *ngIf="isRolePermitted('SUPERVISOR', perm.key)" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                          <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                        <svg *ngIf="!isRolePermitted('SUPERVISOR', perm.key)" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                          <line x1="18" y1="6" x2="6" y2="18"></line>
+                          <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                      </span>
+                    </div>
+                    <span class="toggle-state-text">{{ isRolePermitted('SUPERVISOR', perm.key) ? 'Habilitado' : 'Restringido' }}</span>
+                  </button>
+                </td>
+
+                <!-- Locked Pill ADMIN -->
+                <td style="text-align: center;">
+                  <div class="admin-locked-pill" title="El rol Administrador cuenta con acceso absoluto e irrestricto en toda la plataforma">
+                    <span class="lock-icon">🔒</span>
+                    <span class="lock-text">Acceso Total</span>
+                  </div>
+                </td>
+              </tr>
+
+              <tr *ngIf="filteredPermissionsList.length === 0">
+                <td colspan="5" class="perm-empty-filter">
+                  <span class="empty-icon">🔍</span>
+                  <p>No se encontraron capacidades que coincidan con la búsqueda o filtro seleccionado.</p>
+                  <button type="button" class="btn btn-secondary btn-sm" (click)="permSearchQuery = ''; permFilterCategory = 'ALL'">Limpiar Filtro</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 2. Excepciones y Permisos Especiales por Usuario -->
+      <div class="section-card glass-panel" style="margin-top: 16px;">
+        <div class="card-head">
+          <div>
+            <h4>2. Excepciones & Permisos Especiales por Usuario</h4>
+            <p class="section-sub">Otorga o revoca permisos específicos a un trabajador sin alterar el rol de los demás</p>
+          </div>
+        
+          <div class="user-select-box">
+            <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-secondary); margin-right: 8px;">Seleccionar Trabajador:</label>
+            <select class="form-select user-override-select" [(ngModel)]="selectedOverrideUserId">
+              <option value="">-- Selecciona un usuario para personalizar --</option>
+              <option *ngFor="let u of users" [value]="u.id">
+                {{ u.full_name }} ({{ u.role }} - Guardia {{ u.shift }})
+              </option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Si seleccionó un usuario -->
+        <div *ngIf="selectedOverrideUser" class="user-override-panel animate-fade-in">
+          <div class="user-override-badge">
+            <img [src]="selectedOverrideUser.avatar_url || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=80&q=80'" class="override-avatar" />
+            <div class="override-user-meta">
+              <strong>{{ selectedOverrideUser.full_name }}</strong>
+              <span>DNI: {{ selectedOverrideUser.document_id || '---' }} • Rol Base: <span class="role-pill">{{ selectedOverrideUser.role }}</span> • Guardia {{ selectedOverrideUser.shift }}</span>
+            </div>
+            <button type="button" class="btn btn-secondary btn-sm" (click)="clearUserOverrides(selectedOverrideUser.id)" *ngIf="hasCustomOverrides(selectedOverrideUser.id)">
+              Quitar Excepciones
+            </button>
+          </div>
+
+          <div class="override-switches-grid">
+            <div *ngFor="let perm of allPermissionsList" class="override-switch-card">
+              <div class="switch-texts">
+                <strong>{{ perm.label }}</strong>
+                <span class="switch-sub">{{ perm.description }}</span>
+                <span class="source-tag" [class.is-custom]="isOverridden(selectedOverrideUser.id, perm.key)">
+                  {{ isOverridden(selectedOverrideUser.id, perm.key) ? '⭐ Excepción Asignada' : 'Por Rol Base (' + selectedOverrideUser.role + ')' }}
+                </span>
+              </div>
+              <div class="switch-toggle-box">
+                <label class="toggle-switch">
+                  <input 
+                    type="checkbox" 
+                    [checked]="isEffectiveUserPermitted(selectedOverrideUser, perm.key)"
+                    (change)="toggleUserOverride(selectedOverrideUser.id, perm.key, $event)"
+                  />
+                  <span class="slider round"></span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <div *ngIf="!selectedOverrideUser" class="empty-override-state">
+          <span class="empty-icon">👤</span>
+          <p>Selecciona un trabajador en el desplegable superior para otorgarle o revocarle permisos específicos de forma individual.</p>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- APARTADO 6: PARÁMETROS DE PLANTA & METAS OPERACIONALES -->
+    <div class="plant-parameters-section animate-fade-in" *ngIf="activeAdminTab === 'PLANT_PARAMETERS'">
+      <div class="section-card glass-panel header-banner-card">
+        <div class="card-head">
+          <div class="head-with-icon">
+            <span class="fleet-icon">⚙️</span>
+            <div>
+              <h3>Calibrador de Parámetros de Planta & Metas Operacionales</h3>
+              <p class="section-sub">
+                Configuración centralizada de metas de producción, límites metalúrgicos y umbrales de seguridad operacional para toda la planta.
+              </p>
+            </div>
+          </div>
+          <div class="head-actions">
+            <button 
+              type="button" 
+              class="btn btn-secondary btn-sm" 
+              (click)="resetPlantParametersToDefaults()"
+              [disabled]="isSavingPlantParams"
+              title="Restablecer todos los umbrales a los valores nominales de fábrica"
+            >
+              <span>↺ Valores de Fábrica</span>
+            </button>
+            <button 
+              type="button" 
+              class="btn btn-primary btn-sm" 
+              (click)="savePlantParameters()"
+              [disabled]="isSavingPlantParams"
+              title="Guardar y propagar nuevos parámetros a toda la planta"
+            >
+              <span *ngIf="!isSavingPlantParams">💾 Guardar Parámetros</span>
+              <span *ngIf="isSavingPlantParams">Guardando...</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Feedback Alert Banners -->
+      <div *ngIf="plantParamsSuccessMessage" class="alert-banner alert-success animate-fade-in">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+          <polyline points="22 4 12 14.01 9 11.01"></polyline>
+        </svg>
+        <span>{{ plantParamsSuccessMessage }}</span>
+      </div>
+
+      <div *ngIf="plantParamsErrorMessage" class="alert-banner alert-danger animate-fade-in">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+        <span>{{ plantParamsErrorMessage }}</span>
+      </div>
+
+      <!-- Live Summary Metrics Bar -->
+      <div class="plant-metrics-bar glass-panel">
+        <div class="metric-pill">
+          <span class="m-icon">🎯</span>
+          <div class="m-content">
+            <span class="m-lbl">Meta Turno</span>
+            <strong class="m-val">{{ editablePlantParams.tonnage_target_shift | number }} <small>Ton</small></strong>
+          </div>
+        </div>
+        <div class="metric-pill">
+          <span class="m-icon">⚡</span>
+          <div class="m-content">
+            <span class="m-lbl">Tratamiento</span>
+            <strong class="m-val">{{ editablePlantParams.nominal_feed_rate_tph | number }} <small>TPH</small></strong>
+          </div>
+        </div>
+        <div class="metric-pill">
+          <span class="m-icon">🌀</span>
+          <div class="m-content">
+            <span class="m-lbl">Malla -200 OF</span>
+            <strong class="m-val">{{ editablePlantParams.cyclones_target_mesh200_of | number:'1.1-1' }}%</strong>
+          </div>
+        </div>
+        <div class="metric-pill">
+          <span class="m-icon">🛡️</span>
+          <div class="m-content">
+            <span class="m-lbl">Borde Libre Mín.</span>
+            <strong class="m-val">{{ editablePlantParams.tailings_min_freeboard_meters | number:'1.1-1' }} <small>m</small></strong>
+          </div>
+        </div>
+        <div class="metric-pill">
+          <span class="m-icon">🕒</span>
+          <div class="m-content">
+            <span class="m-lbl">Último Ajuste</span>
+            <strong class="m-val-sub">{{ editablePlantParams.updated_at | date:'dd/MM/yyyy HH:mm' }}</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4 Grid Cards of Operational Parameters -->
+      <div class="plant-params-grid">
+        <!-- CARD 1: Metas Generales de Producción & Turnos -->
+        <div class="param-card glass-panel">
+          <div class="param-card-header">
+            <span class="card-icon">🏭</span>
+            <div>
+              <h4>1. Producción & Turnos</h4>
+              <p class="card-desc">Nombre institucional, tonelaje de guardia y horarios de relevo</p>
+            </div>
+          </div>
+          <div class="param-card-body">
+            <div class="param-group">
+              <label>Nombre Oficial de la Planta</label>
+              <div class="param-input-wrap">
+                <input type="text" [(ngModel)]="editablePlantParams.plant_name" placeholder="Ej. Planta Concentradora" />
+              </div>
+              <span class="param-hint">Encabezado principal en bitácoras y reportes PDF</span>
+            </div>
+
+            <div class="param-row-2">
+              <div class="param-group">
+                <label>Meta de Tonelaje por Turno</label>
+                <div class="param-input-wrap">
+                  <input type="number" [(ngModel)]="editablePlantParams.tonnage_target_shift" min="1000" step="500" />
+                  <span class="param-unit">Ton/T</span>
+                </div>
+                <span class="param-hint">Base de cálculo en Relevo de Guardia</span>
+              </div>
+              <div class="param-group">
+                <label>Tratamiento Horario Nominal</label>
+                <div class="param-input-wrap">
+                  <input type="number" [(ngModel)]="editablePlantParams.nominal_feed_rate_tph" min="100" step="10" />
+                  <span class="param-unit">TPH</span>
+                </div>
+                <span class="param-hint">Capacidad horaria nominal de molienda</span>
+              </div>
+            </div>
+
+            <div class="param-row-2">
+              <div class="param-group">
+                <label>Horario Turno Día</label>
+                <div class="param-input-wrap">
+                  <input type="text" [(ngModel)]="editablePlantParams.shift_day_hours" placeholder="07:00 - 19:00" />
+                </div>
+              </div>
+              <div class="param-group">
+                <label>Horario Turno Noche</label>
+                <div class="param-input-wrap">
+                  <input type="text" [(ngModel)]="editablePlantParams.shift_night_hours" placeholder="19:00 - 07:00" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CARD 2: Control Metalúrgico & Ciclones -->
+        <div class="param-card glass-panel">
+          <div class="param-card-header">
+            <span class="card-icon">🌀</span>
+            <div>
+              <h4>2. Metalurgia & Ciclones (D20 / Cyclopac)</h4>
+              <p class="card-desc">Criterios granulométricos, corte de clasificación y presión manifold</p>
+            </div>
+          </div>
+          <div class="param-card-body">
+            <div class="param-row-2">
+              <div class="param-group">
+                <label>% Malla -200 Overflow (Objetivo)</label>
+                <div class="param-input-wrap">
+                  <input type="number" [(ngModel)]="editablePlantParams.cyclones_target_mesh200_of" min="50" max="95" step="0.5" />
+                  <span class="param-unit">%</span>
+                </div>
+                <span class="param-hint">Granulometría objetivo para flotación</span>
+              </div>
+              <div class="param-group">
+                <label>% Malla -200 Overflow (Mínimo)</label>
+                <div class="param-input-wrap">
+                  <input type="number" [(ngModel)]="editablePlantParams.cyclones_min_mesh200_of" min="50" max="95" step="0.5" />
+                  <span class="param-unit">%</span>
+                </div>
+                <span class="param-hint">Límite inferior para alertar gruesos</span>
+              </div>
+            </div>
+
+            <div class="param-row-2">
+              <div class="param-group">
+                <label>% Sólidos Underflow (Objetivo)</label>
+                <div class="param-input-wrap">
+                  <input type="number" [(ngModel)]="editablePlantParams.cyclones_target_solids_uf" min="40" max="85" step="0.5" />
+                  <span class="param-unit">%</span>
+                </div>
+                <span class="param-hint">Descarga hacia remolienda</span>
+              </div>
+              <div class="param-group">
+                <label>Densidad Alimentación Nominal</label>
+                <div class="param-input-wrap">
+                  <input type="number" [(ngModel)]="editablePlantParams.cyclones_feed_density_nominal" min="1000" max="2200" step="10" />
+                  <span class="param-unit">g/L</span>
+                </div>
+                <span class="param-hint">Densidad de pulpa de alimentación</span>
+              </div>
+            </div>
+
+            <div class="param-row-2">
+              <div class="param-group">
+                <label>Presión Mínima Manifold</label>
+                <div class="param-input-wrap">
+                  <input type="number" [(ngModel)]="editablePlantParams.cyclones_feed_pressure_min" min="5" max="30" step="0.5" />
+                  <span class="param-unit">PSI</span>
+                </div>
+                <span class="param-hint">Alerta de baja presión</span>
+              </div>
+              <div class="param-group">
+                <label>Presión Máxima Manifold</label>
+                <div class="param-input-wrap">
+                  <input type="number" [(ngModel)]="editablePlantParams.cyclones_feed_pressure_max" min="10" max="50" step="0.5" />
+                  <span class="param-unit">PSI</span>
+                </div>
+                <span class="param-hint">Alerta de sobrepresión en Cyclopac</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CARD 3: Transporte de Pulpa & Pozas Sentina -->
+        <div class="param-card glass-panel">
+          <div class="param-card-header">
+            <span class="card-icon">⚡</span>
+            <div>
+              <h4>3. Bombas de Pulpa & Sentinas</h4>
+              <p class="card-desc">Líneas slurry, capacidades volumétricas y niveles de poza</p>
+            </div>
+          </div>
+          <div class="param-card-body">
+            <div class="param-row-2">
+              <div class="param-group">
+                <label>Flujo Objetivo Slurry</label>
+                <div class="param-input-wrap">
+                  <input type="number" [(ngModel)]="editablePlantParams.pumps_slurry_flow_target" min="500" max="5000" step="50" />
+                  <span class="param-unit">m³/h</span>
+                </div>
+                <span class="param-hint">Régimen nominal de bombeo de relaves</span>
+              </div>
+              <div class="param-group">
+                <label>Presión Crítica Línea Slurry</label>
+                <div class="param-input-wrap">
+                  <input type="number" [(ngModel)]="editablePlantParams.pumps_critical_pressure_psi" min="30" max="150" step="5" />
+                  <span class="param-unit">PSI</span>
+                </div>
+                <span class="param-hint">Corte por sobrepresión de línea</span>
+              </div>
+            </div>
+
+            <div class="param-row-2">
+              <div class="param-group">
+                <label>Nivel de Advertencia Poza Sentina</label>
+                <div class="param-input-wrap">
+                  <input type="number" [(ngModel)]="editablePlantParams.sump_high_level_warning" min="50" max="95" step="1" />
+                  <span class="param-unit">%</span>
+                </div>
+                <span class="param-hint">Arranque automático de bombas de sentina</span>
+              </div>
+              <div class="param-group">
+                <label>Nivel Crítico de Peligro en Poza</label>
+                <div class="param-input-wrap">
+                  <input type="number" [(ngModel)]="editablePlantParams.sump_critical_level_danger" min="70" max="99" step="1" />
+                  <span class="param-unit">%</span>
+                </div>
+                <span class="param-hint">Riesgo inminente de rebose / parada</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CARD 4: Depósito de Relaves & Presa -->
+        <div class="param-card glass-panel">
+          <div class="param-card-header">
+            <span class="card-icon">🌊</span>
+            <div>
+              <h4>4. Depósito de Relaves & Presa de Agua</h4>
+              <p class="card-desc">Criterios de seguridad geotécnica e hidrológica de presa</p>
+            </div>
+          </div>
+          <div class="param-card-body">
+            <div class="param-row-2">
+              <div class="param-group">
+                <label>Borde Libre Mínimo (Freeboard)</label>
+                <div class="param-input-wrap">
+                  <input type="number" [(ngModel)]="editablePlantParams.tailings_min_freeboard_meters" min="0.5" max="10" step="0.1" />
+                  <span class="param-unit">m</span>
+                </div>
+                <span class="param-hint">Margen reglamentario de seguridad minera</span>
+              </div>
+              <div class="param-group">
+                <label>Cota Máxima Espejo de Agua</label>
+                <div class="param-input-wrap">
+                  <input type="number" [(ngModel)]="editablePlantParams.tailings_max_dam_level_msnm" min="1000" max="6000" step="1" />
+                  <span class="param-unit">msnm</span>
+                </div>
+                <span class="param-hint">Cota de diseño autorizada</span>
+              </div>
+            </div>
+
+            <div class="param-row-2">
+              <div class="param-group">
+                <label>Presión Piezométrica Máxima</label>
+                <div class="param-input-wrap">
+                  <input type="number" [(ngModel)]="editablePlantParams.tailings_max_piezometer_kpa" min="10" max="500" step="5" />
+                  <span class="param-unit">kPa</span>
+                </div>
+                <span class="param-hint">Estabilidad del muro de contención</span>
+              </div>
+              <div class="param-group">
+                <label>% Sólidos Nominales Descarga</label>
+                <div class="param-input-wrap">
+                  <input type="number" [(ngModel)]="editablePlantParams.tailings_solids_nominal_pct" min="30" max="80" step="0.5" />
+                  <span class="param-unit">%</span>
+                </div>
+                <span class="param-hint">Densidad en línea de relaves espesados</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer Action Strip -->
+      <div class="params-footer-actions glass-panel">
+        <div class="footer-info">
+          <span class="info-dot"></span>
+          <span>Los cambios guardados se sincronizan automáticamente con el Módulo de Cambio de Guardia, Ciclones y Descarga.</span>
+        </div>
+        <div class="footer-btns">
+          <button 
+            type="button" 
+            class="btn btn-secondary" 
+            (click)="resetPlantParametersToDefaults()"
+            [disabled]="isSavingPlantParams"
+          >
+            ↺ Restablecer Valores de Fábrica
+          </button>
+          <button 
+            type="button" 
+            class="btn btn-primary" 
+            (click)="savePlantParameters()"
+            [disabled]="isSavingPlantParams"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            <span>{{ isSavingPlantParams ? 'Guardando...' : 'Guardar y Aplicar Parámetros' }}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- APARTADO 7: PADRÓN DE CAMIONETAS MINERAS 4X4 (Gestión de Flota) -->
+    <div class="vehicles-fleet-section animate-fade-in" *ngIf="activeAdminTab === 'VEHICLES_FLEET'">
+      <div class="section-card glass-panel header-banner-card">
+        <div class="card-head">
+          <div class="head-with-icon">
+            <span class="fleet-icon">🛻</span>
+            <div>
+              <h3>Padrón Oficial de Camionetas Mineras (Flota 4x4)</h3>
+              <p class="section-sub">
+                Control oficial de unidades para inspección pre-uso (DS-024-2016-EM). Da de alta nuevas camionetas, actualiza placas o da de baja unidades operativas sin tocar código.
+              </p>
+            </div>
+          </div>
+          <div class="head-actions">
+            <button 
+              type="button" 
+              class="btn btn-secondary btn-sm" 
+              (click)="loadVehiclesFleet()"
+              [disabled]="isLoadingVehicles"
+              title="Actualizar listado de camionetas"
+            >
+              <span>↺ Refrescar Padrón</span>
+            </button>
+            <button 
+              type="button" 
+              class="btn btn-primary btn-sm" 
+              (click)="openCreateVehicleModal()"
+              title="Dar de alta una nueva camioneta en el padrón"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              <span>+ Dar de Alta Camioneta</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Feedback Alert Messages -->
+      <div *ngIf="vehicleActionSuccessMessage" class="feedback-banner glass-panel animate-fade-in" style="margin-bottom: 16px;">
+        <div class="feedback-icon">✅</div>
+        <div class="feedback-text">{{ vehicleActionSuccessMessage }}</div>
+      </div>
+      <div *ngIf="vehicleActionErrorMessage" class="feedback-banner glass-panel animate-fade-in" style="margin-bottom: 16px; border-color: rgba(239, 68, 68, 0.4); background: rgba(254, 242, 242, 0.9);">
+        <div class="feedback-icon">⚠️</div>
+        <div class="feedback-text" style="color: #991b1b;">{{ vehicleActionErrorMessage }}</div>
+      </div>
+
+      <!-- KPI Metrics Grid: Flota -->
+      <div class="fleet-kpi-grid">
+        <div class="fleet-kpi-card glass-panel">
+          <div class="kpi-icon-wrap" style="background: rgba(3, 23, 149, 0.08); color: #031795;">
+            <span style="font-size: 1.4rem;">🛻</span>
+          </div>
+          <div class="kpi-data">
+            <span class="kpi-label">Total en Padrón</span>
+            <strong class="kpi-num">{{ vehiclesList.length }}</strong>
+            <span class="kpi-hint">Unidades registradas</span>
+          </div>
+        </div>
+
+        <div class="fleet-kpi-card glass-panel">
+          <div class="kpi-icon-wrap" style="background: rgba(16, 185, 129, 0.1); color: #059669;">
+            <span style="font-size: 1.4rem;">✅</span>
+          </div>
+          <div class="kpi-data">
+            <span class="kpi-label">Activas en Operación</span>
+            <strong class="kpi-num" style="color: #059669;">{{ activeVehiclesCount }}</strong>
+            <span class="kpi-hint">Disponibles en checklists</span>
+          </div>
+        </div>
+
+        <div class="fleet-kpi-card glass-panel">
+          <div class="kpi-icon-wrap" style="background: rgba(239, 68, 68, 0.1); color: #dc2626;">
+            <span style="font-size: 1.4rem;">⛔</span>
+          </div>
+          <div class="kpi-data">
+            <span class="kpi-label">Dadas de Baja</span>
+            <strong class="kpi-num" style="color: #dc2626;">{{ decommissionedVehiclesCount }}</strong>
+            <span class="kpi-hint">Desmovilizadas / Inactivas</span>
+          </div>
+        </div>
+
+        <div class="fleet-kpi-card glass-panel">
+          <div class="kpi-icon-wrap" style="background: rgba(245, 158, 11, 0.1); color: #d97706;">
+            <span style="font-size: 1.4rem;">⏱️</span>
+          </div>
+          <div class="kpi-data">
+            <span class="kpi-label">Kilometraje Flota</span>
+            <strong class="kpi-num" style="color: #d97706;">{{ totalFleetOdometer | number }}</strong>
+            <span class="kpi-hint">Kilómetros acumulados</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filter & Search Toolbar -->
+      <div class="section-card glass-panel" style="padding: 16px 20px;">
+        <div class="fleet-toolbar">
+          <div class="search-input-wrap">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input 
+              type="text" 
+              class="search-input" 
+              placeholder="Buscar por placa, tag (CAM-01), modelo, área o conductor..." 
+              [(ngModel)]="vehiclesSearchQuery"
+            />
+            <button *ngIf="vehiclesSearchQuery" class="clear-search-btn" (click)="vehiclesSearchQuery = ''">✕</button>
+          </div>
+
+          <div class="status-filters-group">
+            <button 
+              type="button" 
+              class="status-filter-btn" 
+              [class.active]="vehiclesFilterStatus === 'ALL'"
+              (click)="vehiclesFilterStatus = 'ALL'"
+            >
+              Todas ({{ vehiclesList.length }})
+            </button>
+            <button 
+              type="button" 
+              class="status-filter-btn" 
+              [class.active]="vehiclesFilterStatus === 'ACTIVE'"
+              (click)="vehiclesFilterStatus = 'ACTIVE'"
+            >
+              Solo Activas ({{ activeVehiclesCount }})
+            </button>
+            <button 
+              type="button" 
+              class="status-filter-btn" 
+              [class.active]="vehiclesFilterStatus === 'INACTIVE'"
+              (click)="vehiclesFilterStatus = 'INACTIVE'"
+            >
+              Dadas de Baja ({{ decommissionedVehiclesCount }})
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Vehicles Table -->
+      <div class="section-card glass-panel" style="padding: 0; overflow: hidden;">
+        <div class="table-responsive">
+          <table class="data-table fleet-table">
+            <thead>
+              <tr>
+                <th style="width: 140px;">Placa Minera</th>
+                <th style="width: 110px;">Código (Tag)</th>
+                <th>Modelo & Color</th>
+                <th>Área Operativa Asignada</th>
+                <th style="text-align: right;">Odómetro Base</th>
+                <th style="text-align: right;">Odómetro Actual</th>
+                <th style="text-align: center;">Estado en Padrón</th>
+                <th>Último Checklist</th>
+                <th style="text-align: center; width: 180px;">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let veh of filteredVehiclesList" [class.row-inactive]="veh.is_active === 0 || veh.is_active === false">
+                <!-- Placa Badge -->
+                <td>
+                  <div class="mining-plate-badge" [class.plate-inactive]="veh.is_active === 0 || veh.is_active === false">
+                    <span class="plate-country">PERÚ</span>
+                    <strong class="plate-text">{{ veh.plate }}</strong>
+                  </div>
+                </td>
+
+                <!-- Tag -->
+                <td>
+                  <span class="unit-code-badge">{{ veh.tag }}</span>
+                </td>
+
+                <!-- Modelo & Color -->
+                <td>
+                  <div class="veh-model-cell">
+                    <strong class="veh-model-name">{{ veh.model }}</strong>
+                    <span class="veh-color-name">{{ veh.color }}</span>
+                  </div>
+                </td>
+
+                <!-- Área Operativa -->
+                <td>
+                  <span class="veh-area-pill">{{ veh.area }}</span>
+                </td>
+
+                <!-- Odómetro Base -->
+                <td style="text-align: right; font-variant-numeric: tabular-nums;">
+                  {{ veh.baseOdometer | number }} km
+                </td>
+
+                <!-- Odómetro Actual -->
+                <td style="text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; color: #031795;">
+                  {{ veh.currentOdometer | number }} km
+                </td>
+
+                <!-- Estado en Padrón -->
+                <td style="text-align: center;">
+                  <span 
+                    class="fleet-status-badge"
+                    [class.status-active]="veh.is_active !== 0 && veh.is_active !== false"
+                    [class.status-decommissioned]="veh.is_active === 0 || veh.is_active === false"
+                  >
+                    <span class="status-indicator-dot"></span>
+                    {{ (veh.is_active !== 0 && veh.is_active !== false) ? 'Activa en Faena' : 'Dada de Baja' }}
+                  </span>
+                </td>
+
+                <!-- Último Checklist -->
+                <td>
+                  <div class="last-chk-cell" *ngIf="veh.lastChecklistDate; else noChecklistYet">
+                    <span class="chk-date">{{ veh.lastChecklistDate }} {{ veh.lastChecklistTime || '' }}</span>
+                    <span class="chk-driver">{{ veh.lastDriverName || 'Operador' }}</span>
+                    <span 
+                      class="chk-status-pill"
+                      [class.pill-apto]="veh.lastOperationalStatus === 'APTO'"
+                      [class.pill-observado]="veh.lastOperationalStatus === 'OBSERVADO'"
+                      [class.pill-no_apto]="veh.lastOperationalStatus === 'NO_APTO'"
+                    >
+                      {{ veh.lastOperationalStatus }}
+                    </span>
+                  </div>
+                  <ng-template #noChecklistYet>
+                    <span class="no-chk-muted">Sin inspecciones aún</span>
+                  </ng-template>
+                </td>
+
+                <!-- Acciones -->
+                <td style="text-align: center;">
+                  <div class="fleet-actions-cell">
+                    <!-- Editar datos y placa -->
+                    <button 
+                      type="button" 
+                      class="btn btn-secondary btn-xs" 
+                      (click)="openEditVehicleModal(veh)"
+                      title="Editar datos de camioneta o actualizar placa"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                      </svg>
+                      <span>Editar</span>
+                    </button>
+
+                    <!-- Dar de baja / Reactivar -->
+                    <button 
+                      type="button" 
+                      class="btn btn-xs"
+                      [class.btn-warning-outline]="veh.is_active !== 0 && veh.is_active !== false"
+                      [class.btn-emerald-outline]="veh.is_active === 0 || veh.is_active === false"
+                      (click)="toggleVehicleActiveStatus(veh)"
+                      [title]="(veh.is_active !== 0 && veh.is_active !== false) ? 'Dar de baja de la faena' : 'Reactivar en faena'"
+                    >
+                      <span>{{ (veh.is_active !== 0 && veh.is_active !== false) ? 'Baja' : 'Reactivar' }}</span>
+                    </button>
+
+                    <!-- Eliminar -->
+                    <button 
+                      type="button" 
+                      class="btn btn-danger-outline btn-xs" 
+                      (click)="deleteVehicleFromFleet(veh)"
+                      title="Eliminar del padrón"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                      </svg>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+
+              <tr *ngIf="filteredVehiclesList.length === 0">
+                <td colspan="9" style="text-align: center; padding: 40px 20px;">
+                  <div style="font-size: 2rem; margin-bottom: 8px;">🔍</div>
+                  <h4 style="margin: 0 0 4px; color: var(--text-heading);">No se encontraron camionetas</h4>
+                  <p style="margin: 0; font-size: 0.85rem; color: var(--text-muted);">
+                    No hay unidades que coincidan con los filtros de búsqueda aplicados.
+                  </p>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+    <!-- Modal Bulk Import Users (Organizado por Guardias y Supervisores) -->
+    <app-modal
+      [isOpen]="isBulkModalOpen"
+      [title]="'Carga Masiva de Personal por Lote (Por Guardia y Supervisor)'"
+      [showFooter]="true"
+      (close)="isBulkModalOpen = false"
+    >
+      <div class="bulk-modal-container">
+        <!-- 1. Guardia Objetivo & Ámbito de Carga -->
+        <div class="bulk-scope-card">
+          <div class="scope-row">
+            <div class="scope-select-wrap">
+              <label class="scope-label">🎯 Guardia Destino:</label>
+              <select 
+                class="scope-select"
+                [(ngModel)]="bulkTargetShift"
+                (ngModelChange)="onTargetShiftChange($event)"
+              >
+                <option value="TODAS">🌟 Todas las Guardias (G1 a G4 - Planta Completa)</option>
+                <option value="G1">🛡️ Guardia 1 (G1)</option>
+                <option value="G2">🛡️ Guardia 2 (G2)</option>
+                <option value="G3">🛡️ Guardia 3 (G3)</option>
+                <option value="G4">🛡️ Guardia 4 (G4)</option>
+              </select>
+            </div>
+
+            <!-- Quick Template Download Buttons -->
+            <div class="scope-actions">
+              <button
+                type="button"
+                class="btn-tpl"
+                (click)="downloadTemplateCsv('TARGET')"
+                title="Descargar plantilla CSV con 1 Supervisor + 7 Operadores para la guardia seleccionada"
+              >
+                ⬇️ Plantilla {{ bulkTargetShift === 'TODAS' ? 'Guardia G1' : 'Guardia ' + bulkTargetShift }}
+              </button>
+              <button
+                type="button"
+                class="btn-tpl btn-tpl-primary"
+                (click)="downloadTemplateCsv('ALL')"
+                title="Descargar plantilla maestra completa de las 4 guardias oficiales (32 colaboradores)"
+              >
+                ⬇️ Plantilla Maestra (32 Puestos G1-G4)
+              </button>
+            </div>
+          </div>
+
+          <!-- Target Guard Supervisor Info Banner -->
+          <div class="guard-sup-banner" *ngIf="bulkTargetShift !== 'TODAS'">
+            <div class="sup-avatar-badge">
+              <img [src]="getSupervisorForShift(bulkTargetShift).avatar" alt="Supervisor" />
+              <span class="sup-crown">👑</span>
+            </div>
+            <div class="sup-banner-info">
+              <div class="sup-title">
+                <strong>Supervisor Responsable: {{ getSupervisorForShift(bulkTargetShift).name }}</strong>
+                <span class="badge badge-emerald">Jefatura {{ bulkTargetShift }}</span>
+              </div>
+              <div class="sup-meta">
+                <span>DNI: <strong>{{ getSupervisorForShift(bulkTargetShift).dni }}</strong></span>
+                <span>Usuario: <code>@{{ getSupervisorForShift(bulkTargetShift).username }}</code></span>
+                <span>Correo: {{ getSupervisorForShift(bulkTargetShift).email }}</span>
+              </div>
+              <div class="sup-note">
+                ℹ️ Los operadores cargados se asignarán a la <strong>Guardia {{ bulkTargetShift }}</strong> y se vincularán automáticamente bajo este supervisor.
+              </div>
+            </div>
+          </div>
+
+          <div class="guard-all-banner" *ngIf="bulkTargetShift === 'TODAS'">
+            <span class="banner-icon">📋</span>
+            <div>
+              <strong>Modo Multiguardia Activo:</strong> Se cargará la dotación para G1, G2, G3 y G4. Cada operador se vinculará automáticamente al supervisor de su respectiva guardia (1 Supervisor + 7 Operadores por guardia = 32 puestos oficiales).
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Mode Tabs (CSV vs Paste) -->
+        <div class="bulk-mode-tabs">
+          <button
+            type="button"
+            class="bulk-tab-btn"
+            [class.active]="bulkTab === 'CSV'"
+            (click)="bulkTab = 'CSV'"
+          >
+            📁 Subir Archivo (.csv)
+          </button>
+          <button
+            type="button"
+            class="bulk-tab-btn"
+            [class.active]="bulkTab === 'PASTE'"
+            (click)="bulkTab = 'PASTE'"
+          >
+            📋 Pegar desde Excel / Hojas de Cálculo
+          </button>
+        </div>
+
+        <!-- Tab 1: CSV Upload -->
+        <div class="bulk-input-section" *ngIf="bulkTab === 'CSV'">
+          <div class="upload-dropzone">
+            <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#031795" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+            <p class="dropzone-text">Selecciona o arrastra el archivo <strong>.csv</strong> con la nómina organizada</p>
+            <span class="dropzone-sub">Formato compatible: UTF-8, delimitado por comas (,) o punto y coma (;)</span>
+            <input
+              type="file"
+              accept=".csv,.txt"
+              class="file-input-hidden"
+              id="csvFileInput"
+              (change)="onCsvFileSelected($event)"
+            />
+            <label for="csvFileInput" class="btn btn-secondary btn-sm" style="cursor: pointer;">Examinar Archivo...</label>
+          </div>
+        </div>
+
+        <!-- Tab 2: Copy-Paste from Excel -->
+        <div class="bulk-input-section" *ngIf="bulkTab === 'PASTE'">
+          <label class="form-label" style="font-size: 0.8rem; font-weight: 700; color: var(--text-secondary);">
+            Pega las celdas copiadas directamente de Excel o Google Sheets:
+          </label>
+          <textarea
+            class="paste-textarea"
+            rows="5"
+            [(ngModel)]="pastedText"
+            (ngModelChange)="parsePastedText()"
+            placeholder="Ejemplo:&#10;op_g1_bombas&#9;Carlos Barrios Huamán&#9;carlos@mina.com&#9;&#9;OPERATOR&#9;G1&#9;70412891&#9;Canal 3 Bombas&#9;Ext. 4102&#9;OPERADOR_BOMBAS&#10;op_g1_ciclon1&#9;Fabián Morales Arce&#9;fabian@mina.com&#9;&#9;OPERATOR&#9;G1&#9;70412892&#9;Canal 2 Ciclones&#9;Ext. 4103&#9;OPERADOR_CICLONES_1"
+          ></textarea>
+          <span class="textarea-hint">Detecta automáticamente tabulaciones de Excel. Si falta la columna de guardia, se usará la guardia seleccionada: <strong>{{ bulkTargetShift }}</strong>.</span>
+        </div>
+
+        <!-- 3. Previsualización Organizada por Guardia y Supervisor -->
+        <div class="bulk-preview-section" *ngIf="parsedBulkUsers.length > 0">
+          <div class="preview-head">
+            <div class="head-title-wrap">
+              <h4>Nómina Detectada ({{ parsedBulkUsers.length }} Filas)</h4>
+              <div class="preview-stats">
+                <span class="stat-badge stat-valid">✓ {{ validBulkCount }} Listos</span>
+                <span class="stat-badge stat-invalid" *ngIf="invalidBulkCount > 0">⚠️ {{ invalidBulkCount }} Observados</span>
+              </div>
+            </div>
+
+            <!-- Filtro de Guardia en Previsualización -->
+            <div class="preview-shift-chips">
+              <button
+                type="button"
+                class="shift-chip"
+                [class.active]="bulkPreviewFilterShift === 'TODAS'"
+                (click)="bulkPreviewFilterShift = 'TODAS'"
+              >
+                Todas ({{ parsedBulkUsers.length }})
+              </button>
+              <button
+                *ngFor="let s of ['G1', 'G2', 'G3', 'G4']"
+                type="button"
+                class="shift-chip"
+                [class.active]="bulkPreviewFilterShift === s"
+                (click)="setBulkPreviewFilterShift(s)"
+              >
+                🛡️ {{ s }} ({{ getParsedUsersForShift(s).length }})
+              </button>
+            </div>
+          </div>
+
+          <!-- Previsualización por cada Guardia -->
+          <div class="preview-guards-accordion">
+            <div *ngFor="let shift of visibleShiftsInPreview" class="guard-accordion-item">
+              <div class="guard-accordion-head">
+                <div class="accordion-head-left">
+                  <span class="guard-badge">🛡️ Guardia {{ shift }}</span>
+                  <span class="guard-sup-name">
+                    Supervisor Oficial: <strong>{{ getSupervisorForShift(shift).name }}</strong>
+                  </span>
+                </div>
+                <div class="accordion-head-right">
+                  <span class="dotation-pill" [class.complete]="getParsedOperatorsForShift(shift).length >= 7">
+                    Dotación: {{ getParsedOperatorsForShift(shift).length }}/7 Operadores
+                    {{ getParsedSupervisorForShift(shift) ? '+ 1 Supervisor' : '' }}
+                  </span>
+                </div>
+              </div>
+
+              <!-- Supervisor Row / Banner -->
+              <div class="accordion-supervisor-block">
+                <div class="sup-card-mini" *ngIf="getParsedSupervisorForShift(shift) as sup">
+                  <span class="sup-tag">👑 SUPERVISOR REGISTRADO EN ARCHIVO</span>
+                  <div class="sup-row-content">
+                    <span class="sup-avatar">👑</span>
+                    <div class="sup-info">
+                      <strong>{{ sup.full_name }}</strong>
+                      <span class="sup-sub">@{{ sup.username }} | DNI: {{ sup.document_id || '---' }} | {{ sup.email }}</span>
+                    </div>
+                    <span class="status-indicator" [class.valid]="sup.isValid" [class.invalid]="!sup.isValid">
+                      {{ sup.isValid ? '✓ Listo' : '⚠️ ' + sup.validationMsg }}
+                    </span>
+                  </div>
+                </div>
+
+                <div class="sup-card-mini existing" *ngIf="!getParsedSupervisorForShift(shift)">
+                  <span class="sup-tag">👑 SUPERVISOR OFICIAL EXISTENTE (ASIGNADO)</span>
+                  <div class="sup-row-content">
+                    <img [src]="getSupervisorForShift(shift).avatar" class="sup-avatar-img" />
+                    <div class="sup-info">
+                      <strong>{{ getSupervisorForShift(shift).name }}</strong>
+                      <span class="sup-sub">@{{ getSupervisorForShift(shift).username }} | DNI: {{ getSupervisorForShift(shift).dni }} | {{ getSupervisorForShift(shift).email }}</span>
+                    </div>
+                    <span class="badge badge-emerald">Jefe Activo (Auto-vincular)</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Operators Table -->
+              <div class="accordion-operators-block">
+                <div class="preview-table-wrapper">
+                  <table class="preview-table">
+                    <thead>
+                      <tr>
+                        <th>ESTADO</th>
+                        <th>PUESTO OPERACIONAL</th>
+                        <th>NOMBRE COMPLETO</th>
+                        <th>DNI</th>
+                        <th>USUARIO</th>
+                        <th>CORREO</th>
+                        <th>CANAL RADIO</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let op of getParsedOperatorsForShift(shift)" [class.row-invalid]="!op.isValid">
+                        <td>
+                          <span class="status-indicator" [class.valid]="op.isValid" [class.invalid]="!op.isValid">
+                            {{ op.isValid ? '✓ Listo' : '⚠️ ' + op.validationMsg }}
+                          </span>
+                        </td>
+                        <td>
+                          <span class="op-position-pill">
+                            <span class="pos-icon">{{ formatPrimaryRole(op.primary_role).icon }}</span>
+                            <span class="pos-label">{{ formatPrimaryRole(op.primary_role).label }}</span>
+                          </span>
+                        </td>
+                        <td><strong>{{ op.full_name }}</strong></td>
+                        <td><code>{{ op.document_id || '---' }}</code></td>
+                        <td>{{ op.username }}</td>
+                        <td>{{ op.email }}</td>
+                        <td>{{ op.radio_channel || '---' }}</td>
+                      </tr>
+                      <tr *ngIf="getParsedOperatorsForShift(shift).length === 0">
+                        <td colspan="7" class="text-center text-muted" style="padding: 12px;">
+                          Sin operadores detectados para Guardia {{ shift }}.
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div footer class="modal-footer-actions">
+        <button type="button" class="btn btn-secondary" [disabled]="isImporting" (click)="isBulkModalOpen = false">
+          Cancelar
+        </button>
+        <button
+          type="button"
+          class="btn btn-primary"
+          [disabled]="validBulkCount === 0 || isImporting"
+          (click)="executeBulkImport()"
+        >
+          <span *ngIf="!isImporting">
+            🚀 Confirmar e Importar {{ validBulkCount }} Trabajadores (Vincular a Guardias)
+          </span>
+          <span *ngIf="isImporting" class="btn-importing-status">
+            <span class="btn-spinner"></span> Importando y vinculando a supervisores...
+          </span>
+        </button>
+      </div>
+    </app-modal>
+
+    <!-- Modal: Editar Rol y Guardia -->
+    <app-modal [isOpen]="isEditUserModalOpen" [title]="'Editar Usuario: ' + (selectedUserForEdit?.username || '')" (close)="isEditUserModalOpen = false">
+      <div class="edit-modal-form" *ngIf="selectedUserForEdit">
+        <div class="modal-user-summary">
+          <img [src]="selectedUserForEdit.avatar_url || 'https://api.dicebear.com/7.x/bottts/svg?seed=' + selectedUserForEdit.username" class="modal-avatar" />
+          <div>
+            <strong>{{ selectedUserForEdit.full_name }}</strong>
+            <div class="user-sub">{{ selectedUserForEdit.email }}</div>
+          </div>
+        </div>
+
+        <div class="form-grid" style="margin-top: 16px;">
+          <div class="form-group">
+            <label>Rol de Acceso RBAC:</label>
+            <select [(ngModel)]="editRole" class="modal-select">
+              <option value="ADMIN">ADMIN (Acceso Total Planta)</option>
+              <option value="SUPERVISOR">SUPERVISOR (Aprobaciones y Relevos)</option>
+              <option value="OPERATOR">OPERATOR (Operaciones y Muestras)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Guardia Asignada:</label>
+            <select [(ngModel)]="editShift" class="modal-select">
+              <option value="G1">Guardia G1</option>
+              <option value="G2">Guardia G2</option>
+              <option value="G3">Guardia G3</option>
+              <option value="G4">Guardia G4</option>
+            </select>
+          </div>
+        </div>
+
+        <p class="modal-help-text">
+          ℹ️ Al modificar la guardia o rol, los cambios se sincronizan automáticamente con el registro de <strong>Gestión de Cuadrilla</strong>.
+        </p>
+      </div>
+
+      <div footer class="modal-footer-actions">
+        <button type="button" class="btn btn-secondary" (click)="isEditUserModalOpen = false">Cancelar</button>
+        <button type="button" class="btn btn-primary" (click)="saveUserRoleShift()" [disabled]="isSavingUser">
+          {{ isSavingUser ? 'Guardando...' : 'Guardar Cambios' }}
+        </button>
+      </div>
+    </app-modal>
+
+    <!-- Modal: Restablecer Contraseña -->
+    <app-modal [isOpen]="isResetPasswordModalOpen" [title]="'Restablecer Contraseña: ' + (selectedUserForReset?.username || '')" (close)="isResetPasswordModalOpen = false">
+      <div class="edit-modal-form" *ngIf="selectedUserForReset">
+        <div class="modal-user-summary">
+          <div class="key-icon-badge">🔑</div>
+          <div>
+            <strong>{{ selectedUserForReset.full_name }}</strong>
+            <div class="user-sub">Usuario: <code>{{ selectedUserForReset.username }}</code></div>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-top: 16px;">
+          <label>Contraseña temporal (opcional):</label>
+          <input 
+            type="text" 
+            [(ngModel)]="resetNewPassword" 
+            placeholder="Vacío = generar una aleatoria (recomendado)" 
+            class="modal-input"
+          />
+        </div>
+
+        <p class="modal-help-text">
+          🔒 Si dejas el campo vacío se genera una <strong>contraseña temporal aleatoria</strong>. El usuario deberá cambiarla en su próximo inicio de sesión.
+        </p>
+      </div>
+
+      <div footer class="modal-footer-actions">
+        <button type="button" class="btn btn-secondary" (click)="isResetPasswordModalOpen = false">Cancelar</button>
+        <button type="button" class="btn btn-primary" (click)="confirmResetPassword()" [disabled]="isSavingUser">
+          {{ isSavingUser ? 'Restableciendo...' : 'Confirmar Nueva Contraseña' }}
+        </button>
+      </div>
+    </app-modal>
+
+    <!-- Modal: Credenciales temporales emitidas (se muestran una sola vez) -->
+    <app-modal [isOpen]="isCredentialsModalOpen" [title]="'Contraseñas temporales emitidas'" (close)="closeCredentialsModal()">
+      <div class="edit-modal-form">
+        <p class="modal-help-text">
+          ⚠️ Entrega a cada persona su contraseña temporal. <strong>No se volverán a mostrar</strong>: descárgalas o cópialas ahora.
+          Al iniciar sesión, cada usuario deberá elegir su propia contraseña.
+        </p>
+        <div class="table-responsive" style="max-height: 320px; overflow-y: auto; margin-top: 12px;">
+          <table class="data-table">
+            <thead>
+              <tr><th>Usuario</th><th>Nombre</th><th>Contraseña temporal</th></tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let c of issuedCredentials">
+                <td><code>{{ c.username }}</code></td>
+                <td>{{ c.full_name }}</td>
+                <td><code>{{ c.temporaryPassword }}</code></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div footer class="modal-footer-actions">
+        <button type="button" class="btn btn-secondary" (click)="copyIssuedCredentials()">{{ credentialsCopied ? '✓ Copiado' : 'Copiar' }}</button>
+        <button type="button" class="btn btn-secondary" (click)="downloadIssuedCredentials()">Descargar CSV</button>
+        <button type="button" class="btn btn-primary" (click)="closeCredentialsModal()">Listo</button>
+      </div>
+    </app-modal>
+
+    <!-- Cloud Backend API Server Config Modal -->
+    <app-modal
+      [isOpen]="isBackendConfigModalOpen"
+      [title]="'Configuración de Servidor Central / Cloud Backend'"
+      (close)="isBackendConfigModalOpen = false"
+    >
+      <div class="cloud-backend-modal">
+        <p class="modal-description">
+          BASETRACK requiere una URL de servidor central HTTPS para sincronizar usuarios, reportes de guardia y parámetros operativos en tiempo real entre múltiples dispositivos (celulares, computadoras y tablets).
+        </p>
+
+        <div class="form-group" style="margin-top: 16px;">
+          <label style="font-weight: 600; display: block; margin-bottom: 6px;">URL del Servidor Backend (API URL):</label>
+          <div class="input-with-action">
+            <input
+              type="url"
+              [(ngModel)]="customApiUrlInput"
+              placeholder="Ej: https://basetrack-api.onrender.com/api"
+              class="modal-input"
+            />
+            <button
+              type="button"
+              class="btn btn-secondary btn-sm"
+              (click)="testBackendConnection()"
+              [disabled]="isTestingApiConnection"
+            >
+              {{ isTestingApiConnection ? 'Probando...' : 'Probar Conexión' }}
+            </button>
+          </div>
+          <span class="input-hint">Debe incluir <code>https://</code> y terminar en <code>/api</code> si está en producción.</span>
+        </div>
+
+        <!-- Connection Test Feedback -->
+        <div *ngIf="apiConnectionTestStatus !== 'idle'" 
+             class="conn-test-box" 
+             [class.conn-success]="apiConnectionTestStatus === 'success'"
+             [class.conn-error]="apiConnectionTestStatus === 'error'">
+          <div class="conn-test-icon">{{ apiConnectionTestStatus === 'success' ? '✅' : '❌' }}</div>
+          <div class="conn-test-text">{{ apiConnectionTestMessage }}</div>
+        </div>
+
+        <!-- Step-by-step deploy instructions for Render.com -->
+        <div class="cloud-guide-card">
+          <h5>🚀 ¿Cómo tener tu servidor cloud 100% gratuito en Render.com?</h5>
+          <ol class="guide-steps">
+            <li>Crea una cuenta gratuita en <a href="https://render.com" target="_blank" rel="noopener">Render.com</a>.</li>
+            <li>Haz clic en <strong>New +</strong> &rarr; <strong>Web Service</strong> y conecta este repositorio de GitHub.</li>
+            <li>Configura las opciones del servicio:
+              <ul>
+                <li><strong>Root Directory:</strong> <code>server</code></li>
+                <li><strong>Build Command:</strong> <code>npm install && npm run build</code></li>
+                <li><strong>Start Command:</strong> <code>npm start</code></li>
+              </ul>
+            </li>
+            <li>Copia la URL HTTPS generada (ej: <code>https://tu-servicio.onrender.com/api</code>) y pégala aquí.</li>
+          </ol>
+        </div>
+      </div>
+
+      <div footer class="modal-footer-actions">
+        <button type="button" class="btn btn-secondary" (click)="resetBackendToDefault()">Restaurar Local</button>
+        <button type="button" class="btn btn-primary" (click)="saveBackendConfig()">Guardar y Conectar</button>
+      </div>
+    </app-modal>
+
+    <!-- Modal: Vincular Operador a Supervisor -->
+    <app-modal
+      [isOpen]="isAssignOperatorModalOpen"
+      [title]="'Vincular Operador a Cuadrilla: ' + (selectedSupervisor?.full_name || 'Supervisor')"
+      [showFooter]="true"
+      (close)="isAssignOperatorModalOpen = false"
+    >
+      <div class="modal-form" *ngIf="selectedSupervisor">
+        <div class="modal-user-summary">
+          <img [src]="selectedSupervisor.avatar_url || 'https://api.dicebear.com/7.x/bottts/svg?seed=' + selectedSupervisor.username" class="modal-avatar" />
+          <div>
+            <strong>{{ selectedSupervisor.full_name }}</strong>
+            <div class="user-sub">{{ selectedSupervisor.role }} | Guardia: {{ selectedSupervisor.shift }} | {{ selectedSupervisor.email }}</div>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-top: 14px;">
+          <label class="form-label" style="font-size: 0.82rem; font-weight: 700; color: var(--text-primary);">
+            Buscar Operador de Planta:
+          </label>
+          <input 
+            type="text" 
+            class="modal-input" 
+            placeholder="Escribe nombre, DNI o cargo..." 
+            [(ngModel)]="operatorSearchQuery"
+          />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" style="font-size: 0.82rem; font-weight: 700; color: var(--text-primary);">
+            Seleccionar Operador ({{ unassignedOperatorsForSelectedSupervisor.length }} disponibles):
+          </label>
+          <select class="modal-select" [(ngModel)]="operatorToAssignId">
+            <option value="" disabled>-- Selecciona un Operador --</option>
+            <optgroup [label]="'Recomendados Guardia ' + selectedSupervisor.shift">
+              <option *ngFor="let op of getOperatorsForSelectedShift()" [value]="op.id">
+                {{ op.name }} ({{ formatRoleName(op.primary_role) }} - DNI: {{ op.document_id }})
+              </option>
+            </optgroup>
+            <optgroup label="Otras Guardias de Planta">
+              <option *ngFor="let op of getOperatorsForOtherShifts()" [value]="op.id">
+                {{ op.name }} ({{ formatRoleName(op.primary_role) }} - Guardia {{ op.shift_code }})
+              </option>
+            </optgroup>
+          </select>
+        </div>
+
+        <div class="assignment-preview-pill" *ngIf="getSelectedOperatorForPreview() as prev">
+          <img [src]="prev.avatar_url || 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&q=80'" class="prev-avatar" />
+          <div>
+            <strong>{{ prev.name }}</strong>
+            <div class="prev-sub">{{ formatRoleName(prev.primary_role) }} | Guardia: {{ prev.shift_code }} | DNI: {{ prev.document_id }}</div>
+          </div>
+        </div>
+
+        <p class="modal-help-text" style="margin-top: 10px;">
+          ℹ️ Al vincular este operador, {{ selectedSupervisor.full_name }} lo tendrá inmediatamente en su listado exclusivo de cuadrilla para agilizar turnos y relevos.
+        </p>
+      </div>
+
+      <div footer class="modal-footer-actions">
+        <button type="button" class="btn btn-secondary" (click)="isAssignOperatorModalOpen = false">Cancelar</button>
+        <button 
+          type="button" 
+          class="btn btn-primary" 
+          [disabled]="!operatorToAssignId"
+          (click)="confirmAssignOperator()"
+        >
+          Vincular a esta Cuadrilla
+        </button>
+      </div>
+    </app-modal>
+
+    <!-- Modal: Reset App (Limpieza Total) con Confirmación de Clave -->
+    <app-modal
+      [isOpen]="isResetAppModalOpen"
+      [title]="'⚠️ Reset App: Restablecimiento Total del Sistema'"
+      [showFooter]="false"
+      (close)="isResetAppModalOpen = false"
+    >
+      <div class="reset-app-modal-body">
+        <div class="reset-app-warning-box">
+          <div class="warning-icon-large">⚠️</div>
+          <div class="warning-text">
+            <h4>¿Estás seguro de restablecer completamente la aplicación?</h4>
+            <p>Esta acción es <strong>IRREVERSIBLE</strong> y realizará una depuración total:</p>
+            <ul>
+              <li>❌ <strong>Eliminará todos los usuarios y operadores</strong> registrados.</li>
+              <li>❌ <strong>Eliminará todos los reportes</strong>: bitácoras de relevo de guardia, bombas, ciclones, relaves y checklists vehiculares.</li>
+              <li>❌ <strong>Eliminará todas las solicitudes de mantenimiento</strong> y asignaciones de cuadrilla.</li>
+              <li>✅ <strong>Dejará la app 100% limpia</strong>, conservando únicamente tu cuenta oficial de Administrador.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="reset-app-form-group">
+          <label for="resetPasswordInput">
+            <strong>Ingresa tu contraseña de Administrador para autorizar el reseteo:</strong>
+          </label>
+          <input 
+            id="resetPasswordInput" 
+            type="password" 
+            class="modal-input" 
+            [(ngModel)]="resetAppPassword" 
+            placeholder="Contraseña del Administrador..." 
+            autocomplete="current-password"
+            (keyup.enter)="confirmResetApp()"
+          />
+          <span class="reset-error-msg" *ngIf="resetAppErrorMessage">⚠️ {{ resetAppErrorMessage }}</span>
+        </div>
+
+        <div class="modal-buttons" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 14px;">
+          <button type="button" class="btn btn-secondary" (click)="isResetAppModalOpen = false" [disabled]="isResettingApp">
+            Cancelar
+          </button>
+          <button 
+            type="button" 
+            class="btn btn-danger btn-reset-app" 
+            (click)="confirmResetApp()" 
+            [disabled]="!resetAppPassword || isResettingApp"
+          >
+            {{ isResettingApp ? 'Restableciendo Sistema...' : 'Confirmar y Limpiar Todo' }}
+          </button>
+        </div>
+      </div>
+    </app-modal>
+
+    <!-- Modal: Dar de Alta Camioneta Minera (4x4) -->
+    <app-modal
+      [isOpen]="isCreateVehicleModalOpen"
+      [title]="'Dar de Alta Camioneta Minera (4x4)'"
+      [showFooter]="false"
+      (close)="isCreateVehicleModalOpen = false"
+    >
+      <div class="vehicle-modal-body">
+        <div class="modal-intro-pill">
+          <span class="intro-icon">🛻</span>
+          <span>Registra una nueva unidad en el padrón activo de operaciones para habilitarla en checklists pre-uso.</span>
+        </div>
+
+        <div class="form-grid-2" style="margin-top: 14px;">
+          <div class="form-group">
+            <label>Placa Vehicular *</label>
+            <input 
+              type="text" 
+              class="modal-input" 
+              placeholder="Ej: BCV123 o BMC715" 
+              [(ngModel)]="vehicleFormPlate" 
+              (input)="vehicleFormPlate = vehicleFormPlate.toUpperCase()"
+              maxlength="10"
+              required
+            />
+            <span class="field-hint">Alfanumérico sin guiones ni espacios.</span>
+          </div>
+
+          <div class="form-group">
+            <label>Código Interno / Tag *</label>
+            <input 
+              type="text" 
+              class="modal-input" 
+              placeholder="Ej: CAM-05" 
+              [(ngModel)]="vehicleFormTag" 
+              (input)="vehicleFormTag = vehicleFormTag.toUpperCase()"
+              required
+            />
+            <span class="field-hint">Identificador radial/operativo.</span>
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label>Modelo de Unidad *</label>
+            <input 
+              type="text" 
+              class="modal-input" 
+              placeholder="Ej: Toyota Hilux 4x4 Turbodiésel" 
+              [(ngModel)]="vehicleFormModel" 
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label>Color de Unidad</label>
+            <input 
+              type="text" 
+              class="modal-input" 
+              placeholder="Ej: Blanco Industrial" 
+              [(ngModel)]="vehicleFormColor" 
+            />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Área Operativa de Asignación *</label>
+          <select class="modal-input" [(ngModel)]="vehicleFormArea">
+            <option value="Supervisión de Operaciones">Supervisión de Operaciones</option>
+            <option value="Operaciones Bombas / Molienda">Operaciones Bombas / Molienda</option>
+            <option value="Operaciones Ciclones / Planta">Operaciones Ciclones / Planta</option>
+            <option value="Presa de Relaves / Auxiliares">Presa de Relaves / Auxiliares</option>
+            <option value="Geotecnia / Topografía">Geotecnia / Topografía</option>
+            <option value="Mantenimiento Mecánico">Mantenimiento Mecánico</option>
+            <option value="Seguridad & Medio Ambiente">Seguridad & Medio Ambiente</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Kilometraje Odómetro Base (km) *</label>
+          <input 
+            type="number" 
+            class="modal-input" 
+            placeholder="0" 
+            [(ngModel)]="vehicleFormBaseOdometer" 
+            min="0"
+          />
+          <span class="field-hint">Lectura inicial de kilometraje con la que ingresa al padrón.</span>
+        </div>
+
+        <div *ngIf="vehicleModalErrorMessage" class="modal-error-alert">
+          ⚠️ {{ vehicleModalErrorMessage }}
+        </div>
+
+        <div class="modal-buttons" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px;">
+          <button type="button" class="btn btn-secondary" (click)="isCreateVehicleModalOpen = false" [disabled]="isSavingVehicle">
+            Cancelar
+          </button>
+          <button 
+            type="button" 
+            class="btn btn-primary" 
+            (click)="submitCreateVehicle()" 
+            [disabled]="!vehicleFormPlate.trim() || isSavingVehicle"
+          >
+            {{ isSavingVehicle ? 'Guardando en Padrón...' : 'Dar de Alta Camioneta' }}
+          </button>
+        </div>
+      </div>
+    </app-modal>
+
+    <!-- Modal: Editar Datos de Camioneta & Actualizar Placa -->
+    <app-modal
+      [isOpen]="isEditVehicleModalOpen"
+      [title]="'Editar Unidad: ' + (selectedVehicleForEdit?.plate || '')"
+      [showFooter]="false"
+      (close)="isEditVehicleModalOpen = false"
+    >
+      <div class="vehicle-modal-body" *ngIf="selectedVehicleForEdit">
+        <div class="plate-update-notice-box">
+          <div class="notice-icon">💡</div>
+          <div class="notice-text">
+            <strong>Actualización de Placa sin tocar código:</strong>
+            <p>Puedes corregir o actualizar la placa vehicular. Todas las inspecciones previas se mantendrán vinculadas a la nueva placa de forma transparente e instantánea.</p>
+          </div>
+        </div>
+
+        <div class="form-grid-2" style="margin-top: 14px;">
+          <div class="form-group">
+            <label>Placa Vehicular *</label>
+            <input 
+              type="text" 
+              class="modal-input" 
+              [(ngModel)]="vehicleFormPlate" 
+              (input)="vehicleFormPlate = vehicleFormPlate.toUpperCase()"
+              maxlength="10"
+              required
+            />
+            <span class="field-hint">Placa oficial registrada.</span>
+          </div>
+
+          <div class="form-group">
+            <label>Código Interno / Tag *</label>
+            <input 
+              type="text" 
+              class="modal-input" 
+              [(ngModel)]="vehicleFormTag" 
+              (input)="vehicleFormTag = vehicleFormTag.toUpperCase()"
+              required
+            />
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label>Modelo de Unidad *</label>
+            <input 
+              type="text" 
+              class="modal-input" 
+              [(ngModel)]="vehicleFormModel" 
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label>Color de Unidad</label>
+            <input 
+              type="text" 
+              class="modal-input" 
+              [(ngModel)]="vehicleFormColor" 
+            />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Área Operativa de Asignación *</label>
+          <select class="modal-input" [(ngModel)]="vehicleFormArea">
+            <option value="Supervisión de Operaciones">Supervisión de Operaciones</option>
+            <option value="Operaciones Bombas / Molienda">Operaciones Bombas / Molienda</option>
+            <option value="Operaciones Ciclones / Planta">Operaciones Ciclones / Planta</option>
+            <option value="Presa de Relaves / Auxiliares">Presa de Relaves / Auxiliares</option>
+            <option value="Geotecnia / Topografía">Geotecnia / Topografía</option>
+            <option value="Mantenimiento Mecánico">Mantenimiento Mecánico</option>
+            <option value="Seguridad & Medio Ambiente">Seguridad & Medio Ambiente</option>
+          </select>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label>Kilometraje Odómetro Base (km)</label>
+            <input 
+              type="number" 
+              class="modal-input" 
+              [(ngModel)]="vehicleFormBaseOdometer" 
+              min="0"
+            />
+          </div>
+
+          <div class="form-group">
+            <label>Estado en Faena</label>
+            <select class="modal-input" [(ngModel)]="vehicleFormIsActive">
+              <option [ngValue]="true">Activa (Disponible para Inspección)</option>
+              <option [ngValue]="false">Dada de Baja (Inactiva)</option>
+            </select>
+          </div>
+        </div>
+
+        <div *ngIf="vehicleModalErrorMessage" class="modal-error-alert">
+          ⚠️ {{ vehicleModalErrorMessage }}
+        </div>
+
+        <div class="modal-buttons" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px;">
+          <button type="button" class="btn btn-secondary" (click)="isEditVehicleModalOpen = false" [disabled]="isSavingVehicle">
+            Cancelar
+          </button>
+          <button 
+            type="button" 
+            class="btn btn-primary" 
+            (click)="submitEditVehicle()" 
+            [disabled]="!vehicleFormPlate.trim() || isSavingVehicle"
+          >
+            {{ isSavingVehicle ? 'Guardando Cambios...' : 'Actualizar Camioneta' }}
+          </button>
+        </div>
+      </div>
+    </app-modal>
+</div>
