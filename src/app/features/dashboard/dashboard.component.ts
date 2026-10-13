@@ -12,6 +12,43 @@ import { WaveAreaChartComponent } from '../../shared/ui/wave-area-chart.componen
 import { MasterSheetService } from '../../core/services/master-sheet.service';
 import { MasterSheetEntry, SheetSummary } from '../../core/models/master-sheet.model';
 
+export interface TrendMetricConfig {
+  id: string;
+  label: string;
+  primaryLabel: string;
+  color: string;
+  unit: string;
+  decimals: number;
+  secondaryLabel?: string;
+  secondaryColor?: string;
+  secondaryUnit?: string;
+  secondaryDecimals?: number;
+  thresholdLabel?: string;
+  thresholdVal?: number;
+  getValue: (entry: MasterSheetEntry) => number;
+  getSecondaryValue?: (entry: MasterSheetEntry) => number;
+}
+
+export interface TrendDataPoint {
+  x: number;
+  y: number;
+  fecha: string;
+  val: number;
+  formattedVal: string;
+  displayVal: string;
+}
+
+export interface TrendStatsSummary {
+  formattedLast: string;
+  lastDate: string;
+  deltaPct: number;
+  formattedAvg: string;
+  formattedMax: string;
+  maxDate: string;
+  formattedMin: string;
+  minDate: string;
+}
+
 @Component({
   selector: 'app-dashboard',
   changeDetection: ChangeDetectionStrategy.Default,
@@ -604,64 +641,250 @@ import { MasterSheetEntry, SheetSummary } from '../../core/models/master-sheet.m
             </div>
           </section>
 
-          <!-- HISTORICAL TREND CHART (Interactive SVG) -->
+          <!-- HISTORICAL MULTI-METRIC TREND ANALYSIS CENTER -->
           <section class="trend-chart-section glass-panel">
-            <div class="chart-header">
+            <div class="trend-section-header">
               <div class="head-titles">
-                <h3>Tendencia Operativa: Borde Libre & Volumen de Relaves</h3>
-                <p class="subtitle">Evolución día a día de revancha (m) y volumen diario (m³)</p>
+                <div class="trend-title-badge">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#031795" stroke-width="2.2">
+                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                  </svg>
+                  <h3>Centro de Análisis de Tendencias Operativas</h3>
+                </div>
+                <p class="subtitle">Monitoreo multivariable continuo, umbrales GISTM de diseño y correlación histórica día a día</p>
               </div>
-              <div class="chart-legend">
-                <span class="legend-item"><span class="legend-color-box green"></span> Borde Libre (m)</span>
-                <span class="legend-item"><span class="legend-color-box blue"></span> Relave Enviado (m³)</span>
+
+              <!-- Time Range Selector -->
+              <div class="range-selector-pills">
+                <button
+                  class="range-pill"
+                  [class.active]="selectedTrendRange === '7d'"
+                  (click)="selectedTrendRange = '7d'"
+                >
+                  7 Días
+                </button>
+                <button
+                  class="range-pill"
+                  [class.active]="selectedTrendRange === '15d'"
+                  (click)="selectedTrendRange = '15d'"
+                >
+                  15 Días
+                </button>
+                <button
+                  class="range-pill"
+                  [class.active]="selectedTrendRange === '30d'"
+                  (click)="selectedTrendRange = '30d'"
+                >
+                  30 Días
+                </button>
+                <button
+                  class="range-pill"
+                  [class.active]="selectedTrendRange === 'all'"
+                  (click)="selectedTrendRange = 'all'"
+                >
+                  Todo el Histórico
+                </button>
               </div>
             </div>
 
-            <div class="svg-chart-container" *ngIf="trendPoints.length > 0">
-              <svg viewBox="0 0 800 240" class="historical-svg" preserveAspectRatio="none">
+            <!-- Metric Selector Ribbon (Chips with icons and theme colors) -->
+            <div class="metric-ribbon">
+              <button
+                *ngFor="let m of trendMetricConfigs"
+                class="metric-chip"
+                [class.active]="selectedTrendMetricId === m.id"
+                (click)="selectedTrendMetricId = m.id"
+              >
+                <span class="chip-dot" [style.backgroundColor]="m.color"></span>
+                <span class="chip-name">{{ m.label }}</span>
+              </button>
+            </div>
+
+            <!-- Statistical Summary 4-Card Bar -->
+            <div class="trend-stats-grid" *ngIf="trendStats as stats">
+              <div class="stat-mini-card">
+                <span class="stat-mini-label">Último Valor Registrado</span>
+                <div class="stat-mini-val-row">
+                  <span class="stat-mini-val" [style.color]="currentMetricConfig.color">{{ stats.formattedLast }}</span>
+                  <span class="stat-delta-badge" [class.positive]="stats.deltaPct >= 0" [class.negative]="stats.deltaPct < 0">
+                    {{ stats.deltaPct >= 0 ? '▲ +' : '▼ ' }}{{ stats.deltaPct }}%
+                  </span>
+                </div>
+                <span class="stat-mini-sub">Última fecha: {{ stats.lastDate }}</span>
+              </div>
+
+              <div class="stat-mini-card">
+                <span class="stat-mini-label">Promedio del Periodo</span>
+                <span class="stat-mini-val">{{ stats.formattedAvg }}</span>
+                <span class="stat-mini-sub">{{ trendFilteredEntries.length }} registros evaluados</span>
+              </div>
+
+              <div class="stat-mini-card">
+                <span class="stat-mini-label">Máximo Registrado</span>
+                <span class="stat-mini-val text-max">{{ stats.formattedMax }}</span>
+                <span class="stat-mini-sub">Fecha pico: {{ stats.maxDate }}</span>
+              </div>
+
+              <div class="stat-mini-card">
+                <span class="stat-mini-label">Mínimo Registrado</span>
+                <span class="stat-mini-val text-min">{{ stats.formattedMin }}</span>
+                <span class="stat-mini-sub">Fecha valle: {{ stats.minDate }}</span>
+              </div>
+            </div>
+
+            <!-- Interactive Legend & Secondary Curve Toggle -->
+            <div class="chart-legend-toolbar">
+              <div class="legend-items-group">
+                <div class="legend-badge">
+                  <span class="legend-line" [style.backgroundColor]="currentMetricConfig.color"></span>
+                  <strong>{{ currentMetricConfig.primaryLabel }}</strong> (Eje Principal)
+                </div>
+                <div class="legend-badge secondary" *ngIf="currentMetricConfig.secondaryLabel">
+                  <label class="toggle-secondary-label">
+                    <input type="checkbox" [(ngModel)]="showSecondaryCurve" />
+                    <span class="legend-line-dashed" [style.borderColor]="currentMetricConfig.secondaryColor"></span>
+                    <span>{{ currentMetricConfig.secondaryLabel }}</span>
+                  </label>
+                </div>
+                <div class="legend-badge threshold" *ngIf="currentMetricConfig.thresholdLabel">
+                  <span class="legend-line-red"></span>
+                  <span>{{ currentMetricConfig.thresholdLabel }}</span>
+                </div>
+              </div>
+
+              <span class="legend-tip">
+                💡 Haz clic en cualquier punto del gráfico para ver ese día en todo el Dashboard
+              </span>
+            </div>
+
+            <!-- SVG Chart Viewport -->
+            <div class="svg-chart-container" *ngIf="trendPrimaryPoints.length > 0">
+              <svg viewBox="0 0 800 260" class="historical-svg" preserveAspectRatio="none">
                 <defs>
-                  <linearGradient id="freeboardGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stop-color="#10b981" stop-opacity="0.3"></stop>
-                    <stop offset="100%" stop-color="#10b981" stop-opacity="0.02"></stop>
+                  <linearGradient id="trendMetricGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" [attr.stop-color]="currentMetricConfig.color" stop-opacity="0.32"></stop>
+                    <stop offset="100%" [attr.stop-color]="currentMetricConfig.color" stop-opacity="0.02"></stop>
                   </linearGradient>
                 </defs>
 
-                <!-- Grid horizontal lines -->
-                <line x1="40" y1="30" x2="780" y2="30" stroke="#f1f5f9" stroke-width="1"></line>
-                <line x1="40" y1="80" x2="780" y2="80" stroke="#f1f5f9" stroke-width="1"></line>
-                <line x1="40" y1="130" x2="780" y2="130" stroke="#f1f5f9" stroke-width="1"></line>
-                <line x1="40" y1="180" x2="780" y2="180" stroke="#e2e8f0" stroke-width="1.5"></line>
+                <!-- Grid Horizontal Lines & Y-Axis Labels -->
+                <g *ngFor="let line of trendGridY">
+                  <line x1="65" [attr.y1]="line.y" x2="770" [attr.y2]="line.y" stroke="#f1f5f9" stroke-width="1.2"></line>
+                  <text x="58" [attr.y]="line.y + 3" fill="#94a3b8" font-size="10" font-weight="600" text-anchor="end">
+                    {{ line.formatted }}
+                  </text>
+                </g>
 
-                <!-- Critical safety limit line (2.0 m) -->
-                <line x1="40" y1="150" x2="780" y2="150" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="4 4"></line>
-                <text x="730" y="145" fill="#dc2626" font-size="10" font-weight="600">Límite Crítico 2m</text>
+                <!-- Bottom X baseline -->
+                <line x1="65" y1="210" x2="770" y2="210" stroke="#cbd5e1" stroke-width="1.5"></line>
 
-                <!-- Freeboard Area & Line -->
-                <polygon [attr.points]="trendFreeboardAreaPath" fill="url(#freeboardGrad)"></polygon>
-                <polyline [attr.points]="trendFreeboardLinePath" fill="none" stroke="#10b981" stroke-width="3"></polyline>
+                <!-- Threshold reference line (if in visible range) -->
+                <g *ngIf="trendThresholdY !== null">
+                  <line
+                    x1="65"
+                    [attr.y1]="trendThresholdY"
+                    x2="770"
+                    [attr.y2]="trendThresholdY"
+                    stroke="#ef4444"
+                    stroke-width="1.6"
+                    stroke-dasharray="5 4"
+                  ></line>
+                  <rect
+                    [attr.x]="600"
+                    [attr.y]="trendThresholdY - 14"
+                    width="170"
+                    height="18"
+                    rx="4"
+                    fill="#fef2f2"
+                    stroke="#fca5a5"
+                    stroke-width="1"
+                  ></rect>
+                  <text
+                    [attr.x]="685"
+                    [attr.y]="trendThresholdY - 2"
+                    fill="#dc2626"
+                    font-size="9"
+                    font-weight="700"
+                    text-anchor="middle"
+                  >
+                    {{ currentMetricConfig.thresholdLabel }}
+                  </text>
+                </g>
 
-                <!-- Freeboard Dots -->
-                <g *ngFor="let pt of trendPoints">
+                <!-- Primary Area Fill -->
+                <polygon [attr.points]="trendPrimaryAreaPath" fill="url(#trendMetricGrad)"></polygon>
+
+                <!-- Secondary Line (if toggled) -->
+                <polyline
+                  *ngIf="showSecondaryCurve && trendSecondaryLinePath"
+                  [attr.points]="trendSecondaryLinePath"
+                  fill="none"
+                  [attr.stroke]="currentMetricConfig.secondaryColor"
+                  stroke-width="2.2"
+                  stroke-dasharray="4 3"
+                ></polyline>
+
+                <!-- Primary Line -->
+                <polyline
+                  [attr.points]="trendPrimaryLinePath"
+                  fill="none"
+                  [attr.stroke]="currentMetricConfig.color"
+                  stroke-width="3"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                ></polyline>
+
+                <!-- Data Points / Circles -->
+                <g *ngFor="let pt of trendPrimaryPoints">
                   <circle
                     [attr.cx]="pt.x"
                     [attr.cy]="pt.y"
-                    r="5"
+                    r="5.5"
                     fill="#ffffff"
-                    stroke="#10b981"
-                    stroke-width="2.5"
+                    [attr.stroke]="currentMetricConfig.color"
+                    stroke-width="2.8"
                     class="chart-circle"
+                    (mouseenter)="hoveredTrendPoint = pt"
+                    (mouseleave)="hoveredTrendPoint = null"
                     (click)="masterService.selectDate(pt.fecha)"
                   >
-                    <title>{{ pt.fecha }}: {{ pt.bordeLibre }} m</title>
+                    <title>{{ pt.fecha }}: {{ pt.formattedVal }}</title>
                   </circle>
-                  <text [attr.x]="pt.x" y="202" fill="#64748b" font-size="10" text-anchor="middle">
+
+                  <!-- Date label below -->
+                  <text [attr.x]="pt.x" y="230" fill="#64748b" font-size="10" font-weight="500" text-anchor="middle">
                     {{ pt.fecha.slice(0, 5) }}
                   </text>
-                  <text [attr.x]="pt.x" [attr.y]="pt.y - 10" fill="#0f172a" font-size="10" font-weight="700" text-anchor="middle">
-                    {{ pt.bordeLibre.toFixed(1) }}m
+
+                  <!-- Value label above point -->
+                  <text
+                    [attr.x]="pt.x"
+                    [attr.y]="pt.y - 10"
+                    fill="#0f172a"
+                    font-size="10"
+                    font-weight="700"
+                    text-anchor="middle"
+                  >
+                    {{ pt.displayVal }}
                   </text>
                 </g>
               </svg>
+
+              <!-- Floating Tooltip Card on Hover -->
+              <div
+                class="chart-floating-tooltip"
+                *ngIf="hoveredTrendPoint as hov"
+                [style.left.px]="hov.x"
+                [style.top.px]="hov.y - 65"
+              >
+                <div class="tooltip-header">
+                  <span>📅 {{ hov.fecha }}</span>
+                </div>
+                <div class="tooltip-val" [style.color]="currentMetricConfig.color">
+                  <strong>{{ hov.formattedVal }}</strong>
+                </div>
+                <div class="tooltip-hint">Clic para inspeccionar día</div>
+              </div>
             </div>
           </section>
 
@@ -1545,51 +1768,241 @@ import { MasterSheetEntry, SheetSummary } from '../../core/models/master-sheet.m
 
     /* Trend Chart Section */
     .trend-chart-section {
-      padding: 22px;
-      border-radius: 12px;
+      padding: 24px;
+      border-radius: 14px;
       background: #ffffff;
       border: 1px solid #e2e8f0;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
       margin-top: 18px;
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 18px;
     }
 
-    .chart-header {
+    .trend-section-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
       flex-wrap: wrap;
-      gap: 10px;
+      gap: 14px;
     }
 
-    .chart-legend {
+    .trend-title-badge {
       display: flex;
       align-items: center;
-      gap: 16px;
-      font-size: 0.78rem;
-      color: #475569;
+      gap: 8px;
+
+      h3 {
+        font-size: 1.15rem;
+        font-weight: 800;
+        color: #0f172a;
+      }
     }
 
-    .legend-item {
+    .range-selector-pills {
+      display: flex;
+      align-items: center;
+      background: #f1f5f9;
+      padding: 4px;
+      border-radius: 10px;
+      gap: 4px;
+      border: 1px solid #e2e8f0;
+    }
+
+    .range-pill {
+      padding: 6px 12px;
+      border: none;
+      background: transparent;
+      border-radius: 6px;
+      font-size: 0.76rem;
+      font-weight: 600;
+      color: #64748b;
+      cursor: pointer;
+      transition: all 0.2s;
+
+      &:hover {
+        color: #0f172a;
+      }
+
+      &.active {
+        background: #ffffff;
+        color: #031795;
+        font-weight: 700;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+      }
+    }
+
+    .metric-ribbon {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      scrollbar-width: thin;
+    }
+
+    .metric-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      border: 1px solid #e2e8f0;
+      border-radius: 20px;
+      background: #f8fafc;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #475569;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+
+      &:hover {
+        background: #f1f5f9;
+        color: #0f172a;
+      }
+
+      &.active {
+        background: #ffffff;
+        border-color: #031795;
+        color: #031795;
+        font-weight: 700;
+        box-shadow: 0 2px 4px rgba(3, 23, 149, 0.12);
+      }
+    }
+
+    .chip-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    .trend-stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+
+      @media (max-width: 900px) {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      @media (max-width: 500px) {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .stat-mini-card {
+      padding: 12px 14px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .stat-mini-label {
+      font-size: 0.68rem;
+      color: #64748b;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .stat-mini-val-row {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .stat-mini-val {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: #0f172a;
+
+      &.text-max { color: #0284c7; }
+      &.text-min { color: #d97706; }
+    }
+
+    .stat-delta-badge {
+      font-size: 0.68rem;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+
+      &.positive {
+        background: #ecfdf5;
+        color: #059669;
+      }
+      &.negative {
+        background: #fef2f2;
+        color: #dc2626;
+      }
+    }
+
+    .stat-mini-sub {
+      font-size: 0.68rem;
+      color: #94a3b8;
+    }
+
+    .chart-legend-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      padding: 4px 0;
+    }
+
+    .legend-items-group {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .legend-badge {
       display: inline-flex;
       align-items: center;
       gap: 6px;
+      font-size: 0.78rem;
+      color: #334155;
     }
 
-    .legend-color-box {
-      width: 12px;
-      height: 12px;
-      border-radius: 3px;
+    .legend-line {
+      width: 14px;
+      height: 3.5px;
+      border-radius: 2px;
+    }
 
-      &.green { background: #10b981; }
-      &.blue { background: #031795; }
+    .legend-line-dashed {
+      display: inline-block;
+      width: 14px;
+      height: 0;
+      border-top: 2.5px dashed;
+    }
+
+    .legend-line-red {
+      display: inline-block;
+      width: 14px;
+      height: 0;
+      border-top: 2px dashed #ef4444;
+    }
+
+    .toggle-secondary-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+    }
+
+    .legend-tip {
+      font-size: 0.72rem;
+      color: #64748b;
+      font-weight: 500;
     }
 
     .svg-chart-container {
+      position: relative;
       width: 100%;
-      height: 220px;
+      height: 260px;
       overflow-x: auto;
     }
 
@@ -1603,9 +2016,41 @@ import { MasterSheetEntry, SheetSummary } from '../../core/models/master-sheet.m
       transition: all 0.2s;
 
       &:hover {
-        r: 7;
+        r: 8;
         stroke-width: 4;
       }
+    }
+
+    .chart-floating-tooltip {
+      position: absolute;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+      padding: 6px 12px;
+      border-radius: 8px;
+      pointer-events: none;
+      transform: translate(-50%, -100%);
+      z-index: 10;
+      white-space: nowrap;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .tooltip-header {
+      font-size: 0.7rem;
+      color: #64748b;
+      font-weight: 600;
+    }
+
+    .tooltip-val {
+      font-size: 0.88rem;
+      font-weight: 800;
+    }
+
+    .tooltip-hint {
+      font-size: 0.65rem;
+      color: #94a3b8;
     }
 
     /* Master Log Table */
@@ -2076,46 +2521,395 @@ export class DashboardComponent implements OnInit, OnDestroy {
     return list.filter(e => e.fecha.toLowerCase().includes(q));
   }
 
-  // --- SVG Chart Computed Coordinates ---
-  get trendPoints(): { x: number; y: number; fecha: string; bordeLibre: number }[] {
-    const raw = this.masterService.entries().slice(0, 10).reverse();
-    if (raw.length === 0) return [];
+  // --- Historical Trend Analysis Center Engine ---
+  selectedTrendMetricId: string = 'borde_libre';
+  selectedTrendRange: '7d' | '15d' | '30d' | 'all' = '15d';
+  showSecondaryCurve: boolean = false;
+  hoveredTrendPoint: TrendDataPoint | null = null;
 
-    const minX = 70;
-    const maxX = 740;
+  trendMetricConfigs: TrendMetricConfig[] = [
+    {
+      id: 'borde_libre',
+      label: 'Borde Libre',
+      primaryLabel: 'Borde Libre (m)',
+      color: '#031795',
+      unit: 'm',
+      decimals: 2,
+      secondaryLabel: 'Crecimiento Dique (m)',
+      secondaryColor: '#d97706',
+      secondaryUnit: 'm',
+      secondaryDecimals: 2,
+      thresholdLabel: 'GISTM Mínimo: 2.00 m',
+      thresholdVal: 2.0,
+      getValue: (e) => e.bordeLibreM ?? 0,
+      getSecondaryValue: (e) => e.crecimientoPresaM ?? 0
+    },
+    {
+      id: 'relaves',
+      label: 'Relaves a Presa',
+      primaryLabel: 'Relave Diario (m³)',
+      color: '#10b981',
+      unit: 'm³',
+      decimals: 0,
+      secondaryLabel: 'Torre 5 Recup. (m³)',
+      secondaryColor: '#0284c7',
+      secondaryUnit: 'm³',
+      secondaryDecimals: 0,
+      thresholdLabel: 'Capacidad Nom.: 30,000 m³',
+      thresholdVal: 30000,
+      getValue: (e) => e.relaveTotalVolDiaM3 ?? 0,
+      getSecondaryValue: (e) => e.torre5VolDiaM3 ?? 0
+    },
+    {
+      id: 'torre5',
+      label: 'Torre 5 Recup.',
+      primaryLabel: 'Torre 5 (m³/día)',
+      color: '#0284c7',
+      unit: 'm³',
+      decimals: 0,
+      secondaryLabel: 'Sentina Drenes (m³)',
+      secondaryColor: '#8b5cf6',
+      secondaryUnit: 'm³',
+      secondaryDecimals: 0,
+      thresholdLabel: 'Meta Recup.: 20,000 m³',
+      thresholdVal: 20000,
+      getValue: (e) => e.torre5VolDiaM3 ?? 0,
+      getSecondaryValue: (e) => e.sentinaBombeadoTotalM3 ?? 0
+    },
+    {
+      id: 'ciclones',
+      label: 'Ciclones 2da Estación',
+      primaryLabel: '% Sólidos Arenas',
+      color: '#7c3aed',
+      unit: '%',
+      decimals: 2,
+      secondaryLabel: '% Malla -200 Pasante',
+      secondaryColor: '#f59e0b',
+      secondaryUnit: '%',
+      secondaryDecimals: 2,
+      thresholdLabel: 'Meta Sólidos: 70.0%',
+      thresholdVal: 70.0,
+      getValue: (e) => e.ciclones2daSolidosPromPct ?? 0,
+      getSecondaryValue: (e) => e.ciclones2daMalla200PromPct ?? 0
+    },
+    {
+      id: 'filtraciones',
+      label: 'Filtraciones Totales',
+      primaryLabel: 'Filtraciones (L/s)',
+      color: '#ef4444',
+      unit: 'L/s',
+      decimals: 2,
+      secondaryLabel: 'Vertedero (L/s)',
+      secondaryColor: '#06b6d4',
+      secondaryUnit: 'L/s',
+      secondaryDecimals: 2,
+      thresholdLabel: 'Límite Alerta: 5.0 L/s',
+      thresholdVal: 5.0,
+      getValue: (e) => e.filtracionesTotalLs ?? 0,
+      getSecondaryValue: (e) => e.vertederoPromLs ?? 0
+    },
+    {
+      id: 'arenas',
+      label: 'Arenas Compactadas',
+      primaryLabel: 'Arenas Flujómetro (m³)',
+      color: '#d97706',
+      unit: 'm³',
+      decimals: 0,
+      secondaryLabel: 'Topografía (m³)',
+      secondaryColor: '#10b981',
+      secondaryUnit: 'm³',
+      secondaryDecimals: 0,
+      thresholdLabel: 'Meta Diaria: 10,000 m³',
+      thresholdVal: 10000,
+      getValue: (e) => e.arenasProdFlujometroM3 ?? 0,
+      getSecondaryValue: (e) => e.arenasProdTopografiaM3 ?? 0
+    },
+    {
+      id: 'ph',
+      label: 'Control de pH',
+      primaryLabel: 'pH Embalse',
+      color: '#059669',
+      unit: 'pH',
+      decimals: 2,
+      secondaryLabel: 'pH Vertedero',
+      secondaryColor: '#2563eb',
+      secondaryUnit: 'pH',
+      secondaryDecimals: 2,
+      thresholdLabel: 'Límite Ambiental: 9.0 pH',
+      thresholdVal: 9.0,
+      getValue: (e) => e.phEmbalseA ?? 0,
+      getSecondaryValue: (e) => e.phVertederoA ?? 0
+    }
+  ];
+
+  get currentMetricConfig(): TrendMetricConfig {
+    return this.trendMetricConfigs.find(c => c.id === this.selectedTrendMetricId) || this.trendMetricConfigs[0];
+  }
+
+  get trendFilteredEntries(): MasterSheetEntry[] {
+    const list = this.masterService.entries();
+    if (!list || list.length === 0) return [];
+    let sliceCount: number;
+    switch (this.selectedTrendRange) {
+      case '7d':
+        sliceCount = 7;
+        break;
+      case '15d':
+        sliceCount = 15;
+        break;
+      case '30d':
+        sliceCount = 30;
+        break;
+      case 'all':
+      default:
+        sliceCount = list.length;
+        break;
+    }
+    return list.slice(0, sliceCount).reverse();
+  }
+
+  get trendStats(): TrendStatsSummary | null {
+    const entries = this.trendFilteredEntries;
+    if (entries.length === 0) return null;
+
+    const config = this.currentMetricConfig;
+    const lastEntry = entries[entries.length - 1];
+    const lastVal = config.getValue(lastEntry);
+
+    let prevVal: number | null = null;
+    if (entries.length >= 2) {
+      prevVal = config.getValue(entries[entries.length - 2]);
+    }
+
+    let deltaPct = 0;
+    if (prevVal !== null && prevVal !== 0) {
+      deltaPct = Math.round(((lastVal - prevVal) / Math.abs(prevVal)) * 1000) / 10;
+    }
+
+    let minVal = Infinity;
+    let minDate = lastEntry.fecha;
+    let maxVal = -Infinity;
+    let maxDate = lastEntry.fecha;
+    let sum = 0;
+
+    for (const e of entries) {
+      const v = config.getValue(e);
+      if (v < minVal) {
+        minVal = v;
+        minDate = e.fecha;
+      }
+      if (v > maxVal) {
+        maxVal = v;
+        maxDate = e.fecha;
+      }
+      sum += v;
+    }
+
+    if (minVal === Infinity) minVal = 0;
+    if (maxVal === -Infinity) maxVal = 0;
+
+    const avgVal = sum / entries.length;
+
+    return {
+      formattedLast: this.formatMetricVal(lastVal, config.unit, config.decimals),
+      lastDate: lastEntry.fecha,
+      deltaPct,
+      formattedAvg: this.formatMetricVal(avgVal, config.unit, config.decimals),
+      formattedMax: this.formatMetricVal(maxVal, config.unit, config.decimals),
+      maxDate,
+      formattedMin: this.formatMetricVal(minVal, config.unit, config.decimals),
+      minDate
+    };
+  }
+
+  get trendYScaleBounds(): { scaleMin: number; scaleMax: number } {
+    const entries = this.trendFilteredEntries;
+    const config = this.currentMetricConfig;
+
+    if (entries.length === 0) {
+      return { scaleMin: 0, scaleMax: 10 };
+    }
+
+    let min = Infinity;
+    let max = -Infinity;
+
+    for (const e of entries) {
+      const v = config.getValue(e);
+      if (v < min) min = v;
+      if (v > max) max = v;
+
+      if (this.showSecondaryCurve && config.getSecondaryValue) {
+        const sv = config.getSecondaryValue(e);
+        if (sv < min) min = sv;
+        if (sv > max) max = sv;
+      }
+    }
+
+    if (config.thresholdVal !== undefined && config.thresholdVal !== null) {
+      if (config.thresholdVal < min) min = config.thresholdVal;
+      if (config.thresholdVal > max) max = config.thresholdVal;
+    }
+
+    if (min === Infinity || max === -Infinity) {
+      return { scaleMin: 0, scaleMax: 10 };
+    }
+
+    let pad = (max - min) * 0.15;
+    if (pad === 0) {
+      pad = max !== 0 ? Math.abs(max * 0.15) : 1;
+    }
+
+    const scaleMin = min >= 0 ? Math.max(0, min - pad) : min - pad;
+    const scaleMax = max + pad;
+
+    return { scaleMin, scaleMax };
+  }
+
+  get trendGridY(): { y: number; val: number; formatted: string }[] {
+    const { scaleMin, scaleMax } = this.trendYScaleBounds;
+    const range = scaleMax - scaleMin || 1;
+    const config = this.currentMetricConfig;
     const minY = 35;
-    const maxY = 175;
+    const maxY = 205;
+    const steps = 4;
+    const lines: { y: number; val: number; formatted: string }[] = [];
 
-    // Freeboard ranges from 0m to 6m
-    const minVal = 1.0;
-    const maxVal = 6.0;
+    for (let i = 0; i <= steps; i++) {
+      const ratio = i / steps;
+      const y = Math.round(maxY - ratio * (maxY - minY));
+      const val = scaleMin + ratio * range;
+      lines.push({
+        y,
+        val,
+        formatted: this.formatMetricAxisVal(val, config.unit, config.decimals)
+      });
+    }
 
-    const step = raw.length > 1 ? (maxX - minX) / (raw.length - 1) : 0;
+    return lines;
+  }
 
-    return raw.map((item, idx) => {
-      const x = raw.length === 1 ? (minX + maxX) / 2 : minX + idx * step;
-      const normalized = (item.bordeLibreM - minVal) / (maxVal - minVal);
-      // Invert Y for SVG coordinates
-      const y = maxY - normalized * (maxY - minY);
+  get trendThresholdY(): number | null {
+    const config = this.currentMetricConfig;
+    if (config.thresholdVal === undefined || config.thresholdVal === null) return null;
+
+    const { scaleMin, scaleMax } = this.trendYScaleBounds;
+    if (config.thresholdVal < scaleMin || config.thresholdVal > scaleMax) return null;
+
+    const range = scaleMax - scaleMin || 1;
+    const minY = 35;
+    const maxY = 205;
+    const norm = (config.thresholdVal - scaleMin) / range;
+    return Math.round(maxY - norm * (maxY - minY));
+  }
+
+  get trendPrimaryPoints(): TrendDataPoint[] {
+    const entries = this.trendFilteredEntries;
+    if (entries.length === 0) return [];
+
+    const { scaleMin, scaleMax } = this.trendYScaleBounds;
+    const range = scaleMax - scaleMin || 1;
+    const config = this.currentMetricConfig;
+    const minX = 75;
+    const maxX = 760;
+    const minY = 35;
+    const maxY = 205;
+    const step = entries.length > 1 ? (maxX - minX) / (entries.length - 1) : 0;
+
+    return entries.map((e, idx) => {
+      const x = entries.length === 1 ? (minX + maxX) / 2 : minX + idx * step;
+      const val = config.getValue(e);
+      const norm = (val - scaleMin) / range;
+      const clampedNorm = Math.max(0, Math.min(1, norm));
+      const y = maxY - clampedNorm * (maxY - minY);
+
       return {
         x: Math.round(x),
         y: Math.round(y),
-        fecha: item.fecha,
-        bordeLibre: item.bordeLibreM
+        fecha: e.fecha,
+        val,
+        formattedVal: this.formatMetricVal(val, config.unit, config.decimals),
+        displayVal: this.formatMetricPointVal(val, config.unit, config.decimals)
       };
     });
   }
 
-  get trendFreeboardLinePath(): string {
-    return this.trendPoints.map(p => `${p.x},${p.y}`).join(' ');
+  get trendSecondaryPoints(): { x: number; y: number; val: number }[] {
+    const entries = this.trendFilteredEntries;
+    const config = this.currentMetricConfig;
+    if (!this.showSecondaryCurve || !config.getSecondaryValue || entries.length === 0) return [];
+
+    const { scaleMin, scaleMax } = this.trendYScaleBounds;
+    const range = scaleMax - scaleMin || 1;
+    const minX = 75;
+    const maxX = 760;
+    const minY = 35;
+    const maxY = 205;
+    const step = entries.length > 1 ? (maxX - minX) / (entries.length - 1) : 0;
+
+    return entries.map((e, idx) => {
+      const x = entries.length === 1 ? (minX + maxX) / 2 : minX + idx * step;
+      const val = config.getSecondaryValue!(e);
+      const norm = (val - scaleMin) / range;
+      const clampedNorm = Math.max(0, Math.min(1, norm));
+      const y = maxY - clampedNorm * (maxY - minY);
+
+      return {
+        x: Math.round(x),
+        y: Math.round(y),
+        val
+      };
+    });
   }
 
-  get trendFreeboardAreaPath(): string {
-    const pts = this.trendPoints;
+  get trendPrimaryLinePath(): string {
+    return this.trendPrimaryPoints.map(p => `${p.x},${p.y}`).join(' ');
+  }
+
+  get trendPrimaryAreaPath(): string {
+    const pts = this.trendPrimaryPoints;
     if (pts.length === 0) return '';
     const first = pts[0];
     const last = pts[pts.length - 1];
-    return `${first.x},180 ` + pts.map(p => `${p.x},${p.y}`).join(' ') + ` ${last.x},180`;
+    return `${first.x},210 ` + pts.map(p => `${p.x},${p.y}`).join(' ') + ` ${last.x},210`;
+  }
+
+  get trendSecondaryLinePath(): string {
+    return this.trendSecondaryPoints.map(p => `${p.x},${p.y}`).join(' ');
+  }
+
+  formatMetricVal(val: number, unit: string, decimals: number = 2): string {
+    if (val === undefined || val === null || isNaN(val)) return `0 ${unit}`;
+    const formatted = decimals > 0
+      ? val.toLocaleString('es-PE', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })
+      : Math.round(val).toLocaleString('es-PE');
+    return `${formatted} ${unit}`;
+  }
+
+  formatMetricPointVal(val: number, unit: string, decimals: number = 2): string {
+    if (val === undefined || val === null || isNaN(val)) return '0';
+    if (Math.abs(val) >= 1000000) {
+      return `${(val / 1000000).toFixed(1)}M`;
+    }
+    if (Math.abs(val) >= 10000) {
+      return `${(val / 1000).toFixed(0)}k`;
+    }
+    if (decimals > 0) {
+      return val.toFixed(decimals);
+    }
+    return Math.round(val).toString();
+  }
+
+  formatMetricAxisVal(val: number, unit: string, decimals: number = 0): string {
+    if (Math.abs(val) >= 1000000) {
+      return `${(val / 1000000).toFixed(1)}M ${unit}`;
+    }
+    if (Math.abs(val) >= 10000) {
+      return `${(val / 1000).toFixed(0)}k ${unit}`;
+    }
+    if (decimals > 0) {
+      return `${val.toFixed(decimals)} ${unit}`;
+    }
+    return `${Math.round(val)} ${unit}`;
   }
 
   // --- Upload Modal Handlers ---
