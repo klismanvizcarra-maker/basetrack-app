@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { getApiBaseUrl } from '../../../../core/constants/api.config';
-import { getRealtimeData, saveRealtimeData } from '../../../../core/storage/local-store.util';
+import { saveRealtimeData } from '../../../../core/storage/local-store.util';
 import { ModalComponent } from '../../../../shared/ui/modal.component';
 import { UsersStore, UserItem } from './users.store';
 
