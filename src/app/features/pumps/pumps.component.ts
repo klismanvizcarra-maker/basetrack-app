@@ -2166,7 +2166,7 @@ export class PumpsComponent implements OnInit, OnDestroy {
         status: 'PENDING',
         requester_name: this.sheet.operator_name || 'Operador de Bombas',
         assigned_to: 'Equipo Mantenimiento Planta',
-        photo_url: 'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=600&q=80',
+        photo_url: '',
         estimated_hours: 2,
         source_module: 'PUMPS_STATION',
         created_at: new Date().toISOString()

@@ -103,7 +103,8 @@ export function updateMaintenanceStatus(req: AuthenticatedRequest, res: Response
           assigned_to = COALESCE(?, assigned_to),
           resolution_notes = COALESCE(?, resolution_notes),
           operational_pass_by = COALESCE(?, operational_pass_by),
-          operational_pass_at = COALESCE(?, operational_pass_at)
+          operational_pass_at = COALESCE(?, operational_pass_at),
+          photo_url = COALESCE(?, photo_url)
       WHERE id = ?
     `).run(
       status || null,
@@ -111,6 +112,7 @@ export function updateMaintenanceStatus(req: AuthenticatedRequest, res: Response
       resolution_notes || null,
       passBy,
       passAt,
+      photo_url || null,
       id
     );
 

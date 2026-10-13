@@ -108,7 +108,7 @@ export function updatePumpStatus(req: AuthenticatedRequest, res: Response) {
         'PENDING',
         operator,
         'Equipo Mantenimiento Planta',
-        'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=600&q=80',
+        '',
         2,
         'PUMPS_STATION'
       );
@@ -324,7 +324,7 @@ export function savePumpOperationalSheet(req: AuthenticatedRequest, res: Respons
             'PENDING',
             operator,
             'Equipo Mantenimiento Planta',
-            'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=600&q=80',
+            '',
             2,
             'PUMPS_STATION'
           );
