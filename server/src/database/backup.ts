@@ -1,14 +1,9 @@
 import path from 'node:path';
 import fs from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import { db } from './db.js';
+import { db, dbFilePath } from './db.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Directorio raíz de datos y respaldos
-const rootDataDir = path.resolve(__dirname, '../../../data');
-const backupsDir = path.join(rootDataDir, 'backups');
+// Los respaldos se guardan junto a la base activa (en producción, dentro del disco persistente)
+const backupsDir = path.join(path.dirname(dbFilePath), 'backups');
 
 if (!fs.existsSync(backupsDir)) {
   fs.mkdirSync(backupsDir, { recursive: true });
