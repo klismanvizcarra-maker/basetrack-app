@@ -186,3 +186,51 @@ export function getDashboardMetrics(req: Request, res: Response) {
     return res.status(500).json({ success: false, message: error.message });
   }
 }
+
+export function getMasterSheetEntries(req: Request, res: Response) {
+  try {
+    const rows = db.prepare('SELECT report_date, data_json, updated_at FROM master_sheet_entries ORDER BY report_date DESC').all() as any[];
+    const entries = rows.map(r => {
+      try {
+        return JSON.parse(r.data_json);
+      } catch {
+        return null;
+      }
+    }).filter(Boolean);
+
+    return res.json({ success: true, data: entries });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+export function saveMasterSheetEntries(req: Request, res: Response) {
+  try {
+    const { entries } = req.body;
+    if (!entries || !Array.isArray(entries)) {
+      return res.status(400).json({ success: false, message: 'La lista de registros operativos es requerida.' });
+    }
+
+    const stmt = db.prepare(`
+      INSERT INTO master_sheet_entries (id, report_date, data_json, updated_at)
+      VALUES (?, ?, ?, datetime('now'))
+      ON CONFLICT(report_date) DO UPDATE SET
+        data_json = excluded.data_json,
+        updated_at = datetime('now')
+    `);
+
+    let saved = 0;
+    for (const item of entries) {
+      if (!item.fecha) continue;
+      const id = item.id || `ms_${item.fecha.replace(/\//g, '_')}`;
+      const reportDate = item.isoDate || item.fecha;
+      stmt.run(id, reportDate, JSON.stringify(item));
+      saved++;
+    }
+
+    return res.json({ success: true, count: saved, message: `Se guardaron ${saved} registros en la base de datos.` });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+

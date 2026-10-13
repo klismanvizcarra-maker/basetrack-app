@@ -84,7 +84,7 @@ export function createMaintenanceRequest(req: AuthenticatedRequest, res: Respons
 export function updateMaintenanceStatus(req: AuthenticatedRequest, res: Response) {
   try {
     const id = String(req.params.id);
-    const { status, assigned_to, resolution_notes, operational_pass_by } = req.body;
+    const { status, assigned_to, resolution_notes, operational_pass_by, photo_url } = req.body;
 
     const request = db.prepare('SELECT id, ticket_number, equipment_tag, status as prev_status FROM maintenance_requests WHERE id = ?').get(id) as any;
     if (!request) {

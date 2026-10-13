@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { login, register, getMe, updateProfile, changePassword } from '../controllers/auth.controller.js';
-import { getDashboardMetrics } from '../controllers/dashboard.controller.js';
+import { getDashboardMetrics, getMasterSheetEntries, saveMasterSheetEntries } from '../controllers/dashboard.controller.js';
 import { getAllPumps, getPumpById, createPumpReport, updatePumpStatus, getPumpOperationalSheet, savePumpOperationalSheet } from '../controllers/pumps.controller.js';
 import { getAllCyclones, createCycloneReport, getStationSamples, createStationSample, updateStationSample, deleteStationSample } from '../controllers/cyclones.controller.js';
 import { getAllTailings, createTailingsReport } from '../controllers/tailings.controller.js';
@@ -71,6 +71,8 @@ apiRouter.post('/auth/change-password', authenticateToken, changePassword);
 
 // 3. Dashboard Routes
 apiRouter.get('/dashboard/metrics', authenticateToken, getDashboardMetrics);
+apiRouter.get('/dashboard/master-sheet', authenticateToken, getMasterSheetEntries);
+apiRouter.post('/dashboard/master-sheet', authenticateToken, requirePermission('CAN_RECORD_DATA'), saveMasterSheetEntries);
 
 // 4. Pumps Telemetry & Operational Sheet Routes
 apiRouter.get('/pumps/operational-sheet', authenticateToken, getPumpOperationalSheet);

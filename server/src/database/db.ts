@@ -326,6 +326,14 @@ export function initDatabase() {
       updated_by TEXT NOT NULL DEFAULT 'SYSTEM'
     );
 
+    -- Master Operational Logbook (Planilla Maestra de Presa & Relaves)
+    CREATE TABLE IF NOT EXISTS master_sheet_entries (
+      id TEXT PRIMARY KEY,
+      report_date TEXT UNIQUE NOT NULL,
+      data_json TEXT NOT NULL,
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
     -- Indexes for performance
     CREATE INDEX IF NOT EXISTS idx_pumps_tag ON pump_reports(tag);
     CREATE INDEX IF NOT EXISTS idx_pumps_created ON pump_reports(created_at);

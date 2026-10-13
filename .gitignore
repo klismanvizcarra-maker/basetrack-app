@@ -31,3 +31,5 @@ Thumbs.db
 .idea/
 .vscode/
 # .github/ se versiona: contiene el pipeline de CI
+.vercel
+.env*
