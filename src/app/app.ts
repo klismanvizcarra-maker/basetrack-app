@@ -1,9 +1,10 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, signal, ChangeDetectionStrategy } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 
 @Component({
   imports: [RouterOutlet],
   selector: 'app-root',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './app.scss',
   templateUrl: './app.html',
 })

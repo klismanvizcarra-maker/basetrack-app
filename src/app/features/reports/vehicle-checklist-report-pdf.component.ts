@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, OnInit, OnChanges, inject } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, OnChanges, inject, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { VehicleChecklist, VehicleInfo, InspectionCheckItem } from '../../core/services/vehicle-checklist.service';
 import { PdfExportService } from '../../core/services/pdf-export.service';
@@ -8,6 +8,7 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
 
 @Component({
   selector: 'app-vehicle-checklist-report-pdf',
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: true,
   imports: [CommonModule],
   template: `

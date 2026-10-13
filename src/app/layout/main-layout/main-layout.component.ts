@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { SidebarComponent } from '../sidebar/sidebar.component';
@@ -9,6 +9,7 @@ import { LayoutService } from '../../core/layout/layout.service';
 
 @Component({
   selector: 'app-main-layout',
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: true,
   imports: [CommonModule, RouterModule, SidebarComponent, HeaderComponent, ModalComponent],
   template: `
