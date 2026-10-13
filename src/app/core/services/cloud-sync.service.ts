@@ -15,6 +15,7 @@ export interface SyncEventPayload {
 export type SyncState = 'ONLINE' | 'SYNCING' | 'OFFLINE' | 'LOCAL';
 
 import { getApiBaseUrl, DEFAULT_CLOUD_BACKEND_URL } from '../constants/api.config';
+import { BUILD_TIME } from '../constants/build-info';
 
 @Injectable({
   providedIn: 'root'
@@ -590,7 +591,9 @@ export class CloudSyncService {
     }
   }
 
-  private appBuildTime = 1791838500000;
+  // Marca de tiempo del build que está ejecutando este cliente (generada en scripts/generate-version.mjs).
+  // Antes era una constante fija: al quedar desfasada de version.json, la app se recargaba cada minuto.
+  private appBuildTime = BUILD_TIME;
 
   public checkAppVersion(): void {
     if (typeof window === 'undefined' || !navigator.onLine) return;
