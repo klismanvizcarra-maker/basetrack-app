@@ -18,6 +18,8 @@ import { AdminAuditLogsTabComponent } from './tabs/audit-logs/audit-logs-tab.com
 import { AuditLogStore } from './tabs/audit-logs/audit-log.store';
 import { AdminTerminalsTabComponent } from './tabs/terminals/terminals-tab.component';
 import { DeviceFleetStore } from './tabs/terminals/device-fleet.store';
+import { AdminGuardsTabComponent } from './tabs/guards/guards-tab.component';
+import { GuardsStore } from './tabs/guards/guards.store';
 import { resetGuardsCatalog } from '../../shared/utils/roster.util';
 
 export interface UserItem {
@@ -51,7 +53,7 @@ const DEFAULT_USERS: UserItem[] = [
   selector: 'app-admin',
   changeDetection: ChangeDetectionStrategy.Eager,
   standalone: true,
-  imports: [CommonModule, FormsModule, ModalComponent, AdminVehiclesTabComponent, AdminPlantParametersTabComponent, AdminAuditLogsTabComponent, AdminTerminalsTabComponent],
+  imports: [CommonModule, FormsModule, ModalComponent, AdminVehiclesTabComponent, AdminPlantParametersTabComponent, AdminAuditLogsTabComponent, AdminTerminalsTabComponent, AdminGuardsTabComponent],
   templateUrl: './admin.component.html',
   styleUrl: './admin.component.scss',
   // Estilos con alcance manual (.admin-scope) para compartirlos con los componentes de cada pestaña
@@ -67,6 +69,9 @@ export class AdminComponent implements OnInit, OnDestroy {
   vehicleChecklistService = inject(VehicleChecklistService);
   auditLogStore = inject(AuditLogStore);
   deviceFleetStore = inject(DeviceFleetStore);
+  guardsStore = inject(GuardsStore);
+
+  get supervisorsList(): SupervisorData[] { return this.guardsStore.supervisorsList; }
 
   /** Muestra un mensaje en el aviso general (lo usan también las pestañas hijas) */
   showNotice(notice: { text: string; ms: number }): void {
@@ -198,16 +203,6 @@ export class AdminComponent implements OnInit, OnDestroy {
     const overrides = this.permissionsService.userOverridesSignal()[userId];
     return !!overrides && Object.keys(overrides).length > 0;
   }
-
-  // Supervisores y Operadores (Apartado Nuevo)
-  supervisorsList: SupervisorData[] = [];
-  allAvailableOperators: CrewMember[] = [];
-  selectedSupervisor: SupervisorData | null = null;
-  supervisorSearchQuery = '';
-  isAssignOperatorModalOpen = false;
-  operatorToAssignId = '';
-  operatorSearchQuery = '';
-  isAutoAssigning = false;
 
   // Inicialización con datos por defecto
   users: UserItem[] = [...DEFAULT_USERS];
@@ -402,7 +397,7 @@ export class AdminComponent implements OnInit, OnDestroy {
       this.ngZone.run(() => {
         this.loadUsers();
         this.deviceFleetStore.load();
-        this.loadSupervisorsAndOperators();
+        this.guardsStore.load();
         this.refreshVehicleCount();
         // Con la pestaña de bitácora abierta, AdminAuditLogsTabComponent ya la recarga
         if (this.activeAdminTab !== 'AUDIT_LOGS') this.auditLogStore.load();
@@ -414,15 +409,12 @@ export class AdminComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     // Precarga síncrona instantánea (0ms) para Vercel y móviles
-    const initialGuards = this.crewService.loadCachedSupervisorOperators();
-    this.supervisorsList = initialGuards;
-    this.selectedSupervisor = initialGuards[0] || null;
-    this.allAvailableOperators = this.crewService.defaultMembers.filter(m => m.primary_role !== 'SUPERVISOR');
+    this.guardsStore.initFromCache();
 
     this.loadFromStorage();
     this.loadUsers();
     this.deviceFleetStore.load();
-    this.loadSupervisorsAndOperators();
+    this.guardsStore.load();
     this.refreshVehicleCount();
     this.auditLogStore.load();
 
@@ -983,7 +975,7 @@ export class AdminComponent implements OnInit, OnDestroy {
           this.showIssuedCredentials(res?.temporaryCredentials);
 
           this.loadUsers();
-          this.loadSupervisorsAndOperators();
+          this.guardsStore.load();
           this.crewService.loadCrew().subscribe();
           this.cdr.detectChanges();
         },
@@ -1007,7 +999,7 @@ export class AdminComponent implements OnInit, OnDestroy {
           setTimeout(() => this.backupSuccessMessage = '', 7000);
 
           this.loadUsers();
-          this.loadSupervisorsAndOperators();
+          this.guardsStore.load();
           this.crewService.loadCrew().subscribe();
           this.cdr.detectChanges();
         }
@@ -1208,9 +1200,7 @@ export class AdminComponent implements OnInit, OnDestroy {
       this.crewService.supervisorsWithOperators.set([]);
       this.crewService.myOperators.set([]);
 
-      this.supervisorsList = [];
-      this.allAvailableOperators = [];
-      this.selectedSupervisor = null;
+      this.guardsStore.clear();
     };
 
     const resetEndpoint = `${getApiBaseUrl()}/admin/reset-app`;
@@ -1227,7 +1217,7 @@ export class AdminComponent implements OnInit, OnDestroy {
           setTimeout(() => this.backupSuccessMessage = '', 7000);
 
           this.loadUsers();
-          this.loadSupervisorsAndOperators();
+          this.guardsStore.load();
           this.deviceFleetStore.load();
           this.crewService.loadCrew().subscribe();
         },
@@ -1249,7 +1239,7 @@ export class AdminComponent implements OnInit, OnDestroy {
             this.backupSuccessMessage = '✅ Reset App completado exitosamente. Se purgó el almacenamiento local y caché.';
             setTimeout(() => this.backupSuccessMessage = '', 7000);
             this.loadUsers();
-            this.loadSupervisorsAndOperators();
+            this.guardsStore.load();
             this.crewService.loadCrew().subscribe();
             return;
           }
@@ -1262,151 +1252,6 @@ export class AdminComponent implements OnInit, OnDestroy {
           this.resetAppErrorMessage = msg;
         }
       });
-  }
-
-  // ==========================================
-  // SUPERVISOR & OPERATORS MANAGEMENT METHODS
-  // ==========================================
-  loadSupervisorsAndOperators(): void {
-    const fallbackGuards = this.crewService.loadCachedSupervisorOperators();
-    if (!this.supervisorsList || this.supervisorsList.length === 0) {
-      this.supervisorsList = fallbackGuards;
-      this.allAvailableOperators = this.crewService.allMembers().filter(m => m.primary_role !== 'SUPERVISOR');
-      if (!this.selectedSupervisor && fallbackGuards.length > 0) {
-        this.selectedSupervisor = fallbackGuards[0];
-      }
-    }
-
-    this.crewService.loadSupervisorOperators().subscribe(res => {
-      const list = res?.supervisors ? res.supervisors : [];
-      this.supervisorsList = list;
-      this.allAvailableOperators = (res?.all_operators && res.all_operators.length > 0) 
-        ? res.all_operators 
-        : (this.crewService.allMembers().length > 0 ? this.crewService.allMembers().filter(m => m.primary_role !== 'SUPERVISOR') : []);
-      if (!this.selectedSupervisor && this.supervisorsList.length > 0) {
-        this.selectedSupervisor = this.supervisorsList[0];
-      } else if (this.selectedSupervisor) {
-        const updated = this.supervisorsList.find(s => s.id === this.selectedSupervisor!.id || s.username === this.selectedSupervisor!.username);
-        this.selectedSupervisor = updated || (this.supervisorsList.length > 0 ? this.supervisorsList[0] : null);
-      } else {
-        this.selectedSupervisor = null;
-      }
-    });
-  }
-
-  selectSupervisor(sup: SupervisorData): void {
-    this.selectedSupervisor = sup;
-  }
-
-  openAssignOperatorModal(): void {
-    this.operatorToAssignId = '';
-    this.operatorSearchQuery = '';
-    this.isAssignOperatorModalOpen = true;
-  }
-
-  confirmAssignOperator(): void {
-    if (!this.selectedSupervisor || !this.operatorToAssignId) return;
-    this.crewService.assignOperatorToSupervisor(this.selectedSupervisor.id, this.operatorToAssignId, this.selectedSupervisor.shift).subscribe({
-      next: () => {
-        this.isAssignOperatorModalOpen = false;
-        this.loadSupervisorsAndOperators();
-        this.backupSuccessMessage = 'Operador vinculado a la cuadrilla exitosamente';
-        setTimeout(() => this.backupSuccessMessage = '', 4000);
-      }
-    });
-  }
-
-  confirmRemoveOperator(operatorId: string, operatorName: string): void {
-    if (!this.selectedSupervisor) return;
-    if (confirm(`¿Confirma desvincular al operador ${operatorName} de la supervisión de ${this.selectedSupervisor.full_name}?`)) {
-      this.crewService.removeOperatorFromSupervisor(this.selectedSupervisor.id, operatorId).subscribe({
-        next: () => {
-          this.loadSupervisorsAndOperators();
-          this.backupSuccessMessage = `Operador ${operatorName} desvinculado de la cuadrilla`;
-          setTimeout(() => this.backupSuccessMessage = '', 4000);
-        }
-      });
-    }
-  }
-
-  triggerAutoAssignByShift(): void {
-    if (confirm('¿Desea auto-vincular automáticamente los operadores de cada guardia (G1 a G4) con sus respectivos supervisores oficiales?')) {
-      this.isAutoAssigning = true;
-      const timeoutSafety = setTimeout(() => {
-        this.isAutoAssigning = false;
-      }, 5000);
-
-      this.crewService.autoAssignByShift().pipe(
-        finalize(() => {
-          clearTimeout(timeoutSafety);
-          this.isAutoAssigning = false;
-        })
-      ).subscribe({
-        next: () => {
-          this.loadSupervisorsAndOperators();
-          this.backupSuccessMessage = 'Auto-asignación por guardia completada con éxito';
-          setTimeout(() => this.backupSuccessMessage = '', 5000);
-        },
-        error: (err) => {
-          console.warn('[Admin] Error en auto-asignación:', err);
-        }
-      });
-    }
-  }
-
-  get unassignedOperatorsForSelectedSupervisor(): CrewMember[] {
-    if (!this.selectedSupervisor) return [];
-    const assignedIds = new Set(this.selectedSupervisor.operators.map(o => o.operator_id));
-    let list = this.allAvailableOperators.filter(o => !assignedIds.has(o.id));
-    if (this.operatorSearchQuery.trim()) {
-      const q = this.operatorSearchQuery.toLowerCase().trim();
-      list = list.filter(o => o.name.toLowerCase().includes(q) || o.document_id.includes(q) || (o.primary_role || '').toLowerCase().includes(q));
-    }
-    return list;
-  }
-
-  get filteredSupervisors(): SupervisorData[] {
-    if (!this.supervisorSearchQuery.trim()) return this.supervisorsList;
-    const q = this.supervisorSearchQuery.toLowerCase().trim();
-    return this.supervisorsList.filter(s => 
-      s.full_name.toLowerCase().includes(q) || 
-      s.username.toLowerCase().includes(q) || 
-      s.shift.toLowerCase().includes(q)
-    );
-  }
-
-  getOperatorsForSelectedShift(): CrewMember[] {
-    if (!this.selectedSupervisor) return [];
-    return this.unassignedOperatorsForSelectedSupervisor.filter(o => o.shift_code === this.selectedSupervisor!.shift);
-  }
-
-  getOperatorsForOtherShifts(): CrewMember[] {
-    if (!this.selectedSupervisor) return [];
-    return this.unassignedOperatorsForSelectedSupervisor.filter(o => o.shift_code !== this.selectedSupervisor!.shift);
-  }
-
-  getSelectedOperatorForPreview(): CrewMember | undefined {
-    if (!this.operatorToAssignId) return undefined;
-    return this.allAvailableOperators.find(o => o.id === this.operatorToAssignId);
-  }
-
-  formatRoleName(role: string): string {
-    switch (role) {
-      case 'OPERADOR_BOMBAS': return 'Operador de Bombas';
-      case 'OPERADOR_CICLONES_1': return 'Operador de Ciclones 1';
-      case 'OPERADOR_CICLONES_2': return 'Operador de Ciclones 2';
-      case 'OPERADOR_DISTRIBUIDOR': return 'Operador de Distribuidor';
-      case 'OPERADOR_DESCARGA_1': return 'Operador de Descarga 1';
-      case 'OPERADOR_DESCARGA_2': return 'Operador de Descarga 2';
-      case 'OPERADOR_MISCELANEOS': return 'Operador Misceláneos';
-      case 'SUPERVISOR': return 'Supervisor de Planta';
-      default: return role || 'Operador';
-    }
-  }
-
-  getGuardSquadProgress(s: SupervisorData): number {
-    const count = s.operators_count || s.operators?.length || 0;
-    return Math.min(100, Math.round((count / 7) * 100));
   }
 
   ngOnDestroy(): void {
