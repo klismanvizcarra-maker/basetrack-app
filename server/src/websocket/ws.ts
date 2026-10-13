@@ -2,6 +2,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import type { Server as HttpServer } from 'node:http';
 import { db } from '../database/db.js';
 import { verifyToken } from '../config/jwt.js';
+import { sanitizeSyncEvent } from '../utils/strip-secrets.js';
 
 /**
  * Acciones de sistema que solo puede originar el servidor o un ADMIN.
@@ -192,7 +193,8 @@ function handleWsMessage(ws: WebSocket, meta: WsClientMeta, msg: any) {
     }
 
     case 'EVENT': {
-      const ev = msg.event;
+      // Nunca almacenar ni difundir contraseñas que un cliente incluya en una caché sincronizada
+      const ev = msg.event && typeof msg.event === 'object' ? sanitizeSyncEvent(msg.event) : msg.event;
       if (!meta.authenticated) {
         ws.send(JSON.stringify({ type: 'UNAUTHORIZED', message: 'Registre el dispositivo con un token válido antes de emitir eventos' }));
         break;

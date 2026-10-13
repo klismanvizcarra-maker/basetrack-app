@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { db } from '../database/db.js';
 import { broadcastWsEvent, getConnectedWsClientsCount, isReservedSyncAction } from '../websocket/ws.js';
 import type { AuthenticatedRequest } from '../middlewares/auth.middleware.js';
+import { sanitizeSyncEvent } from '../utils/strip-secrets.js';
 
 export interface SyncEventItem {
   entity: string;
@@ -49,11 +50,11 @@ export function upsertConnectedDevice(req: Request, deviceId?: string, userId?: 
 
 export async function pushEvents(req: AuthenticatedRequest, res: Response) {
   try {
-    const { deviceId, events, deviceName } = req.body as {
-      deviceId: string;
-      deviceName?: string;
-      events: SyncEventItem[];
-    };
+    const { deviceId, deviceName } = req.body as { deviceId: string; deviceName?: string };
+    // Nunca almacenar ni difundir contraseñas que un cliente incluya en una caché sincronizada
+    const events = Array.isArray(req.body?.events)
+      ? (req.body.events as SyncEventItem[]).map(ev => sanitizeSyncEvent(ev))
+      : req.body?.events;
 
     if (!deviceId || !Array.isArray(events) || events.length === 0) {
       return res.status(400).json({
