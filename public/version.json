@@ -1,8 +1,8 @@
 {
   "version": "1.0.0",
-  "build": "2026.10.13.btmv61l",
-  "buildTime": 1791924825617,
-  "releaseDate": "2026-10-13T20:53:45.617Z",
+  "build": "2026.10.13.btmv8jc",
+  "buildTime": 1791928056014,
+  "releaseDate": "2026-10-13T21:47:36.014Z",
   "title": "BASETRACK APP v1.1.0 - Auto-Actualización en Tiempo Real y Alta Concurrencia",
   "description": "Despliegue Vercel con auto-actualización remota instantánea, Service Worker v10 cache-busting, zero memory leak y mitigación cold start."
 }

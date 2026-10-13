@@ -421,6 +421,502 @@ export interface TrendStatsSummary {
             </div>
           </section>
 
+          <!-- INTERACTIVE DAM CROSS-SECTION & RESERVOIR PROFILE -->
+          <section class="dam-cross-section glass-panel">
+            <div class="dam-section-header">
+              <div class="head-titles">
+                <div class="dam-title-badge">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#031795" stroke-width="2.2">
+                    <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                    <polyline points="2 17 12 22 22 17"></polyline>
+                    <polyline points="2 12 12 17 22 12"></polyline>
+                  </svg>
+                  <h3>Perfil Transversal de Seguridad del Dique de Relaves</h3>
+                </div>
+                <p class="subtitle">Modelo 2D interactivo: Cotas de corona, espejo de agua dinámico, revancha y playa de relaves</p>
+              </div>
+
+              <!-- View Mode Toggles & Status Pill -->
+              <div class="dam-header-actions">
+                <div class="dam-mode-pills">
+                  <button
+                    class="dam-pill"
+                    [class.active]="damViewMode === 'operational'"
+                    (click)="damViewMode = 'operational'"
+                  >
+                    📐 Cotas Operativas
+                  </button>
+                  <button
+                    class="dam-pill"
+                    [class.active]="damViewMode === 'geotechnical'"
+                    (click)="damViewMode = 'geotechnical'"
+                  >
+                    🧱 Zonificación Geotécnica
+                  </button>
+                </div>
+
+                <div
+                  class="dam-status-pill"
+                  [class.safe]="!damIsFreeboardWarning && !damIsFreeboardCritical"
+                  [class.warning]="damIsFreeboardWarning"
+                  [class.critical]="damIsFreeboardCritical"
+                >
+                  <span class="pulse-beacon"></span>
+                  <span>{{ damFreeboardStatusText }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Quick Metrics Header Strip -->
+            <div class="dam-metrics-strip">
+              <div class="dam-metric-badge" (mouseenter)="activeDamPart = 'corona'" (mouseleave)="activeDamPart = null">
+                <span class="m-label">Cota Corona Dique</span>
+                <span class="m-val">{{ current.cotaCoronaMsnm.toFixed(2) }} msnm</span>
+              </div>
+              <div class="dam-metric-badge" (mouseenter)="activeDamPart = 'embalse'" (mouseleave)="activeDamPart = null">
+                <span class="m-label">Cota Espejo de Agua</span>
+                <span class="m-val highlight-blue">{{ current.cotaEmbalseMsnm.toFixed(2) }} msnm</span>
+              </div>
+              <div class="dam-metric-badge" (mouseenter)="activeDamPart = 'borde_libre'" (mouseleave)="activeDamPart = null">
+                <span class="m-label">Borde Libre (Revancha)</span>
+                <span
+                  class="m-val highlight-status"
+                  [class.text-safe]="!damIsFreeboardWarning && !damIsFreeboardCritical"
+                  [class.text-warn]="damIsFreeboardWarning"
+                  [class.text-crit]="damIsFreeboardCritical"
+                >
+                  {{ current.bordeLibreM.toFixed(2) }} m
+                </span>
+              </div>
+              <div class="dam-metric-badge" (mouseenter)="activeDamPart = 'playa'" (mouseleave)="activeDamPart = null">
+                <span class="m-label">Longitud de Playa</span>
+                <span class="m-val">{{ current.longitudPlayaM }} m</span>
+              </div>
+              <div class="dam-metric-badge" (mouseenter)="activeDamPart = 'talud'" (mouseleave)="activeDamPart = null">
+                <span class="m-label">Crecimiento Dique</span>
+                <span class="m-val">+{{ current.crecimientoPresaM.toFixed(2) }} m/día</span>
+              </div>
+              <div class="dam-metric-badge" (mouseenter)="activeDamPart = 'torre5'" (mouseleave)="activeDamPart = null">
+                <span class="m-label">Extracción Torre 5</span>
+                <span class="m-val">{{ current.torre5VolDiaM3.toLocaleString() }} m³</span>
+              </div>
+            </div>
+
+            <!-- Interactive SVG Diagram Viewport -->
+            <div class="dam-svg-container">
+              <svg viewBox="0 0 940 330" class="dam-profile-svg" preserveAspectRatio="xMidYMid meet">
+                <defs>
+                  <!-- Gradients -->
+                  <linearGradient id="damWaterGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.85"></stop>
+                    <stop offset="60%" stop-color="#0284c7" stop-opacity="0.90"></stop>
+                    <stop offset="100%" stop-color="#0369a1" stop-opacity="0.95"></stop>
+                  </linearGradient>
+
+                  <linearGradient id="damSandGrad" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stop-color="#fef3c7"></stop>
+                    <stop offset="50%" stop-color="#fde68a"></stop>
+                    <stop offset="100%" stop-color="#f59e0b" stop-opacity="0.65"></stop>
+                  </linearGradient>
+
+                  <linearGradient id="damRiprapGrad" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stop-color="#cbd5e1"></stop>
+                    <stop offset="100%" stop-color="#94a3b8"></stop>
+                  </linearGradient>
+
+                  <linearGradient id="damBeachGrad" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stop-color="#fed7aa"></stop>
+                    <stop offset="100%" stop-color="#fde68a"></stop>
+                  </linearGradient>
+
+                  <linearGradient id="damSludgeGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#94a3b8"></stop>
+                    <stop offset="100%" stop-color="#64748b"></stop>
+                  </linearGradient>
+
+                  <linearGradient id="damSkyGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#f8fafc"></stop>
+                    <stop offset="100%" stop-color="#eff6ff"></stop>
+                  </linearGradient>
+
+                  <!-- Hatches & Patterns -->
+                  <pattern id="damGroundHatch" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+                    <line x1="0" y1="0" x2="0" y2="10" stroke="#94a3b8" stroke-width="1.2"></line>
+                  </pattern>
+
+                  <pattern id="damRiprapPattern" width="14" height="14" patternUnits="userSpaceOnUse">
+                    <circle cx="7" cy="7" r="4" fill="#94a3b8" opacity="0.3"></circle>
+                    <circle cx="2" cy="2" r="2.5" fill="#64748b" opacity="0.3"></circle>
+                    <circle cx="12" cy="12" r="2" fill="#64748b" opacity="0.3"></circle>
+                  </pattern>
+
+                  <!-- Arrow Markers -->
+                  <marker id="arrowUp" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                    <path d="M 0 10 L 5 0 L 10 10 z" fill="#031795"></path>
+                  </marker>
+                  <marker id="arrowDown" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                    <path d="M 0 0 L 5 10 L 10 0 z" fill="#031795"></path>
+                  </marker>
+                  <marker id="arrowUpCrit" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                    <path d="M 0 10 L 5 0 L 10 10 z" fill="#dc2626"></path>
+                  </marker>
+                  <marker id="arrowDownCrit" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                    <path d="M 0 0 L 5 10 L 10 0 z" fill="#dc2626"></path>
+                  </marker>
+                </defs>
+
+                <!-- Sky / Air Background -->
+                <rect x="0" y="0" width="940" height="280" fill="url(#damSkyGrad)"></rect>
+
+                <!-- Geotechnical Foundation / Ground Baseline (y=280) -->
+                <rect x="0" y="280" width="940" height="50" fill="#f1f5f9"></rect>
+                <rect x="0" y="280" width="940" height="50" fill="url(#damGroundHatch)" opacity="0.35"></rect>
+                <line x1="0" y1="280" x2="940" y2="280" stroke="#475569" stroke-width="2.5"></line>
+                <text x="50" y="302" fill="#64748b" font-size="10" font-weight="700">TERRENO DE FUNDACIÓN / ROCA BASAL</text>
+
+                <!-- 1. Fine Tailings Slimes Sediment (Lamas finas sedimentadas) -->
+                <polygon
+                  [attr.points]="damSludgePolygonPoints"
+                  fill="url(#damSludgeGrad)"
+                  stroke="#475569"
+                  stroke-width="1"
+                ></polygon>
+
+                <!-- 2. Tailings Beach (Playa de relaves segregados) -->
+                <polygon
+                  [attr.points]="'360,80 ' + damBeachWaterX + ',' + damWaterY + ' ' + damBeachWaterX + ',240 440,280 360,280'"
+                  fill="url(#damBeachGrad)"
+                  stroke="#d97706"
+                  stroke-width="1.2"
+                  class="interactive-dam-zone"
+                  (mouseenter)="activeDamPart = 'playa'"
+                  (mouseleave)="activeDamPart = null"
+                ></polygon>
+
+                <!-- 3. Dam Structural Body (Cuerpo de arenas compactadas) -->
+                <polygon
+                  points="60,280 180,190 210,190 290,80 360,80 360,280"
+                  fill="url(#damSandGrad)"
+                  stroke="#d97706"
+                  stroke-width="1.5"
+                  class="interactive-dam-zone"
+                  (mouseenter)="activeDamPart = 'talud'"
+                  (mouseleave)="activeDamPart = null"
+                ></polygon>
+
+                <!-- 4. Riprap / Downstream Armor Shell (Protección Talud Aguas Abajo) -->
+                <polygon
+                  points="60,280 180,190 210,190 290,80 270,80 195,190 165,190 45,280"
+                  fill="url(#damRiprapGrad)"
+                  opacity="0.4"
+                ></polygon>
+                <polygon
+                  points="60,280 180,190 210,190 290,80 270,80 195,190 165,190 45,280"
+                  fill="url(#damRiprapPattern)"
+                  opacity="0.6"
+                ></polygon>
+
+                <!-- 5. Phreatic Line (Línea Freática dentro del dique) -->
+                <path
+                  [attr.d]="'M ' + damBeachWaterX + ',' + damWaterY + ' Q 320,' + (damWaterY + 30) + ' 210,275'"
+                  fill="none"
+                  stroke="#0284c7"
+                  stroke-width="1.8"
+                  stroke-dasharray="4 3"
+                ></path>
+                <text x="250" [attr.y]="damWaterY + 50" fill="#0284c7" font-size="9" font-weight="700">Línea Freática (Abatida)</text>
+
+                <!-- 6. Basal Drainage Blanket (Dren Basal) -->
+                <rect
+                  x="180"
+                  y="272"
+                  width="70"
+                  height="8"
+                  fill="#475569"
+                  stroke="#334155"
+                  stroke-width="1"
+                  class="interactive-dam-zone"
+                  (mouseenter)="activeDamPart = 'dren'"
+                  (mouseleave)="activeDamPart = null"
+                ></rect>
+                <line x1="175" y1="276" x2="145" y2="276" stroke="#0284c7" stroke-width="2"></line>
+                <polygon points="145,273 138,276 145,279" fill="#0284c7"></polygon>
+                <text x="135" y="271" fill="#0284c7" font-size="8.5" font-weight="700" text-anchor="end">Dren Basal ({{ current.filtracionesTotalLs }} L/s)</text>
+
+                <!-- 7. Lagoon / Water Pond (Espejo de Agua Dinámico) -->
+                <polygon
+                  [attr.points]="damWaterPolygonPoints"
+                  fill="url(#damWaterGrad)"
+                  class="interactive-dam-zone water-pond"
+                  (mouseenter)="activeDamPart = 'embalse'"
+                  (mouseleave)="activeDamPart = null"
+                ></polygon>
+
+                <!-- Dynamic Water Surface Wave / Top Line -->
+                <line
+                  [attr.x1]="damBeachWaterX"
+                  [attr.y1]="damWaterY"
+                  x2="910"
+                  [attr.y2]="damWaterY"
+                  stroke="#bae6fd"
+                  stroke-width="3"
+                ></line>
+                <path
+                  [attr.d]="'M ' + damBeachWaterX + ',' + damWaterY + ' q 20,-3 40,0 t 40,0 t 40,0 t 40,0 t 40,0 t 40,0 t 40,0 t 40,0 t 40,0'"
+                  fill="none"
+                  stroke="#ffffff"
+                  stroke-width="1.5"
+                  opacity="0.8"
+                ></path>
+
+                <!-- Water Elevation Flag -->
+                <rect
+                  [attr.x]="damBeachWaterX + 45"
+                  [attr.y]="damWaterY - 26"
+                  width="180"
+                  height="22"
+                  rx="6"
+                  fill="#0369a1"
+                  filter="drop-shadow(0 2px 4px rgba(0,0,0,0.15))"
+                ></rect>
+                <text
+                  [attr.x]="damBeachWaterX + 135"
+                  [attr.y]="damWaterY - 11"
+                  fill="#ffffff"
+                  font-size="10.5"
+                  font-weight="700"
+                  text-anchor="middle"
+                >
+                  💧 Cota Agua: {{ current.cotaEmbalseMsnm.toFixed(2) }} msnm
+                </text>
+
+                <!-- 8. Decant Tower 5 (Torre 5 de Captación) -->
+                <g
+                  class="interactive-dam-zone tower-zone"
+                  (mouseenter)="activeDamPart = 'torre5'"
+                  (mouseleave)="activeDamPart = null"
+                >
+                  <!-- Tower Pier Concrete Shaft -->
+                  <rect x="785" y="65" width="22" height="205" rx="2" fill="#475569" stroke="#1e293b" stroke-width="1.5"></rect>
+                  <!-- Intake Ring Windows -->
+                  <rect x="788" y="90" width="16" height="6" fill="#0284c7" opacity="0.8"></rect>
+                  <rect x="788" y="110" width="16" height="6" fill="#0284c7" opacity="0.8"></rect>
+                  <rect x="788" y="130" width="16" height="6" fill="#0284c7" opacity="0.8"></rect>
+                  <rect x="788" y="150" width="16" height="6" fill="#0284c7" opacity="0.8"></rect>
+                  <rect x="788" y="170" width="16" height="6" fill="#0284c7" opacity="0.8"></rect>
+                  <rect x="788" y="190" width="16" height="6" fill="#0284c7" opacity="0.8"></rect>
+                  <!-- Walkway bridge to abutment -->
+                  <line x1="807" y1="72" x2="910" y2="72" stroke="#64748b" stroke-width="4"></line>
+                  <line x1="807" y1="67" x2="910" y2="67" stroke="#94a3b8" stroke-width="1.5"></line>
+                  <!-- Tower Top House -->
+                  <rect x="780" y="50" width="32" height="15" rx="3" fill="#0f172a"></rect>
+                  <circle cx="796" cy="57" r="2.5" fill="#10b981"></circle>
+                  <!-- Tag -->
+                  <rect x="735" y="24" width="125" height="20" rx="4" fill="#ffffff" stroke="#cbd5e1" stroke-width="1"></rect>
+                  <text x="797" y="38" fill="#0f172a" font-size="9.5" font-weight="700" text-anchor="middle">
+                    Torre 5 ({{ current.torre5VolDiaM3.toLocaleString() }} m³)
+                  </text>
+                </g>
+
+                <!-- 9. Crest / Corona del Dique -->
+                <g
+                  class="interactive-dam-zone crest-zone"
+                  (mouseenter)="activeDamPart = 'corona'"
+                  (mouseleave)="activeDamPart = null"
+                >
+                  <rect x="290" y="77" width="70" height="6" fill="#d97706" rx="1"></rect>
+                  <!-- Crest Elevation Pill -->
+                  <rect x="250" y="44" width="150" height="25" rx="7" fill="#031795" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.15))"></rect>
+                  <text x="325" y="60" fill="#ffffff" font-size="11" font-weight="800" text-anchor="middle">
+                    ▲ Corona: {{ current.cotaCoronaMsnm.toFixed(2) }} msnm
+                  </text>
+                  <!-- Crest Width text -->
+                  <text x="325" y="93" fill="#64748b" font-size="9" font-weight="600" text-anchor="middle">Ancho Corona</text>
+                </g>
+
+                <!-- 10. GISTM Minimum Safety Threshold Line (2.00 m below crest -> y = 120) -->
+                <g>
+                  <line
+                    x1="385"
+                    [attr.y1]="damGistmThresholdY"
+                    x2="910"
+                    [attr.y2]="damGistmThresholdY"
+                    stroke="#ef4444"
+                    stroke-width="1.8"
+                    stroke-dasharray="6 4"
+                  ></line>
+                  <rect
+                    x="560"
+                    [attr.y]="damGistmThresholdY - 18"
+                    width="190"
+                    height="18"
+                    rx="4"
+                    fill="#fef2f2"
+                    stroke="#fca5a5"
+                    stroke-width="1"
+                  ></rect>
+                  <text
+                    x="655"
+                    [attr.y]="damGistmThresholdY - 5"
+                    fill="#dc2626"
+                    font-size="9.5"
+                    font-weight="700"
+                    text-anchor="middle"
+                  >
+                    ⚠️ Límite Mínimo GISTM: 2.00 m
+                  </text>
+                </g>
+
+                <!-- 11. FREEBOARD TECHNICAL DIMENSION LINE (Between y=80 and y=damWaterY) -->
+                <g
+                  class="interactive-dam-zone freeboard-dim-zone"
+                  (mouseenter)="activeDamPart = 'borde_libre'"
+                  (mouseleave)="activeDamPart = null"
+                >
+                  <!-- Top extension line from crest -->
+                  <line x1="360" y1="80" x2="445" y2="80" stroke="#64748b" stroke-width="1" stroke-dasharray="2 2"></line>
+                  <!-- Bottom extension line from water -->
+                  <line [attr.x1]="damBeachWaterX" [attr.y1]="damWaterY" x2="445" [attr.y2]="damWaterY" stroke="#64748b" stroke-width="1" stroke-dasharray="2 2"></line>
+
+                  <!-- Vertical Dimension Double-Arrow Line -->
+                  <line
+                    x1="435"
+                    y1="85"
+                    x2="435"
+                    [attr.y2]="damWaterY - 5"
+                    [attr.stroke]="damIsFreeboardCritical ? '#dc2626' : '#031795'"
+                    stroke-width="2.5"
+                    [attr.marker-start]="damIsFreeboardCritical ? 'url(#arrowUpCrit)' : 'url(#arrowUp)'"
+                    [attr.marker-end]="damIsFreeboardCritical ? 'url(#arrowDownCrit)' : 'url(#arrowDown)'"
+                  ></line>
+
+                  <!-- Freeboard Badge Floating on dimension line -->
+                  <rect
+                    x="375"
+                    [attr.y]="(80 + damWaterY) / 2 - 13"
+                    width="120"
+                    height="26"
+                    rx="13"
+                    [attr.fill]="damIsFreeboardCritical ? '#fef2f2' : (!damIsFreeboardWarning ? '#ecfdf5' : '#fffbeb')"
+                    [attr.stroke]="damIsFreeboardCritical ? '#f87171' : (!damIsFreeboardWarning ? '#6ee7b7' : '#fcd34d')"
+                    stroke-width="1.5"
+                    filter="drop-shadow(0 2px 4px rgba(0,0,0,0.1))"
+                  ></rect>
+                  <text
+                    x="435"
+                    [attr.y]="(80 + damWaterY) / 2 + 4"
+                    [attr.fill]="damIsFreeboardCritical ? '#dc2626' : (!damIsFreeboardWarning ? '#065f46' : '#92400e')"
+                    font-size="11"
+                    font-weight="800"
+                    text-anchor="middle"
+                  >
+                    ↔ {{ current.bordeLibreM.toFixed(2) }} m
+                  </text>
+                </g>
+
+                <!-- 12. Beach Length Dimension Arrow -->
+                <g
+                  class="interactive-dam-zone"
+                  (mouseenter)="activeDamPart = 'playa'"
+                  (mouseleave)="activeDamPart = null"
+                >
+                  <line
+                    x1="365"
+                    y1="165"
+                    [attr.x2]="damBeachWaterX - 5"
+                    y2="165"
+                    stroke="#d97706"
+                    stroke-width="1.5"
+                    stroke-dasharray="3 2"
+                  ></line>
+                  <rect
+                    [attr.x]="(365 + damBeachWaterX) / 2 - 60"
+                    y="153"
+                    width="120"
+                    height="20"
+                    rx="4"
+                    fill="#fffbeb"
+                    stroke="#fde68a"
+                    stroke-width="1"
+                  ></rect>
+                  <text
+                    [attr.x]="(365 + damBeachWaterX) / 2"
+                    y="167"
+                    fill="#92400e"
+                    font-size="9.5"
+                    font-weight="700"
+                    text-anchor="middle"
+                  >
+                    Playa: {{ current.longitudPlayaM }} m
+                  </text>
+                </g>
+
+                <!-- Geotechnical Material Labels (when damViewMode === 'geotechnical') -->
+                <g *ngIf="damViewMode === 'geotechnical'">
+                  <rect x="90" y="220" width="115" height="24" rx="4" fill="#ffffff" stroke="#94a3b8" stroke-width="1"></rect>
+                  <text x="147" y="235" fill="#334155" font-size="9" font-weight="700" text-anchor="middle">Enrocado / Riprap</text>
+
+                  <rect x="210" y="140" width="130" height="24" rx="4" fill="#ffffff" stroke="#d97706" stroke-width="1"></rect>
+                  <text x="275" y="155" fill="#92400e" font-size="9" font-weight="700" text-anchor="middle">Arenas Compactadas</text>
+
+                  <rect x="420" y="210" width="120" height="24" rx="4" fill="#ffffff" stroke="#b45309" stroke-width="1"></rect>
+                  <text x="480" y="225" fill="#78350f" font-size="9" font-weight="700" text-anchor="middle">Playa de Relaves</text>
+
+                  <rect x="680" y="240" width="140" height="24" rx="4" fill="#ffffff" stroke="#64748b" stroke-width="1"></rect>
+                  <text x="750" y="255" fill="#1e293b" font-size="9" font-weight="700" text-anchor="middle">Lamas Sedimentadas</text>
+                </g>
+
+                <!-- Downstream Slope Notation -->
+                <text x="110" y="210" fill="#64748b" font-size="9" font-weight="600" transform="rotate(-30 110 210)">
+                  Talud 1:2.5 (Aguas Abajo)
+                </text>
+              </svg>
+            </div>
+
+            <!-- Dynamic Inspector Panel on Hover / Selection -->
+            <div class="dam-inspector-panel" *ngIf="damActivePartDetails as part">
+              <div class="inspector-badge-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="16" x2="12" y2="12"></line>
+                  <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                </svg>
+              </div>
+              <div class="inspector-text">
+                <span class="inspector-title"><strong>{{ part.title }}</strong>: <span class="inspector-val">{{ part.value }}</span></span>
+                <p class="inspector-desc">{{ part.note }}</p>
+              </div>
+            </div>
+
+            <!-- Bottom Geotechnical Legend & Technical Notes -->
+            <div class="dam-footer-legend">
+              <div class="legend-chip">
+                <span class="color-box crest"></span>
+                <span>Corona Dique (msnm)</span>
+              </div>
+              <div class="legend-chip">
+                <span class="color-box water"></span>
+                <span>Espejo de Agua</span>
+              </div>
+              <div class="legend-chip">
+                <span class="color-box sand"></span>
+                <span>Arenas Compactadas</span>
+              </div>
+              <div class="legend-chip">
+                <span class="color-box beach"></span>
+                <span>Playa de Relaves</span>
+              </div>
+              <div class="legend-chip">
+                <span class="color-box tower"></span>
+                <span>Torre 5 de Captación</span>
+              </div>
+              <div class="legend-chip">
+                <span class="color-box threshold"></span>
+                <span>Límite Mínimo GISTM (2.0m)</span>
+              </div>
+            </div>
+          </section>
+
           <!-- OPERATIONAL DETAIL CARDS (2-Column Grid) -->
           <section class="master-details-grid">
             <!-- 1. Topografía & Geometría del Dique -->
@@ -1766,6 +2262,282 @@ export interface TrendStatsSummary {
       }
     }
 
+    /* Dam Cross-Section Section */
+    .dam-cross-section {
+      padding: 24px;
+      border-radius: 14px;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+      margin-top: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .dam-section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 14px;
+    }
+
+    .dam-title-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      h3 {
+        font-size: 1.15rem;
+        font-weight: 800;
+        color: #0f172a;
+      }
+    }
+
+    .dam-header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .dam-mode-pills {
+      display: flex;
+      align-items: center;
+      background: #f1f5f9;
+      padding: 4px;
+      border-radius: 10px;
+      gap: 4px;
+      border: 1px solid #e2e8f0;
+    }
+
+    .dam-pill {
+      padding: 6px 12px;
+      border: none;
+      background: transparent;
+      border-radius: 6px;
+      font-size: 0.76rem;
+      font-weight: 600;
+      color: #64748b;
+      cursor: pointer;
+      transition: all 0.2s;
+
+      &:hover {
+        color: #0f172a;
+      }
+
+      &.active {
+        background: #ffffff;
+        color: #031795;
+        font-weight: 700;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+      }
+    }
+
+    .dam-status-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.76rem;
+      font-weight: 700;
+
+      &.safe {
+        background: #ecfdf5;
+        color: #065f46;
+        border: 1px solid #a7f3d0;
+        .pulse-beacon { background: #10b981; }
+      }
+
+      &.warning {
+        background: #fffbeb;
+        color: #92400e;
+        border: 1px solid #fde68a;
+        .pulse-beacon { background: #f59e0b; }
+      }
+
+      &.critical {
+        background: #fef2f2;
+        color: #991b1b;
+        border: 1px solid #fecaca;
+        .pulse-beacon { background: #ef4444; }
+      }
+    }
+
+    .pulse-beacon {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+      animation: beaconPulse 2s infinite;
+    }
+
+    @keyframes beaconPulse {
+      0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+      }
+      70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+      }
+      100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+      }
+    }
+
+    .dam-metrics-strip {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 10px;
+
+      @media (max-width: 1200px) {
+        grid-template-columns: repeat(3, 1fr);
+      }
+      @media (max-width: 640px) {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .dam-metric-badge {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      padding: 10px 12px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      transition: all 0.2s;
+      cursor: pointer;
+
+      &:hover {
+        background: #eff6ff;
+        border-color: #93c5fd;
+      }
+    }
+
+    .m-label {
+      font-size: 0.68rem;
+      font-weight: 600;
+      color: #64748b;
+      text-transform: uppercase;
+    }
+
+    .m-val {
+      font-size: 0.88rem;
+      font-weight: 800;
+      color: #0f172a;
+
+      &.highlight-blue {
+        color: #0284c7;
+      }
+
+      &.text-safe {
+        color: #059669;
+      }
+      &.text-warn {
+        color: #d97706;
+      }
+      &.text-crit {
+        color: #dc2626;
+      }
+    }
+
+    .dam-svg-container {
+      width: 100%;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.03);
+    }
+
+    .dam-profile-svg {
+      width: 100%;
+      height: auto;
+      max-height: 400px;
+      display: block;
+    }
+
+    .interactive-dam-zone {
+      cursor: pointer;
+      transition: filter 0.2s, opacity 0.2s;
+
+      &:hover {
+        filter: brightness(1.08) drop-shadow(0 2px 6px rgba(0, 0, 0, 0.15));
+      }
+    }
+
+    .dam-inspector-panel {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 8px;
+      animation: fadeIn 0.2s ease-in;
+    }
+
+    .inspector-badge-icon {
+      color: #1e40af;
+      display: flex;
+      align-items: center;
+    }
+
+    .inspector-text {
+      font-size: 0.82rem;
+      color: #1e3a8a;
+
+      .inspector-val {
+        font-weight: 800;
+        color: #031795;
+      }
+    }
+
+    .inspector-desc {
+      font-size: 0.74rem;
+      color: #3b82f6;
+      margin-top: 2px;
+    }
+
+    .dam-footer-legend {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      padding-top: 4px;
+    }
+
+    .legend-chip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.75rem;
+      color: #475569;
+      font-weight: 500;
+    }
+
+    .color-box {
+      width: 12px;
+      height: 12px;
+      border-radius: 3px;
+
+      &.crest { background: #031795; }
+      &.water { background: #0284c7; }
+      &.sand { background: #f59e0b; }
+      &.beach { background: #fed7aa; border: 1px solid #f59e0b; }
+      &.tower { background: #475569; }
+      &.threshold {
+        width: 16px;
+        height: 2px;
+        background: #ef4444;
+      }
+    }
+
     /* Trend Chart Section */
     .trend-chart-section {
       padding: 24px;
@@ -2910,6 +3682,120 @@ export class DashboardComponent implements OnInit, OnDestroy {
       return `${val.toFixed(decimals)} ${unit}`;
     }
     return `${Math.round(val)} ${unit}`;
+  }
+
+  // --- Interactive Dam Cross-Section & Reservoir Profile State ---
+  damViewMode: 'operational' | 'geotechnical' = 'operational';
+  activeDamPart: 'corona' | 'embalse' | 'borde_libre' | 'playa' | 'talud' | 'torre5' | 'dren' | null = null;
+
+  get damWaterY(): number {
+    const entry = this.masterService.activeEntry();
+    const fb = entry ? entry.bordeLibreM : 4.0;
+    const clamped = Math.max(0.5, Math.min(6.5, fb));
+    // Crest elevation is at y=80.
+    // Safe freeboard ~4.0m -> y = 160.
+    // GISTM minimum threshold 2.0m -> y = 120.
+    // Critical hazard <2.0m -> y < 120.
+    return Math.round(80 + clamped * 20);
+  }
+
+  get damGistmThresholdY(): number {
+    // 2.0m below crest (80 + 2.0*20 = 120)
+    return 120;
+  }
+
+  get damBeachWaterX(): number {
+    const wy = this.damWaterY;
+    // As water level drops (wy > 160), beach extends to the right (x increases).
+    // As water level rises (wy < 160), beach is submerged (x decreases towards 480).
+    return Math.round(540 + (wy - 160) * 1.5);
+  }
+
+  get damWaterPolygonPoints(): string {
+    const bx = this.damBeachWaterX;
+    const wy = this.damWaterY;
+    return `${bx},${wy} 910,${wy} 910,265 ${bx},240`;
+  }
+
+  get damSludgePolygonPoints(): string {
+    const bx = this.damBeachWaterX;
+    return `${bx},240 910,265 910,280 440,280`;
+  }
+
+  get damIsFreeboardCritical(): boolean {
+    const entry = this.masterService.activeEntry();
+    return !!entry && entry.bordeLibreM < 2.0;
+  }
+
+  get damIsFreeboardWarning(): boolean {
+    const entry = this.masterService.activeEntry();
+    return !!entry && entry.bordeLibreM >= 2.0 && entry.bordeLibreM < 4.0;
+  }
+
+  get damFreeboardStatusText(): string {
+    const entry = this.masterService.activeEntry();
+    if (!entry) return 'Sin Datos';
+    if (entry.bordeLibreM >= 4.0) return 'Operación Segura (> 4.0 m)';
+    if (entry.bordeLibreM >= 2.0) return 'Alerta Operativa (2.0 - 4.0 m)';
+    return '¡Alerta Crítica GISTM (< 2.0 m)!';
+  }
+
+  get damActivePartDetails(): { title: string; value: string; note: string; statusClass?: string } | null {
+    const entry = this.masterService.activeEntry();
+    if (!entry || !this.activeDamPart) return null;
+    switch (this.activeDamPart) {
+      case 'corona':
+        return {
+          title: 'Corona del Dique (Cresta)',
+          value: `${entry.cotaCoronaMsnm.toFixed(2)} msnm`,
+          note: `Nivel estructural superior de coronamiento. Crecimiento diario de presa: +${entry.crecimientoPresaM.toFixed(2)} m/día.`
+        };
+      case 'embalse':
+        return {
+          title: 'Espejo de Agua / Laguna de Relaves',
+          value: `${entry.cotaEmbalseMsnm.toFixed(2)} msnm`,
+          note: `Nivel de espejo libre de agua en vaso. Almacenamiento real acumulado: ${entry.volAguaRealAcumuladoM3.toLocaleString()} m³.`
+        };
+      case 'borde_libre':
+        const isCrit = entry.bordeLibreM < 2.0;
+        const isWarn = entry.bordeLibreM >= 2.0 && entry.bordeLibreM < 4.0;
+        return {
+          title: 'Borde Libre Operacional (Freeboard)',
+          value: `${entry.bordeLibreM.toFixed(2)} m`,
+          note: isCrit
+            ? '¡PELIGRO CRÍTICO! Revancha menor a 2.00 m según estándar global de relaves GISTM.'
+            : isWarn
+            ? 'Alerta preventiva: Revancha ajustada (2.0 a 4.0 m). Monitorear recirculación de Torre 5.'
+            : 'Margen seguro de operación (> 4.00 m) conforme a diseño y cota máxima permisible.',
+          statusClass: isCrit ? 'critical' : isWarn ? 'warning' : 'safe'
+        };
+      case 'playa':
+        return {
+          title: 'Playa de Relaves (Tailings Beach)',
+          value: `${entry.longitudPlayaM} m de longitud`,
+          note: `Distancia entre la corona del dique y el borde del agua para disipación de energía, desborde hidráulico y segregación de arenas.`
+        };
+      case 'talud':
+        return {
+          title: 'Talud de Aguas Abajo (Downstream Slope)',
+          value: `Compactación Proctor: ${entry.compactacionPct}%`,
+          note: `Cuerpo resistente peraltado con arenas compactadas (${entry.arenasProdTopografiaM3.toLocaleString()} m³), bermas intermedias y enrocado riprap.`
+        };
+      case 'torre5':
+        return {
+          title: 'Torre 5 de Captación (Decant Tower)',
+          value: `${entry.torre5VolDiaM3.toLocaleString()} m³/día`,
+          note: `Extracción y recirculación continua de agua clarificada hacia la Planta Concentradora (Acumulado: ${(entry.torre5VolAcumuladoM3 / 1000000).toFixed(2)} M m³).`
+        };
+      case 'dren':
+        return {
+          title: 'Sistema de Drenaje Basal & Subdrenaje',
+          value: `${entry.filtracionesTotalLs} L/s (${entry.filtracionesTotalM3Dia} m³/día)`,
+          note: `Red de control piezométrico y colchón drenante para abatir la línea freática en el cuerpo del dique.`
+        };
+      default:
+        return null;
+    }
   }
 
   // --- Upload Modal Handlers ---
