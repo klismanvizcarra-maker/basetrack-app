@@ -1680,6 +1680,13 @@ import { getRosterForDate, getCurrentActiveShift, getLocalDateString, DayRoster,
       border-radius: var(--radius-md);
       padding: 3px;
       gap: 3px;
+      max-width: 100%;
+      overflow-x: auto;
+
+      .tab-btn {
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
     }
 
     .tab-btn {

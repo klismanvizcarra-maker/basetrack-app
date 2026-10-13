@@ -713,6 +713,30 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
         text-overflow: ellipsis;
       }
 
+      // Zona táctil de 44 px de alto en pantallas táctiles sin cambiar el tamaño visible
+      @media (pointer: coarse) {
+        position: relative;
+        overflow: visible;
+
+        // El recorte con "…" pasa al texto, ya que el botón no puede ocultar su zona táctil
+        > span:not(.status-pulse-dot) {
+          min-width: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        &::after {
+          content: '';
+          position: absolute;
+          left: 0;
+          right: 0;
+          top: 50%;
+          height: 44px;
+          transform: translateY(-50%);
+        }
+      }
+
       &.ws-live-pill {
         background: rgba(16, 185, 129, 0.12);
         border-color: rgba(16, 185, 129, 0.45);

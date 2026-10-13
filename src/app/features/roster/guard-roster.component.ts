@@ -754,6 +754,17 @@ import { CrewService } from '../../core/services/crew.service';
         min-width: 190px;
         text-align: center;
       }
+
+      @media (max-width: 600px) {
+        width: 100%;
+        flex-wrap: wrap;
+        justify-content: center;
+
+        h3 {
+          min-width: 0;
+          flex: 1;
+        }
+      }
     }
 
     .btn-nav-month {
@@ -905,6 +916,11 @@ import { CrewService } from '../../core/services/crew.service';
 
     .today-tag {
       font-size: 0.62rem;
+
+      @media (max-width: 600px) {
+        font-size: 0.7rem;
+      }
+
       font-weight: 800;
       color: #ffffff;
       background: var(--primary-purple);
@@ -1067,6 +1083,11 @@ import { CrewService } from '../../core/services/crew.service';
 
       .anchor-flag {
         font-size: 0.62rem;
+
+        @media (max-width: 600px) {
+          font-size: 0.7rem;
+        }
+
         font-weight: 800;
         color: var(--primary-purple);
         background: var(--primary-bg-subtle);

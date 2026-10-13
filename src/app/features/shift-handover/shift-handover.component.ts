@@ -987,6 +987,7 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
       display: flex;
       align-items: center;
       gap: 12px;
+      flex-wrap: wrap;
     }
 
     .action-btn-pdf {
@@ -1078,6 +1079,18 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
       display: flex;
       align-items: center;
       justify-content: space-between;
+
+      // En teléfonos el título ocupa todo el ancho y las acciones van debajo
+      @media (max-width: 768px) {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 14px;
+
+        .top-actions-cluster .btn {
+          flex: 1 1 140px;
+          justify-content: center;
+        }
+      }
 
       h2 {
         font-size: 1.4rem;
