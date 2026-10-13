@@ -1,0 +1,512 @@
+<div class="vehicles-fleet-section animate-fade-in">
+  <div class="section-card glass-panel header-banner-card">
+    <div class="card-head">
+      <div class="head-with-icon">
+        <span class="fleet-icon">🛻</span>
+        <div>
+          <h3>Padrón Oficial de Camionetas Mineras (Flota 4x4)</h3>
+          <p class="section-sub">
+            Control oficial de unidades para inspección pre-uso (DS-024-2016-EM). Da de alta nuevas camionetas, actualiza placas o da de baja unidades operativas sin tocar código.
+          </p>
+        </div>
+      </div>
+      <div class="head-actions">
+        <button 
+          type="button" 
+          class="btn btn-secondary btn-sm" 
+          (click)="loadVehiclesFleet()"
+          [disabled]="isLoadingVehicles"
+          title="Actualizar listado de camionetas"
+        >
+          <span>↺ Refrescar Padrón</span>
+        </button>
+        <button 
+          type="button" 
+          class="btn btn-primary btn-sm" 
+          (click)="openCreateVehicleModal()"
+          title="Dar de alta una nueva camioneta en el padrón"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          <span>+ Dar de Alta Camioneta</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Feedback Alert Messages -->
+  <div *ngIf="vehicleActionSuccessMessage" class="feedback-banner glass-panel animate-fade-in" style="margin-bottom: 16px;">
+    <div class="feedback-icon">✅</div>
+    <div class="feedback-text">{{ vehicleActionSuccessMessage }}</div>
+  </div>
+  <div *ngIf="vehicleActionErrorMessage" class="feedback-banner glass-panel animate-fade-in" style="margin-bottom: 16px; border-color: rgba(239, 68, 68, 0.4); background: rgba(254, 242, 242, 0.9);">
+    <div class="feedback-icon">⚠️</div>
+    <div class="feedback-text" style="color: #991b1b;">{{ vehicleActionErrorMessage }}</div>
+  </div>
+
+  <!-- KPI Metrics Grid: Flota -->
+  <div class="fleet-kpi-grid">
+    <div class="fleet-kpi-card glass-panel">
+      <div class="kpi-icon-wrap" style="background: rgba(3, 23, 149, 0.08); color: #031795;">
+        <span style="font-size: 1.4rem;">🛻</span>
+      </div>
+      <div class="kpi-data">
+        <span class="kpi-label">Total en Padrón</span>
+        <strong class="kpi-num">{{ vehiclesList.length }}</strong>
+        <span class="kpi-hint">Unidades registradas</span>
+      </div>
+    </div>
+
+    <div class="fleet-kpi-card glass-panel">
+      <div class="kpi-icon-wrap" style="background: rgba(16, 185, 129, 0.1); color: #059669;">
+        <span style="font-size: 1.4rem;">✅</span>
+      </div>
+      <div class="kpi-data">
+        <span class="kpi-label">Activas en Operación</span>
+        <strong class="kpi-num" style="color: #059669;">{{ activeVehiclesCount }}</strong>
+        <span class="kpi-hint">Disponibles en checklists</span>
+      </div>
+    </div>
+
+    <div class="fleet-kpi-card glass-panel">
+      <div class="kpi-icon-wrap" style="background: rgba(239, 68, 68, 0.1); color: #dc2626;">
+        <span style="font-size: 1.4rem;">⛔</span>
+      </div>
+      <div class="kpi-data">
+        <span class="kpi-label">Dadas de Baja</span>
+        <strong class="kpi-num" style="color: #dc2626;">{{ decommissionedVehiclesCount }}</strong>
+        <span class="kpi-hint">Desmovilizadas / Inactivas</span>
+      </div>
+    </div>
+
+    <div class="fleet-kpi-card glass-panel">
+      <div class="kpi-icon-wrap" style="background: rgba(245, 158, 11, 0.1); color: #d97706;">
+        <span style="font-size: 1.4rem;">⏱️</span>
+      </div>
+      <div class="kpi-data">
+        <span class="kpi-label">Kilometraje Flota</span>
+        <strong class="kpi-num" style="color: #d97706;">{{ totalFleetOdometer | number }}</strong>
+        <span class="kpi-hint">Kilómetros acumulados</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filter & Search Toolbar -->
+  <div class="section-card glass-panel" style="padding: 16px 20px;">
+    <div class="fleet-toolbar">
+      <div class="search-input-wrap">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input 
+          type="text" 
+          class="search-input" 
+          placeholder="Buscar por placa, tag (CAM-01), modelo, área o conductor..." 
+          [(ngModel)]="vehiclesSearchQuery"
+        />
+        <button *ngIf="vehiclesSearchQuery" class="clear-search-btn" (click)="vehiclesSearchQuery = ''">✕</button>
+      </div>
+
+      <div class="status-filters-group">
+        <button 
+          type="button" 
+          class="status-filter-btn" 
+          [class.active]="vehiclesFilterStatus === 'ALL'"
+          (click)="vehiclesFilterStatus = 'ALL'"
+        >
+          Todas ({{ vehiclesList.length }})
+        </button>
+        <button 
+          type="button" 
+          class="status-filter-btn" 
+          [class.active]="vehiclesFilterStatus === 'ACTIVE'"
+          (click)="vehiclesFilterStatus = 'ACTIVE'"
+        >
+          Solo Activas ({{ activeVehiclesCount }})
+        </button>
+        <button 
+          type="button" 
+          class="status-filter-btn" 
+          [class.active]="vehiclesFilterStatus === 'INACTIVE'"
+          (click)="vehiclesFilterStatus = 'INACTIVE'"
+        >
+          Dadas de Baja ({{ decommissionedVehiclesCount }})
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Vehicles Table -->
+  <div class="section-card glass-panel" style="padding: 0; overflow: hidden;">
+    <div class="table-responsive">
+      <table class="data-table fleet-table">
+        <thead>
+          <tr>
+            <th style="width: 140px;">Placa Minera</th>
+            <th style="width: 110px;">Código (Tag)</th>
+            <th>Modelo & Color</th>
+            <th>Área Operativa Asignada</th>
+            <th style="text-align: right;">Odómetro Base</th>
+            <th style="text-align: right;">Odómetro Actual</th>
+            <th style="text-align: center;">Estado en Padrón</th>
+            <th>Último Checklist</th>
+            <th style="text-align: center; width: 180px;">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let veh of filteredVehiclesList" [class.row-inactive]="veh.is_active === 0 || veh.is_active === false">
+            <!-- Placa Badge -->
+            <td>
+              <div class="mining-plate-badge" [class.plate-inactive]="veh.is_active === 0 || veh.is_active === false">
+                <span class="plate-country">PERÚ</span>
+                <strong class="plate-text">{{ veh.plate }}</strong>
+              </div>
+            </td>
+
+            <!-- Tag -->
+            <td>
+              <span class="unit-code-badge">{{ veh.tag }}</span>
+            </td>
+
+            <!-- Modelo & Color -->
+            <td>
+              <div class="veh-model-cell">
+                <strong class="veh-model-name">{{ veh.model }}</strong>
+                <span class="veh-color-name">{{ veh.color }}</span>
+              </div>
+            </td>
+
+            <!-- Área Operativa -->
+            <td>
+              <span class="veh-area-pill">{{ veh.area }}</span>
+            </td>
+
+            <!-- Odómetro Base -->
+            <td style="text-align: right; font-variant-numeric: tabular-nums;">
+              {{ veh.baseOdometer | number }} km
+            </td>
+
+            <!-- Odómetro Actual -->
+            <td style="text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; color: #031795;">
+              {{ veh.currentOdometer | number }} km
+            </td>
+
+            <!-- Estado en Padrón -->
+            <td style="text-align: center;">
+              <span 
+                class="fleet-status-badge"
+                [class.status-active]="veh.is_active !== 0 && veh.is_active !== false"
+                [class.status-decommissioned]="veh.is_active === 0 || veh.is_active === false"
+              >
+                <span class="status-indicator-dot"></span>
+                {{ (veh.is_active !== 0 && veh.is_active !== false) ? 'Activa en Faena' : 'Dada de Baja' }}
+              </span>
+            </td>
+
+            <!-- Último Checklist -->
+            <td>
+              <div class="last-chk-cell" *ngIf="veh.lastChecklistDate; else noChecklistYet">
+                <span class="chk-date">{{ veh.lastChecklistDate }} {{ veh.lastChecklistTime || '' }}</span>
+                <span class="chk-driver">{{ veh.lastDriverName || 'Operador' }}</span>
+                <span 
+                  class="chk-status-pill"
+                  [class.pill-apto]="veh.lastOperationalStatus === 'APTO'"
+                  [class.pill-observado]="veh.lastOperationalStatus === 'OBSERVADO'"
+                  [class.pill-no_apto]="veh.lastOperationalStatus === 'NO_APTO'"
+                >
+                  {{ veh.lastOperationalStatus }}
+                </span>
+              </div>
+              <ng-template #noChecklistYet>
+                <span class="no-chk-muted">Sin inspecciones aún</span>
+              </ng-template>
+            </td>
+
+            <!-- Acciones -->
+            <td style="text-align: center;">
+              <div class="fleet-actions-cell">
+                <!-- Editar datos y placa -->
+                <button 
+                  type="button" 
+                  class="btn btn-secondary btn-xs" 
+                  (click)="openEditVehicleModal(veh)"
+                  title="Editar datos de camioneta o actualizar placa"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                  </svg>
+                  <span>Editar</span>
+                </button>
+
+                <!-- Dar de baja / Reactivar -->
+                <button 
+                  type="button" 
+                  class="btn btn-xs"
+                  [class.btn-warning-outline]="veh.is_active !== 0 && veh.is_active !== false"
+                  [class.btn-emerald-outline]="veh.is_active === 0 || veh.is_active === false"
+                  (click)="toggleVehicleActiveStatus(veh)"
+                  [title]="(veh.is_active !== 0 && veh.is_active !== false) ? 'Dar de baja de la faena' : 'Reactivar en faena'"
+                >
+                  <span>{{ (veh.is_active !== 0 && veh.is_active !== false) ? 'Baja' : 'Reactivar' }}</span>
+                </button>
+
+                <!-- Eliminar -->
+                <button 
+                  type="button" 
+                  class="btn btn-danger-outline btn-xs" 
+                  (click)="deleteVehicleFromFleet(veh)"
+                  title="Eliminar del padrón"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                  </svg>
+                </button>
+              </div>
+            </td>
+          </tr>
+
+          <tr *ngIf="filteredVehiclesList.length === 0">
+            <td colspan="9" style="text-align: center; padding: 40px 20px;">
+              <div style="font-size: 2rem; margin-bottom: 8px;">🔍</div>
+              <h4 style="margin: 0 0 4px; color: var(--text-heading);">No se encontraron camionetas</h4>
+              <p style="margin: 0; font-size: 0.85rem; color: var(--text-muted);">
+                No hay unidades que coincidan con los filtros de búsqueda aplicados.
+              </p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Dar de Alta Camioneta Minera (4x4) -->
+<app-modal
+  [isOpen]="isCreateVehicleModalOpen"
+  [title]="'Dar de Alta Camioneta Minera (4x4)'"
+  [showFooter]="false"
+  (close)="isCreateVehicleModalOpen = false"
+>
+  <div class="vehicle-modal-body">
+    <div class="modal-intro-pill">
+      <span class="intro-icon">🛻</span>
+      <span>Registra una nueva unidad en el padrón activo de operaciones para habilitarla en checklists pre-uso.</span>
+    </div>
+
+    <div class="form-grid-2" style="margin-top: 14px;">
+      <div class="form-group">
+        <label>Placa Vehicular *</label>
+        <input 
+          type="text" 
+          class="modal-input" 
+          placeholder="Ej: BCV123 o BMC715" 
+          [(ngModel)]="vehicleFormPlate" 
+          (input)="vehicleFormPlate = vehicleFormPlate.toUpperCase()"
+          maxlength="10"
+          required
+        />
+        <span class="field-hint">Alfanumérico sin guiones ni espacios.</span>
+      </div>
+
+      <div class="form-group">
+        <label>Código Interno / Tag *</label>
+        <input 
+          type="text" 
+          class="modal-input" 
+          placeholder="Ej: CAM-05" 
+          [(ngModel)]="vehicleFormTag" 
+          (input)="vehicleFormTag = vehicleFormTag.toUpperCase()"
+          required
+        />
+        <span class="field-hint">Identificador radial/operativo.</span>
+      </div>
+    </div>
+
+    <div class="form-grid-2">
+      <div class="form-group">
+        <label>Modelo de Unidad *</label>
+        <input 
+          type="text" 
+          class="modal-input" 
+          placeholder="Ej: Toyota Hilux 4x4 Turbodiésel" 
+          [(ngModel)]="vehicleFormModel" 
+          required
+        />
+      </div>
+
+      <div class="form-group">
+        <label>Color de Unidad</label>
+        <input 
+          type="text" 
+          class="modal-input" 
+          placeholder="Ej: Blanco Industrial" 
+          [(ngModel)]="vehicleFormColor" 
+        />
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Área Operativa de Asignación *</label>
+      <select class="modal-input" [(ngModel)]="vehicleFormArea">
+        <option value="Supervisión de Operaciones">Supervisión de Operaciones</option>
+        <option value="Operaciones Bombas / Molienda">Operaciones Bombas / Molienda</option>
+        <option value="Operaciones Ciclones / Planta">Operaciones Ciclones / Planta</option>
+        <option value="Presa de Relaves / Auxiliares">Presa de Relaves / Auxiliares</option>
+        <option value="Geotecnia / Topografía">Geotecnia / Topografía</option>
+        <option value="Mantenimiento Mecánico">Mantenimiento Mecánico</option>
+        <option value="Seguridad & Medio Ambiente">Seguridad & Medio Ambiente</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>Kilometraje Odómetro Base (km) *</label>
+      <input 
+        type="number" 
+        class="modal-input" 
+        placeholder="0" 
+        [(ngModel)]="vehicleFormBaseOdometer" 
+        min="0"
+      />
+      <span class="field-hint">Lectura inicial de kilometraje con la que ingresa al padrón.</span>
+    </div>
+
+    <div *ngIf="vehicleModalErrorMessage" class="modal-error-alert">
+      ⚠️ {{ vehicleModalErrorMessage }}
+    </div>
+
+    <div class="modal-buttons" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px;">
+      <button type="button" class="btn btn-secondary" (click)="isCreateVehicleModalOpen = false" [disabled]="isSavingVehicle">
+        Cancelar
+      </button>
+      <button 
+        type="button" 
+        class="btn btn-primary" 
+        (click)="submitCreateVehicle()" 
+        [disabled]="!vehicleFormPlate.trim() || isSavingVehicle"
+      >
+        {{ isSavingVehicle ? 'Guardando en Padrón...' : 'Dar de Alta Camioneta' }}
+      </button>
+    </div>
+  </div>
+</app-modal>
+
+<!-- Modal: Editar Datos de Camioneta & Actualizar Placa -->
+<app-modal
+  [isOpen]="isEditVehicleModalOpen"
+  [title]="'Editar Unidad: ' + (selectedVehicleForEdit?.plate || '')"
+  [showFooter]="false"
+  (close)="isEditVehicleModalOpen = false"
+>
+  <div class="vehicle-modal-body" *ngIf="selectedVehicleForEdit">
+    <div class="plate-update-notice-box">
+      <div class="notice-icon">💡</div>
+      <div class="notice-text">
+        <strong>Actualización de Placa sin tocar código:</strong>
+        <p>Puedes corregir o actualizar la placa vehicular. Todas las inspecciones previas se mantendrán vinculadas a la nueva placa de forma transparente e instantánea.</p>
+      </div>
+    </div>
+
+    <div class="form-grid-2" style="margin-top: 14px;">
+      <div class="form-group">
+        <label>Placa Vehicular *</label>
+        <input 
+          type="text" 
+          class="modal-input" 
+          [(ngModel)]="vehicleFormPlate" 
+          (input)="vehicleFormPlate = vehicleFormPlate.toUpperCase()"
+          maxlength="10"
+          required
+        />
+        <span class="field-hint">Placa oficial registrada.</span>
+      </div>
+
+      <div class="form-group">
+        <label>Código Interno / Tag *</label>
+        <input 
+          type="text" 
+          class="modal-input" 
+          [(ngModel)]="vehicleFormTag" 
+          (input)="vehicleFormTag = vehicleFormTag.toUpperCase()"
+          required
+        />
+      </div>
+    </div>
+
+    <div class="form-grid-2">
+      <div class="form-group">
+        <label>Modelo de Unidad *</label>
+        <input 
+          type="text" 
+          class="modal-input" 
+          [(ngModel)]="vehicleFormModel" 
+          required
+        />
+      </div>
+
+      <div class="form-group">
+        <label>Color de Unidad</label>
+        <input 
+          type="text" 
+          class="modal-input" 
+          [(ngModel)]="vehicleFormColor" 
+        />
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Área Operativa de Asignación *</label>
+      <select class="modal-input" [(ngModel)]="vehicleFormArea">
+        <option value="Supervisión de Operaciones">Supervisión de Operaciones</option>
+        <option value="Operaciones Bombas / Molienda">Operaciones Bombas / Molienda</option>
+        <option value="Operaciones Ciclones / Planta">Operaciones Ciclones / Planta</option>
+        <option value="Presa de Relaves / Auxiliares">Presa de Relaves / Auxiliares</option>
+        <option value="Geotecnia / Topografía">Geotecnia / Topografía</option>
+        <option value="Mantenimiento Mecánico">Mantenimiento Mecánico</option>
+        <option value="Seguridad & Medio Ambiente">Seguridad & Medio Ambiente</option>
+      </select>
+    </div>
+
+    <div class="form-grid-2">
+      <div class="form-group">
+        <label>Kilometraje Odómetro Base (km)</label>
+        <input 
+          type="number" 
+          class="modal-input" 
+          [(ngModel)]="vehicleFormBaseOdometer" 
+          min="0"
+        />
+      </div>
+
+      <div class="form-group">
+        <label>Estado en Faena</label>
+        <select class="modal-input" [(ngModel)]="vehicleFormIsActive">
+          <option [ngValue]="true">Activa (Disponible para Inspección)</option>
+          <option [ngValue]="false">Dada de Baja (Inactiva)</option>
+        </select>
+      </div>
+    </div>
+
+    <div *ngIf="vehicleModalErrorMessage" class="modal-error-alert">
+      ⚠️ {{ vehicleModalErrorMessage }}
+    </div>
+
+    <div class="modal-buttons" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px;">
+      <button type="button" class="btn btn-secondary" (click)="isEditVehicleModalOpen = false" [disabled]="isSavingVehicle">
+        Cancelar
+      </button>
+      <button 
+        type="button" 
+        class="btn btn-primary" 
+        (click)="submitEditVehicle()" 
+        [disabled]="!vehicleFormPlate.trim() || isSavingVehicle"
+      >
+        {{ isSavingVehicle ? 'Guardando Cambios...' : 'Actualizar Camioneta' }}
+      </button>
+    </div>
+  </div>
+</app-modal>
