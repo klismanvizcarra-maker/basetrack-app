@@ -7,21 +7,24 @@ dotenv.config();
 /**
  * Resuelve el secreto de firma JWT.
  * - Si JWT_SECRET está definido, se usa siempre.
- * - En producción sin JWT_SECRET se genera un secreto aleatorio efímero (nunca una clave conocida):
- *   los tokens dejan de ser válidos al reiniciar el proceso, por lo que debe configurarse la variable.
- * - En desarrollo/test se usa una clave local fija para no invalidar sesiones en cada recarga de tsx watch.
+ * - Solo con NODE_ENV=development o test explícito se usa una clave local fija, para no invalidar
+ *   sesiones en cada recarga de tsx watch.
+ * - En cualquier otro caso (producción, o NODE_ENV sin definir en un servidor) se genera un secreto
+ *   aleatorio efímero: nunca una clave conocida que permita falsificar tokens. Las sesiones se
+ *   invalidan al reiniciar, por lo que debe configurarse JWT_SECRET.
  */
 function resolveJwtSecret(): string {
   const fromEnv = process.env.JWT_SECRET?.trim();
   if (fromEnv) return fromEnv;
 
-  if (process.env.NODE_ENV === 'production') {
-    console.error('[Security] JWT_SECRET no está definido en producción. Se generó un secreto aleatorio efímero: ' +
-      'las sesiones se invalidarán en cada reinicio. Configure JWT_SECRET en las variables de entorno del servidor.');
-    return crypto.randomBytes(48).toString('hex');
+  const env = process.env.NODE_ENV;
+  if (env === 'development' || env === 'test') {
+    return 'basetrack_local_dev_only_secret';
   }
 
-  return 'basetrack_local_dev_only_secret';
+  console.error(`[Security] JWT_SECRET no está definido (NODE_ENV=${env ?? 'sin definir'}). Se generó un secreto ` +
+    'aleatorio efímero: las sesiones se invalidarán en cada reinicio. Configure JWT_SECRET en el servidor.');
+  return crypto.randomBytes(48).toString('hex');
 }
 
 const JWT_SECRET = resolveJwtSecret();
