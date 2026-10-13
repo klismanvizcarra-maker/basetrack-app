@@ -862,6 +862,12 @@ interface MineralPreset {
       cursor: pointer;
       transition: var(--transition-smooth);
 
+      // Altura cómoda para el dedo en teléfonos
+      @media (max-width: 600px) {
+        min-height: 36px;
+        padding: 6px 12px;
+      }
+
       &:hover {
         border-color: var(--primary-purple);
         color: var(--primary-purple);

@@ -915,6 +915,11 @@ import { CrewService } from '../../core/services/crew.service';
 
     .today-tag {
       font-size: 0.62rem;
+
+      @media (max-width: 600px) {
+        font-size: 0.7rem;
+      }
+
       font-weight: 800;
       color: #ffffff;
       background: var(--primary-purple);
@@ -1077,6 +1082,11 @@ import { CrewService } from '../../core/services/crew.service';
 
       .anchor-flag {
         font-size: 0.62rem;
+
+        @media (max-width: 600px) {
+          font-size: 0.7rem;
+        }
+
         font-weight: 800;
         color: var(--primary-purple);
         background: var(--primary-bg-subtle);
