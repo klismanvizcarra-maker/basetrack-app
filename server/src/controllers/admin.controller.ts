@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { generateTemporaryPassword, PUBLIC_DEFAULT_PASSWORDS } from '../utils/temp-password.js';
 import crypto from 'node:crypto';
 import bcrypt from 'bcryptjs';
 import fs from 'node:fs';
@@ -44,8 +45,8 @@ export function createUsersBulk(req: AuthenticatedRequest, res: Response) {
     }
 
     const insertUser = db.prepare(`
-      INSERT INTO users (id, username, email, password_hash, full_name, role, shift, avatar_url, document_id, radio_channel, phone_extension, primary_role)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO users (id, username, email, password_hash, full_name, role, shift, avatar_url, document_id, radio_channel, phone_extension, primary_role, must_change_password)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
     `);
 
     const insertCrew = db.prepare(`
@@ -53,16 +54,8 @@ export function createUsersBulk(req: AuthenticatedRequest, res: Response) {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
-    let defaultBcryptHash: string | null = null;
-    const getBulkPasswordHash = (pwd: string): string => {
-      if (pwd === 'Basetrack2026!') {
-        if (!defaultBcryptHash) {
-          defaultBcryptHash = bcrypt.hashSync('Basetrack2026!', 10);
-        }
-        return defaultBcryptHash;
-      }
-      return bcrypt.hashSync(pwd, 10);
-    };
+    // Credenciales temporales generadas: se devuelven una sola vez al administrador que importa
+    const temporaryCredentials: Array<{ username: string; full_name: string; temporaryPassword: string }> = [];
 
     const checkExistingUser = db.prepare('SELECT id, role, username FROM users WHERE LOWER(username) = LOWER(?) OR LOWER(email) = LOWER(?)');
     const checkExistingCrewDoc = db.prepare('SELECT id FROM crew_members WHERE document_id = ?');
@@ -84,7 +77,11 @@ export function createUsersBulk(req: AuthenticatedRequest, res: Response) {
         else if (shift === 'GUARDIA_C') shift = 'G3';
         else if (shift === 'GUARDIA_D') shift = 'G4';
         if (!['G1', 'G2', 'G3', 'G4'].includes(shift)) shift = 'G1';
-        const password = item.password || 'Basetrack2026!';
+        // Sin contraseña (o con una pública de plantilla) se genera una temporal aleatoria;
+        // en todos los casos el usuario nuevo debe cambiarla en su primer inicio de sesión.
+        const providedPassword = typeof item.password === 'string' ? item.password.trim() : '';
+        const useGenerated = !providedPassword || PUBLIC_DEFAULT_PASSWORDS.has(providedPassword);
+        const password = useGenerated ? generateTemporaryPassword() : providedPassword;
         const documentId = (item.document_id || item.dni || item.doc || ('DNI-' + Math.floor(10000000 + Math.random() * 90000000))).toString().trim();
         const radio = item.radio_channel || 'Canal 1 Operaciones';
         const phone = item.phone_extension || null;
@@ -137,7 +134,10 @@ export function createUsersBulk(req: AuthenticatedRequest, res: Response) {
             existing.id
           );
         } else {
-          const hash = getBulkPasswordHash(password);
+          const hash = bcrypt.hashSync(password, 10);
+          if (useGenerated) {
+            temporaryCredentials.push({ username, full_name: fullName, temporaryPassword: password });
+          }
           const finalUserId = crypto.randomUUID();
           insertUser.run(
             finalUserId,
@@ -268,7 +268,8 @@ export function createUsersBulk(req: AuthenticatedRequest, res: Response) {
         skippedCount: skippedList.length,
         skipped: skippedList,
         totalAutoLinked,
-        shiftSummary
+        shiftSummary,
+        temporaryCredentials
       });
     } catch (innerErr) {
       db.exec('ROLLBACK;');
@@ -802,20 +803,14 @@ export function resetUserPassword(req: AuthenticatedRequest, res: Response) {
       return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
     }
 
-    // If newPassword is not provided, try to use crew document_id or default to Password123!
-    if (!newPassword || typeof newPassword !== 'string' || newPassword.trim().length === 0) {
-      const crew = db.prepare('SELECT document_id FROM crew_members WHERE LOWER(name) = LOWER(?)').get(String(user.full_name || '')) as any;
-      if (crew && crew.document_id) {
-        newPassword = String(crew.document_id);
-      } else {
-        newPassword = 'Password123!';
-      }
-    } else {
-      newPassword = String(newPassword).trim();
-    }
+    // Sin contraseña indicada (o con una pública/el DNI) se genera una temporal aleatoria.
+    // El usuario debe cambiarla en su próximo inicio de sesión.
+    const provided = typeof newPassword === 'string' ? newPassword.trim() : '';
+    const isWeak = !provided || PUBLIC_DEFAULT_PASSWORDS.has(provided) || provided === String(user.document_id || '');
+    newPassword = isWeak ? generateTemporaryPassword() : provided;
 
     const hash = bcrypt.hashSync(newPassword, 10);
-    db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hash, id);
+    db.prepare('UPDATE users SET password_hash = ?, must_change_password = 1 WHERE id = ?').run(hash, id);
 
     logAudit(
       req.user?.userId || null,
@@ -829,8 +824,8 @@ export function resetUserPassword(req: AuthenticatedRequest, res: Response) {
 
     return res.json({
       success: true,
-      message: `Contraseña restablecida exitosamente para ${user.username}`,
-      defaultAssigned: newPassword
+      message: `Contraseña restablecida exitosamente para ${user.username}. Deberá cambiarla al iniciar sesión.`,
+      temporaryPassword: newPassword
     });
   } catch (error: any) {
     return res.status(500).json({ success: false, message: error.message });

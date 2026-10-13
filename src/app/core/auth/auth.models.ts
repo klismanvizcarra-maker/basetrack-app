@@ -13,8 +13,9 @@ export interface User {
   radio_channel?: string;
   phone_extension?: string;
   primary_role?: string;
-  password?: string;
   createdAt?: string;
+  /** true mientras el usuario tenga una contraseña temporal asignada por el administrador */
+  mustChangePassword?: boolean;
 }
 
 export interface AuthResponse {

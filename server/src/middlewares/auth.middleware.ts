@@ -7,6 +7,13 @@ export interface AuthenticatedRequest extends Request {
   user?: TokenPayload;
 }
 
+const TEMPORARY_PASSWORD_ALLOWED = ['/auth/me', '/auth/change-password', '/auth/permissions'];
+
+function isAllowedWithTemporaryPassword(req: Request): boolean {
+  const path = (req.originalUrl || req.url || '').split('?')[0].replace(/^\/api/, '');
+  return TEMPORARY_PASSWORD_ALLOWED.includes(path);
+}
+
 export function authenticateToken(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
@@ -22,11 +29,19 @@ export function authenticateToken(req: AuthenticatedRequest, res: Response, next
     const decoded = verifyToken(token);
     // Security check: verify that the user account is not suspended
     if (decoded.userId) {
-      const userRow = db.prepare('SELECT is_active FROM users WHERE id = ?').get(decoded.userId) as { is_active?: number } | undefined;
+      const userRow = db.prepare('SELECT is_active, must_change_password FROM users WHERE id = ?').get(decoded.userId) as { is_active?: number; must_change_password?: number } | undefined;
       if (userRow && userRow.is_active === 0) {
         return res.status(403).json({
           success: false,
           message: 'Cuenta suspendida. La sesión ha sido revocada por el Administrador.'
+        });
+      }
+      // Con contraseña temporal solo se permite consultar el perfil y cambiar la contraseña
+      if (userRow?.must_change_password === 1 && !isAllowedWithTemporaryPassword(req)) {
+        return res.status(403).json({
+          success: false,
+          code: 'PASSWORD_CHANGE_REQUIRED',
+          message: 'Debe cambiar su contraseña temporal antes de continuar.'
         });
       }
     }

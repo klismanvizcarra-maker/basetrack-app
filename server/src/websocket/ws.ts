@@ -142,8 +142,8 @@ function handleWsMessage(ws: WebSocket, meta: WsClientMeta, msg: any) {
       try {
         decoded = msg.token ? verifyToken(String(msg.token)) : null;
         if (decoded?.userId) {
-          const userRow = db.prepare('SELECT is_active FROM users WHERE id = ?').get(decoded.userId) as { is_active?: number } | undefined;
-          if (userRow && userRow.is_active === 0) decoded = null;
+          const userRow = db.prepare('SELECT is_active, must_change_password FROM users WHERE id = ?').get(decoded.userId) as { is_active?: number; must_change_password?: number } | undefined;
+          if (userRow && (userRow.is_active === 0 || userRow.must_change_password === 1)) decoded = null;
         }
       } catch {
         decoded = null;

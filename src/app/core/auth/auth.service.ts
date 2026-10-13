@@ -237,6 +237,14 @@ export class AuthService {
 
   changePassword(data: { currentPassword?: string; newPassword: string }): Observable<{ success: boolean; message: string }> {
     return this.http.put<any>(`${this.apiUrl}/change-password`, data).pipe(
+      tap(() => {
+        const user = this.currentUserSignal();
+        if (user?.mustChangePassword) {
+          const updated = { ...user, mustChangePassword: false };
+          this.currentUserSignal.set(updated);
+          saveRealtimeData('user', updated);
+        }
+      }),
       map(res => ({
         success: true,
         message: res?.message || 'Contraseña actualizada con éxito'

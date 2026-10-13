@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../core/auth/auth.service';
 import { ShiftCode } from '../../core/auth/auth.models';
 import { ThemeService } from '../../core/theme/theme.service';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-profile',
@@ -18,6 +19,11 @@ import { ThemeService } from '../../core/theme/theme.service';
           <h2>Configuración de Cuenta & Perfil</h2>
           <p class="section-sub">Administra tus nombres, fotografía de identificación y credenciales de acceso a BASETRACK</p>
         </div>
+      </div>
+
+      <!-- Contraseña temporal: cambio obligatorio antes de usar la aplicación -->
+      <div *ngIf="authService.currentUser()?.mustChangePassword" class="alert-banner alert-danger animate-fade-in" role="alert">
+        <span>🔒 <strong>Debes cambiar tu contraseña temporal</strong> antes de continuar. Escribe la contraseña que te entregó el administrador en "Contraseña actual" y elige una nueva de al menos 8 caracteres.</span>
       </div>
 
       <!-- Feedback Alerts -->
@@ -332,7 +338,7 @@ import { ThemeService } from '../../core/theme/theme.service';
               </div>
               <div>
                 <h3>Cambiar Contraseña de Acceso</h3>
-                <p class="card-desc">Protege tu cuenta con una clave segura de al menos 6 caracteres</p>
+                <p class="card-desc">Protege tu cuenta con una clave segura de al menos 8 caracteres</p>
               </div>
             </div>
 
@@ -1080,6 +1086,7 @@ import { ThemeService } from '../../core/theme/theme.service';
 export class ProfileComponent implements OnInit {
   authService = inject(AuthService);
   themeService = inject(ThemeService);
+  private router = inject(Router);
 
   profileForm = {
     fullName: '',
@@ -1311,11 +1318,12 @@ export class ProfileComponent implements OnInit {
       return;
     }
 
-    if (!this.passwordForm.newPassword || this.passwordForm.newPassword.length < 6) {
-      this.showError('La nueva contraseña debe contener mínimo 6 caracteres.');
+    if (!this.passwordForm.newPassword || this.passwordForm.newPassword.length < 8) {
+      this.showError('La nueva contraseña debe contener mínimo 8 caracteres.');
       return;
     }
 
+    const wasTemporary = !!this.authService.currentUser()?.mustChangePassword;
     this.isSavingPassword = true;
     this.authService.changePassword({
       currentPassword: this.passwordForm.currentPassword,
@@ -1329,6 +1337,10 @@ export class ProfileComponent implements OnInit {
           newPassword: '',
           confirmPassword: ''
         };
+        // Tras reemplazar la contraseña temporal se habilita el resto de la aplicación
+        if (wasTemporary) {
+          setTimeout(() => this.router.navigate(['/dashboard']), 1500);
+        }
       },
       error: (err) => {
         this.isSavingPassword = false;

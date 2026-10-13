@@ -1911,7 +1911,7 @@ const DEFAULT_LOGS: AuditLog[] = [
               rows="5"
               [(ngModel)]="pastedText"
               (ngModelChange)="parsePastedText()"
-              placeholder="Ejemplo:&#10;op_g1_bombas&#9;Carlos Barrios Huamán&#9;carlos@mina.com&#9;Basetrack2026!&#9;OPERATOR&#9;G1&#9;70412891&#9;Canal 3 Bombas&#9;Ext. 4102&#9;OPERADOR_BOMBAS&#10;op_g1_ciclon1&#9;Fabián Morales Arce&#9;fabian@mina.com&#9;Basetrack2026!&#9;OPERATOR&#9;G1&#9;70412892&#9;Canal 2 Ciclones&#9;Ext. 4103&#9;OPERADOR_CICLONES_1"
+              placeholder="Ejemplo:&#10;op_g1_bombas&#9;Carlos Barrios Huamán&#9;carlos@mina.com&#9;&#9;OPERATOR&#9;G1&#9;70412891&#9;Canal 3 Bombas&#9;Ext. 4102&#9;OPERADOR_BOMBAS&#10;op_g1_ciclon1&#9;Fabián Morales Arce&#9;fabian@mina.com&#9;&#9;OPERATOR&#9;G1&#9;70412892&#9;Canal 2 Ciclones&#9;Ext. 4103&#9;OPERADOR_CICLONES_1"
             ></textarea>
             <span class="textarea-hint">Detecta automáticamente tabulaciones de Excel. Si falta la columna de guardia, se usará la guardia seleccionada: <strong>{{ bulkTargetShift }}</strong>.</span>
           </div>
@@ -2121,17 +2121,17 @@ const DEFAULT_LOGS: AuditLog[] = [
           </div>
 
           <div class="form-group" style="margin-top: 16px;">
-            <label>Nueva Contraseña (o dejar vacío para usar su DNI / Contraseña por defecto):</label>
+            <label>Contraseña temporal (opcional):</label>
             <input 
               type="text" 
               [(ngModel)]="resetNewPassword" 
-              placeholder="Ej: Basetrack2026! o DNI del operador" 
+              placeholder="Vacío = generar una aleatoria (recomendado)" 
               class="modal-input"
             />
           </div>
 
           <p class="modal-help-text">
-            ⚠️ Si dejas el campo vacío, el sistema asignará automáticamente el <strong>DNI registrado</strong> del operador o <code>Password123!</code>.
+            🔒 Si dejas el campo vacío se genera una <strong>contraseña temporal aleatoria</strong>. El usuario deberá cambiarla en su próximo inicio de sesión.
           </p>
         </div>
 
@@ -2140,6 +2140,36 @@ const DEFAULT_LOGS: AuditLog[] = [
           <button type="button" class="btn btn-primary" (click)="confirmResetPassword()" [disabled]="isSavingUser">
             {{ isSavingUser ? 'Restableciendo...' : 'Confirmar Nueva Contraseña' }}
           </button>
+        </div>
+      </app-modal>
+
+      <!-- Modal: Credenciales temporales emitidas (se muestran una sola vez) -->
+      <app-modal [isOpen]="isCredentialsModalOpen" [title]="'Contraseñas temporales emitidas'" (close)="closeCredentialsModal()">
+        <div class="edit-modal-form">
+          <p class="modal-help-text">
+            ⚠️ Entrega a cada persona su contraseña temporal. <strong>No se volverán a mostrar</strong>: descárgalas o cópialas ahora.
+            Al iniciar sesión, cada usuario deberá elegir su propia contraseña.
+          </p>
+          <div class="table-responsive" style="max-height: 320px; overflow-y: auto; margin-top: 12px;">
+            <table class="data-table">
+              <thead>
+                <tr><th>Usuario</th><th>Nombre</th><th>Contraseña temporal</th></tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let c of issuedCredentials">
+                  <td><code>{{ c.username }}</code></td>
+                  <td>{{ c.full_name }}</td>
+                  <td><code>{{ c.temporaryPassword }}</code></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div footer class="modal-footer-actions">
+          <button type="button" class="btn btn-secondary" (click)="copyIssuedCredentials()">{{ credentialsCopied ? '✓ Copiado' : 'Copiar' }}</button>
+          <button type="button" class="btn btn-secondary" (click)="downloadIssuedCredentials()">Descargar CSV</button>
+          <button type="button" class="btn btn-primary" (click)="closeCredentialsModal()">Listo</button>
         </div>
       </app-modal>
 
@@ -6563,6 +6593,45 @@ export class AdminComponent implements OnInit, OnDestroy {
   selectedUserForReset: UserItem | null = null;
   resetNewPassword = '';
 
+  // Contraseñas temporales emitidas por el servidor (importación o restablecimiento): se muestran una vez
+  issuedCredentials: Array<{ username: string; full_name: string; temporaryPassword: string }> = [];
+  isCredentialsModalOpen = false;
+  credentialsCopied = false;
+
+  private showIssuedCredentials(list: Array<{ username: string; full_name: string; temporaryPassword: string }> | undefined): void {
+    if (!list || list.length === 0) return;
+    this.issuedCredentials = list;
+    this.credentialsCopied = false;
+    this.isCredentialsModalOpen = true;
+  }
+
+  closeCredentialsModal(): void {
+    // Se descartan de la memoria al cerrar: no se guardan en el dispositivo
+    this.isCredentialsModalOpen = false;
+    this.issuedCredentials = [];
+  }
+
+  copyIssuedCredentials(): void {
+    const text = this.issuedCredentials.map(c => `${c.username}\t${c.full_name}\t${c.temporaryPassword}`).join('\n');
+    navigator.clipboard?.writeText(text).then(() => {
+      this.credentialsCopied = true;
+      this.cdr.detectChanges();
+    }).catch(() => alert('No se pudo copiar al portapapeles. Usa "Descargar CSV".'));
+  }
+
+  downloadIssuedCredentials(): void {
+    const escape = (v: string) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const csv = 'username,full_name,temporary_password\n' +
+      this.issuedCredentials.map(c => [c.username, c.full_name, c.temporaryPassword].map(escape).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `credenciales_temporales_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   // Cloud Backend Configuration
   isBackendConfigModalOpen = false;
   customApiUrlInput = '';
@@ -7180,14 +7249,14 @@ export class AdminComponent implements OnInit, OnDestroy {
       const idx = shiftCode.replace('G', '');
       return [
         `# --- GUARDIA ${shiftCode}: 1 SUPERVISOR + 7 OPERADORES ---`,
-        `${supUser},${supName},${supUser.toLowerCase()}@basetrack.com,Basetrack2026!,SUPERVISOR,${shiftCode},${supDni},Canal 1 Operaciones,${supExt},SUPERVISOR`,
-        `op_${shiftCode.toLowerCase()}_bombas,Operador Bombas ${shiftCode},bombas.${shiftCode.toLowerCase()}@mina.com,Basetrack2026!,OPERATOR,${shiftCode},700100${idx}1,Canal 3 Bombas,Ext. 4102,OPERADOR_BOMBAS`,
-        `op_${shiftCode.toLowerCase()}_ciclon1,Operador Ciclones 1 ${shiftCode},ciclon1.${shiftCode.toLowerCase()}@mina.com,Basetrack2026!,OPERATOR,${shiftCode},700100${idx}2,Canal 2 Ciclones,Ext. 4103,OPERADOR_CICLONES_1`,
-        `op_${shiftCode.toLowerCase()}_ciclon2,Operador Ciclones 2 ${shiftCode},ciclon2.${shiftCode.toLowerCase()}@mina.com,Basetrack2026!,OPERATOR,${shiftCode},700100${idx}3,Canal 2 Ciclones,Ext. 4104,OPERADOR_CICLONES_2`,
-        `op_${shiftCode.toLowerCase()}_distrib,Operador Distribuidor ${shiftCode},distribuidor.${shiftCode.toLowerCase()}@mina.com,Basetrack2026!,OPERATOR,${shiftCode},700100${idx}4,Canal 1 Operaciones,Ext. 4105,OPERADOR_DISTRIBUIDOR`,
-        `op_${shiftCode.toLowerCase()}_desc1,Operador Descarga 1 ${shiftCode},descarga1.${shiftCode.toLowerCase()}@mina.com,Basetrack2026!,OPERATOR,${shiftCode},700100${idx}5,Canal 4 Relaves,Ext. 4106,OPERADOR_DESCARGA_1`,
-        `op_${shiftCode.toLowerCase()}_desc2,Operador Descarga 2 ${shiftCode},descarga2.${shiftCode.toLowerCase()}@mina.com,Basetrack2026!,OPERATOR,${shiftCode},700100${idx}6,Canal 4 Relaves,Ext. 4107,OPERADOR_DESCARGA_2`,
-        `op_${shiftCode.toLowerCase()}_misc,Operador Misceláneos ${shiftCode},miscelaneos.${shiftCode.toLowerCase()}@mina.com,Basetrack2026!,OPERATOR,${shiftCode},700100${idx}7,Canal 5 Relevo/Móvil,Ext. 4108,OPERADOR_MISCELANEOS`
+        `${supUser},${supName},${supUser.toLowerCase()}@basetrack.com,,SUPERVISOR,${shiftCode},${supDni},Canal 1 Operaciones,${supExt},SUPERVISOR`,
+        `op_${shiftCode.toLowerCase()}_bombas,Operador Bombas ${shiftCode},bombas.${shiftCode.toLowerCase()}@mina.com,,OPERATOR,${shiftCode},700100${idx}1,Canal 3 Bombas,Ext. 4102,OPERADOR_BOMBAS`,
+        `op_${shiftCode.toLowerCase()}_ciclon1,Operador Ciclones 1 ${shiftCode},ciclon1.${shiftCode.toLowerCase()}@mina.com,,OPERATOR,${shiftCode},700100${idx}2,Canal 2 Ciclones,Ext. 4103,OPERADOR_CICLONES_1`,
+        `op_${shiftCode.toLowerCase()}_ciclon2,Operador Ciclones 2 ${shiftCode},ciclon2.${shiftCode.toLowerCase()}@mina.com,,OPERATOR,${shiftCode},700100${idx}3,Canal 2 Ciclones,Ext. 4104,OPERADOR_CICLONES_2`,
+        `op_${shiftCode.toLowerCase()}_distrib,Operador Distribuidor ${shiftCode},distribuidor.${shiftCode.toLowerCase()}@mina.com,,OPERATOR,${shiftCode},700100${idx}4,Canal 1 Operaciones,Ext. 4105,OPERADOR_DISTRIBUIDOR`,
+        `op_${shiftCode.toLowerCase()}_desc1,Operador Descarga 1 ${shiftCode},descarga1.${shiftCode.toLowerCase()}@mina.com,,OPERATOR,${shiftCode},700100${idx}5,Canal 4 Relaves,Ext. 4106,OPERADOR_DESCARGA_1`,
+        `op_${shiftCode.toLowerCase()}_desc2,Operador Descarga 2 ${shiftCode},descarga2.${shiftCode.toLowerCase()}@mina.com,,OPERATOR,${shiftCode},700100${idx}6,Canal 4 Relaves,Ext. 4107,OPERADOR_DESCARGA_2`,
+        `op_${shiftCode.toLowerCase()}_misc,Operador Misceláneos ${shiftCode},miscelaneos.${shiftCode.toLowerCase()}@mina.com,,OPERATOR,${shiftCode},700100${idx}7,Canal 5 Relevo/Móvil,Ext. 4108,OPERADOR_MISCELANEOS`
       ];
     };
 
@@ -7274,7 +7343,7 @@ export class AdminComponent implements OnInit, OnDestroy {
       const username = parts[0] || '';
       const full_name = parts[1] || username;
       const email = parts[2] || (username ? `${username.toLowerCase()}@basetrack.com` : '');
-      const password = parts[3] || 'Basetrack2026!';
+      const password = parts[3] || '';
       const rawRole = (parts[4] || 'OPERATOR').toUpperCase();
       const role = ['ADMIN', 'SUPERVISOR', 'OPERATOR'].includes(rawRole) ? rawRole : 'OPERATOR';
       
@@ -7509,6 +7578,7 @@ export class AdminComponent implements OnInit, OnDestroy {
 
           this.backupSuccessMessage = `¡Carga masiva exitosa! Se importaron ${count} trabajadores y se vincularon ${autoLinked} operadores a sus supervisores.`;
           setTimeout(() => this.backupSuccessMessage = '', 7000);
+          this.showIssuedCredentials(res?.temporaryCredentials);
 
           this.loadUsers();
           this.loadLogs();
@@ -7807,6 +7877,9 @@ export class AdminComponent implements OnInit, OnDestroy {
         this.isResetPasswordModalOpen = false;
         this.backupSuccessMessage = res?.message || `Contraseña restablecida con éxito para ${user.username}.`;
         setTimeout(() => this.backupSuccessMessage = '', 6000);
+        if (res?.temporaryPassword) {
+          this.showIssuedCredentials([{ username: user.username, full_name: user.full_name, temporaryPassword: res.temporaryPassword }]);
+        }
       },
       error: (err) => {
         this.isSavingUser = false;

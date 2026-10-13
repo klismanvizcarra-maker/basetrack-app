@@ -26,6 +26,14 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
       const isAuthError = error.status === 401 || 
         (error.status === 403 && (error.error?.message?.includes('Token') || error.error?.message?.includes('expirado')));
 
+      // Contraseña temporal pendiente de cambio: llevar al perfil (sin cerrar la sesión)
+      if (error.status === 403 && error.error?.code === 'PASSWORD_CHANGE_REQUIRED') {
+        if (!router.url.startsWith('/profile')) {
+          router.navigate(['/profile'], { queryParams: { changePassword: '1' } });
+        }
+        return throwError(() => error);
+      }
+
       if (isAuthError && !req.url.includes('/api/auth/login')) {
         console.warn('[AuthInterceptor] Sesión no autorizada o token expirado, limpiando sesión y redirigiendo al login...');
         removeRealtimeData('token');
