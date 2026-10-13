@@ -19,6 +19,16 @@ if (!fs.existsSync(dbDir)) {
   fs.mkdirSync(dbDir, { recursive: true });
 }
 
+/** Ruta absoluta del archivo SQLite activo (los respaldos se guardan junto a él). */
+export const dbFilePath = resolvedPath;
+
+// En hosting con sistema de archivos efímero (p. ej. Render) la base debe vivir en un disco
+// persistente indicado por DB_PATH; sin él, cada reinicio o despliegue arranca con la base vacía.
+if (process.env.NODE_ENV === 'production' && !process.env.DB_PATH) {
+  console.error('[Database] ADVERTENCIA: DB_PATH no está definido en producción. La base se guarda en ' +
+    resolvedPath + ', que puede ser almacenamiento efímero: los datos se perderán al reiniciar o desplegar.');
+}
+
 export const db = new DatabaseSync(resolvedPath);
 
 // Enable Foreign Keys and WAL mode for high concurrency
