@@ -1,7 +1,16 @@
 import { Router } from 'express';
 import { login, register, getMe, updateProfile, changePassword } from '../controllers/auth.controller.js';
 import { getDashboardMetrics, getMasterSheetEntries, saveMasterSheetEntries } from '../controllers/dashboard.controller.js';
-import { getAllPumps, getPumpById, createPumpReport, updatePumpStatus, getPumpOperationalSheet, savePumpOperationalSheet } from '../controllers/pumps.controller.js';
+import { 
+  getAllPumps, 
+  getPumpById, 
+  createPumpReport, 
+  updatePumpStatus, 
+  getPumpOperationalSheet, 
+  savePumpOperationalSheet,
+  closePumpShift,
+  getPumpShiftHistory
+} from '../controllers/pumps.controller.js';
 import { getAllCyclones, createCycloneReport, getStationSamples, createStationSample, updateStationSample, deleteStationSample } from '../controllers/cyclones.controller.js';
 import { getAllTailings, createTailingsReport } from '../controllers/tailings.controller.js';
 import { getAllShiftHandovers, createShiftHandover, acceptShiftHandover } from '../controllers/shift.controller.js';
@@ -77,6 +86,8 @@ apiRouter.post('/dashboard/master-sheet', authenticateToken, requirePermission('
 // 4. Pumps Telemetry & Operational Sheet Routes
 apiRouter.get('/pumps/operational-sheet', authenticateToken, getPumpOperationalSheet);
 apiRouter.post('/pumps/operational-sheet', authenticateToken, requirePermission('CAN_RECORD_DATA'), savePumpOperationalSheet);
+apiRouter.post('/pumps/shift-closure', authenticateToken, requirePermission('CAN_RECORD_DATA'), closePumpShift);
+apiRouter.get('/pumps/shift-history', authenticateToken, getPumpShiftHistory);
 apiRouter.get('/pumps', authenticateToken, getAllPumps);
 apiRouter.get('/pumps/:id', authenticateToken, getPumpById);
 apiRouter.post('/pumps', authenticateToken, requirePermission('CAN_RECORD_DATA'), createPumpReport);

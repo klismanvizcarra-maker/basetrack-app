@@ -200,7 +200,8 @@ input, select, textarea {
   .shift-page,
   .roster-page-container,
   .profile-page,
-  .admin-page {
+  .admin-page,
+  .calc-page {
     padding-bottom: calc(85px + env(safe-area-inset-bottom, 16px)) !important;
   }
 }
@@ -217,7 +218,9 @@ input, select, textarea {
 .items-table-wrapper,
 .pumps-table-wrapper,
 .cyclones-table-wrapper,
-.tailings-table-wrapper {
+.tailings-table-wrapper,
+.pozas-table-wrapper,
+.metallurgical-sheet-wrapper {
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-x: contain;
 }
@@ -227,9 +230,11 @@ input, select, textarea {
   .items-table-wrapper,
   .pumps-table-wrapper,
   .cyclones-table-wrapper,
-  .tailings-table-wrapper {
+  .tailings-table-wrapper,
+  .pozas-table-wrapper,
+  .metallurgical-sheet-wrapper {
     position: relative;
-    box-shadow: inset -8px 0 10px -6px rgba(15, 23, 42, 0.12);
+    box-shadow: inset -10px 0 12px -8px rgba(15, 23, 42, 0.22);
   }
 }
 

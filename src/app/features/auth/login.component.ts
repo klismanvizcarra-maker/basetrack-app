@@ -71,7 +71,7 @@ import { AuthService } from '../../core/auth/auth.service';
                 [type]="showPassword ? 'text' : 'password'"
                 name="password"
                 [(ngModel)]="password"
-                placeholder="DNI o contraseña asignada"
+                placeholder="Contraseña asignada"
                 autocomplete="current-password"
                 required
               />

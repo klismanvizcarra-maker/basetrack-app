@@ -8,6 +8,13 @@ import { OfflineSyncService } from '../../core/offline/offline-sync.service';
 import { getRealtimeData, saveRealtimeData } from '../../core/storage/local-store.util';
 import { CycloneReportPdfComponent } from '../reports/cyclone-report-pdf.component';
 import { getCurrentActiveShift } from '../../shared/utils/roster.util';
+import { 
+  classifyDamSandAptitude, 
+  calculateSolidsMassRecovery, 
+  computeTrompCurve, 
+  SandClassification, 
+  TrompPoint 
+} from '../../shared/utils/cyclone-metallurgy.util';
 
 export interface CycloneReport {
   id: string;
@@ -109,19 +116,19 @@ export interface GeneralAverages {
         <div class="station-tabs">
           <button
             class="station-tab-btn"
-            [class.active]="selectedStation === '2DA ESTACIÓN CICLONES'"
-            (click)="selectStation('2DA ESTACIÓN CICLONES')"
-          >
-            <span class="dot-indicator"></span>
-            2DA ESTACIÓN (CY3/4)
-          </button>
-          <button
-            class="station-tab-btn"
             [class.active]="selectedStation === '1RA ESTACIÓN CICLONES'"
             (click)="selectStation('1RA ESTACIÓN CICLONES')"
           >
             <span class="dot-indicator"></span>
             1RA ESTACIÓN (CY1/2)
+          </button>
+          <button
+            class="station-tab-btn"
+            [class.active]="selectedStation === '2DA ESTACIÓN CICLONES'"
+            (click)="selectStation('2DA ESTACIÓN CICLONES')"
+          >
+            <span class="dot-indicator"></span>
+            2DA ESTACIÓN (CY3/4)
           </button>
         </div>
 
@@ -148,44 +155,69 @@ export interface GeneralAverages {
         </div>
       </div>
 
-      <!-- Promedios Clave Cards -->
-      <div class="promedios-hero-grid no-print">
-        <div class="promedio-kpi-card glass-panel">
-          <div class="kpi-icon-wrap emerald">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3">
-              <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+      <!-- View Mode Selector: Planilla vs Curvas & Geotecnia (GISTM) -->
+      <div class="view-mode-bar no-print">
+        <div class="view-pill-group">
+          <button type="button" class="pill-btn" [class.active]="activeView === 'TABLE'" (click)="activeView = 'TABLE'">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="3" y1="9" x2="21" y2="9"></line>
+              <line x1="3" y1="15" x2="21" y2="15"></line>
+              <line x1="9" y1="3" x2="9" y2="21"></line>
             </svg>
-          </div>
-          <div class="kpi-body">
-            <span class="kpi-label">PROMEDIO UF SÓLIDOS</span>
-            <div class="kpi-val-row">
-              <span class="kpi-val emerald-val">{{ generalAverages.solids_uf | number:'1.2-2' }}%</span>
-              <span class="kpi-target-badge">Objetivo: 68 - 72%</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="promedio-kpi-card glass-panel">
-          <div class="kpi-icon-wrap cyan">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3">
-              <circle cx="12" cy="12" r="10"></circle>
-              <line x1="2" y1="12" x2="22" y2="12"></line>
-              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+            Planilla Metalúrgica
+          </button>
+          <button type="button" class="pill-btn" [class.active]="activeView === 'METALLURGY'" (click)="activeView = 'METALLURGY'">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 3v18h18"></path>
+              <path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"></path>
             </svg>
-          </div>
-          <div class="kpi-body">
-            <span class="kpi-label">PROMEDIO UF MALLA -200</span>
-            <div class="kpi-val-row">
-              <span class="kpi-val cyan-val">{{ generalAverages.mesh200_uf | number:'1.2-2' }}%</span>
-              <span class="kpi-target-badge">Objetivo: 22 - 25%</span>
-            </div>
-          </div>
+            Curva & Geotecnia de Arenas (-200M)
+            <span class="pill-badge" [ngClass]="sandClassification.badgeClass">{{ sandClassification.status }}</span>
+          </button>
         </div>
       </div>
 
-      <!-- ÚNICA TABLA METALÚRGICA (Modo Escritorio y Modo Móvil unificados) -->
-      <div class="metallurgical-sheet-wrapper glass-panel no-print animate-fade-in">
-        <!-- Station Header Banner -->
+      <!-- VISTA 1: TABLA Y PROMEDIOS OPERACIONALES -->
+      <ng-container *ngIf="activeView === 'TABLE'">
+        <!-- Promedios Clave Cards -->
+        <div class="promedios-hero-grid no-print">
+          <div class="promedio-kpi-card glass-panel">
+            <div class="kpi-icon-wrap emerald">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+              </svg>
+            </div>
+            <div class="kpi-body">
+              <span class="kpi-label">PROMEDIO UF SÓLIDOS</span>
+              <div class="kpi-val-row">
+                <span class="kpi-val emerald-val">{{ generalAverages.solids_uf | number:'1.2-2' }}%</span>
+                <span class="kpi-target-badge">Objetivo: 68 - 72%</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="promedio-kpi-card glass-panel">
+            <div class="kpi-icon-wrap cyan">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="2" y1="12" x2="22" y2="12"></line>
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+              </svg>
+            </div>
+            <div class="kpi-body">
+              <span class="kpi-label">PROMEDIO UF MALLA -200</span>
+              <div class="kpi-val-row">
+                <span class="kpi-val cyan-val">{{ generalAverages.mesh200_uf | number:'1.2-2' }}%</span>
+                <span class="kpi-target-badge">Objetivo GISTM: ≤ 18%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ÚNICA TABLA METALÚRGICA (Modo Escritorio y Modo Móvil unificados) -->
+        <div class="metallurgical-sheet-wrapper glass-panel no-print animate-fade-in">
+          <!-- Station Header Banner -->
         <div class="station-banner-header">
           <div class="banner-title-group">
             <h3>{{ selectedStation }}</h3>
@@ -379,6 +411,234 @@ export interface GeneralAverages {
           </span>
         </div>
       </div>
+      </ng-container>
+
+      <!-- VISTA 2: CURVA METALÚRGICA & GEOTECNIA DE ARENAS (GISTM / D.S. 024-2016-EM) -->
+      <div *ngIf="activeView === 'METALLURGY'" class="metallurgy-suite no-print animate-fade-in">
+        
+        <!-- BANNER DE EVALUACIÓN GEOTÉCNICA GISTM -->
+        <div class="geotech-card glass-panel" [style.border-left-color]="sandClassification.color">
+          <div class="geotech-header">
+            <div class="geotech-title-wrap">
+              <span class="geotech-icon">{{ sandClassification.icon }}</span>
+              <div>
+                <div class="geotech-tag-row">
+                  <span class="norma-pill">GISTM / D.S. 024-2016-EM</span>
+                  <span class="station-pill">{{ selectedStation }}</span>
+                </div>
+                <h3 class="geotech-title">Evaluación de Finos -200 Malla para Recrecimiento de Dique</h3>
+              </div>
+            </div>
+            <div class="geotech-status-badge" [ngClass]="sandClassification.badgeClass">
+              {{ sandClassification.label }}
+            </div>
+          </div>
+
+          <div class="geotech-advice-box" [style.background]="sandClassification.bgColor" [style.border-color]="sandClassification.borderColor">
+            <p [style.color]="sandClassification.color">
+              <strong>Diagnóstico Operativo:</strong> {{ sandClassification.advice }}
+            </p>
+          </div>
+
+          <!-- Métricas Clave de Arenas -->
+          <div class="geotech-kpis-grid">
+            <div class="gkpi-card">
+              <span class="gkpi-label">Finos UF Promedio</span>
+              <span class="gkpi-val" [style.color]="sandClassification.color">
+                {{ generalAverages.mesh200_uf | number:'1.2-2' }}%
+              </span>
+              <span class="gkpi-sub">Límite Máx: 18.00%</span>
+            </div>
+
+            <div class="gkpi-card">
+              <span class="gkpi-label">Margen Geotécnico</span>
+              <span class="gkpi-val font-bold" [class.green-text]="safetyMargin >= 0" [class.red-text]="safetyMargin < 0">
+                {{ safetyMargin >= 0 ? '+' : '' }}{{ safetyMargin | number:'1.2-2' }}%
+              </span>
+              <span class="gkpi-sub">{{ safetyMargin >= 0 ? 'Dentro de norma' : 'Sobrepasó umbral' }}</span>
+            </div>
+
+            <div class="gkpi-card">
+              <span class="gkpi-label">Recuperación Masa (Rs)</span>
+              <span class="gkpi-val cyan-text">{{ solidsRecoveryPct | number:'1.1-1' }}%</span>
+              <span class="gkpi-sub">Sólidos a arenas UF</span>
+            </div>
+
+            <div class="gkpi-card">
+              <span class="gkpi-label">Corte Estimado (d50)</span>
+              <span class="gkpi-val purple-text">{{ trompData.d50 }} µm</span>
+              <span class="gkpi-sub">Corte nominal #200 (74µm)</span>
+            </div>
+
+            <div class="gkpi-card">
+              <span class="gkpi-label">% Sólidos Arenas</span>
+              <span class="gkpi-val emerald-text">{{ generalAverages.solids_uf | number:'1.2-2' }}%</span>
+              <span class="gkpi-sub">Objetivo: 68 - 72%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- GRÁFICO 1: CURVA TEMPORAL DE FINOS MALLA -200 -->
+        <div class="chart-card glass-panel">
+          <div class="chart-header">
+            <div>
+              <h4 class="chart-title">Tendencia Temporal de Finos (% Malla -200 en Arenas Underflow)</h4>
+              <p class="chart-sub">Comportamiento a lo largo de las horas de guardia con banda regulatoria GISTM a 18%</p>
+            </div>
+            <div class="chart-legend">
+              <span class="legend-item"><span class="legend-dot green"></span> Arenas UF</span>
+              <span class="legend-item"><span class="legend-line red-dash"></span> Límite D.S. 024 (18%)</span>
+              <span class="legend-item"><span class="legend-band amber"></span> Alerta (18-20%)</span>
+              <span class="legend-item"><span class="legend-band red"></span> Crítico (>20%)</span>
+            </div>
+          </div>
+
+          <!-- SVG Trend Chart -->
+          <div class="svg-container" *ngIf="trendPoints.length > 0; else noTrendData">
+            <svg viewBox="0 0 760 220" class="responsive-svg" preserveAspectRatio="xMidYMid meet">
+              <defs>
+                <linearGradient id="trendGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#031795" stop-opacity="0.25" />
+                  <stop offset="100%" stop-color="#031795" stop-opacity="0.0" />
+                </linearGradient>
+              </defs>
+
+              <!-- Grid Horizontal Lines -->
+              <line x1="70" y1="20" x2="720" y2="20" stroke="var(--border-subtle)" stroke-width="1" stroke-dasharray="3,3" />
+              <text x="62" y="24" fill="var(--text-muted)" font-size="10" text-anchor="end">30%</text>
+
+              <line x1="70" y1="48" x2="720" y2="48" stroke="var(--border-subtle)" stroke-width="1" stroke-dasharray="3,3" />
+              <text x="62" y="52" fill="var(--text-muted)" font-size="10" text-anchor="end">25%</text>
+
+              <!-- Critical Area (>20%) -->
+              <rect x="70" y="20" width="650" height="56.7" fill="rgba(239, 68, 68, 0.08)" />
+
+              <!-- Warning Area (18% - 20%) -->
+              <rect x="70" y="76.7" width="650" height="11.3" fill="rgba(245, 158, 11, 0.12)" />
+
+              <!-- 20% Line -->
+              <line x1="70" y1="76.7" x2="720" y2="76.7" stroke="rgba(245, 158, 11, 0.4)" stroke-width="1" stroke-dasharray="2,2" />
+              <text x="62" y="80" fill="#f59e0b" font-size="10" font-weight="700" text-anchor="end">20%</text>
+
+              <!-- 18% Regulatory Limit Line -->
+              <line x1="70" y1="88" x2="720" y2="88" stroke="#ef4444" stroke-width="2" stroke-dasharray="5,4" />
+              <text x="62" y="91" fill="#ef4444" font-size="11" font-weight="800" text-anchor="end">18%</text>
+              <text x="715" y="83" fill="#ef4444" font-size="10" font-weight="800" text-anchor="end">LÍMITE MÁX. GISTM / DS-024 (18.0%)</text>
+
+              <!-- 10% Line -->
+              <line x1="70" y1="133.3" x2="720" y2="133.3" stroke="var(--border-subtle)" stroke-width="1" stroke-dasharray="3,3" />
+              <text x="62" y="137" fill="var(--text-muted)" font-size="10" text-anchor="end">10%</text>
+
+              <!-- Base Line 0% -->
+              <line x1="70" y1="190" x2="720" y2="190" stroke="var(--border-subtle)" stroke-width="1.5" />
+              <text x="62" y="194" fill="var(--text-muted)" font-size="10" text-anchor="end">0%</text>
+
+              <!-- Area Fill -->
+              <path [attr.d]="trendSvgArea" fill="url(#trendGradient)" />
+
+              <!-- Trend Polyline -->
+              <polyline [attr.points]="trendSvgPolyline" fill="none" stroke="#031795" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+
+              <!-- Data Points -->
+              <g *ngFor="let p of trendPoints">
+                <circle [attr.cx]="p.x" [attr.cy]="p.y" r="5.5"
+                        [attr.fill]="p.isApto ? '#10b981' : (p.isWarn ? '#f59e0b' : '#ef4444')"
+                        stroke="#ffffff" stroke-width="2"
+                        class="trend-node"
+                        (mouseenter)="hoveredTrendPoint = p"
+                        (mouseleave)="hoveredTrendPoint = null" />
+                <text [attr.x]="p.x" y="206" fill="var(--text-secondary)" font-size="10" font-weight="600" text-anchor="middle">
+                  {{ p.time }}
+                </text>
+                <text [attr.x]="p.x" [attr.y]="p.y - 10" [attr.fill]="p.isApto ? '#059669' : '#dc2626'" font-size="10" font-weight="800" text-anchor="middle">
+                  {{ p.ufMesh200 }}%
+                </text>
+              </g>
+
+              <!-- Tooltip Box if hovered -->
+              <g *ngIf="hoveredTrendPoint" [attr.transform]="'translate(' + (hoveredTrendPoint.x > 550 ? hoveredTrendPoint.x - 170 : hoveredTrendPoint.x + 12) + ',' + (hoveredTrendPoint.y - 45) + ')'">
+                <rect width="160" height="50" rx="6" fill="#1e293b" opacity="0.95" />
+                <text x="10" y="18" fill="#f8fafc" font-size="11" font-weight="700">{{ hoveredTrendPoint.time }} - {{ hoveredTrendPoint.battery }}</text>
+                <text x="10" y="32" fill="#38bdf8" font-size="10">Malla -200: {{ hoveredTrendPoint.ufMesh200 }}%</text>
+                <text x="10" y="44" fill="#34d399" font-size="10">Sólidos: {{ hoveredTrendPoint.ufSolids }}%</text>
+              </g>
+            </svg>
+          </div>
+
+          <ng-template #noTrendData>
+            <div class="empty-chart-box">
+              <p>No hay mediciones de Malla -200 registradas para este turno o fecha seleccionada.</p>
+            </div>
+          </ng-template>
+        </div>
+
+        <!-- GRÁFICO 2: CURVA DE PARTICIÓN DE TROMP -->
+        <div class="chart-card glass-panel">
+          <div class="chart-header">
+            <div>
+              <h4 class="chart-title">Curva de Partición de Tromp (Corte Hidráulico de Ciclones)</h4>
+              <p class="chart-sub">Selectividad granulométrica hacia las arenas (Underflow) calibrada con balance de sólidos</p>
+            </div>
+            <div class="tromp-summary-badge">
+              <span>Corte d50: <strong>{{ trompData.d50 }} µm</strong></span>
+              <span>Retención en Malla 200 (74µm): <strong class="green-text">{{ (100 - generalAverages.mesh200_uf) | number:'1.1-1' }}%</strong></span>
+            </div>
+          </div>
+
+          <div class="svg-container">
+            <svg viewBox="0 0 650 220" class="responsive-svg" preserveAspectRatio="xMidYMid meet">
+              <defs>
+                <linearGradient id="trompGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#0284c7" stop-opacity="0.25" />
+                  <stop offset="100%" stop-color="#0284c7" stop-opacity="0.0" />
+                </linearGradient>
+              </defs>
+
+              <!-- Grid Horizontal Lines (0%, 25%, 50%, 75%, 100%) -->
+              <line x1="60" y1="20" x2="610" y2="20" stroke="var(--border-subtle)" stroke-width="1" stroke-dasharray="3,3" />
+              <text x="52" y="24" fill="var(--text-muted)" font-size="10" text-anchor="end">100%</text>
+
+              <line x1="60" y1="61.25" x2="610" y2="61.25" stroke="var(--border-subtle)" stroke-width="1" stroke-dasharray="3,3" />
+              <text x="52" y="65" fill="var(--text-muted)" font-size="10" text-anchor="end">75%</text>
+
+              <!-- 50% Cut size d50 line -->
+              <line x1="60" y1="102.5" x2="610" y2="102.5" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="4,3" />
+              <text x="52" y="106" fill="#f59e0b" font-size="10" font-weight="700" text-anchor="end">50%</text>
+              <text x="605" y="96" fill="#f59e0b" font-size="10" font-weight="700" text-anchor="end">d50 = {{ trompData.d50 }} µm</text>
+
+              <line x1="60" y1="143.75" x2="610" y2="143.75" stroke="var(--border-subtle)" stroke-width="1" stroke-dasharray="3,3" />
+              <text x="52" y="147" fill="var(--text-muted)" font-size="10" text-anchor="end">25%</text>
+
+              <line x1="60" y1="185" x2="610" y2="185" stroke="var(--border-subtle)" stroke-width="1.5" />
+              <text x="52" y="189" fill="var(--text-muted)" font-size="10" text-anchor="end">0%</text>
+
+              <!-- Tromp Polyline -->
+              <polyline [attr.points]="trompSvgPolyline" fill="none" stroke="#0284c7" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+
+              <!-- Tromp Nodes -->
+              <g *ngFor="let item of trompScaledPoints">
+                <circle [attr.cx]="item.x" [attr.cy]="item.y" [attr.r]="item.point.isMesh200 ? 7 : 4.5"
+                        [attr.fill]="item.point.isMesh200 ? '#10b981' : '#0284c7'"
+                        stroke="#ffffff" [attr.stroke-width]="item.point.isMesh200 ? 2.5 : 1.5" />
+                <text [attr.x]="item.x" y="202" fill="var(--text-secondary)" font-size="9.5" font-weight="600" text-anchor="middle">
+                  {{ item.point.label }}
+                </text>
+                <text [attr.x]="item.x" [attr.y]="item.y - 9" [attr.fill]="item.point.isMesh200 ? '#10b981' : 'var(--text-primary)'" font-size="9.5" font-weight="700" text-anchor="middle">
+                  {{ item.point.partitionPct }}%
+                </text>
+              </g>
+            </svg>
+          </div>
+
+          <div class="tromp-explanation">
+            <span class="exp-icon">ℹ️</span>
+            <p>
+              <strong>Fundamento Geotécnico:</strong> La curva de Tromp demuestra la eficiencia de deslamado. Una retención alta en el tamiz de 74 µm (Malla 200) asegura que las fracciones arcillosas y ultrafinas se evacúen por el overflow hacia la laguna de sedimentación, previniendo el taponamiento de los drenes basales y la acumulación de presión de poros en el cuerpo del dique.
+            </p>
+          </div>
+        </div>
+
+      </div>
 
       <!-- Telemetry Section: Cyclopac Cluster Batteries -->
       <div class="section-divider no-print">
@@ -455,17 +715,17 @@ export interface GeneralAverages {
             <div class="form-group">
               <label>Estación</label>
               <select [(ngModel)]="newSample.station" name="station" required>
-                <option value="2DA ESTACIÓN CICLONES">2DA ESTACIÓN CICLONES</option>
                 <option value="1RA ESTACIÓN CICLONES">1RA ESTACIÓN CICLONES</option>
+                <option value="2DA ESTACIÓN CICLONES">2DA ESTACIÓN CICLONES</option>
               </select>
             </div>
             <div class="form-group">
               <label>Batería</label>
               <select [(ngModel)]="newSample.battery_tag" name="battery_tag" required>
-                <option value="CY3">CY3</option>
-                <option value="CY4">CY4</option>
                 <option value="CY1">CY1</option>
                 <option value="CY2">CY2</option>
+                <option value="CY3">CY3</option>
+                <option value="CY4">CY4</option>
               </select>
             </div>
           </div>
@@ -1933,6 +2193,345 @@ export interface GeneralAverages {
         background: rgba(239, 68, 68, 0.15);
       }
     }
+
+    /* View Mode Bar */
+    .view-mode-bar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 2px;
+    }
+
+    .view-pill-group {
+      display: inline-flex;
+      background: var(--bg-input);
+      padding: 4px;
+      border-radius: var(--radius-full);
+      border: 1px solid var(--border-subtle);
+      gap: 4px;
+
+      @media (max-width: 600px) {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .pill-btn {
+        background: transparent;
+        border: none;
+        color: var(--text-secondary);
+        padding: 7px 16px;
+        border-radius: var(--radius-full);
+        font-size: 0.82rem;
+        font-weight: 700;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        transition: var(--transition-smooth);
+
+        &:hover {
+          color: var(--text-primary);
+        }
+
+        &.active {
+          background: var(--bg-card);
+          border: 1.5px solid var(--primary-purple);
+          color: var(--primary-purple);
+          box-shadow: var(--shadow-card);
+        }
+      }
+
+      .pill-badge {
+        font-size: 0.70rem;
+        padding: 2px 7px;
+        border-radius: var(--radius-full);
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+
+        &.badge-emerald { background: rgba(16, 185, 129, 0.15); color: #10b981; }
+        &.badge-warning { background: rgba(245, 158, 11, 0.18); color: #d97706; }
+        &.badge-danger { background: rgba(239, 68, 68, 0.18); color: #ef4444; }
+        &.badge-muted { background: rgba(148, 163, 184, 0.15); color: #94a3b8; }
+      }
+    }
+
+    /* Metallurgy & Geotechnics Suite */
+    .metallurgy-suite {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .geotech-card {
+      padding: 20px;
+      border-radius: var(--radius-lg);
+      border-left: 5px solid #10b981;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .geotech-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .geotech-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      .geotech-icon {
+        font-size: 2rem;
+        line-height: 1;
+      }
+
+      .geotech-tag-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 4px;
+
+        .norma-pill {
+          font-size: 0.72rem;
+          font-weight: 800;
+          color: #031795;
+          background: rgba(3, 23, 149, 0.08);
+          border: 1px solid rgba(3, 23, 149, 0.2);
+          padding: 2px 8px;
+          border-radius: var(--radius-full);
+        }
+
+        .station-pill {
+          font-size: 0.72rem;
+          font-weight: 700;
+          color: var(--text-muted);
+        }
+      }
+
+      .geotech-title {
+        font-size: 1.15rem;
+        font-weight: 800;
+        color: var(--text-primary);
+        margin: 0;
+      }
+    }
+
+    .geotech-status-badge {
+      font-size: 0.82rem;
+      font-weight: 800;
+      padding: 6px 14px;
+      border-radius: var(--radius-full);
+      letter-spacing: 0.02em;
+
+      &.badge-emerald { background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.35); }
+      &.badge-warning { background: rgba(245, 158, 11, 0.15); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.35); }
+      &.badge-danger { background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.35); }
+      &.badge-muted { background: rgba(148, 163, 184, 0.15); color: #64748b; border: 1px solid rgba(148, 163, 184, 0.35); }
+    }
+
+    .geotech-advice-box {
+      padding: 12px 16px;
+      border-radius: var(--radius-md);
+      border: 1px solid transparent;
+
+      p {
+        margin: 0;
+        font-size: 0.86rem;
+        line-height: 1.45;
+      }
+    }
+
+    .geotech-kpis-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+
+      @media (max-width: 1024px) {
+        grid-template-columns: repeat(3, 1fr);
+      }
+      @media (max-width: 600px) {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    .gkpi-card {
+      background: var(--bg-card-subtle);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+
+      .gkpi-label {
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: var(--text-muted);
+        text-transform: uppercase;
+      }
+
+      .gkpi-val {
+        font-size: 1.25rem;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+      }
+
+      .gkpi-sub {
+        font-size: 0.70rem;
+        color: var(--text-secondary);
+      }
+    }
+
+    .green-text { color: #10b981; }
+    .red-text { color: #ef4444; }
+    .cyan-text { color: #0284c7; }
+    .purple-text { color: #8b5cf6; }
+    .emerald-text { color: #059669; }
+
+    /* Chart Cards */
+    .chart-card {
+      padding: 20px;
+      border-radius: var(--radius-lg);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .chart-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+
+      .chart-title {
+        font-size: 1rem;
+        font-weight: 800;
+        color: var(--text-primary);
+        margin: 0 0 4px 0;
+      }
+
+      .chart-sub {
+        font-size: 0.76rem;
+        color: var(--text-muted);
+        margin: 0;
+      }
+    }
+
+    .chart-legend {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+
+      .legend-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .legend-dot.green {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #10b981;
+      }
+
+      .legend-line.red-dash {
+        width: 18px;
+        height: 2px;
+        background: #ef4444;
+      }
+
+      .legend-band.amber {
+        width: 14px;
+        height: 8px;
+        background: rgba(245, 158, 11, 0.25);
+        border: 1px solid rgba(245, 158, 11, 0.5);
+      }
+
+      .legend-band.red {
+        width: 14px;
+        height: 8px;
+        background: rgba(239, 68, 68, 0.25);
+        border: 1px solid rgba(239, 68, 68, 0.5);
+      }
+    }
+
+    .svg-container {
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      background: var(--bg-card);
+      border-radius: var(--radius-md);
+      padding: 10px 0;
+
+      .responsive-svg {
+        width: 100%;
+        min-width: 600px;
+        height: auto;
+        display: block;
+      }
+    }
+
+    .trend-node {
+      transition: all 0.2s ease;
+      cursor: pointer;
+
+      &:hover {
+        r: 8;
+      }
+    }
+
+    .tromp-summary-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 16px;
+      padding: 6px 14px;
+      background: var(--bg-card-subtle);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-full);
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+    }
+
+    .tromp-explanation {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 12px 16px;
+      background: rgba(2, 132, 199, 0.06);
+      border: 1px solid rgba(2, 132, 199, 0.2);
+      border-radius: var(--radius-md);
+
+      .exp-icon {
+        font-size: 1.1rem;
+      }
+
+      p {
+        margin: 0;
+        font-size: 0.80rem;
+        line-height: 1.45;
+        color: var(--text-secondary);
+      }
+    }
+
+    .empty-chart-box {
+      padding: 30px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.86rem;
+    }
   `]
 })
 export class CyclonesComponent implements OnInit, OnDestroy {
@@ -1941,12 +2540,15 @@ export class CyclonesComponent implements OnInit, OnDestroy {
   private cdr = inject(ChangeDetectorRef);
   private ngZone = inject(NgZone);
 
+  activeView: 'TABLE' | 'METALLURGY' = 'TABLE';
+  hoveredTrendPoint: any = null;
+
   cyclones: CycloneReport[] = [];
   rawStationSamples: StationSample[] = [];
   filteredStationSamples: StationSample[] = [];
   groupedSamples: GroupedSample[] = [];
 
-  selectedStation: string = '2DA ESTACIÓN CICLONES';
+  selectedStation: string = '1RA ESTACIÓN CICLONES';
   selectedShift: string = 'ALL';
   filterDate: string = '';
 
@@ -1969,9 +2571,9 @@ export class CyclonesComponent implements OnInit, OnDestroy {
   isCreateModalOpen = false;
 
   newSample = {
-    station: '2DA ESTACIÓN CICLONES',
+    station: '1RA ESTACIÓN CICLONES',
     sample_time: '20:00',
-    battery_tag: 'CY3',
+    battery_tag: 'CY1',
     shift_code: 'G1',
     solids_feed: 0,
     solids_of: 0,
@@ -2164,6 +2766,126 @@ export class CyclonesComponent implements OnInit, OnDestroy {
       mesh200_of: counts.mesh200_of > 0 ? Number((sum.mesh200_of / counts.mesh200_of).toFixed(2)) : 0,
       mesh200_uf: counts.mesh200_uf > 0 ? Number((sum.mesh200_uf / counts.mesh200_uf).toFixed(2)) : 0
     };
+  }
+
+  get sandClassification(): SandClassification {
+    return classifyDamSandAptitude(this.generalAverages.mesh200_uf);
+  }
+
+  get solidsRecoveryPct(): number {
+    return calculateSolidsMassRecovery(
+      this.generalAverages.solids_feed,
+      this.generalAverages.solids_of,
+      this.generalAverages.solids_uf
+    );
+  }
+
+  get trompData(): { points: TrompPoint[]; d50: number } {
+    return computeTrompCurve(
+      this.generalAverages.mesh200_feed,
+      this.generalAverages.mesh200_of,
+      this.generalAverages.mesh200_uf,
+      this.solidsRecoveryPct
+    );
+  }
+
+  get safetyMargin(): number {
+    const val = Number(this.generalAverages.mesh200_uf || 0);
+    return val > 0 ? Number((18.0 - val).toFixed(2)) : 0;
+  }
+
+  get trendPoints(): Array<{
+    x: number;
+    y: number;
+    time: string;
+    battery: string;
+    ufMesh200: number;
+    ufSolids: number;
+    isApto: boolean;
+    isWarn: boolean;
+    isCrit: boolean;
+  }> {
+    const samples = (this.filteredStationSamples || []).filter(s => Number(s.mesh200_uf || 0) > 0);
+    if (samples.length === 0) return [];
+
+    const width = 760;
+    const paddingX = 70;
+    const paddingRight = 40;
+    const availWidth = width - paddingX - paddingRight;
+    const step = samples.length > 1 ? availWidth / (samples.length - 1) : availWidth / 2;
+
+    const minY = 20;
+    const maxY = 190;
+    const maxVal = 30;
+
+    return samples.map((s, idx) => {
+      const val = Number(s.mesh200_uf || 0);
+      const clamped = Math.min(Math.max(val, 0), maxVal);
+      const x = Number((paddingX + (samples.length === 1 ? availWidth / 2 : idx * step)).toFixed(1));
+      const y = Number((maxY - (clamped / maxVal) * (maxY - minY)).toFixed(1));
+
+      return {
+        x,
+        y,
+        time: s.sample_time,
+        battery: s.battery_tag,
+        ufMesh200: val,
+        ufSolids: Number(s.solids_uf || 0),
+        isApto: val <= 18.0,
+        isWarn: val > 18.0 && val <= 20.0,
+        isCrit: val > 20.0
+      };
+    });
+  }
+
+  get trendSvgPolyline(): string {
+    const pts = this.trendPoints;
+    if (pts.length === 0) return '';
+    return pts.map(p => `${p.x},${p.y}`).join(' ');
+  }
+
+  get trendSvgArea(): string {
+    const pts = this.trendPoints;
+    if (pts.length === 0) return '';
+    const first = pts[0];
+    const last = pts[pts.length - 1];
+    return `M ${first.x} 190 L ` + pts.map(p => `${p.x} ${p.y}`).join(' L ') + ` L ${last.x} 190 Z`;
+  }
+
+  get trompSvgPolyline(): string {
+    const pts = this.trompData.points;
+    if (!pts || pts.length === 0) return '';
+
+    const width = 600;
+    const paddingX = 60;
+    const availWidth = width - paddingX - 40;
+    const minY = 20;
+    const maxY = 185;
+    const step = availWidth / (pts.length - 1);
+
+    return pts.map((p, idx) => {
+      const x = paddingX + idx * step;
+      const y = maxY - (p.partitionPct / 100) * (maxY - minY);
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    }).join(' ');
+  }
+
+  get trompScaledPoints(): Array<{ x: number; y: number; point: TrompPoint }> {
+    const pts = this.trompData.points;
+    if (!pts || pts.length === 0) return [];
+
+    const width = 600;
+    const paddingX = 60;
+    const availWidth = width - paddingX - 40;
+    const minY = 20;
+    const maxY = 185;
+    const step = availWidth / (pts.length - 1);
+
+    return pts.map((p, idx) => ({
+      x: Number((paddingX + idx * step).toFixed(1)),
+      y: Number((maxY - (p.partitionPct / 100) * (maxY - minY)).toFixed(1)),
+      point: p
+    }));
   }
 
   trackByGroup(index: number, group: GroupedSample): string {

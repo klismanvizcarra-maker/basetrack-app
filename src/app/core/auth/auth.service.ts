@@ -154,7 +154,7 @@ export class AuthService {
     const cleanPassword = (payload.password || '').trim();
 
     if (!cleanUsername || !cleanPassword) {
-      return throwError(() => new Error('Por favor ingrese su usuario y contraseÃ±a'));
+      return throwError(() => new Error('Por favor ingrese su usuario y contraseña'));
     }
 
     return this.http.post<AuthResponse>(`${this.apiUrl}/login`, { username: cleanUsername, password: cleanPassword }).pipe(
@@ -168,7 +168,7 @@ export class AuthService {
       catchError(err => {
         // If server responded with an authentication rejection (401 or 400), NEVER bypass credentials!
         if (err?.status === 401 || err?.status === 400) {
-          const msg = err.error?.message || 'Usuario o contraseÃ±a incorrectos';
+          const msg = err.error?.message || 'Usuario o contraseña incorrectos';
           return throwError(() => new Error(msg));
         }
 
@@ -236,13 +236,13 @@ export class AuthService {
       }),
       map((res) => ({
         success: true,
-        message: res?.message || 'Perfil y fotografÃ­a actualizados exitosamente',
+        message: res?.message || 'Perfil y fotografía actualizados exitosamente',
         user: res?.user || updatedUser
       })),
       catchError(() => {
         return of({
           success: true,
-          message: 'Perfil y fotografÃ­a guardados en tiempo real (almacenamiento persistente)',
+          message: 'Perfil y fotografía guardados en tiempo real (almacenamiento persistente)',
           user: updatedUser
         });
       })

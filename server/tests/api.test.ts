@@ -9,6 +9,7 @@ import { seed } from '../src/database/seed.js';
 import { purgeAndSetSoleAdmin } from '../src/database/purge.js';
 import { errorHandler } from '../src/middlewares/error.middleware.js';
 import { generateToken } from '../src/config/jwt.js';
+import bcrypt from 'bcryptjs';
 
 import { WebSocket } from 'ws';
 import { initWebSocketServer, closeWebSocketServer } from '../src/websocket/ws.js';
@@ -1408,6 +1409,158 @@ test('35. Admin password reset generates a temporary password (never the DNI) an
     body: JSON.stringify({ username: target.username, password: resetJson.temporaryPassword })
   });
   assert.strictEqual(((await loginRes.json()) as any).user.mustChangePassword, true);
+});
+
+test('36. Pump Shift Closure and History: closes shift with station availability metrics and retrieves history', async () => {
+  const payload = {
+    report_date: '2026-10-14',
+    shift_code: 'G1',
+    operator_name: 'Marckv Admin',
+    sentina_pumps: [
+      { tag: 'PU001', status: 'Operativo' },
+      { tag: 'PU002', status: 'Operativo' },
+      { tag: 'PU003', status: 'Operativo' },
+      { tag: 'PU004', status: 'Operativo' },
+      { tag: 'PU005', status: 'Operativo' },
+      { tag: 'PU006', status: 'Operativo' },
+      { tag: 'PU007', status: 'Operativo' },
+      { tag: 'PU008', status: 'Stand by' }
+    ],
+    intermedia_pumps: [
+      { tag: 'PU011', status: 'Operativo' },
+      { tag: 'PU012', status: 'Operativo' },
+      { tag: 'PU013', status: 'Operativo' },
+      { tag: 'PU014', status: 'Operativo' },
+      { tag: 'PU015', status: 'Operativo' },
+      { tag: 'PU016', status: 'Falla' }
+    ],
+    torre5_pumps: [
+      { tag: 'PU021', status: 'Operativo' },
+      { tag: 'PU022', status: 'Operativo' },
+      { tag: 'PU023', status: 'Operativo' },
+      { tag: 'PU024', status: 'Operativo' },
+      { tag: 'PU025', status: 'Operativo' },
+      { tag: 'PU026', status: 'Operativo' },
+      { tag: 'PU027', status: 'Operativo' },
+      { tag: 'PU028', status: 'Operativo' },
+      { tag: 'PU029', status: 'Operativo' },
+      { tag: 'PU030', status: 'Mantenimiento' }
+    ],
+    main_indicators: {
+      ph_aforador: '7.85',
+      ph_cortafugas: '8.10',
+      bombeo_turno_intermedia: '2450.5'
+    },
+    notes: 'Cierre de turno de prueba con 21 bombas operativas'
+  };
+
+  const closeRes = await fetch(`${baseUrl}/pumps/shift-closure`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify(payload)
+  });
+
+  assert.strictEqual(closeRes.status, 200);
+  const closeJson = await closeRes.json() as any;
+  assert.strictEqual(closeJson.success, true);
+  assert.strictEqual(closeJson.data.sentina_operating, 7);
+  assert.strictEqual(closeJson.data.sentina_total, 8);
+  assert.strictEqual(closeJson.data.sentina_availability_pct, 87.5);
+  assert.strictEqual(closeJson.data.intermedia_operating, 5);
+  assert.strictEqual(closeJson.data.intermedia_total, 6);
+  assert.strictEqual(closeJson.data.intermedia_availability_pct, 83.3);
+  assert.strictEqual(closeJson.data.torre5_operating, 9);
+  assert.strictEqual(closeJson.data.torre5_total, 10);
+  assert.strictEqual(closeJson.data.torre5_availability_pct, 90.0);
+  assert.strictEqual(closeJson.data.overall_operating, 21);
+  assert.strictEqual(closeJson.data.overall_total, 24);
+  assert.strictEqual(closeJson.data.overall_availability_pct, 87.5);
+  assert.strictEqual(closeJson.data.ph_aforador, 7.85);
+  assert.strictEqual(closeJson.data.ph_cortafugas, 8.1);
+  assert.strictEqual(closeJson.data.bombeo_intermedia, 2450.5);
+
+  // Retrieve history
+  const historyRes = await fetch(`${baseUrl}/pumps/shift-history`, {
+    headers: authHeaders()
+  });
+  assert.strictEqual(historyRes.status, 200);
+  const historyJson = await historyRes.json() as any;
+  assert.strictEqual(historyJson.success, true);
+  assert.ok(historyJson.count >= 1);
+  assert.ok(historyJson.summary.avg_overall_pct > 0);
+  assert.strictEqual(historyJson.summary.avg_ph_aforador, 7.85);
+});
+
+test('37. Security: login only trusts the stored hash (no hardcoded admin master passwords)', async () => {
+  const login = (username: string, password: string) => fetch(`${baseUrl}/auth/login`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password })
+  });
+  const admin = db.prepare("SELECT id, password_hash FROM users WHERE username = 'Marckv'").get() as { id: string; password_hash: string };
+  const originalHash = admin.password_hash;
+  try {
+    // Simula que el administrador cambió su contraseña
+    db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(bcrypt.hashSync('AdminRotada#2026', 10), admin.id);
+
+    for (const legacy of ['91209966', '123456']) {
+      const res = await login('Marckv', legacy);
+      assert.strictEqual(res.status, 401, `El login de admin no debe aceptar la contraseña fija ${legacy}`);
+    }
+    assert.strictEqual((await login('Marckv', 'AdminRotada#2026')).status, 200);
+  } finally {
+    db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(originalHash, admin.id);
+  }
+});
+
+test('38. Security: operators cannot log in using their DNI as password', async () => {
+  const ts = Date.now();
+  const username = `op_dni_${ts}`;
+  const dni = `83${ts.toString().slice(-6)}`;
+  const bulkRes = await fetch(`${baseUrl}/admin/bulk-upload`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({
+      users: [{ username, full_name: `TEST DNI ${ts}`, email: `${username}@test.com`, role: 'OPERATOR', shift: 'G3', document_id: dni }]
+    })
+  });
+  assert.strictEqual(bulkRes.status, 201);
+
+  for (const identifier of [username, dni]) {
+    const res = await fetch(`${baseUrl}/auth/login`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: identifier, password: dni })
+    });
+    assert.strictEqual(res.status, 401, `El DNI no debe servir como contraseña (identificador: ${identifier})`);
+  }
+});
+
+test('39. Security: restarting the server does not reset the admin password hash', async () => {
+  const admin = db.prepare("SELECT id, password_hash FROM users WHERE username = 'Marckv'").get() as { id: string; password_hash: string };
+  const originalHash = admin.password_hash;
+  try {
+    const rotatedHash = bcrypt.hashSync('AdminRotada#2026', 10);
+    db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(rotatedHash, admin.id);
+
+    initDatabase(); // mismo camino que un reinicio / deploy
+
+    const after = db.prepare('SELECT password_hash FROM users WHERE id = ?').get(admin.id) as { password_hash: string };
+    assert.strictEqual(after.password_hash, rotatedHash, 'initDatabase no debe sobrescribir la contraseña del admin');
+    assert.strictEqual(bcrypt.compareSync('91209966', after.password_hash), false);
+  } finally {
+    db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(originalHash, admin.id);
+  }
+});
+
+test('40. Security: default maintenance account must change its public password', async () => {
+  initDatabase();
+  const maint = db.prepare("SELECT id FROM users WHERE username = 'mantenimiento'").get() as { id: string } | undefined;
+  assert.ok(maint, 'la cuenta mantenimiento debe existir');
+
+  // Simula una cuenta creada antes del arreglo (sin cambio obligatorio)
+  db.prepare('UPDATE users SET must_change_password = 0, password_hash = ? WHERE id = ?').run(bcrypt.hashSync('mantenimiento123', 10), maint!.id);
+  initDatabase();
+  const after = db.prepare('SELECT must_change_password FROM users WHERE id = ?').get(maint!.id) as { must_change_password: number };
+  assert.strictEqual(after.must_change_password, 1);
 });
 
 test.after(async () => {

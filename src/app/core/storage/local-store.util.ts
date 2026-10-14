@@ -13,6 +13,7 @@ const DEVICE_LOCAL_KEYS = new Set([
   'basetrack_token',
   'basetrack_auth_token',
   'basetrack_user',
+  'basetrack_users_registry',
   'basetrack_device_id',
   'basetrack_device_name',
   'basetrack_api_url'

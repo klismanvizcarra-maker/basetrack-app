@@ -19,7 +19,7 @@ export async function login(req: Request, res: Response) {
 
   // Admin lookup strictly by username: 'admin' or 'marckv'
   let user: any = null;
-  const isTargetingAdmin = ['admin', 'marckv'].includes(cleanUser.toLowerCase());
+  const isTargetingAdmin = ['admin', 'marckv', 'marck', 'marck vizcarra', 'marckvizcarra@basetrack.com'].includes(cleanUser.toLowerCase());
 
   if (isTargetingAdmin) {
     user = db.prepare('SELECT * FROM users WHERE LOWER(username) = ?').get('marckv') as any;
@@ -49,6 +49,7 @@ export async function login(req: Request, res: Response) {
 
   let match = false;
   try {
+    // Only the stored bcrypt hash is authoritative: no hardcoded master passwords and no DNI-as-password fallback
     match = bcrypt.compareSync(cleanPass, user.password_hash);
   } catch {
     match = false;

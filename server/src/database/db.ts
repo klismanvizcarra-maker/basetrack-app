@@ -103,6 +103,33 @@ export function initDatabase() {
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
+    -- Pump Shift Closures (Cierre Formal de Turno & Historial de Promedios)
+    CREATE TABLE IF NOT EXISTS pump_shift_closures (
+      id TEXT PRIMARY KEY,
+      report_date TEXT NOT NULL,
+      shift_code TEXT NOT NULL,
+      operator_name TEXT NOT NULL,
+      closed_by TEXT NOT NULL,
+      sentina_operating INTEGER NOT NULL DEFAULT 0,
+      sentina_total INTEGER NOT NULL DEFAULT 8,
+      sentina_availability_pct REAL NOT NULL DEFAULT 0,
+      intermedia_operating INTEGER NOT NULL DEFAULT 0,
+      intermedia_total INTEGER NOT NULL DEFAULT 6,
+      intermedia_availability_pct REAL NOT NULL DEFAULT 0,
+      torre5_operating INTEGER NOT NULL DEFAULT 0,
+      torre5_total INTEGER NOT NULL DEFAULT 10,
+      torre5_availability_pct REAL NOT NULL DEFAULT 0,
+      overall_operating INTEGER NOT NULL DEFAULT 0,
+      overall_total INTEGER NOT NULL DEFAULT 24,
+      overall_availability_pct REAL NOT NULL DEFAULT 0,
+      ph_aforador REAL,
+      ph_cortafugas REAL,
+      bombeo_intermedia REAL,
+      notes TEXT,
+      snapshot_json TEXT,
+      closed_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
     -- Cyclone Clusters Reports
     CREATE TABLE IF NOT EXISTS cyclone_reports (
       id TEXT PRIMARY KEY,
@@ -351,6 +378,7 @@ export function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_vehicle_checklists_plate ON vehicle_checklists(vehicle_plate, date DESC);
     CREATE INDEX IF NOT EXISTS idx_sup_op_supervisor ON supervisor_operators(supervisor_id);
     CREATE INDEX IF NOT EXISTS idx_sup_op_operator ON supervisor_operators(operator_id);
+    CREATE INDEX IF NOT EXISTS idx_pump_shift_closures ON pump_shift_closures(report_date, shift_code);
   `);
 
   // Safe migration: remove CHECK constraint on vehicle_plate from existing vehicle_checklists if present
@@ -703,6 +731,15 @@ export function initDatabase() {
     }
   } catch {}
 
+  // Limpieza periódica de eventos de sincronización obsoletos (> 7 días) para mantener la base de datos ligera
+  try {
+    const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+    const prunedEvents = db.prepare('DELETE FROM sync_events WHERE timestamp < ?').run(sevenDaysAgo) as { changes?: number };
+    if (prunedEvents?.changes) {
+      console.log(`[Database] Limpieza: eliminados ${prunedEvents.changes} eventos de sincronización antiguos.`);
+    }
+  } catch {}
+
   // -------------------------------------------------------------
   // SYSTEM INITIALIZATION: Ensure Admin and Positions
   // Operate ONLY with real data loaded via CSV / User Actions (Zero fake generated data)
@@ -727,6 +764,7 @@ export function initDatabase() {
       // Ensure existing admin has no operational DNI and is not in crew_members
       db.prepare("UPDATE users SET document_id = '' WHERE role = 'ADMIN' OR username = 'Marckv'").run();
       db.prepare("DELETE FROM crew_members WHERE LOWER(name) = 'marck vizcarra' OR document_id = '91209966'").run();
+      // The existing admin password hash is never overwritten on boot, so password changes survive restarts/deploys
     }
 
     // 1b. Ensure Default Maintenance User: mantenimiento
@@ -735,8 +773,8 @@ export function initDatabase() {
       const maintId = crypto.randomUUID();
       const maintHash = bcrypt.hashSync('mantenimiento123', 10);
       db.prepare(`
-        INSERT INTO users (id, username, email, password_hash, full_name, role, shift, avatar_url, is_active, document_id, primary_role)
-        VALUES (?, ?, ?, ?, ?, 'MAINTENANCE', 'GENERAL', 'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=250&q=80', 1, '', 'MANTENIMIENTO')
+        INSERT INTO users (id, username, email, password_hash, full_name, role, shift, avatar_url, is_active, document_id, primary_role, must_change_password)
+        VALUES (?, ?, ?, ?, ?, 'MAINTENANCE', 'GENERAL', 'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=250&q=80', 1, '', 'MANTENIMIENTO', 1)
       `).run(
         maintId,
         'mantenimiento',
@@ -745,6 +783,12 @@ export function initDatabase() {
         'Personal de Mantenimiento'
       );
       console.log('[Database] Seeded default maintenance user: mantenimiento');
+    } else {
+      // Cuentas de mantenimiento creadas antes con la contraseña por defecto: forzar cambio en el próximo inicio
+      const maint = db.prepare("SELECT id, password_hash FROM users WHERE username = 'mantenimiento' AND must_change_password = 0").get() as { id: string; password_hash: string } | undefined;
+      if (maint && bcrypt.compareSync('mantenimiento123', maint.password_hash)) {
+        db.prepare('UPDATE users SET must_change_password = 1 WHERE id = ?').run(maint.id);
+      }
     }
 
     // 2. Default operational positions in crew_positions

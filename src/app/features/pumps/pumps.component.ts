@@ -85,6 +85,42 @@ export interface PumpReport {
   created_at: string;
 }
 
+export interface PumpShiftClosure {
+  id: string;
+  report_date: string;
+  shift_code: string;
+  operator_name: string;
+  closed_by: string;
+  sentina_operating: number;
+  sentina_total: number;
+  sentina_availability_pct: number;
+  intermedia_operating: number;
+  intermedia_total: number;
+  intermedia_availability_pct: number;
+  torre5_operating: number;
+  torre5_total: number;
+  torre5_availability_pct: number;
+  overall_operating: number;
+  overall_total: number;
+  overall_availability_pct: number;
+  ph_aforador?: number;
+  ph_cortafugas?: number;
+  bombeo_intermedia?: number;
+  notes?: string;
+  snapshot_json?: string;
+  closed_at: string;
+}
+
+export interface ShiftHistorySummary {
+  avg_sentina_pct: number;
+  avg_intermedia_pct: number;
+  avg_torre5_pct: number;
+  avg_overall_pct: number;
+  avg_ph_aforador: number;
+  avg_ph_cortafugas: number;
+  total_closures: number;
+}
+
 @Component({
   selector: 'app-pumps',
   changeDetection: ChangeDetectionStrategy.Eager,
@@ -121,10 +157,25 @@ export interface PumpReport {
               </svg>
               Telemetría Slurry
             </button>
+            <button class="pill-btn" [class.active]="activeTab === 'HISTORY'" (click)="activeTab = 'HISTORY'; loadShiftHistory()">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+              Historial de Promedios
+              <span class="history-count-badge" *ngIf="shiftHistoryList.length > 0">{{ shiftHistoryList.length }}</span>
+            </button>
           </div>
 
           <!-- Action Buttons -->
           <div class="actions-group">
+            <button class="btn btn-emerald action-btn" (click)="openCloseShiftModal()" title="Cerrar formalmente el turno y registrar promedios de disponibilidad">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+              </svg>
+              <span class="btn-text">Cerrar Turno & Guardar Promedios</span>
+            </button>
             <button class="btn btn-secondary action-btn-pdf" (click)="isPdfModalOpen = true" title="Exportar reporte oficial de bombas en PDF">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
@@ -172,13 +223,47 @@ export interface PumpReport {
             </div>
           </div>
 
+          <!-- Mobile Station Filter Pills (Only visible on mobile screens) -->
+          <div class="mobile-station-pills no-print">
+            <button type="button" class="station-pill" [class.active]="mobileStationTab === 'ALL'" (click)="mobileStationTab = 'ALL'">
+              Todas (Tabla ↔)
+            </button>
+            <button type="button" class="station-pill" [class.active]="mobileStationTab === 'SENTINA'" (click)="mobileStationTab = 'SENTINA'">
+              Sentina ({{ sentinaOperatingCount }}/8)
+            </button>
+            <button type="button" class="station-pill" [class.active]="mobileStationTab === 'INTERMEDIA'" (click)="mobileStationTab = 'INTERMEDIA'">
+              Intermedia ({{ intermediaOperatingCount }}/6)
+            </button>
+            <button type="button" class="station-pill" [class.active]="mobileStationTab === 'TORRE5'" (click)="mobileStationTab = 'TORRE5'">
+              Torre 5 ({{ torre5OperatingCount }}/10)
+            </button>
+          </div>
+
+          <!-- Mobile Direct Station Cards View (Zero horizontal scrolling!) -->
+          <div class="mobile-pumps-grid no-print" *ngIf="mobileStationTab !== 'ALL'">
+            <div *ngFor="let pump of getMobileFilteredPumps()" class="mobile-pump-card" [class.operating]="pump.status === 'Operativo'">
+              <div class="mobile-pump-info">
+                <span class="mobile-pump-tag font-bold">{{ pump.tag }}</span>
+                <span class="mobile-pump-sub">{{ getPumpStationName(pump.tag) }}</span>
+              </div>
+              <button class="status-badge-btn"
+                      [ngClass]="getStatusClass(pump.status || 'Operativo')"
+                      [class.is-locked]="isLockedByMaintenance(pump)"
+                      (click)="cycleStatus(pump)"
+                      [title]="isLockedByMaintenance(pump) ? 'Bloqueo: Requiere pase de Mantenimiento' : 'Click para cambiar estado'">
+                <span *ngIf="isLockedByMaintenance(pump)" class="lock-icon-inline">🔒</span>
+                {{ pump.status || 'Operativo' }}
+              </button>
+            </div>
+          </div>
+
           <!-- Mobile Scroll Hint -->
-          <div class="mobile-table-scroll-hint no-print">
+          <div class="mobile-table-scroll-hint no-print" *ngIf="mobileStationTab === 'ALL'">
             <span>↔ Desliza la tabla horizontalmente para ver Intermedia y Torre 5</span>
           </div>
 
           <!-- 3-Column Pump Grid (Sentina, Intermedia, Torre 5) -->
-          <div class="pumps-table-wrapper">
+          <div class="pumps-table-wrapper" [class.mobile-hidden]="mobileStationTab !== 'ALL'">
             <table class="pumps-report-table">
               <thead>
                 <tr>
@@ -531,6 +616,344 @@ export interface PumpReport {
           </div>
         </div>
       </div>
+
+      <!-- TAB 3: HISTORIAL DE CIERRE DE TURNO & PROMEDIOS DE DISPONIBILIDAD -->
+      <div *ngIf="activeTab === 'HISTORY'" class="history-container no-print animate-fade-in">
+        
+        <!-- Summary KPI Grid -->
+        <div class="history-hero-grid">
+          <div class="h-kpi-card glass-panel">
+            <div class="hkpi-icon sentina">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+              </svg>
+            </div>
+            <div class="hkpi-body">
+              <span class="hkpi-label">DISP. PROMEDIO SENTINA</span>
+              <div class="hkpi-val-row">
+                <span class="hkpi-val sentina-val">{{ shiftHistorySummary.avg_sentina_pct | number:'1.1-1' }}%</span>
+                <span class="hkpi-sub">8 Bombas (PU001-008)</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="h-kpi-card glass-panel">
+            <div class="hkpi-icon intermedia">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+            </div>
+            <div class="hkpi-body">
+              <span class="hkpi-label">DISP. PROMEDIO INTERMEDIA</span>
+              <div class="hkpi-val-row">
+                <span class="hkpi-val intermedia-val">{{ shiftHistorySummary.avg_intermedia_pct | number:'1.1-1' }}%</span>
+                <span class="hkpi-sub">6 Bombas (PU011-016)</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="h-kpi-card glass-panel">
+            <div class="hkpi-icon torre">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <path d="M12 2l8 18H4L12 2z"></path>
+              </svg>
+            </div>
+            <div class="hkpi-body">
+              <span class="hkpi-label">DISP. PROMEDIO TORRE 5</span>
+              <div class="hkpi-val-row">
+                <span class="hkpi-val torre-val">{{ shiftHistorySummary.avg_torre5_pct | number:'1.1-1' }}%</span>
+                <span class="hkpi-sub">10 Bombas (PU021-030)</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="h-kpi-card glass-panel highlight-overall">
+            <div class="hkpi-icon global">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+              </svg>
+            </div>
+            <div class="hkpi-body">
+              <span class="hkpi-label">DISPONIBILIDAD GLOBAL 24B</span>
+              <div class="hkpi-val-row">
+                <span class="hkpi-val global-val">{{ shiftHistorySummary.avg_overall_pct | number:'1.1-1' }}%</span>
+                <span class="hkpi-sub">Meta Operacional: ≥ 85.0%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- History Filter & Controls Bar -->
+        <div class="history-controls-card glass-panel">
+          <div class="h-filters-left">
+            <span class="h-filter-title">Filtros de Historial:</span>
+            <div class="filter-group">
+              <label>Guardia:</label>
+              <select [(ngModel)]="historyFilterShift" (change)="loadShiftHistory()">
+                <option value="ALL">Todas las guardias</option>
+                <option value="G1">Guardia 1 (G1)</option>
+                <option value="G2">Guardia 2 (G2)</option>
+                <option value="G3">Guardia 3 (G3)</option>
+                <option value="G4">Guardia 4 (G4)</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label>Fecha:</label>
+              <input type="date" [(ngModel)]="historyFilterDate" (change)="loadShiftHistory()" />
+            </div>
+            <button *ngIf="historyFilterShift !== 'ALL' || historyFilterDate" class="btn-clear-hfilters" (click)="historyFilterShift = 'ALL'; historyFilterDate = ''; loadShiftHistory()" title="Limpiar filtros">
+              ✕
+            </button>
+          </div>
+          <div class="h-controls-right">
+            <span class="closures-count-tag">
+              Turnos Cerrados: <strong>{{ shiftHistoryList.length }}</strong>
+            </span>
+            <button class="btn btn-secondary btn-sm" (click)="loadShiftHistory()" title="Refrescar historial">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="23 4 23 10 17 10"></polyline>
+                <polyline points="1 20 1 14 7 14"></polyline>
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+              </svg>
+              Actualizar
+            </button>
+          </div>
+        </div>
+
+        <!-- History Table -->
+        <div class="history-table-card glass-panel">
+          <div class="table-responsive">
+            <table class="history-table">
+              <thead>
+                <tr>
+                  <th>FECHA</th>
+                  <th>GUARDIA</th>
+                  <th>RESPONSABLE</th>
+                  <th>SENTINA (8)</th>
+                  <th>INTERMEDIA (6)</th>
+                  <th>TORRE 5 (10)</th>
+                  <th>GLOBAL (24)</th>
+                  <th>pH AFORADOR</th>
+                  <th>pH CORTAFUGAS</th>
+                  <th>BOMBEO INTERM.</th>
+                  <th>OBSERVACIONES</th>
+                  <th class="text-center">ACCIONES</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let item of shiftHistoryList" class="history-row">
+                  <td class="font-bold text-nowrap">{{ item.report_date }}</td>
+                  <td>
+                    <span class="guard-chip">{{ item.shift_code }}</span>
+                  </td>
+                  <td class="text-nowrap">{{ item.operator_name || item.closed_by }}</td>
+                  <td>
+                    <div class="cell-avail">
+                      <span class="avail-count">{{ item.sentina_operating }}/8</span>
+                      <span class="avail-badge sentina">{{ item.sentina_availability_pct | number:'1.1-1' }}%</span>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="cell-avail">
+                      <span class="avail-count">{{ item.intermedia_operating }}/6</span>
+                      <span class="avail-badge intermedia">{{ item.intermedia_availability_pct | number:'1.1-1' }}%</span>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="cell-avail">
+                      <span class="avail-count">{{ item.torre5_operating }}/10</span>
+                      <span class="avail-badge torre">{{ item.torre5_availability_pct | number:'1.1-1' }}%</span>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="cell-avail">
+                      <span class="avail-count font-bold">{{ item.overall_operating }}/24</span>
+                      <span class="avail-badge overall font-bold" [ngClass]="getAvailabilityBadgeClass(item.overall_availability_pct)">
+                        {{ item.overall_availability_pct | number:'1.1-1' }}%
+                      </span>
+                    </div>
+                  </td>
+                  <td class="text-right font-mono">{{ item.ph_aforador ? (item.ph_aforador | number:'1.2-2') : '---' }}</td>
+                  <td class="text-right font-mono">{{ item.ph_cortafugas ? (item.ph_cortafugas | number:'1.2-2') : '---' }}</td>
+                  <td class="text-right font-mono">{{ item.bombeo_intermedia ? (item.bombeo_intermedia | number:'1.1-1') + ' m³' : '---' }}</td>
+                  <td class="cell-obs" [title]="item.notes || ''">{{ item.notes || 'Sin observaciones registradas' }}</td>
+                  <td class="text-center">
+                    <button class="btn btn-secondary btn-xs action-btn-snapshot" (click)="viewClosureSnapshot(item)" title="Ver planilla completa al momento del cierre">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                      </svg>
+                      Ver Detalle
+                    </button>
+                  </td>
+                </tr>
+
+                <tr *ngIf="shiftHistoryList.length === 0">
+                  <td colspan="12" class="empty-history-cell">
+                    <div class="empty-box">
+                      <p>No se encontraron cierres de turno registrados en el historial para los filtros actuales.</p>
+                      <button class="btn btn-emerald btn-sm" (click)="openCloseShiftModal()">
+                        Cerrar Turno Actual Ahora
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- MODAL: CIERRE DE TURNO & GUARDADO DE PROMEDIOS -->
+      <app-modal [isOpen]="isCloseShiftModalOpen" [title]="'Cierre Oficial de Turno - Estación de Bombas'" (close)="isCloseShiftModalOpen = false">
+        <div class="close-shift-modal-body">
+          <div class="shift-summary-banner">
+            <div class="banner-field">
+              <span class="bf-label">Fecha de Reporte</span>
+              <span class="bf-val">{{ sheet.report_date }}</span>
+            </div>
+            <div class="banner-field">
+              <span class="bf-label">Guardia Operativa</span>
+              <span class="bf-val">{{ sheet.shift_code }}</span>
+            </div>
+            <div class="banner-field">
+              <span class="bf-label">Operador Responsable</span>
+              <span class="bf-val">{{ sheet.operator_name }}</span>
+            </div>
+          </div>
+
+          <h4 class="modal-section-title">Promedios de Disponibilidad Calculados:</h4>
+          
+          <div class="modal-avail-grid">
+            <div class="m-avail-card">
+              <span class="m-label">Estación Sentina</span>
+              <span class="m-count">{{ sentinaOperatingCount }} / 8 Bombas</span>
+              <span class="m-pct sentina">{{ sentinaAvailabilityPct | number:'1.1-1' }}%</span>
+            </div>
+            <div class="m-avail-card">
+              <span class="m-label">Estación Intermedia</span>
+              <span class="m-count">{{ intermediaOperatingCount }} / 6 Bombas</span>
+              <span class="m-pct intermedia">{{ intermediaAvailabilityPct | number:'1.1-1' }}%</span>
+            </div>
+            <div class="m-avail-card">
+              <span class="m-label">Estación Torre 5</span>
+              <span class="m-count">{{ torre5OperatingCount }} / 10 Bombas</span>
+              <span class="m-pct torre">{{ torre5AvailabilityPct | number:'1.1-1' }}%</span>
+            </div>
+            <div class="m-avail-card highlight">
+              <span class="m-label">Disponibilidad Global</span>
+              <span class="m-count font-bold">{{ overallOperatingCount }} / 24 Bombas</span>
+              <span class="m-pct overall" [ngClass]="getAvailabilityBadgeClass(overallAvailabilityPct)">{{ overallAvailabilityPct | number:'1.1-1' }}%</span>
+            </div>
+          </div>
+
+          <!-- Secondary Physical-Chemical indicators preview -->
+          <div class="modal-indicators-row">
+            <div class="m-ind-item">
+              <span class="mi-name">pH Aforador:</span>
+              <span class="mi-val font-bold">{{ sheet.main_indicators.ph_aforador || '---' }}</span>
+            </div>
+            <div class="m-ind-item">
+              <span class="mi-name">pH Cortafugas:</span>
+              <span class="mi-val font-bold">{{ sheet.main_indicators.ph_cortafugas || '---' }}</span>
+            </div>
+            <div class="m-ind-item">
+              <span class="mi-name">Bombeo Intermedia:</span>
+              <span class="mi-val font-bold">{{ sheet.main_indicators.bombeo_turno_intermedia || '---' }} m³</span>
+            </div>
+          </div>
+
+          <div class="form-group notes-group">
+            <label>Observaciones de Entrega de Turno / Novedades Mecánicas:</label>
+            <textarea rows="3" [(ngModel)]="closingNotes" placeholder="Indicar bombas en mantenimiento, condiciones de nivel o indicaciones para la guardia entrante..."></textarea>
+          </div>
+
+          <div class="modal-notice-banner">
+            <span class="notice-icon">🔒</span>
+            <p>Al confirmar el cierre, BASETRACK guardará el registro congelado de disponibilidad de las 24 bombas y parámetros físico-químicos en el historial permanente y notificará vía WebSocket a toda la planta.</p>
+          </div>
+
+          <div footer class="modal-buttons">
+            <button type="button" class="btn btn-secondary" (click)="isCloseShiftModalOpen = false" [disabled]="isClosingShift">
+              Cancelar
+            </button>
+            <button type="button" class="btn btn-emerald" (click)="confirmCloseShift()" [disabled]="isClosingShift">
+              <span *ngIf="isClosingShift">Cerrando Turno...</span>
+              <span *ngIf="!isClosingShift">✓ Confirmar y Cerrar Turno</span>
+            </button>
+          </div>
+        </div>
+      </app-modal>
+
+      <!-- MODAL: DETALLE DE PLANILLA CONGELADA (SNAPSHOT) -->
+      <app-modal [isOpen]="isSnapshotModalOpen" [title]="'Planilla Congelada al Cierre: ' + (selectedSnapshotClosure?.report_date || '') + ' (' + (selectedSnapshotClosure?.shift_code || '') + ')'" (close)="isSnapshotModalOpen = false">
+        <div class="snapshot-modal-body" *ngIf="selectedSnapshotClosure">
+          <div class="snapshot-header-row">
+            <div>
+              <span class="s-label">Fecha:</span> <strong>{{ selectedSnapshotClosure.report_date }}</strong>
+              <span class="s-sep">|</span>
+              <span class="s-label">Guardia:</span> <strong>{{ selectedSnapshotClosure.shift_code }}</strong>
+              <span class="s-sep">|</span>
+              <span class="s-label">Operador:</span> <strong>{{ selectedSnapshotClosure.operator_name }}</strong>
+            </div>
+            <span class="s-closed-at">Cerrado el: {{ selectedSnapshotClosure.closed_at }}</span>
+          </div>
+
+          <div class="snapshot-kpis-summary">
+            <span class="sk-pill">Sentina: <strong>{{ selectedSnapshotClosure.sentina_operating }}/8 ({{ selectedSnapshotClosure.sentina_availability_pct }}%)</strong></span>
+            <span class="sk-pill">Intermedia: <strong>{{ selectedSnapshotClosure.intermedia_operating }}/6 ({{ selectedSnapshotClosure.intermedia_availability_pct }}%)</strong></span>
+            <span class="sk-pill">Torre 5: <strong>{{ selectedSnapshotClosure.torre5_operating }}/10 ({{ selectedSnapshotClosure.torre5_availability_pct }}%)</strong></span>
+            <span class="sk-pill highlight">Global: <strong>{{ selectedSnapshotClosure.overall_operating }}/24 ({{ selectedSnapshotClosure.overall_availability_pct }}%)</strong></span>
+          </div>
+
+          <!-- Pumps Station Breakdown Grid -->
+          <div class="snapshot-pumps-grid" *ngIf="selectedSnapshotData">
+            <!-- Sentina -->
+            <div class="station-snap-box">
+              <h5>SENTINA (PU001-008)</h5>
+              <div class="snap-pumps-list">
+                <div *ngFor="let p of selectedSnapshotData.sentina_pumps" class="snap-pump-item" [ngClass]="getStatusClass(p.status)">
+                  <span class="font-bold">{{ p.tag }}</span>
+                  <span>{{ p.status }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Intermedia -->
+            <div class="station-snap-box">
+              <h5>INTERMEDIA (PU011-016)</h5>
+              <div class="snap-pumps-list">
+                <div *ngFor="let p of selectedSnapshotData.intermedia_pumps" class="snap-pump-item" [ngClass]="getStatusClass(p.status)">
+                  <span class="font-bold">{{ p.tag }}</span>
+                  <span>{{ p.status }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Torre 5 -->
+            <div class="station-snap-box">
+              <h5>TORRE 5 (PU021-030)</h5>
+              <div class="snap-pumps-list">
+                <div *ngFor="let p of selectedSnapshotData.torre5_pumps" class="snap-pump-item" [ngClass]="getStatusClass(p.status)">
+                  <span class="font-bold">{{ p.tag }}</span>
+                  <span>{{ p.status }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="snapshot-obs" *ngIf="selectedSnapshotClosure.notes">
+            <strong>Observaciones de Turno:</strong>
+            <p>{{ selectedSnapshotClosure.notes }}</p>
+          </div>
+
+          <div footer class="modal-buttons">
+            <button type="button" class="btn btn-secondary" (click)="isSnapshotModalOpen = false">Cerrar</button>
+          </div>
+        </div>
+      </app-modal>
 
       <!-- Create Pump Telemetry Modal -->
       <app-modal [isOpen]="isCreateModalOpen" [title]="'Registrar Nueva Telemetría de Bomba Slurry'" (close)="isCreateModalOpen = false">
@@ -1056,6 +1479,106 @@ export interface PumpReport {
 
       .cell-status {
         padding: 4px 8px;
+      }
+    }
+
+    /* Mobile Station Pills & Touch Cards */
+    .mobile-station-pills {
+      display: none;
+      gap: 6px;
+      margin-bottom: 12px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      -webkit-overflow-scrolling: touch;
+
+      @media (max-width: 768px) {
+        display: flex;
+      }
+
+      .station-pill {
+        white-space: nowrap;
+        padding: 7px 12px;
+        border-radius: var(--radius-full);
+        border: 1px solid var(--border-subtle);
+        background: var(--bg-card-subtle);
+        color: var(--text-secondary);
+        font-size: 0.74rem;
+        font-weight: 700;
+        cursor: pointer;
+        touch-action: manipulation;
+        transition: var(--transition-smooth);
+
+        &:active {
+          transform: scale(0.95);
+        }
+
+        &.active {
+          background: #031795;
+          color: #ffffff;
+          border-color: #031795;
+          box-shadow: 0 2px 8px rgba(3, 23, 149, 0.25);
+        }
+      }
+    }
+
+    .mobile-pumps-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-bottom: 16px;
+
+      @media (max-width: 480px) {
+        grid-template-columns: 1fr;
+      }
+
+      @media (min-width: 769px) {
+        display: none !important;
+      }
+    }
+
+    .mobile-pump-card {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 12px 14px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+      transition: var(--transition-smooth);
+
+      &.operating {
+        border-left: 4px solid #10b981;
+      }
+
+      .mobile-pump-info {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+      }
+
+      .mobile-pump-tag {
+        font-size: 1.05rem;
+        font-weight: 800;
+        color: var(--text-primary);
+        letter-spacing: -0.01em;
+      }
+
+      .mobile-pump-sub {
+        font-size: 0.68rem;
+        color: var(--text-muted);
+      }
+
+      .status-badge-btn {
+        width: 100%;
+        min-height: 40px;
+        font-size: 0.85rem;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .pumps-table-wrapper.mobile-hidden {
+        display: none !important;
       }
     }
 
@@ -1749,6 +2272,516 @@ export interface PumpReport {
       width: 100%;
       margin-top: 8px;
     }
+
+    /* TAB 3: HISTORIAL DE CIERRE DE TURNO & PROMEDIOS */
+    .history-container {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .history-hero-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+
+      @media (max-width: 1024px) {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      @media (max-width: 600px) {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .h-kpi-card {
+      padding: 18px 20px;
+      border-radius: var(--radius-lg);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      box-shadow: var(--shadow-card);
+      transition: var(--transition-smooth);
+
+      &:hover {
+        transform: translateY(-2px);
+      }
+
+      &.highlight-overall {
+        border-left: 4px solid #10b981;
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(3, 23, 149, 0.03) 100%);
+      }
+
+      .hkpi-icon {
+        width: 46px;
+        height: 46px;
+        border-radius: var(--radius-md);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+
+        &.sentina { background: rgba(56, 189, 248, 0.12); color: #0284c7; }
+        &.intermedia { background: rgba(168, 85, 247, 0.12); color: #9333ea; }
+        &.torre { background: rgba(245, 158, 11, 0.12); color: #d97706; }
+        &.global { background: rgba(16, 185, 129, 0.14); color: #10b981; }
+      }
+
+      .hkpi-body {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+
+        .hkpi-label {
+          font-size: 0.72rem;
+          font-weight: 700;
+          color: var(--text-muted);
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+        }
+
+        .hkpi-val-row {
+          display: flex;
+          align-items: baseline;
+          gap: 8px;
+          flex-wrap: wrap;
+
+          .hkpi-val {
+            font-size: 1.45rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+
+            &.sentina-val { color: #0284c7; }
+            &.intermedia-val { color: #9333ea; }
+            &.torre-val { color: #d97706; }
+            &.global-val { color: #10b981; }
+          }
+
+          .hkpi-sub {
+            font-size: 0.72rem;
+            color: var(--text-secondary);
+            font-weight: 600;
+          }
+        }
+      }
+    }
+
+    .history-controls-card {
+      padding: 12px 18px;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+
+      .h-filters-left {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+
+        .h-filter-title {
+          font-size: 0.82rem;
+          font-weight: 700;
+          color: var(--text-secondary);
+        }
+
+        .filter-group {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+
+          label {
+            font-size: 0.76rem;
+            color: var(--text-muted);
+            font-weight: 600;
+          }
+
+          select, input {
+            padding: 6px 10px;
+            font-size: 0.80rem;
+            border-radius: var(--radius-sm);
+            background: var(--bg-input);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-primary);
+          }
+        }
+
+        .btn-clear-hfilters {
+          background: transparent;
+          border: 1px solid var(--border-subtle);
+          color: var(--text-muted);
+          width: 28px;
+          height: 28px;
+          border-radius: 50%;
+          cursor: pointer;
+          font-size: 0.8rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+
+          &:hover {
+            color: var(--danger);
+            border-color: var(--danger);
+          }
+        }
+      }
+
+      .h-controls-right {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+
+        .closures-count-tag {
+          font-size: 0.80rem;
+          color: var(--text-secondary);
+          strong { color: var(--text-primary); }
+        }
+      }
+    }
+
+    .history-table-card {
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+
+      .history-table {
+        width: 100%;
+        min-width: 980px;
+        border-collapse: collapse;
+        font-size: 0.82rem;
+
+        th {
+          background: #031795;
+          color: #ffffff;
+          padding: 10px 12px;
+          font-weight: 800;
+          letter-spacing: 0.04em;
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          font-size: 0.76rem;
+          white-space: nowrap;
+        }
+
+        td {
+          padding: 8px 12px;
+          border: 1px solid var(--border-subtle);
+          vertical-align: middle;
+          color: var(--text-primary);
+          background: var(--bg-card);
+        }
+
+        tbody tr:nth-child(even) td {
+          background: var(--bg-card-subtle);
+        }
+
+        tbody tr:hover td {
+          background: var(--bg-card-hover);
+        }
+
+        .guard-chip {
+          background: rgba(3, 23, 149, 0.08);
+          color: #031795;
+          font-weight: 800;
+          padding: 2px 8px;
+          border-radius: var(--radius-full);
+          font-size: 0.74rem;
+          border: 1px solid rgba(3, 23, 149, 0.2);
+        }
+
+        .cell-avail {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          justify-content: flex-end;
+
+          .avail-count {
+            color: var(--text-muted);
+            font-size: 0.75rem;
+          }
+
+          .avail-badge {
+            font-size: 0.76rem;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: var(--radius-sm);
+
+            &.sentina { background: rgba(2, 132, 199, 0.12); color: #0284c7; }
+            &.intermedia { background: rgba(147, 51, 234, 0.12); color: #9333ea; }
+            &.torre { background: rgba(217, 119, 6, 0.12); color: #d97706; }
+            &.badge-emerald { background: rgba(16, 185, 129, 0.15); color: #059669; }
+            &.badge-warning { background: rgba(245, 158, 11, 0.15); color: #d97706; }
+            &.badge-danger { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+          }
+        }
+
+        .cell-obs {
+          max-width: 180px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          color: var(--text-secondary);
+          font-size: 0.78rem;
+        }
+
+        .action-btn-snapshot {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          padding: 4px 10px;
+          font-size: 0.75rem;
+          border-radius: var(--radius-sm);
+        }
+      }
+    }
+
+    .empty-history-cell {
+      padding: 36px !important;
+      text-align: center;
+
+      .empty-box {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+        color: var(--text-muted);
+      }
+    }
+
+    /* CLOSE SHIFT MODAL */
+    .close-shift-modal-body {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .shift-summary-banner {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      padding: 12px 16px;
+      background: var(--bg-card-subtle);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+
+      @media (max-width: 500px) {
+        grid-template-columns: 1fr;
+      }
+
+      .banner-field {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+
+        .bf-label {
+          font-size: 0.70rem;
+          color: var(--text-muted);
+          text-transform: uppercase;
+          font-weight: 700;
+        }
+
+        .bf-val {
+          font-size: 0.90rem;
+          font-weight: 800;
+          color: var(--text-primary);
+        }
+      }
+    }
+
+    .modal-section-title {
+      font-size: 0.88rem;
+      font-weight: 800;
+      color: var(--text-primary);
+      margin: 0;
+    }
+
+    .modal-avail-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+
+      @media (max-width: 600px) {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .m-avail-card {
+        padding: 10px 12px;
+        background: var(--bg-input);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-md);
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+
+        &.highlight {
+          border-color: #10b981;
+          background: rgba(16, 185, 129, 0.08);
+        }
+
+        .m-label {
+          font-size: 0.68rem;
+          color: var(--text-muted);
+          font-weight: 700;
+          text-transform: uppercase;
+        }
+
+        .m-count {
+          font-size: 0.78rem;
+          color: var(--text-secondary);
+        }
+
+        .m-pct {
+          font-size: 1.15rem;
+          font-weight: 800;
+
+          &.sentina { color: #0284c7; }
+          &.intermedia { color: #9333ea; }
+          &.torre { color: #d97706; }
+          &.badge-emerald { color: #10b981; }
+          &.badge-warning { color: #d97706; }
+          &.badge-danger { color: #ef4444; }
+        }
+      }
+    }
+
+    .modal-indicators-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 10px 14px;
+      background: var(--bg-card-subtle);
+      border-radius: var(--radius-sm);
+      font-size: 0.80rem;
+      flex-wrap: wrap;
+
+      .m-ind-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+
+        .mi-name { color: var(--text-muted); font-weight: 600; }
+        .mi-val { color: var(--text-primary); }
+      }
+    }
+
+    .modal-notice-banner {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px 14px;
+      background: rgba(3, 23, 149, 0.06);
+      border: 1px solid rgba(3, 23, 149, 0.2);
+      border-radius: var(--radius-md);
+
+      .notice-icon { font-size: 1.2rem; }
+      p { margin: 0; font-size: 0.78rem; color: var(--text-secondary); line-height: 1.4; }
+    }
+
+    /* SNAPSHOT MODAL */
+    .snapshot-modal-body {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .snapshot-header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+
+      .s-sep { margin: 0 8px; color: var(--border-subtle); }
+      .s-closed-at { font-size: 0.76rem; color: var(--text-muted); }
+    }
+
+    .snapshot-kpis-summary {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+
+      .sk-pill {
+        padding: 4px 10px;
+        background: var(--bg-card-subtle);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-full);
+        font-size: 0.76rem;
+        color: var(--text-secondary);
+
+        &.highlight {
+          border-color: #10b981;
+          color: #059669;
+          font-weight: 700;
+        }
+      }
+    }
+
+    .snapshot-pumps-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+
+      @media (max-width: 650px) {
+        grid-template-columns: 1fr;
+      }
+
+      .station-snap-box {
+        background: var(--bg-card-subtle);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-md);
+        padding: 12px;
+
+        h5 {
+          margin: 0 0 10px 0;
+          font-size: 0.78rem;
+          font-weight: 800;
+          color: #031795;
+          letter-spacing: 0.05em;
+        }
+
+        .snap-pumps-list {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+
+          .snap-pump-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 5px 10px;
+            border-radius: var(--radius-sm);
+            font-size: 0.78rem;
+            border: 1px solid var(--border-subtle);
+            background: var(--bg-card);
+
+            &.status-operativo { border-left: 3px solid #10b981; }
+            &.status-standby { border-left: 3px solid #0284c7; }
+            &.status-mantenimiento { border-left: 3px solid #f59e0b; }
+            &.status-falla { border-left: 3px solid #ef4444; }
+          }
+        }
+      }
+    }
+
+    .snapshot-obs {
+      padding: 10px 14px;
+      background: var(--bg-card-subtle);
+      border-radius: var(--radius-sm);
+      font-size: 0.80rem;
+      p { margin: 4px 0 0 0; color: var(--text-secondary); }
+    }
+
+    .history-count-badge {
+      background: var(--primary-purple);
+      color: #ffffff;
+      font-size: 0.68rem;
+      padding: 1px 6px;
+      border-radius: var(--radius-full);
+      font-weight: 800;
+      margin-left: 4px;
+    }
   `]
 })
 export class PumpsComponent implements OnInit, OnDestroy {
@@ -1757,7 +2790,26 @@ export class PumpsComponent implements OnInit, OnDestroy {
   private crewService = inject(CrewService);
   private authService = inject(AuthService);
 
-  activeTab: 'REPORT' | 'TELEMETRY' = 'REPORT';
+  activeTab: 'REPORT' | 'TELEMETRY' | 'HISTORY' = 'REPORT';
+  shiftHistoryList: PumpShiftClosure[] = [];
+  shiftHistorySummary: ShiftHistorySummary = {
+    avg_sentina_pct: 0,
+    avg_intermedia_pct: 0,
+    avg_torre5_pct: 0,
+    avg_overall_pct: 0,
+    avg_ph_aforador: 0,
+    avg_ph_cortafugas: 0,
+    total_closures: 0
+  };
+  isLoadingHistory = false;
+  historyFilterShift = 'ALL';
+  historyFilterDate = '';
+  isCloseShiftModalOpen = false;
+  isClosingShift = false;
+  closingNotes = '';
+  isSnapshotModalOpen = false;
+  selectedSnapshotClosure: PumpShiftClosure | null = null;
+  selectedSnapshotData: any = null;
   isEditModalOpen = false;
   isCreateModalOpen = false;
   isStatusModalOpen = false;
@@ -1875,6 +2927,43 @@ export class PumpsComponent implements OnInit, OnDestroy {
 
   get torre5OperatingCount(): number {
     return this.sheet.torre5_pumps.filter(p => p.status === 'Operativo').length;
+  }
+
+  get sentinaAvailabilityPct(): number {
+    return Number(((this.sentinaOperatingCount / 8) * 100).toFixed(1));
+  }
+
+  get intermediaAvailabilityPct(): number {
+    return Number(((this.intermediaOperatingCount / 6) * 100).toFixed(1));
+  }
+
+  get torre5AvailabilityPct(): number {
+    return Number(((this.torre5OperatingCount / 10) * 100).toFixed(1));
+  }
+
+  get overallOperatingCount(): number {
+    return this.sentinaOperatingCount + this.intermediaOperatingCount + this.torre5OperatingCount;
+  }
+
+  get overallAvailabilityPct(): number {
+    return Number(((this.overallOperatingCount / 24) * 100).toFixed(1));
+  }
+
+  mobileStationTab: 'ALL' | 'SENTINA' | 'INTERMEDIA' | 'TORRE5' = 'ALL';
+
+  getMobileFilteredPumps(): PumpStatusItem[] {
+    if (this.mobileStationTab === 'SENTINA') return this.sheet.sentina_pumps || [];
+    if (this.mobileStationTab === 'INTERMEDIA') return this.sheet.intermedia_pumps || [];
+    if (this.mobileStationTab === 'TORRE5') return this.sheet.torre5_pumps || [];
+    return [];
+  }
+
+  getPumpStationName(tag: string): string {
+    if (!tag) return 'Bomba';
+    if (tag.startsWith('PU00')) return 'Estación Sentina';
+    if (tag.startsWith('PU01')) return 'Estación Intermedia';
+    if (tag.startsWith('PU02')) return 'Estación Torre 5';
+    return 'Estación Bombeo';
   }
 
   sanitizeSheetData(obj: any): any {
@@ -2005,6 +3094,7 @@ export class PumpsComponent implements OnInit, OnDestroy {
         this.loadOperationalSheet();
         this.loadTelemetryPumps();
         this.loadMaintenanceTickets();
+        this.loadShiftHistory();
         this.cdr.markForCheck();
         this.cdr.detectChanges();
       });
@@ -2028,6 +3118,7 @@ export class PumpsComponent implements OnInit, OnDestroy {
     this.loadOperationalSheet();
     this.loadTelemetryPumps();
     this.loadMaintenanceTickets();
+    this.loadShiftHistory();
 
     if (typeof window !== 'undefined') {
       window.addEventListener('basetrack_cloud_sync', this.syncListener);
@@ -2400,4 +3491,87 @@ export class PumpsComponent implements OnInit, OnDestroy {
       }
     });
   }
+
+  loadShiftHistory(): void {
+    this.isLoadingHistory = true;
+    let url = `${getApiBaseUrl()}/pumps/shift-history?limit=30`;
+    if (this.historyFilterShift && this.historyFilterShift !== 'ALL') {
+      url += `&shift=${encodeURIComponent(this.historyFilterShift)}`;
+    }
+    if (this.historyFilterDate) {
+      url += `&date=${encodeURIComponent(this.historyFilterDate)}`;
+    }
+
+    const cached = getRealtimeData<any>('pump_shift_history', null);
+    if (cached && Array.isArray(cached.data)) {
+      this.shiftHistoryList = cached.data;
+      if (cached.summary) this.shiftHistorySummary = cached.summary;
+    }
+
+    this.http.get<any>(url).subscribe({
+      next: (res) => {
+        this.isLoadingHistory = false;
+        if (res.success) {
+          this.shiftHistoryList = res.data || [];
+          if (res.summary) {
+            this.shiftHistorySummary = res.summary;
+          }
+          saveRealtimeData('pump_shift_history', res, { skipBroadcast: true });
+          this.cdr.markForCheck();
+          this.cdr.detectChanges();
+        }
+      },
+      error: () => {
+        this.isLoadingHistory = false;
+      }
+    });
+  }
+
+  openCloseShiftModal(): void {
+    this.closingNotes = '';
+    this.isCloseShiftModalOpen = true;
+  }
+
+  confirmCloseShift(): void {
+    this.isClosingShift = true;
+    const payload = {
+      ...this.sheet,
+      notes: this.closingNotes
+    };
+
+    const endpoint = `${getApiBaseUrl()}/pumps/shift-closure`;
+    this.http.post<any>(endpoint, payload).subscribe({
+      next: (res) => {
+        this.isClosingShift = false;
+        this.isCloseShiftModalOpen = false;
+        this.showSaveSuccess(`✓ Turno cerrado formalmente. Disponibilidad global registrada: ${this.overallAvailabilityPct}%`);
+        this.loadShiftHistory();
+        this.activeTab = 'HISTORY';
+        this.cdr.markForCheck();
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.isClosingShift = false;
+        const msg = err?.error?.message || 'Error al cerrar turno en el servidor';
+        alert(msg);
+      }
+    });
+  }
+
+  viewClosureSnapshot(closure: PumpShiftClosure): void {
+    this.selectedSnapshotClosure = closure;
+    try {
+      this.selectedSnapshotData = closure.snapshot_json ? JSON.parse(closure.snapshot_json) : null;
+    } catch {
+      this.selectedSnapshotData = null;
+    }
+    this.isSnapshotModalOpen = true;
+  }
+
+  getAvailabilityBadgeClass(pct: number): string {
+    if (pct >= 85) return 'badge-emerald';
+    if (pct >= 70) return 'badge-warning';
+    return 'badge-danger';
+  }
 }
+

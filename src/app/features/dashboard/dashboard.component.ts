@@ -1049,16 +1049,6 @@ export interface TrendStatsSummary {
                 <table class="detail-table">
                   <tbody>
                     <tr>
-                      <td class="col-title">2da Estación: % Sólidos Promedio</td>
-                      <td class="col-val highlight-purple"><strong>{{ current.ciclones2daSolidosPromPct }}%</strong></td>
-                      <td class="col-note">Turno A: {{ current.ciclones2daSolidosAPct }}% | B: {{ current.ciclones2daSolidosBPct }}%</td>
-                    </tr>
-                    <tr>
-                      <td class="col-title">2da Estación: % Malla -200 Promedio</td>
-                      <td class="col-val highlight-purple"><strong>{{ current.ciclones2daMalla200PromPct }}%</strong></td>
-                      <td class="col-note">Objetivo dique: &le; 10% pasante</td>
-                    </tr>
-                    <tr>
                       <td class="col-title">1ra Estación: % Sólidos Promedio</td>
                       <td class="col-val"><strong>{{ current.ciclones1raSolidosPromPct }}%</strong></td>
                       <td class="col-note">Turno A: {{ current.ciclones1raSolidosAPct }}% | B: {{ current.ciclones1raSolidosBPct }}%</td>
@@ -1067,6 +1057,16 @@ export interface TrendStatsSummary {
                       <td class="col-title">1ra Estación: % Malla -200 Promedio</td>
                       <td class="col-val"><strong>{{ current.ciclones1raMalla200PromPct }}%</strong></td>
                       <td class="col-note">Turno A: {{ current.ciclones1raMalla200APct }}% | B: {{ current.ciclones1raMalla200BPct }}%</td>
+                    </tr>
+                    <tr>
+                      <td class="col-title">2da Estación: % Sólidos Promedio</td>
+                      <td class="col-val highlight-purple"><strong>{{ current.ciclones2daSolidosPromPct }}%</strong></td>
+                      <td class="col-note">Turno A: {{ current.ciclones2daSolidosAPct }}% | B: {{ current.ciclones2daSolidosBPct }}%</td>
+                    </tr>
+                    <tr>
+                      <td class="col-title">2da Estación: % Malla -200 Promedio</td>
+                      <td class="col-val highlight-purple"><strong>{{ current.ciclones2daMalla200PromPct }}%</strong></td>
+                      <td class="col-note">Objetivo dique: &le; 10% pasante</td>
                     </tr>
                     <tr>
                       <td class="col-title">Presión de Operación Baterías</td>

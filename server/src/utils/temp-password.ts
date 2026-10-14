@@ -10,4 +10,4 @@ export function generateTemporaryPassword(): string {
 }
 
 /** Contraseñas que nunca deben aceptarse como definitivas (publicadas en el repositorio o plantillas). */
-export const PUBLIC_DEFAULT_PASSWORDS = new Set(['Basetrack2026!', 'Password123!', '91209966']);
+export const PUBLIC_DEFAULT_PASSWORDS = new Set(['Basetrack2026!', 'Password123!', '91209966', 'mantenimiento123']);

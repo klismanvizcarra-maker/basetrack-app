@@ -451,3 +451,215 @@ export function savePumpOperationalSheet(req: AuthenticatedRequest, res: Respons
     return res.status(500).json({ success: false, message: error.message });
   }
 }
+
+export function closePumpShift(req: AuthenticatedRequest, res: Response) {
+  try {
+    const report_date = req.body.report_date || new Date().toISOString().split('T')[0];
+    const shift_code = req.body.shift_code || req.user?.shift || 'G1';
+    const notes = req.body.notes || null;
+    const closed_by = req.user?.fullName || req.user?.username || 'Operador de Turno';
+
+    let sheetRow = db.prepare(`
+      SELECT * FROM pump_station_sheets 
+      WHERE report_date = ? AND shift_code = ?
+    `).get(report_date, shift_code) as any;
+
+    const sentinaPumps: any[] = req.body.sentina_pumps || (sheetRow?.sentina_pumps_json ? JSON.parse(sheetRow.sentina_pumps_json) : []);
+    const intermediaPumps: any[] = req.body.intermedia_pumps || (sheetRow?.intermedia_pumps_json ? JSON.parse(sheetRow.intermedia_pumps_json) : []);
+    const torre5Pumps: any[] = req.body.torre5_pumps || (sheetRow?.torre5_pumps_json ? JSON.parse(sheetRow.torre5_pumps_json) : []);
+    const mainIndicators: any = req.body.main_indicators || (sheetRow?.main_indicators_json ? JSON.parse(sheetRow.main_indicators_json) : {});
+    const operatorName = req.body.operator_name || sheetRow?.operator_name || closed_by;
+
+    // Station sizes: Sentina = 8, Intermedia = 6, Torre 5 = 10, Total = 24
+    const sentinaOperating = sentinaPumps.filter((p: any) => p && p.status === 'Operativo').length;
+    const intermediaOperating = intermediaPumps.filter((p: any) => p && p.status === 'Operativo').length;
+    const torre5Operating = torre5Pumps.filter((p: any) => p && p.status === 'Operativo').length;
+    const overallOperating = sentinaOperating + intermediaOperating + torre5Operating;
+
+    const sentinaAvailPct = Number(((sentinaOperating / 8) * 100).toFixed(1));
+    const intermediaAvailPct = Number(((intermediaOperating / 6) * 100).toFixed(1));
+    const torre5AvailPct = Number(((torre5Operating / 10) * 100).toFixed(1));
+    const overallAvailPct = Number(((overallOperating / 24) * 100).toFixed(1));
+
+    // Gotcha #2: mathematical averages / indicators strictly filter out <= 0
+    const parsePositive = (val: any) => {
+      if (val === null || val === undefined || val === '') return null;
+      const clean = String(val).replace(',', '.');
+      const n = parseFloat(clean);
+      return !isNaN(n) && n > 0 ? Number(n.toFixed(2)) : null;
+    };
+
+    const phAforador = parsePositive(mainIndicators.ph_aforador);
+    const phCortafugas = parsePositive(mainIndicators.ph_cortafugas);
+    const bombeoIntermedia = parsePositive(mainIndicators.bombeo_turno_intermedia);
+
+    const snapshotJson = JSON.stringify({
+      sentina_pumps: sentinaPumps,
+      intermedia_pumps: intermediaPumps,
+      torre5_pumps: torre5Pumps,
+      main_indicators: mainIndicators,
+      levels: req.body.levels || (sheetRow?.levels_json ? JSON.parse(sheetRow.levels_json) : {}),
+      pozas_sentina: req.body.pozas_sentina || (sheetRow?.pozas_sentina_json ? JSON.parse(sheetRow.pozas_sentina_json) : []),
+      additional_obs: req.body.additional_obs || (sheetRow?.additional_obs_json ? JSON.parse(sheetRow.additional_obs_json) : {})
+    });
+
+    const existingClosure = db.prepare(`
+      SELECT id FROM pump_shift_closures 
+      WHERE report_date = ? AND shift_code = ?
+    `).get(report_date, shift_code) as any;
+
+    let closureId = existingClosure?.id;
+
+    if (existingClosure) {
+      db.prepare(`
+        UPDATE pump_shift_closures
+        SET operator_name = ?, closed_by = ?,
+            sentina_operating = ?, sentina_total = 8, sentina_availability_pct = ?,
+            intermedia_operating = ?, intermedia_total = 6, intermedia_availability_pct = ?,
+            torre5_operating = ?, torre5_total = 10, torre5_availability_pct = ?,
+            overall_operating = ?, overall_total = 24, overall_availability_pct = ?,
+            ph_aforador = ?, ph_cortafugas = ?, bombeo_intermedia = ?,
+            notes = ?, snapshot_json = ?, closed_at = datetime('now')
+        WHERE id = ?
+      `).run(
+        operatorName, closed_by,
+        sentinaOperating, sentinaAvailPct,
+        intermediaOperating, intermediaAvailPct,
+        torre5Operating, torre5AvailPct,
+        overallOperating, overallAvailPct,
+        phAforador, phCortafugas, bombeoIntermedia,
+        notes, snapshotJson, closureId
+      );
+    } else {
+      closureId = crypto.randomUUID();
+      db.prepare(`
+        INSERT INTO pump_shift_closures (
+          id, report_date, shift_code, operator_name, closed_by,
+          sentina_operating, sentina_total, sentina_availability_pct,
+          intermedia_operating, intermedia_total, intermedia_availability_pct,
+          torre5_operating, torre5_total, torre5_availability_pct,
+          overall_operating, overall_total, overall_availability_pct,
+          ph_aforador, ph_cortafugas, bombeo_intermedia,
+          notes, snapshot_json, closed_at
+        ) VALUES (?, ?, ?, ?, ?, ?, 8, ?, ?, 6, ?, ?, 10, ?, ?, 24, ?, ?, ?, ?, ?, ?, datetime('now'))
+      `).run(
+        closureId, report_date, shift_code, operatorName, closed_by,
+        sentinaOperating, sentinaAvailPct,
+        intermediaOperating, intermediaAvailPct,
+        torre5Operating, torre5AvailPct,
+        overallOperating, overallAvailPct,
+        phAforador, phCortafugas, bombeoIntermedia,
+        notes, snapshotJson
+      );
+    }
+
+    logAudit(
+      req.user?.userId || null,
+      req.user?.username || 'system',
+      existingClosure ? 'UPDATE' : 'CREATE',
+      'PUMP_SHIFT_CLOSURE',
+      closureId,
+      `Cierre de turno en Bombas: ${report_date} (${shift_code}) Disponibilidad Global: ${overallAvailPct}%`,
+      req.ip || '127.0.0.1'
+    );
+
+    const closureRecord = db.prepare('SELECT * FROM pump_shift_closures WHERE id = ?').get(closureId);
+
+    broadcastWsEvent({
+      entity: 'PUMP_SHIFT_CLOSURE',
+      action: existingClosure ? 'UPDATE' : 'CREATE',
+      key: `pump_closure_${report_date}_${shift_code}`,
+      data: closureRecord
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: `Turno ${shift_code} cerrado exitosamente. Disponibilidad global registrada: ${overallAvailPct}%`,
+      data: closureRecord
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+export function getPumpShiftHistory(req: Request, res: Response) {
+  try {
+    const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 30, 1), 100);
+    const date = req.query.date as string;
+    const shift = req.query.shift as string;
+
+    let query = 'SELECT * FROM pump_shift_closures WHERE 1=1';
+    const params: any[] = [];
+
+    if (date) {
+      query += ' AND report_date = ?';
+      params.push(date);
+    }
+    if (shift) {
+      query += ' AND shift_code = ?';
+      params.push(shift);
+    }
+
+    query += ' ORDER BY report_date DESC, closed_at DESC LIMIT ?';
+    params.push(limit);
+
+    const history = db.prepare(query).all(...params) as any[];
+
+    // Compute aggregate averages across the history items
+    let summary = {
+      avg_sentina_pct: 0,
+      avg_intermedia_pct: 0,
+      avg_torre5_pct: 0,
+      avg_overall_pct: 0,
+      avg_ph_aforador: 0,
+      avg_ph_cortafugas: 0,
+      total_closures: history.length
+    };
+
+    if (history.length > 0) {
+      let sumSentina = 0;
+      let sumInter = 0;
+      let sumTorre = 0;
+      let sumOverall = 0;
+      let sumPhAforador = 0, countPhAforador = 0;
+      let sumPhCorta = 0, countPhCorta = 0;
+
+      history.forEach(item => {
+        sumSentina += Number(item.sentina_availability_pct || 0);
+        sumInter += Number(item.intermedia_availability_pct || 0);
+        sumTorre += Number(item.torre5_availability_pct || 0);
+        sumOverall += Number(item.overall_availability_pct || 0);
+
+        if (item.ph_aforador && Number(item.ph_aforador) > 0) {
+          sumPhAforador += Number(item.ph_aforador);
+          countPhAforador++;
+        }
+        if (item.ph_cortafugas && Number(item.ph_cortafugas) > 0) {
+          sumPhCorta += Number(item.ph_cortafugas);
+          countPhCorta++;
+        }
+      });
+
+      const n = history.length;
+      summary = {
+        avg_sentina_pct: Number((sumSentina / n).toFixed(1)),
+        avg_intermedia_pct: Number((sumInter / n).toFixed(1)),
+        avg_torre5_pct: Number((sumTorre / n).toFixed(1)),
+        avg_overall_pct: Number((sumOverall / n).toFixed(1)),
+        avg_ph_aforador: countPhAforador > 0 ? Number((sumPhAforador / countPhAforador).toFixed(2)) : 0,
+        avg_ph_cortafugas: countPhCorta > 0 ? Number((sumPhCorta / countPhCorta).toFixed(2)) : 0,
+        total_closures: n
+      };
+    }
+
+    return res.json({
+      success: true,
+      count: history.length,
+      data: history,
+      summary
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+

@@ -67,12 +67,17 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
             [class.dot-ws]="cloudSync.isWsConnected()"
             [class.dot-green]="!cloudSync.isWsConnected() && (cloudSync.isOnline() || offlineSync.isOnline()) && cloudSync.pendingCount() === 0 && offlineSync.pendingCount() === 0"
             [class.dot-orange]="(!cloudSync.isOnline() && !offlineSync.isOnline()) || cloudSync.pendingCount() > 0 || offlineSync.pendingCount() > 0"></span>
-          <span *ngIf="cloudSync.isSyncing() || offlineSync.isSyncing()">Sincronizando...</span>
+          <span *ngIf="cloudSync.isSyncing() || offlineSync.isSyncing()">
+            <span class="sync-full-text">Sincronizando...</span>
+            <span class="sync-mobile-text">Sync...</span>
+          </span>
           <span *ngIf="!cloudSync.isSyncing() && !offlineSync.isSyncing() && cloudSync.isWsConnected()">
-            En Vivo <span class="ws-indicator-tag">WS</span> ({{ cloudSync.activeDevicesCount() }})
+            <span class="sync-full-text">En Vivo <span class="ws-indicator-tag">WS</span> ({{ cloudSync.activeDevicesCount() }})</span>
+            <span class="sync-mobile-text">WS ({{ cloudSync.activeDevicesCount() }})</span>
           </span>
           <span *ngIf="!cloudSync.isSyncing() && !offlineSync.isSyncing() && !cloudSync.isWsConnected() && (cloudSync.isOnline() || offlineSync.isOnline()) && cloudSync.pendingCount() === 0 && offlineSync.pendingCount() === 0">
-            Nube Activa ({{ cloudSync.activeDevicesCount() }})
+            <span class="sync-full-text">Nube Activa ({{ cloudSync.activeDevicesCount() }})</span>
+            <span class="sync-mobile-text">Online</span>
           </span>
           <span *ngIf="!cloudSync.isSyncing() && !offlineSync.isSyncing() && (!cloudSync.isOnline() || cloudSync.pendingCount() > 0 || offlineSync.pendingCount() > 0)">
             {{ (cloudSync.isOnline() || offlineSync.isOnline()) ? (cloudSync.pendingCount() + offlineSync.pendingCount()) + ' pend.' : 'Modo Mina' }}
@@ -372,13 +377,13 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
       text-overflow: ellipsis;
 
       @media (max-width: 768px) {
-        font-size: 1.05rem;
-        max-width: 140px;
+        font-size: clamp(0.92rem, 3.2vw, 1.12rem);
+        max-width: 160px;
       }
 
-      @media (max-width: 380px) {
-        max-width: 100px;
-        font-size: 0.95rem;
+      @media (max-width: 400px) {
+        max-width: 110px;
+        font-size: 0.92rem;
       }
     }
 
@@ -413,6 +418,10 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
       font-weight: 800;
     }
 
+    .sync-mobile-text {
+      display: none;
+    }
+
     .header-right {
       display: flex;
       align-items: center;
@@ -430,6 +439,39 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
         .btn-settings-header,
         .btn-install-header {
           display: none !important;
+        }
+
+        .sync-full-text {
+          display: none;
+        }
+
+        .sync-mobile-text {
+          display: inline;
+          font-weight: 700;
+        }
+
+        .btn-sync-header {
+          padding: 5px 8px;
+          font-size: 0.72rem;
+        }
+
+        .header-action-btn {
+          width: 36px;
+          height: 36px;
+        }
+      }
+
+      @media (max-width: 380px) {
+        gap: 3px;
+
+        .header-action-btn {
+          width: 32px;
+          height: 32px;
+        }
+
+        .btn-sync-header {
+          padding: 4px 6px;
+          font-size: 0.68rem;
         }
       }
     }
