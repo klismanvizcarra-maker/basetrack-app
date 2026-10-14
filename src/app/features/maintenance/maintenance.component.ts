@@ -7,6 +7,7 @@ import { ModalComponent } from '../../shared/ui/modal.component';
 import { OfflineSyncService } from '../../core/offline/offline-sync.service';
 import { getRealtimeData, saveRealtimeData } from '../../core/storage/local-store.util';
 import { AuthService } from '../../core/auth/auth.service';
+import { PermissionsService } from '../../core/auth/permissions.service';
 
 export interface MaintenanceRequest {
   id: string;
@@ -20,6 +21,7 @@ export interface MaintenanceRequest {
   assigned_to?: string;
   photo_url: string;
   estimated_hours: number;
+  specialty?: 'MECANICA' | 'ELECTRICIDAD' | 'INSTRUMENTACION' | 'LUBRICACION';
   source_module?: string;
   operational_pass_by?: string;
   operational_pass_at?: string;
@@ -204,6 +206,12 @@ export interface MaintenanceRequest {
                 <span class="custom-badge status-badge" [ngClass]="getStatusBadgeClass(t.status)">
                   {{ formatStatusText(t.status) }}
                 </span>
+                <button *ngIf="canDelete" class="btn-delete-card" (click)="confirmDeleteTicket(t, $event)" title="Eliminar orden de trabajo">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                  </svg>
+                </button>
               </div>
             </div>
 
@@ -239,6 +247,14 @@ export interface MaintenanceRequest {
                   </svg>
                   <span>Foto de Planta</span>
                 </div>
+                <label class="btn-change-photo-badge" (click)="$event.stopPropagation()" title="Actualizar foto de evidencia">
+                  <input type="file" (change)="attachPhotoToTicket(t, $event)" accept="image/*" style="display: none;" />
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                    <circle cx="12" cy="13" r="4"></circle>
+                  </svg>
+                  <span>Cambiar</span>
+                </label>
               </div>
 
               <!-- Blueprint Fallback -->
@@ -254,15 +270,19 @@ export interface MaintenanceRequest {
                       </svg>
                     </div>
                     <div class="blueprint-meta">
-                      <span class="blueprint-tag">BOMBA {{ t.equipment_tag }}</span>
+                      <span class="blueprint-tag">{{ getEquipmentCategory(t.equipment_tag) }} {{ t.equipment_tag }}</span>
                       <span class="blueprint-sub">Esquema Técnico de Operación</span>
                     </div>
                   </div>
 
                   <div class="blueprint-bottom-bar">
-                    <span class="blueprint-indicator">
+                    <span *ngIf="t.status === 'PENDING' || t.status === 'IN_PROGRESS'" class="blueprint-indicator warning">
                       <span class="pulse-indicator"></span>
                       Alerta Operativa Activa
+                    </span>
+                    <span *ngIf="t.status === 'RESOLVED' || t.status === 'CLOSED'" class="blueprint-indicator success">
+                      <span class="check-indicator">✓</span>
+                      Liberada a Operación Conforme
                     </span>
                     <label class="btn-attach-photo" (click)="$event.stopPropagation()">
                       <input type="file" (change)="attachPhotoToTicket(t, $event)" accept="image/*" style="display: none;" />
@@ -369,19 +389,42 @@ export interface MaintenanceRequest {
                 <span>Atender (Poner en Mantenimiento)</span>
               </button>
 
-              <button *ngIf="t.status === 'IN_PROGRESS'" class="btn-action-primary btn-resolve" (click)="openPassModal(t)">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
-                  <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
-                <span>Dar Pase Operativo & Resolver OT</span>
-              </button>
+              <div *ngIf="t.status === 'IN_PROGRESS'" class="in-progress-actions">
+                <button class="btn-action-primary btn-resolve" (click)="openPassModal(t)">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                  <span>Dar Pase Operativo & Resolver OT</span>
+                </button>
+                <button class="btn-subtle-revert" (click)="revertToPending(t)" title="Revertir intervención a estado Pendiente">
+                  ↩ Revertir a Pendiente
+                </button>
+              </div>
 
-              <div *ngIf="t.status === 'RESOLVED' || t.status === 'CLOSED'" class="resolved-badge-bar">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <div *ngIf="t.status === 'RESOLVED'" class="resolved-actions-box">
+                <div class="resolved-badge-bar">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                  </svg>
+                  <span>Orden Concluida & Liberada a Operación</span>
+                </div>
+                <button class="btn-archive-ot" (click)="closeTicket(t)" title="Archivar y cerrar definitivamente esta orden">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                    <line x1="8" y1="21" x2="16" y2="21"></line>
+                    <line x1="12" y1="17" x2="12" y2="21"></line>
+                  </svg>
+                  Cerrar & Archivar OT Definitivamente
+                </button>
+              </div>
+
+              <div *ngIf="t.status === 'CLOSED'" class="closed-badge-bar">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
                   <polyline points="22 4 12 14.01 9 11.01"></polyline>
                 </svg>
-                <span>Orden Concluida & Liberada a Operación</span>
+                <span>OT Cerrada y Archivada en CMMS</span>
               </div>
             </div>
           </div>
@@ -408,13 +451,36 @@ export interface MaintenanceRequest {
       </ng-template>
 
       <!-- Create Ticket Modal -->
-      <app-modal [isOpen]="isCreateModalOpen" [title]="'Crear Nueva Solicitud de Trabajo con Foto'" (close)="isCreateModalOpen = false">
-        <form (ngSubmit)="saveTicket()" class="modal-form">
+      <app-modal [isOpen]="isCreateModalOpen" [title]="'Crear Nueva Solicitud de Trabajo con Foto'" [showFooter]="true" (close)="isCreateModalOpen = false">
+        <form id="createOtForm" (ngSubmit)="saveTicket()" class="modal-form">
           <div class="form-row">
             <div class="form-group">
-              <label>Tag del Equipo (Ej: PU025, TL-202)</label>
-              <input type="text" [(ngModel)]="newTicket.equipment_tag" name="tag" required />
+              <label>Tag del Equipo</label>
+              <input 
+                type="text" 
+                [(ngModel)]="newTicket.equipment_tag" 
+                name="tag" 
+                list="equipmentTagsList"
+                placeholder="Ej: PU001, PU025, CAM-01..." 
+                (input)="onTagInput()"
+                required 
+              />
+              <datalist id="equipmentTagsList">
+                <option *ngFor="let eq of officialEquipments" [value]="eq.tag">{{ eq.tag }} - {{ eq.name }}</option>
+              </datalist>
             </div>
+            <div class="form-group">
+              <label>Especialidad / Disciplina</label>
+              <select [(ngModel)]="newTicket.specialty" name="specialty">
+                <option value="MECANICA">🔧 Mecánica (Bombas, Sellos, Reductores)</option>
+                <option value="ELECTRICIDAD">⚡ Electricidad (Motores, CCM, Tableros)</option>
+                <option value="INSTRUMENTACION">📡 Instrumentación (Sensores, PLC)</option>
+                <option value="LUBRICACION">🛢️ Lubricación (Niveles, Grasa, Filtros)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
             <div class="form-group">
               <label>Nivel de Prioridad / Criticidad</label>
               <select [(ngModel)]="newTicket.priority" name="priority">
@@ -424,16 +490,20 @@ export interface MaintenanceRequest {
                 <option value="EMERGENCY">Emergencia (EMERGENCY)</option>
               </select>
             </div>
+            <div class="form-group">
+              <label>Horas Estimadas</label>
+              <input type="number" step="0.5" min="0.5" [(ngModel)]="newTicket.estimated_hours" name="hours" />
+            </div>
           </div>
 
           <div class="form-group">
             <label>Título de la Solicitud</label>
-            <input type="text" [(ngModel)]="newTicket.title" name="title" placeholder="Ej: Fuga de pulpa en sello mecánico o vibración..." required />
+            <input type="text" [(ngModel)]="newTicket.title" name="title" placeholder="Ej: Fuga de pulpa en sello mecánico, vibración anormal..." required />
           </div>
 
           <div class="form-group">
             <label>Descripción Detallada del Hallazgo</label>
-            <textarea rows="3" [(ngModel)]="newTicket.description" name="desc" placeholder="Condición observada, ruidos, temperatura anormal..." required></textarea>
+            <textarea rows="3" [(ngModel)]="newTicket.description" name="desc" placeholder="Condición observada, ruidos, temperatura anormal, recomendaciones..." required></textarea>
           </div>
 
           <!-- Photo upload preview -->
@@ -442,30 +512,27 @@ export interface MaintenanceRequest {
             <input type="file" (change)="onFileSelected($event)" accept="image/*" class="file-input" />
             <div *ngIf="previewPhoto" class="image-preview-box">
               <img [src]="previewPhoto" alt="Vista previa" class="preview-thumb" />
-              <span class="preview-name">Evidencia lista para sincronizar</span>
+              <div class="preview-info">
+                <span class="preview-name">✓ Evidencia lista para sincronizar</span>
+                <button type="button" class="btn-remove-preview" (click)="removePreviewPhoto()">Quitar</button>
+              </div>
             </div>
           </div>
 
-          <div class="form-row">
-            <div class="form-group">
-              <label>Técnico / Taller Asignado</label>
-              <input type="text" [(ngModel)]="newTicket.assigned_to" name="assigned" />
-            </div>
-            <div class="form-group">
-              <label>Horas Estimadas</label>
-              <input type="number" step="0.5" [(ngModel)]="newTicket.estimated_hours" name="hours" />
-            </div>
-          </div>
-
-          <div footer class="modal-buttons">
-            <button type="button" class="btn btn-secondary" (click)="isCreateModalOpen = false">Cancelar</button>
-            <button type="submit" class="btn btn-primary">Crear Orden de Trabajo</button>
+          <div class="form-group">
+            <label>Técnico / Taller Asignado</label>
+            <input type="text" [(ngModel)]="newTicket.assigned_to" name="assigned" placeholder="Ej: Equipo Mecánico de Turno" />
           </div>
         </form>
+
+        <div footer class="modal-buttons">
+          <button type="button" class="btn btn-secondary" (click)="isCreateModalOpen = false">Cancelar</button>
+          <button type="submit" form="createOtForm" class="btn btn-primary">Crear Orden de Trabajo</button>
+        </div>
       </app-modal>
 
       <!-- Photo Zoom Modal -->
-      <app-modal [isOpen]="isPhotoZoomOpen" [title]="selectedTicket?.ticket_number + ' - Evidencia Fotográfica'" (close)="isPhotoZoomOpen = false">
+      <app-modal [isOpen]="isPhotoZoomOpen" [title]="(selectedTicket?.ticket_number || '') + ' - Evidencia Fotográfica'" [showFooter]="false" (close)="isPhotoZoomOpen = false">
         <div class="zoom-modal-body" *ngIf="selectedTicket">
           <img [src]="selectedTicket.photo_url" [alt]="selectedTicket.title" class="full-zoom-img" />
           <div class="zoom-meta">
@@ -476,27 +543,40 @@ export interface MaintenanceRequest {
       </app-modal>
 
       <!-- Modal: Dar Pase Operativo -->
-      <app-modal [isOpen]="isPassModalOpen" [title]="'✅ Dar Pase Operativo: Bomba ' + selectedPassTicket?.equipment_tag" (close)="isPassModalOpen = false">
+      <app-modal [isOpen]="isPassModalOpen" [title]="'✅ Dar Pase Operativo: ' + getEquipmentCategory(selectedPassTicket?.equipment_tag) + ' ' + (selectedPassTicket?.equipment_tag || '')" [showFooter]="true" (close)="isPassModalOpen = false">
         <div class="pass-modal-body" *ngIf="selectedPassTicket">
           <div class="pass-info-banner">
             <span class="banner-icon">ℹ️</span>
             <div>
               <strong>Liberación de Custodia y Restitución Operativa</strong>
-              <p>Al otorgar el pase, la bomba <strong>{{ selectedPassTicket.equipment_tag }}</strong> retornará inmediatamente al estado <strong>OPERATIVO</strong> en la Planilla de Bombas y Telemetría.</p>
+              <p>Al otorgar el pase, el equipo <strong>{{ selectedPassTicket.equipment_tag }}</strong> retornará inmediatamente al estado <strong>OPERATIVO</strong> en el sistema y Telemetría de Planta.</p>
             </div>
           </div>
           <div class="form-group" style="margin-bottom: 14px;">
             <label style="font-weight: 600; font-size: 0.88rem; display: block; margin-bottom: 6px;">Técnico / Responsable que emite el pase:</label>
             <input type="text" [(ngModel)]="passSignerName" style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-subtle); background: var(--bg-input); color: var(--text-primary);" placeholder="Nombre completo" />
           </div>
-          <div class="form-group" style="margin-bottom: 20px;">
+          <div class="form-group" style="margin-bottom: 14px;">
             <label style="font-weight: 600; font-size: 0.88rem; display: block; margin-bottom: 6px;">Detalle del trabajo ejecutado / Observaciones técnicas:</label>
             <textarea [(ngModel)]="passResolutionNotes" rows="3" style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-subtle); background: var(--bg-input); color: var(--text-primary);" placeholder="Ej: Cambio de sello mecánico, alineamiento láser y prueba en vacío conforme."></textarea>
           </div>
-          <div class="modal-footer-actions" style="display: flex; justify-content: flex-end; gap: 10px;">
-            <button type="button" class="btn btn-secondary" (click)="isPassModalOpen = false">Cancelar</button>
-            <button type="button" class="btn btn-success" (click)="confirmOperationalPass()">Firmar y Emitir Pase Operativo</button>
-          </div>
+        </div>
+
+        <div footer class="modal-buttons">
+          <button type="button" class="btn btn-secondary" (click)="isPassModalOpen = false">Cancelar</button>
+          <button type="button" class="btn btn-success" (click)="confirmOperationalPass()">Firmar y Emitir Pase Operativo</button>
+        </div>
+      </app-modal>
+
+      <!-- Modal: Confirmar Eliminación de OT -->
+      <app-modal [isOpen]="isDeleteModalOpen" [title]="'⚠️ Confirmar Eliminación de Orden de Trabajo'" [showFooter]="true" (close)="isDeleteModalOpen = false">
+        <div class="delete-modal-body" *ngIf="ticketToDelete">
+          <p>¿Está seguro de que desea eliminar permanentemente la orden <strong>{{ ticketToDelete.ticket_number }}</strong> ({{ ticketToDelete.equipment_tag }})?</p>
+          <p class="delete-warning-text">Esta acción no se puede deshacer y liberará los bloqueos de telemetría asociados si el equipo estaba en falla.</p>
+        </div>
+        <div footer class="modal-buttons">
+          <button type="button" class="btn btn-secondary" (click)="isDeleteModalOpen = false">Cancelar</button>
+          <button type="button" class="btn btn-danger" (click)="executeDeleteTicket()">Eliminar Definitivamente</button>
         </div>
       </app-modal>
     </div>
@@ -944,6 +1024,26 @@ export interface MaintenanceRequest {
       justify-content: flex-end;
     }
 
+    .btn-delete-card {
+      background: transparent;
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+      border-radius: var(--radius-sm, 6px);
+      padding: 4px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+      line-height: 1;
+
+      &:hover {
+        background: #fee2e2;
+        color: #dc2626;
+        border-color: #fca5a5;
+      }
+    }
+
     .custom-badge {
       display: inline-flex;
       align-items: center;
@@ -1094,6 +1194,30 @@ export interface MaintenanceRequest {
       border: 1px solid rgba(255, 255, 255, 0.15);
     }
 
+    .btn-change-photo-badge {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(6px);
+      color: #ffffff;
+      padding: 4px 10px;
+      border-radius: var(--radius-full);
+      font-size: 0.7rem;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: rgba(3, 23, 149, 0.9);
+        border-color: #60a5fa;
+      }
+    }
+
     /* Technical Blueprint Fallback (Theme Harmonized - Light by Default) */
     .blueprint-view {
       width: 100%;
@@ -1185,6 +1309,19 @@ export interface MaintenanceRequest {
         font-size: 0.72rem;
         font-weight: 700;
         color: #1e40af;
+
+        &.warning {
+          color: #b45309;
+        }
+
+        &.success {
+          color: #059669;
+        }
+
+        .check-indicator {
+          font-weight: 900;
+          color: #10b981;
+        }
       }
 
       .pulse-indicator {
@@ -1530,12 +1667,80 @@ export interface MaintenanceRequest {
       }
     }
 
+    .in-progress-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .btn-subtle-revert {
+      background: none;
+      border: 1px dashed var(--border-subtle);
+      color: var(--text-muted);
+      font-size: 0.74rem;
+      font-weight: 600;
+      padding: 5px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s ease;
+
+      &:hover {
+        color: #dc2626;
+        border-color: #fca5a5;
+        background: #fee2e2;
+      }
+    }
+
+    .resolved-actions-box {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
     .resolved-badge-bar {
       width: 100%;
       background: rgba(5, 150, 105, 0.08);
       border: 1px dashed rgba(5, 150, 105, 0.35);
       color: #059669;
       font-size: 0.78rem;
+      font-weight: 700;
+      padding: 8px 12px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .btn-archive-ot {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      background: var(--bg-card-subtle);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-secondary);
+      font-size: 0.74rem;
+      font-weight: 700;
+      padding: 6px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: var(--primary-purple);
+        color: #ffffff;
+        border-color: var(--primary-purple);
+      }
+    }
+
+    .closed-badge-bar {
+      width: 100%;
+      background: rgba(100, 116, 139, 0.1);
+      border: 1px solid rgba(100, 116, 139, 0.25);
+      color: #64748b;
+      font-size: 0.76rem;
       font-weight: 700;
       padding: 8px 12px;
       border-radius: 10px;
@@ -1626,9 +1831,32 @@ export interface MaintenanceRequest {
       object-fit: cover;
     }
 
+    .preview-info {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex: 1;
+      gap: 8px;
+    }
+
     .preview-name {
       font-size: 0.78rem;
       color: var(--success);
+    }
+
+    .btn-remove-preview {
+      background: none;
+      border: 1px solid #fca5a5;
+      color: #dc2626;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+
+      &:hover {
+        background: #fee2e2;
+      }
     }
 
     .modal-buttons {
@@ -1672,12 +1900,31 @@ export interface MaintenanceRequest {
         p { margin: 0; color: var(--text-secondary); font-size: 0.85rem; }
       }
     }
+
+    .delete-modal-body {
+      padding: 8px 0;
+      p {
+        font-size: 0.9rem;
+        color: var(--text-primary);
+        margin: 0 0 10px 0;
+      }
+      .delete-warning-text {
+        font-size: 0.82rem;
+        color: #dc2626;
+        background: #fee2e2;
+        border: 1px solid #fca5a5;
+        border-radius: 6px;
+        padding: 8px 12px;
+        margin: 0;
+      }
+    }
   `]
 })
 export class MaintenanceComponent implements OnInit, OnDestroy {
   private http = inject(HttpClient);
   offlineSync = inject(OfflineSyncService);
   private authService = inject(AuthService);
+  private permissionsService = inject(PermissionsService);
   private cdr = inject(ChangeDetectorRef);
   private ngZone = inject(NgZone);
 
@@ -1692,20 +1939,70 @@ export class MaintenanceComponent implements OnInit, OnDestroy {
   selectedTicket: MaintenanceRequest | null = null;
   previewPhoto: string | null = null;
 
+  isPassModalOpen = false;
+  selectedPassTicket: MaintenanceRequest | null = null;
+  passSignerName = '';
+  passResolutionNotes = '';
+
+  isDeleteModalOpen = false;
+  ticketToDelete: MaintenanceRequest | null = null;
+
+  officialEquipments = [
+    { tag: 'PU001', name: 'Bomba Slurry Sentina 01' },
+    { tag: 'PU002', name: 'Bomba Slurry Sentina 02' },
+    { tag: 'PU003', name: 'Bomba Slurry Sentina 03' },
+    { tag: 'PU004', name: 'Bomba Slurry Sentina 04' },
+    { tag: 'PU005', name: 'Bomba Slurry Sentina 05' },
+    { tag: 'PU006', name: 'Bomba Slurry Sentina 06' },
+    { tag: 'PU007', name: 'Bomba Slurry Sentina 07' },
+    { tag: 'PU008', name: 'Bomba Slurry Sentina 08' },
+    { tag: 'PU009', name: 'Bomba Booster Intermedia 01' },
+    { tag: 'PU010', name: 'Bomba Booster Intermedia 02' },
+    { tag: 'PU011', name: 'Bomba Booster Intermedia 03' },
+    { tag: 'PU012', name: 'Bomba Booster Intermedia 04' },
+    { tag: 'PU013', name: 'Bomba Booster Intermedia 05' },
+    { tag: 'PU014', name: 'Bomba Booster Intermedia 06' },
+    { tag: 'PU015', name: 'Bomba Booster Intermedia 07' },
+    { tag: 'PU016', name: 'Bomba Booster Intermedia 08' },
+    { tag: 'PU017', name: 'Bomba Agua Clara Torre 5 - 01' },
+    { tag: 'PU018', name: 'Bomba Agua Clara Torre 5 - 02' },
+    { tag: 'PU019', name: 'Bomba Agua Clara Torre 5 - 03' },
+    { tag: 'PU020', name: 'Bomba Agua Clara Torre 5 - 04' },
+    { tag: 'PU021', name: 'Bomba Agua Clara Torre 5 - 05' },
+    { tag: 'PU022', name: 'Bomba Agua Clara Torre 5 - 06' },
+    { tag: 'PU023', name: 'Bomba Agua Clara Torre 5 - 07' },
+    { tag: 'PU024', name: 'Bomba Agua Clara Torre 5 - 08' },
+    { tag: 'PU025', name: 'Bomba Drenaje & Sumidero 01' },
+    { tag: 'PU026', name: 'Bomba Drenaje & Sumidero 02' },
+    { tag: 'PU027', name: 'Bomba Rebose Auxiliar 01' },
+    { tag: 'PU028', name: 'Bomba Rebose Auxiliar 02' },
+    { tag: 'PU029', name: 'Bomba Dosificadora Reactivos 01' },
+    { tag: 'PU030', name: 'Bomba Dosificadora Reactivos 02' },
+    { tag: 'CIC-01', name: 'Hidrociclón N° 01 Batería Dique' },
+    { tag: 'CIC-02', name: 'Hidrociclón N° 02 Batería Dique' },
+    { tag: 'CIC-03', name: 'Hidrociclón N° 03 Batería Dique' },
+    { tag: 'CIC-04', name: 'Hidrociclón N° 04 Batería Dique' },
+    { tag: 'LIN-01', name: 'Línea Troncal Slurry HDPE 24"' },
+    { tag: 'DIS-01', name: 'Spigots Distribución Relaves Dique' },
+    { tag: 'GEN-01', name: 'Grupo Electrógeno Emergencia 750kVA' },
+    { tag: 'CMP-01', name: 'Compresor de Aire Instrumentación' },
+    { tag: 'CAM-01', name: 'Camioneta Operaciones Terreno' }
+  ];
+
   newTicket = {
-    equipment_tag: 'PP-102',
+    equipment_tag: 'PU001',
     title: '',
     description: '',
     priority: 'HIGH' as const,
+    specialty: 'MECANICA' as const,
     assigned_to: 'Equipo Mantenimiento Mecánico',
     photo_url: '',
     estimated_hours: 2.5
   };
 
-  isPassModalOpen = false;
-  selectedPassTicket: MaintenanceRequest | null = null;
-  passSignerName = '';
-  passResolutionNotes = '';
+  get canDelete(): boolean {
+    return this.permissionsService.hasPermission('CAN_DELETE_RECORDS');
+  }
 
   private syncListener = (e: any) => {
     if (e.detail?.source === 'local') return;
@@ -1753,9 +2050,10 @@ export class MaintenanceComponent implements OnInit, OnDestroy {
         if (res.success && Array.isArray(res.data)) {
           const serverTickets = res.data;
           const merged = [...serverTickets];
+          // Only merge local pending drafts created offline (id starting with 'm-')
           if (cached && cached.length > 0) {
             for (const c of cached) {
-              if (c && c.id && !merged.some(m => m.id === c.id || (m.equipment_tag === c.equipment_tag && m.status === c.status))) {
+              if (c && c.id && typeof c.id === 'string' && c.id.startsWith('m-') && !merged.some(m => m.id === c.id)) {
                 merged.unshift(c);
               }
             }
@@ -1831,16 +2129,18 @@ export class MaintenanceComponent implements OnInit, OnDestroy {
   }
 
   matchesDiscipline(t: MaintenanceRequest, discipline: 'MECANICA' | 'ELECTRICIDAD' | 'INSTRUMENTACION' | 'LUBRICACION'): boolean {
+    if (t.specialty && t.specialty === discipline) return true;
     const text = `${t.equipment_tag || ''} ${t.title || ''} ${t.description || ''} ${t.assigned_to || ''} ${t.source_module || ''}`.toLowerCase();
+    
     switch (discipline) {
-      case 'MECANICA':
-        return /mec[aá]nic|bomba|sello|rodamiento|reductor|pp-|pu|v[aá]lvula|rotor|impulsor|faja|chute|alineaci|acople/.test(text);
-      case 'ELECTRICIDAD':
-        return /el[eé]ctric|motor|transformador|tablero|breaker|ccm|tensi[oó]n|volt|amper|aislamiento|bobinado/.test(text);
-      case 'INSTRUMENTACION':
-        return /instrument|sensor|fluj[oó]metro|presi[oó]n|transmisor|plc|scada|vfd|se[nñ]al|pt100|vibraci[oó]n|nivel/.test(text);
       case 'LUBRICACION':
-        return /lubric|grasa|aceite|engrase|viscosidad|filtro|fuga/.test(text);
+        return /lubric|grasa|aceite|engrase|viscosidad|filtro|fuga de aceite/.test(text);
+      case 'INSTRUMENTACION':
+        return /instrument|sensor|fluj[oó]metro|presi[oó]n|transmisor|plc|scada|vfd|se[nñ]al|pt100|vibraci[oó]n|nivel|telemetr/.test(text);
+      case 'ELECTRICIDAD':
+        return /el[eé]ctric|motor|transformador|tablero|breaker|ccm|tensi[oó]n|volt|amper|aislamiento|bobinado|fase/.test(text);
+      case 'MECANICA':
+        return /mec[aá]nic|bomba|sello|rodamiento|reductor|\bpp[-_]?\d+|\bpu\d+|\bpu-\d+|v[aá]lvula|rotor|impulsor|faja|chute|alineaci|acople/.test(text);
       default:
         return true;
     }
@@ -1851,11 +2151,54 @@ export class MaintenanceComponent implements OnInit, OnDestroy {
   }
 
   getTicketDiscipline(t: MaintenanceRequest): { label: string; icon: string } | null {
-    if (this.matchesDiscipline(t, 'MECANICA')) return { label: 'Mecánica', icon: '🔧' };
-    if (this.matchesDiscipline(t, 'ELECTRICIDAD')) return { label: 'Electricidad', icon: '⚡' };
-    if (this.matchesDiscipline(t, 'INSTRUMENTACION')) return { label: 'Instrumentación', icon: '📡' };
+    if (t.specialty) {
+      switch (t.specialty) {
+        case 'MECANICA': return { label: 'Mecánica', icon: '🔧' };
+        case 'ELECTRICIDAD': return { label: 'Electricidad', icon: '⚡' };
+        case 'INSTRUMENTACION': return { label: 'Instrumentación', icon: '📡' };
+        case 'LUBRICACION': return { label: 'Lubricación', icon: '🛢️' };
+      }
+    }
     if (this.matchesDiscipline(t, 'LUBRICACION')) return { label: 'Lubricación', icon: '🛢️' };
+    if (this.matchesDiscipline(t, 'INSTRUMENTACION')) return { label: 'Instrumentación', icon: '📡' };
+    if (this.matchesDiscipline(t, 'ELECTRICIDAD')) return { label: 'Electricidad', icon: '⚡' };
+    if (this.matchesDiscipline(t, 'MECANICA')) return { label: 'Mecánica', icon: '🔧' };
     return null;
+  }
+
+  getEquipmentCategory(tag?: string): string {
+    if (!tag) return 'Equipo';
+    const upper = tag.toUpperCase().trim();
+    if (upper.startsWith('PU')) {
+      const num = parseInt(upper.replace('PU', ''), 10);
+      if (num >= 1 && num <= 8) return 'Bomba Sentina';
+      if (num >= 9 && num <= 16) return 'Bomba Booster';
+      if (num >= 17 && num <= 24) return 'Bomba Torre 5';
+      return 'Bomba Pulpa';
+    }
+    if (upper.startsWith('CIC')) return 'Hidrociclón';
+    if (upper.startsWith('LIN')) return 'Línea Conducción';
+    if (upper.startsWith('DIS')) return 'Spigot Descarga';
+    if (upper.startsWith('GEN')) return 'Generador';
+    if (upper.startsWith('CMP')) return 'Compresor';
+    if (upper.startsWith('CAM')) return 'Vehículo';
+    return 'Equipo';
+  }
+
+  onTagInput(): void {
+    if (this.newTicket.equipment_tag) {
+      this.newTicket.equipment_tag = this.newTicket.equipment_tag.toUpperCase().trim();
+      const match = this.officialEquipments.find(e => e.tag === this.newTicket.equipment_tag);
+      if (match && !this.newTicket.title) {
+        this.newTicket.title = `Inspección / Mantenimiento en ${match.name}`;
+      }
+    }
+  }
+
+  removePreviewPhoto(): void {
+    this.previewPhoto = null;
+    this.newTicket.photo_url = '';
+    this.cdr.markForCheck();
   }
 
   getCountByStatus(status: 'PENDING' | 'IN_PROGRESS' | 'RESOLVED'): number {
@@ -1991,6 +2334,7 @@ export class MaintenanceComponent implements OnInit, OnDestroy {
     this.previewPhoto = null;
     this.newTicket.photo_url = '';
     this.isCreateModalOpen = true;
+    this.cdr.markForCheck();
   }
 
   async onFileSelected(event: any): Promise<void> {
@@ -2000,12 +2344,14 @@ export class MaintenanceComponent implements OnInit, OnDestroy {
         const compressedBase64 = await this.compressImage(file, 1280, 1280, 0.78);
         this.previewPhoto = compressedBase64;
         this.newTicket.photo_url = compressedBase64;
+        this.cdr.markForCheck();
       } catch (err) {
         console.warn('[Maintenance] Error al comprimir imagen, usando fallback directo:', err);
         const reader = new FileReader();
         reader.onload = () => {
           this.previewPhoto = reader.result as string;
           this.newTicket.photo_url = this.previewPhoto;
+          this.cdr.markForCheck();
         };
         reader.readAsDataURL(file);
       }
@@ -2013,14 +2359,16 @@ export class MaintenanceComponent implements OnInit, OnDestroy {
   }
 
   saveTicket(): void {
+    const tag = (this.newTicket.equipment_tag || '').toUpperCase().trim();
     const created: MaintenanceRequest = {
       id: 'm-' + Date.now(),
       ticket_number: `OT-2026-00${Math.floor(40 + Math.random() * 50)}`,
-      equipment_tag: this.newTicket.equipment_tag,
+      equipment_tag: tag,
       title: this.newTicket.title,
       description: this.newTicket.description,
       priority: this.newTicket.priority as any,
       status: 'PENDING',
+      specialty: this.newTicket.specialty,
       requester_name: this.authService.currentUser()?.fullName || 'Operador de Turno',
       assigned_to: this.newTicket.assigned_to || 'Equipo Mantenimiento Planta',
       photo_url: this.newTicket.photo_url || '',
@@ -2032,18 +2380,23 @@ export class MaintenanceComponent implements OnInit, OnDestroy {
     saveRealtimeData('maintenance_tickets', this.tickets);
     this.isCreateModalOpen = false;
 
+    const payload = {
+      ...this.newTicket,
+      equipment_tag: tag
+    };
+
     const endpoint = `${getApiBaseUrl()}/maintenance`;
     if (this.offlineSync.isOnline()) {
-      this.http.post<any>(endpoint, this.newTicket).subscribe({
+      this.http.post<any>(endpoint, payload).subscribe({
         next: () => {
           this.loadTickets();
         },
         error: () => {
-          this.offlineSync.queueAction(endpoint, 'POST', this.newTicket, 'OT ' + this.newTicket.equipment_tag);
+          this.offlineSync.queueAction(endpoint, 'POST', payload, 'OT ' + tag);
         }
       });
     } else {
-      this.offlineSync.queueAction(endpoint, 'POST', this.newTicket, 'OT ' + this.newTicket.equipment_tag);
+      this.offlineSync.queueAction(endpoint, 'POST', payload, 'OT ' + tag);
     }
   }
 
@@ -2069,11 +2422,64 @@ export class MaintenanceComponent implements OnInit, OnDestroy {
     this.syncLocalPumpStatus(t.equipment_tag, 'Mantenimiento');
   }
 
+  revertToPending(t: MaintenanceRequest): void {
+    this.updateStatus(t, 'PENDING');
+  }
+
+  closeTicket(t: MaintenanceRequest): void {
+    this.updateStatus(t, 'CLOSED');
+  }
+
+  confirmDeleteTicket(t: MaintenanceRequest, event?: MouseEvent): void {
+    if (event) {
+      event.stopPropagation();
+    }
+    this.ticketToDelete = t;
+    this.isDeleteModalOpen = true;
+    this.cdr.markForCheck();
+  }
+
+  executeDeleteTicket(): void {
+    if (!this.ticketToDelete) return;
+    const t = this.ticketToDelete;
+    const id = t.id;
+
+    // Optimistically remove from local array
+    this.tickets = this.tickets.filter(x => x.id !== id);
+    saveRealtimeData('maintenance_tickets', this.tickets);
+    this.isDeleteModalOpen = false;
+    this.ticketToDelete = null;
+
+    // Check if equipment had pumps in maintenance, and if no other active ticket exists for it, restore to Operativo
+    const hasActiveTicket = this.tickets.some(x => x.equipment_tag === t.equipment_tag && (x.status === 'PENDING' || x.status === 'IN_PROGRESS'));
+    if (!hasActiveTicket) {
+      this.syncLocalPumpStatus(t.equipment_tag, 'Operativo');
+    }
+
+    this.cdr.markForCheck();
+    this.cdr.detectChanges();
+
+    const endpoint = `${getApiBaseUrl()}/maintenance/${id}`;
+    if (this.offlineSync.isOnline()) {
+      this.http.delete<any>(endpoint).subscribe({
+        next: () => {
+          this.loadTickets();
+        },
+        error: () => {
+          this.offlineSync.queueAction(endpoint, 'DELETE' as any, null, `Eliminar OT ${t.ticket_number}`);
+        }
+      });
+    } else {
+      this.offlineSync.queueAction(endpoint, 'DELETE' as any, null, `Eliminar OT ${t.ticket_number}`);
+    }
+  }
+
   openPassModal(t: MaintenanceRequest): void {
     this.selectedPassTicket = t;
     this.passSignerName = this.authService.currentUser()?.fullName || 'Supervisor Mantenimiento';
     this.passResolutionNotes = '';
     this.isPassModalOpen = true;
+    this.cdr.markForCheck();
   }
 
   confirmOperationalPass(): void {
@@ -2156,6 +2562,7 @@ export class MaintenanceComponent implements OnInit, OnDestroy {
   openPhotoPreview(t: MaintenanceRequest): void {
     this.selectedTicket = t;
     this.isPhotoZoomOpen = true;
+    this.cdr.markForCheck();
   }
 
   private compressImage(file: File, maxWidth = 1280, maxHeight = 1280, quality = 0.78): Promise<string> {

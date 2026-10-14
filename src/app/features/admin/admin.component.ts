@@ -72,7 +72,50 @@ export class AdminComponent implements OnInit, OnDestroy {
   private ngZone = inject(NgZone);
 
   // Navegación por Apartados en Administrador
-  activeAdminTab: 'SUPERVISORS_CREW' | 'USERS_ROLES' | 'TERMINALS_SYNC' | 'AUDIT_LOGS' | 'PERMISSIONS_MATRIX' | 'PLANT_PARAMETERS' | 'VEHICLES_FLEET' = 'SUPERVISORS_CREW';
+  activeAdminTab: 'SUPERVISORS_CREW' | 'USERS_ROLES' | 'TERMINALS_SYNC' | 'AUDIT_LOGS' | 'PERMISSIONS_MATRIX' | 'PLANT_PARAMETERS' | 'VEHICLES_FLEET' | 'SYSTEM_BACKUPS' = 'SUPERVISORS_CREW';
+  lastBackupDate = '';
+
+  get currentDomain(): 'PERSONNEL' | 'OPERATIONS' | 'SECURITY' | 'SYSTEM' {
+    switch (this.activeAdminTab) {
+      case 'SUPERVISORS_CREW':
+      case 'USERS_ROLES':
+        return 'PERSONNEL';
+      case 'PLANT_PARAMETERS':
+      case 'VEHICLES_FLEET':
+        return 'OPERATIONS';
+      case 'PERMISSIONS_MATRIX':
+      case 'AUDIT_LOGS':
+        return 'SECURITY';
+      case 'SYSTEM_BACKUPS':
+      case 'TERMINALS_SYNC':
+        return 'SYSTEM';
+      default:
+        return 'PERSONNEL';
+    }
+  }
+
+  selectDomain(domain: 'PERSONNEL' | 'OPERATIONS' | 'SECURITY' | 'SYSTEM'): void {
+    switch (domain) {
+      case 'PERSONNEL':
+        this.activeAdminTab = 'SUPERVISORS_CREW';
+        break;
+      case 'OPERATIONS':
+        this.activeAdminTab = 'PLANT_PARAMETERS';
+        break;
+      case 'SECURITY':
+        this.activeAdminTab = 'PERMISSIONS_MATRIX';
+        break;
+      case 'SYSTEM':
+        this.activeAdminTab = 'SYSTEM_BACKUPS';
+        break;
+    }
+    this.cdr.markForCheck();
+  }
+
+  setActiveTab(tab: 'SUPERVISORS_CREW' | 'USERS_ROLES' | 'TERMINALS_SYNC' | 'AUDIT_LOGS' | 'PERMISSIONS_MATRIX' | 'PLANT_PARAMETERS' | 'VEHICLES_FLEET' | 'SYSTEM_BACKUPS'): void {
+    this.activeAdminTab = tab;
+    this.cdr.markForCheck();
+  }
 
   toggleRolePerm(role: 'SUPERVISOR' | 'OPERATOR', key: PermissionKey, event: Event): void {
     const checkbox = event.target as HTMLInputElement;
@@ -360,6 +403,7 @@ export class AdminComponent implements OnInit, OnDestroy {
           a.download = `basetrack_backup_${new Date().toISOString().slice(0, 10)}.json`;
           a.click();
           window.URL.revokeObjectURL(url);
+          this.lastBackupDate = new Date().toLocaleDateString('es-PE') + ' ' + new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
           this.backupSuccessMessage = 'Copia de seguridad exportada y descargada exitosamente en formato JSON seguro.';
           setTimeout(() => this.backupSuccessMessage = '', 5000);
         }
@@ -378,6 +422,7 @@ export class AdminComponent implements OnInit, OnDestroy {
         a.download = `basetrack_local_backup_${new Date().toISOString().slice(0, 10)}.json`;
         a.click();
         window.URL.revokeObjectURL(url);
+        this.lastBackupDate = new Date().toLocaleDateString('es-PE') + ' ' + new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
         this.backupSuccessMessage = 'Backup local seguro generado y descargado exitosamente.';
         setTimeout(() => this.backupSuccessMessage = '', 5000);
       }

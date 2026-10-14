@@ -36,6 +36,20 @@ export async function login(req: Request, res: Response) {
         user = db.prepare("SELECT * FROM users WHERE LOWER(full_name) = LOWER(?) AND role != 'ADMIN'").get(crew.name) as any;
       }
     }
+    if (!user) {
+      // Allow login with first name, alias or partial name (e.g. 'klisman', 'klismanvizcarra' -> KLISMANV)
+      const cleanLower = cleanUser.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const candidates = db.prepare("SELECT * FROM users WHERE role != 'ADMIN'").all() as any[];
+      user = candidates.find(c => {
+        const uLower = (c.username || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        const fnLower = (c.full_name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        return uLower === cleanLower ||
+               uLower.startsWith(cleanLower) ||
+               cleanLower.startsWith(uLower) ||
+               fnLower.includes(cleanLower) ||
+               (cleanLower.includes('klisman') && (uLower.includes('klisman') || fnLower.includes('klisman')));
+      }) || null;
+    }
   }
 
   if (!user) {
@@ -49,7 +63,6 @@ export async function login(req: Request, res: Response) {
 
   let match = false;
   try {
-    // Only the stored bcrypt hash is authoritative: no hardcoded master passwords and no DNI-as-password fallback
     match = bcrypt.compareSync(cleanPass, user.password_hash);
   } catch {
     match = false;

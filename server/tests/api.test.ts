@@ -1563,6 +1563,60 @@ test('40. Security: default maintenance account must change its public password'
   assert.strictEqual(after.must_change_password, 1);
 });
 
+test('41. Maintenance Lifecycle: MAINTENANCE role permissions, tag normalization, and DELETE with un-lock', async () => {
+  const maintToken = generateToken({
+    id: 'test-maint-id',
+    username: 'mantenimiento_tester',
+    role: 'MAINTENANCE',
+    fullName: 'Tecnico Mantenimiento'
+  });
+
+  // 1. Role MAINTENANCE should be able to create a ticket (has CAN_RECORD_DATA)
+  const createRes = await fetch(`${baseUrl}/maintenance`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${maintToken}`
+    },
+    body: JSON.stringify({
+      equipment_tag: 'pu025',
+      title: 'Cambio de empaquetadura prensaestopa',
+      description: 'Goteo excesivo de agua de sello',
+      priority: 'HIGH'
+    })
+  });
+
+  assert.strictEqual(createRes.status, 201);
+  const createData = await createRes.json() as any;
+  assert.strictEqual(createData.success, true);
+  const createdId = createData.id;
+
+  // 2. Verify tag was normalized to uppercase PU025
+  const getRes = await fetch(`${baseUrl}/maintenance`, {
+    headers: { 'Authorization': `Bearer ${maintToken}` }
+  });
+  const getData = await getRes.json() as any;
+  const createdTicket = getData.data.find((t: any) => t.id === createdId);
+  assert.ok(createdTicket);
+  assert.strictEqual(createdTicket.equipment_tag, 'PU025');
+
+  // 3. User with MAINTENANCE role (lacking CAN_DELETE_RECORDS) cannot delete
+  const forbidDeleteRes = await fetch(`${baseUrl}/maintenance/${createdId}`, {
+    method: 'DELETE',
+    headers: { 'Authorization': `Bearer ${maintToken}` }
+  });
+  assert.strictEqual(forbidDeleteRes.status, 403);
+
+  // 4. Admin (with CAN_DELETE_RECORDS) can delete ticket successfully
+  const adminDeleteRes = await fetch(`${baseUrl}/maintenance/${createdId}`, {
+    method: 'DELETE',
+    headers: { 'Authorization': `Bearer ${authToken}` }
+  });
+  assert.strictEqual(adminDeleteRes.status, 200);
+  const deleteData = await adminDeleteRes.json() as any;
+  assert.strictEqual(deleteData.success, true);
+});
+
 test.after(async () => {
   // Purge any test users or links created during testing and restore clean slate
   try {

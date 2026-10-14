@@ -60,9 +60,10 @@ const loginRateLimits = new Map<string, RateLimitRecord>();
 const authRateLimiter = (req: express.Request, res: express.Response, next: express.NextFunction) => {
   const ip = req.ip || req.socket.remoteAddress || 'unknown';
   const isLoopback = ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1' || ip === 'localhost';
+  const isPrivateLan = isLoopback || ip.includes('192.168.') || ip.includes('10.') || ip.includes('172.');
   const now = Date.now();
   const windowMs = 5 * 60 * 1000; // 5 minutes
-  const maxAttempts = isLoopback ? 100 : 25; // Generous for local development, strict for remote
+  const maxAttempts = isPrivateLan ? 100 : 25; // Generous for local development and plant LAN, strict for remote
 
   const record = loginRateLimits.get(ip);
   if (!record || now > record.resetAt) {

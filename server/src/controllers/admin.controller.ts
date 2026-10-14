@@ -502,13 +502,33 @@ export function restoreDatabaseBackup(req: AuthenticatedRequest, res: Response) 
       // 10. Maintenance requests
       if (Array.isArray(data.maintenance_requests) && data.maintenance_requests.length > 0) {
         const stmt = db.prepare(`
-          INSERT OR REPLACE INTO maintenance_requests (id, ticket_number, equipment_tag, title, description, priority, status, requester_name, assigned_to, photo_url, estimated_hours, created_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, datetime('now')))
+          INSERT OR REPLACE INTO maintenance_requests (
+            id, ticket_number, equipment_tag, title, description, priority, status,
+            requester_name, assigned_to, photo_url, estimated_hours, source_module,
+            operational_pass_by, operational_pass_at, resolution_notes, created_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, datetime('now')))
         `);
         let count = 0;
         for (const m of data.maintenance_requests) {
           if (m.id && m.ticket_number) {
-            stmt.run(m.id, m.ticket_number, m.equipment_tag || 'EQUIP-01', m.title || 'Mantenimiento', m.description || '', m.priority || 'MEDIUM', m.status || 'PENDING', m.requester_name || 'Operador', m.assigned_to || null, m.photo_url || null, m.estimated_hours || 1, m.created_at || null);
+            stmt.run(
+              m.id,
+              m.ticket_number,
+              m.equipment_tag || 'EQUIP-01',
+              m.title || 'Mantenimiento',
+              m.description || '',
+              m.priority || 'MEDIUM',
+              m.status || 'PENDING',
+              m.requester_name || 'Operador',
+              m.assigned_to || null,
+              m.photo_url || null,
+              m.estimated_hours || 1,
+              m.source_module || 'MANUAL',
+              m.operational_pass_by || null,
+              m.operational_pass_at || null,
+              m.resolution_notes || null,
+              m.created_at || null
+            );
             count++;
           }
         }

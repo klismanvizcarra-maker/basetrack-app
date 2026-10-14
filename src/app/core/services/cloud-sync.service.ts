@@ -370,13 +370,18 @@ export class CloudSyncService {
           if (Array.isArray(eventData)) {
             saveRealtimeData('maintenance_tickets', eventData, { skipBroadcast: true });
           } else if (eventData && typeof eventData === 'object' && (eventData.id || eventData.equipment_tag)) {
-            const idx = list.findIndex(t => t && (t.id === eventData.id || (t.ticket_number && t.ticket_number === eventData.ticket_number)));
-            if (idx >= 0) {
-              list[idx] = { ...list[idx], ...eventData };
+            if (action === 'DELETE') {
+              const filtered = list.filter(t => t && t.id !== eventData.id && t.ticket_number !== eventData.ticket_number);
+              saveRealtimeData('maintenance_tickets', filtered, { skipBroadcast: true });
             } else {
-              list.unshift(eventData);
+              const idx = list.findIndex(t => t && (t.id === eventData.id || (t.ticket_number && t.ticket_number === eventData.ticket_number)));
+              if (idx >= 0) {
+                list[idx] = { ...list[idx], ...eventData };
+              } else {
+                list.unshift(eventData);
+              }
+              saveRealtimeData('maintenance_tickets', list, { skipBroadcast: true });
             }
-            saveRealtimeData('maintenance_tickets', list, { skipBroadcast: true });
           }
         }
         if (!storageKey.includes('maintenance_tickets')) {
@@ -419,13 +424,18 @@ export class CloudSyncService {
           if (Array.isArray(data)) {
             saveRealtimeData('maintenance_tickets', data, { skipBroadcast: true });
           } else if (data && typeof data === 'object' && (data.id || data.equipment_tag)) {
-            const idx = list.findIndex(t => t && (t.id === data.id || (t.ticket_number && t.ticket_number === data.ticket_number)));
-            if (idx >= 0) {
-              list[idx] = { ...list[idx], ...data };
+            if (action === 'DELETE') {
+              const filtered = list.filter(t => t && t.id !== data.id && t.ticket_number !== data.ticket_number);
+              saveRealtimeData('maintenance_tickets', filtered, { skipBroadcast: true });
             } else {
-              list.unshift(data);
+              const idx = list.findIndex(t => t && (t.id === data.id || (t.ticket_number && t.ticket_number === data.ticket_number)));
+              if (idx >= 0) {
+                list[idx] = { ...list[idx], ...data };
+              } else {
+                list.unshift(data);
+              }
+              saveRealtimeData('maintenance_tickets', list, { skipBroadcast: true });
             }
-            saveRealtimeData('maintenance_tickets', list, { skipBroadcast: true });
           }
         }
         if (!key.includes('maintenance_tickets')) {

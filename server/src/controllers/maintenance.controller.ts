@@ -34,16 +34,18 @@ export function createMaintenanceRequest(req: AuthenticatedRequest, res: Respons
     }
     const requesterName = req.user?.fullName || req.body.requester_name || 'Operador de Guardia';
 
-    // Default sample photo if not provided
-    const photo = photo_url || 'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=600&q=80';
+    const tag = String(equipment_tag).trim().toUpperCase();
+    const photo = photo_url && typeof photo_url === 'string' && !photo_url.includes('unsplash.com/photo-1581092335397')
+      ? photo_url.trim()
+      : '';
 
     db.prepare(`
       INSERT INTO maintenance_requests (
         id, ticket_number, equipment_tag, title, description,
-        priority, status, requester_name, assigned_to, photo_url, estimated_hours
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        priority, status, requester_name, assigned_to, photo_url, estimated_hours, source_module
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'MANUAL')
     `).run(
-      id, ticketNumber, equipment_tag, title, description,
+      id, ticketNumber, tag, title, description,
       priority, 'PENDING', requesterName, assigned_to || 'Equipo Mecánico de Turno',
       photo, estimated_hours || 2.0
     );
@@ -55,12 +57,15 @@ export function createMaintenanceRequest(req: AuthenticatedRequest, res: Respons
       data: {
         id,
         ticket_number: ticketNumber,
-        equipment_tag,
+        equipment_tag: tag,
         title,
         priority,
         status: 'PENDING',
         requester_name: requesterName,
-        assigned_to: assigned_to || 'Equipo Mecánico de Turno'
+        assigned_to: assigned_to || 'Equipo Mecánico de Turno',
+        photo_url: photo,
+        estimated_hours: estimated_hours || 2.0,
+        source_module: 'MANUAL'
       },
       key: 'maintenance_request_' + id,
       deviceId: req.headers['x-device-id']?.toString() || 'server_api',
@@ -139,7 +144,7 @@ export function updateMaintenanceStatus(req: AuthenticatedRequest, res: Response
             const list = JSON.parse(jsonStr);
             if (Array.isArray(list)) {
               for (const p of list) {
-                if (p && p.tag === targetTag) {
+                if (p && p.tag?.trim()?.toUpperCase() === targetTag?.trim()?.toUpperCase()) {
                   p.status = targetPumpStatus;
                   changed = true;
                 }
@@ -180,7 +185,7 @@ export function updateMaintenanceStatus(req: AuthenticatedRequest, res: Response
 
       // 2. Update telemetry table if present
       if (telemetryPumpStatus) {
-        db.prepare('UPDATE pump_reports SET status = ? WHERE tag = ?').run(telemetryPumpStatus, targetTag);
+        db.prepare('UPDATE pump_reports SET status = ? WHERE UPPER(tag) = UPPER(?)').run(telemetryPumpStatus, targetTag);
       }
     }
 
@@ -202,6 +207,7 @@ export function updateMaintenanceStatus(req: AuthenticatedRequest, res: Response
       deviceId: req.headers['x-device-id']?.toString() || 'server_api'
     });
 
+    const isPump = targetTag && targetTag.toUpperCase().startsWith('PU');
     logAudit(
       req.user?.userId || null,
       req.user?.username || 'system',
@@ -209,7 +215,7 @@ export function updateMaintenanceStatus(req: AuthenticatedRequest, res: Response
       'MAINTENANCE_REQUEST',
       id,
       isPassingToOperational 
-        ? `Pase operativo emitido por ${passBy} para ${request.equipment_tag}. Bomba retornada a Operativo.`
+        ? `Pase operativo emitido por ${passBy} para ${request.equipment_tag}. ${isPump ? 'Bomba retornada a Operativo.' : 'Equipo liberado conforme.'}`
         : `Estado de OT cambiado a ${status}`,
       req.ip || '127.0.0.1'
     );
@@ -217,7 +223,7 @@ export function updateMaintenanceStatus(req: AuthenticatedRequest, res: Response
     return res.json({
       success: true,
       message: isPassingToOperational
-        ? `Pase operativo otorgado exitosamente. Bomba ${targetTag} ahora está Operativa.`
+        ? (isPump ? `Pase operativo otorgado exitosamente. Bomba ${targetTag} ahora está Operativa.` : `Pase operativo otorgado exitosamente para equipo ${targetTag}.`)
         : 'Estado de solicitud actualizado exitosamente',
       data: {
         id,
@@ -227,6 +233,105 @@ export function updateMaintenanceStatus(req: AuthenticatedRequest, res: Response
         operational_pass_by: passBy,
         operational_pass_at: passAt
       }
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+export function deleteMaintenanceRequest(req: AuthenticatedRequest, res: Response) {
+  try {
+    const id = String(req.params.id);
+    const request = db.prepare('SELECT * FROM maintenance_requests WHERE id = ?').get(id) as any;
+    if (!request) {
+      return res.status(404).json({ success: false, message: 'Orden de trabajo no encontrada' });
+    }
+
+    // Delete ticket from database
+    db.prepare('DELETE FROM maintenance_requests WHERE id = ?').run(id);
+
+    // If deleting an active ticket on a pump, check if other active tickets remain
+    const targetTag = (request.equipment_tag || '').trim().toUpperCase();
+    const remainingActive = db.prepare(`
+      SELECT COUNT(*) as count FROM maintenance_requests 
+      WHERE UPPER(equipment_tag) = UPPER(?) AND status IN ('PENDING', 'IN_PROGRESS')
+    `).get(targetTag) as { count: number };
+
+    if (remainingActive.count === 0 && targetTag.startsWith('PU')) {
+      const sheets = db.prepare('SELECT id, report_date, sentina_pumps_json, intermedia_pumps_json, torre5_pumps_json FROM pump_station_sheets ORDER BY report_date DESC, created_at DESC LIMIT 5').all() as any[];
+      for (const sheet of sheets) {
+        let changed = false;
+        const updateList = (jsonStr: string) => {
+          try {
+            const list = JSON.parse(jsonStr);
+            if (Array.isArray(list)) {
+              for (const p of list) {
+                if (p && p.tag?.trim()?.toUpperCase() === targetTag && (p.status === 'Falla' || p.status === 'Mantenimiento')) {
+                  p.status = 'Operativo';
+                  changed = true;
+                }
+              }
+            }
+            return JSON.stringify(list);
+          } catch {
+            return jsonStr;
+          }
+        };
+
+        const newSentina = updateList(sheet.sentina_pumps_json);
+        const newIntermedia = updateList(sheet.intermedia_pumps_json);
+        const newTorre5 = updateList(sheet.torre5_pumps_json);
+
+        if (changed) {
+          db.prepare(`
+            UPDATE pump_station_sheets 
+            SET sentina_pumps_json = ?, intermedia_pumps_json = ?, torre5_pumps_json = ?, updated_at = datetime('now')
+            WHERE id = ?
+          `).run(newSentina, newIntermedia, newTorre5, sheet.id);
+
+          broadcastWsEvent({
+            entity: 'PUMP_STATION_SHEET',
+            action: 'UPDATE',
+            key: 'pump_sheet_' + sheet.report_date,
+            data: {
+              id: sheet.id,
+              report_date: sheet.report_date,
+              sentina_pumps: JSON.parse(newSentina),
+              intermedia_pumps: JSON.parse(newIntermedia),
+              torre5_pumps: JSON.parse(newTorre5)
+            }
+          });
+        }
+      }
+    }
+
+    // Broadcast deletion in real time
+    broadcastWsEvent({
+      entity: 'maintenance',
+      action: 'DELETE',
+      data: {
+        id,
+        ticket_number: request.ticket_number,
+        equipment_tag: targetTag
+      },
+      key: 'basetrack_maintenance_tickets',
+      deviceId: req.headers['x-device-id']?.toString() || 'server_api'
+    });
+
+    logAudit(
+      req.user?.userId || null,
+      req.user?.username || 'system',
+      'DELETE',
+      'MAINTENANCE_REQUEST',
+      id,
+      `Eliminación de orden de trabajo ${request.ticket_number} (${targetTag})`,
+      req.ip || '127.0.0.1'
+    );
+
+    return res.json({
+      success: true,
+      message: `Orden de trabajo ${request.ticket_number} eliminada exitosamente`,
+      id
     });
   } catch (error: any) {
     return res.status(500).json({ success: false, message: error.message });

@@ -129,3 +129,45 @@ Este documento contiene los errores sutiles, condiciones de carrera y trampas de
   1. En `CloudSyncService`: Si `key` o `storageKey` incluye `'maintenance_tickets'`, verificar si `data` es un arreglo o un objeto individual; si es un objeto, fusionarlo/anteponerlo en el arreglo existente (`list.unshift(data)`), nunca reemplazar el arreglo por un objeto.
   2. En `pumps.controller.ts`: Fusionar siempre las bombas entrantes con las 24 bombas oficiales predeterminadas (`mergeWithDefaults`), garantizando siempre 8 en Sentina, 6 en Intermedia y 10 en Torre 5.
   3. En `pumps.component.ts`: Método `ensureCompletePumps()` ejecutado en `ngOnInit` y `loadOperationalSheet()` que auto-completa cualquier bomba ausente. `isLockedByMaintenance` con try/catch y auto-reparación de tipos corruptos en `localStorage`.
+
+---
+
+### Gotcha #13: Proyección ng-content [footer] Oculta en ModalComponent y Barra Duplicada Vacía
+- **Síntoma**: Los botones de "Crear Orden de Trabajo" o "Dar Pase Operativo" aparecían apiñados dentro del cuerpo del formulario, mientras que debajo se renderizaba una franja de pie de modal completamente vacía y redundante.
+- **Causa Raíz**: En `ModalComponent`, `<ng-content select="[footer]">` únicamente proyecta elementos que sean **hijos directos** de `<app-modal>`. Al envolver los botones dentro de `<form>` (hijo directo), Angular no los proyectaba en `[footer]` sino en el slot por defecto (`modal-body`), dejando el `modal-footer` con altura pero sin contenido.
+- **Solución Obligatoria**:
+  Colocar siempre los botones dentro de `<div footer class="modal-buttons">` como **hijo directo** de `<app-modal>`, y enlazar el botón de submit al formulario mediante el atributo estándar `form="formId"`:
+  ```html
+  <app-modal [isOpen]="isOpen" [showFooter]="true">
+    <form id="createForm" (ngSubmit)="submit()">
+      <!-- inputs del formulario -->
+    </form>
+    <div footer class="modal-buttons">
+      <button type="button" class="btn btn-secondary" (click)="close()">Cancelar</button>
+      <button type="submit" form="createForm" class="btn btn-primary">Guardar</button>
+    </div>
+  </app-modal>
+  ```
+
+---
+
+### Gotcha #14: Resurrección Fantasma de Tickets Eliminados por Fusión Indiscriminada de Caché
+- **Síntoma**: Un usuario con permiso de eliminación borraba una orden de trabajo (eliminada con éxito en SQLite), pero al recargar la vista o volver desde otro módulo, la orden reaparecía como si nunca se hubiera borrado.
+- **Causa Raíz**: `loadTickets()` realizaba un `merged = [...serverTickets]`, y luego recorría el `cached` en `localStorage`: si `!merged.some(m => m.id === c.id)`, reinsertaba el elemento (`merged.unshift(c)`). Como el servidor ya no devolvía el ticket eliminado, el código asumía falsamente que era un dato no sincronizado y lo resucitaba en memoria.
+- **Solución Obligatoria**:
+  Solo preservar del almacenamiento local los borradores creados auténticamente offline pendientes de sincronización (identificados por prefijo de cliente `c.id.startsWith('m-')`). Todo ticket con UUID formal de servidor ausente en la respuesta HTTP se descarta definitivamente:
+  ```ts
+  if (c && c.id && typeof c.id === 'string' && c.id.startsWith('m-') && !merged.some(m => m.id === c.id)) {
+    merged.unshift(c);
+  }
+  ```
+
+---
+
+### Gotcha #15: Trampa Regex en Filtro de Disciplinas (`|pu|` capturando "pulpa")
+- **Síntoma**: Al hacer clic en los filtros de especialidad (⚡ Electricidad, 📡 Instrumentación, 🛢️ Lubricación), todas las órdenes de trabajo aparecían clasificadas bajo "🔧 Mecánica" y los demás filtros reportaban 0 tickets.
+- **Causa Raíz**: La expresión regular de Mecánica incluía el token `|pu|` con la intención de capturar el tag de bombas (ej. PU001). Al evaluarse contra el texto descriptivo del ticket, la subcadena "pu" coincidía con la palabra **"pulpa"** (slurry), presente en el 100% de los tickets mineros de la faena. Además, la disciplina Mecánica se evaluaba en primer lugar.
+- **Solución Obligatoria**:
+  1. Respetar prioritariamente el campo estructurado `t.specialty` asignado al crear el ticket.
+  2. Evaluar primero las disciplinas específicas (`LUBRICACION`, `INSTRUMENTACION`, `ELECTRICIDAD`) antes de Mecánica.
+  3. Delimitar estrictamente el tag de bombas con límites de palabra o dígitos (`\bpu\d+|\bpu-\d+` o `\bpp[-_]?\d+`) para que jamás haga match con palabras en español como "pulpa" o "impulsor".

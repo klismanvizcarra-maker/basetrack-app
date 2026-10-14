@@ -14,7 +14,7 @@ import {
 import { getAllCyclones, createCycloneReport, getStationSamples, createStationSample, updateStationSample, deleteStationSample } from '../controllers/cyclones.controller.js';
 import { getAllTailings, createTailingsReport } from '../controllers/tailings.controller.js';
 import { getAllShiftHandovers, createShiftHandover, acceptShiftHandover } from '../controllers/shift.controller.js';
-import { getAllMaintenanceRequests, createMaintenanceRequest, updateMaintenanceStatus } from '../controllers/maintenance.controller.js';
+import { getAllMaintenanceRequests, createMaintenanceRequest, updateMaintenanceStatus, deleteMaintenanceRequest } from '../controllers/maintenance.controller.js';
 import { 
   getAllUsers, 
   createUserByAdmin, 
@@ -114,6 +114,7 @@ apiRouter.patch('/shift-handover/:id/accept', authenticateToken, requirePermissi
 apiRouter.get('/maintenance', authenticateToken, getAllMaintenanceRequests);
 apiRouter.post('/maintenance', authenticateToken, requirePermission('CAN_RECORD_DATA'), createMaintenanceRequest);
 apiRouter.patch('/maintenance/:id/status', authenticateToken, requirePermission('CAN_RECORD_DATA'), updateMaintenanceStatus);
+apiRouter.delete('/maintenance/:id', authenticateToken, requirePermission('CAN_DELETE_RECORDS'), deleteMaintenanceRequest);
 
 // 9. Admin & Backups
 apiRouter.get('/admin/users', authenticateToken, requireRoles('ADMIN', 'SUPERVISOR'), getAllUsers);

@@ -2,8 +2,8 @@
   <div class="admin-page">
     <div class="page-top-bar">
       <div>
-        <h2>Administración de Planta y Copias de Seguridad</h2>
-        <p class="section-sub">Control de accesos RBAC, auditoría de eventos y respaldo de base de datos</p>
+        <h2>Administración y Mantenimiento de Planta</h2>
+        <p class="section-sub">Control de personal, parámetros operativos, seguridad RBAC y respaldos industriales</p>
       </div>
       <div class="top-btns">
         <button class="btn btn-secondary" (click)="openBulkModal()">
@@ -13,33 +13,15 @@
             <line x1="16" y1="13" x2="8" y2="13"></line>
             <line x1="16" y1="17" x2="8" y2="17"></line>
           </svg>
-          Carga por Lote (CSV/Excel)
+          Carga Masiva (CSV)
         </button>
-        <button class="btn btn-secondary" (click)="exportBackup()">
+        <button class="btn btn-primary" (click)="setActiveTab('SYSTEM_BACKUPS')">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
             <polyline points="7 10 12 15 17 10"></polyline>
             <line x1="12" y1="15" x2="12" y2="3"></line>
           </svg>
-          Exportar Backup JSON
-        </button>
-        <input #restoreFileInput type="file" accept=".json" (change)="onFileSelectedForRestore($event)" style="display: none" />
-        <button class="btn btn-secondary" (click)="restoreFileInput.click()">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-            <polyline points="17 8 12 3 7 8"></polyline>
-            <line x1="12" y1="3" x2="12" y2="15"></line>
-          </svg>
-          Restaurar Backup JSON
-        </button>
-        <button class="btn btn-danger btn-reset-app" (click)="openResetAppModal()" title="Restablecer completamente la aplicación a estado inicial limpio">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-            <path d="M3 6h18"></path>
-            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-            <line x1="10" y1="11" x2="10" y2="17"></line>
-            <line x1="14" y1="11" x2="14" y2="17"></line>
-          </svg>
-          Reset App (Limpieza Total)
+          Copias & Mantenimiento
         </button>
       </div>
     </div>
@@ -53,87 +35,176 @@
       <span>{{ backupSuccessMessage }}</span>
     </div>
 
-    <!-- Navigation Tabs: Apartados de Administración -->
-    <div class="admin-nav-tabs glass-panel animate-fade-in">
-      <button 
-        type="button" 
-        class="nav-tab-btn" 
-        [class.active]="activeAdminTab === 'SUPERVISORS_CREW'" 
-        (click)="activeAdminTab = 'SUPERVISORS_CREW'"
+    <!-- 4 Command Hub Cards (Executive KPIs + Integrated 1-Click Navigation) -->
+    <div class="admin-command-grid animate-fade-in">
+      <!-- Card 1: Personal & Dotación -->
+      <div 
+        class="admin-command-card" 
+        [class.active-domain]="currentDomain === 'PERSONNEL'"
+        (click)="selectDomain('PERSONNEL')"
+        title="Gestionar personal, supervisores, cuadrillas y usuarios"
       >
-        <span class="tab-icon">🛡️</span>
-        <span class="tab-title">Guardias</span>
-        <span class="tab-badge">{{ supervisorsList.length || 4 }} Guardias</span>
-      </button>
+        <div class="command-card-header">
+          <div class="card-domain-info">
+            <span class="card-icon-avatar bg-blue">👥</span>
+            <div>
+              <span class="card-category-label">PERSONAL & DOTACIÓN</span>
+              <h4 class="card-metric-val">{{ users.length }} Cuentas</h4>
+            </div>
+          </div>
+          <span class="card-status-pill green">
+            <span class="pulse-dot"></span> 100% Asignado
+          </span>
+        </div>
+        <p class="card-sub-desc">4 Guardias oficiales (G1 a G4)</p>
+        <div class="command-card-tabs">
+          <button 
+            type="button" 
+            class="command-tab-pill" 
+            [class.active]="activeAdminTab === 'SUPERVISORS_CREW'"
+            (click)="$event.stopPropagation(); setActiveTab('SUPERVISORS_CREW')"
+          >
+            <span class="pill-ico">🛡️</span> Guardias
+          </button>
+          <button 
+            type="button" 
+            class="command-tab-pill" 
+            [class.active]="activeAdminTab === 'USERS_ROLES'"
+            (click)="$event.stopPropagation(); setActiveTab('USERS_ROLES')"
+          >
+            <span class="pill-ico">👥</span> Usuarios
+          </button>
+        </div>
+      </div>
 
-      <button 
-        type="button" 
-        class="nav-tab-btn" 
-        [class.active]="activeAdminTab === 'USERS_ROLES'" 
-        (click)="activeAdminTab = 'USERS_ROLES'"
+      <!-- Card 2: Operaciones & Planta -->
+      <div 
+        class="admin-command-card" 
+        [class.active-domain]="currentDomain === 'OPERATIONS'"
+        (click)="selectDomain('OPERATIONS')"
+        title="Gestionar parámetros de planta y flota de camionetas"
       >
-        <span class="tab-icon">👥</span>
-        <span class="tab-title">Usuarios & Cuentas</span>
-        <span class="tab-badge">{{ users.length }} Cuentas</span>
-      </button>
+        <div class="command-card-header">
+          <div class="card-domain-info">
+            <span class="card-icon-avatar bg-amber">⚙️</span>
+            <div>
+              <span class="card-category-label">OPERACIONES & PLANTA</span>
+              <h4 class="card-metric-val">4,400 TPH</h4>
+            </div>
+          </div>
+          <span class="card-status-pill amber">
+            <span class="pulse-dot"></span> Calibrado
+          </span>
+        </div>
+        <p class="card-sub-desc">Malla -200: 62% • Borde Libre &gt;2.5m</p>
+        <div class="command-card-tabs">
+          <button 
+            type="button" 
+            class="command-tab-pill" 
+            [class.active]="activeAdminTab === 'PLANT_PARAMETERS'"
+            (click)="$event.stopPropagation(); setActiveTab('PLANT_PARAMETERS')"
+          >
+            <span class="pill-ico">⚙️</span> Metas Planta
+          </button>
+          <button 
+            type="button" 
+            class="command-tab-pill" 
+            [class.active]="activeAdminTab === 'VEHICLES_FLEET'"
+            (click)="$event.stopPropagation(); setActiveTab('VEHICLES_FLEET')"
+          >
+            <span class="pill-ico">🛻</span> Camionetas
+          </button>
+        </div>
+      </div>
 
-      <button 
-        type="button" 
-        class="nav-tab-btn" 
-        [class.active]="activeAdminTab === 'TERMINALS_SYNC'" 
-        (click)="activeAdminTab = 'TERMINALS_SYNC'"
+      <!-- Card 3: Seguridad & Control -->
+      <div 
+        class="admin-command-card" 
+        [class.active-domain]="currentDomain === 'SECURITY'"
+        (click)="selectDomain('SECURITY')"
+        title="Gestionar permisos RBAC y auditoría SCADA"
       >
-        <span class="tab-icon">☁️</span>
-        <span class="tab-title">Dispositivos & Conectividad</span>
-        <span class="tab-badge">{{ deviceFleetStore.devices().length }}</span>
-      </button>
+        <div class="command-card-header">
+          <div class="card-domain-info">
+            <span class="card-icon-avatar bg-emerald">🔐</span>
+            <div>
+              <span class="card-category-label">SEGURIDAD & CONTROL</span>
+              <h4 class="card-metric-val">RBAC Híbrido</h4>
+            </div>
+          </div>
+          <span class="card-status-pill green">
+            <span class="pulse-dot"></span> OWASP Activo
+          </span>
+        </div>
+        <p class="card-sub-desc">{{ auditLogStore.logs().length }} Eventos SCADA registrados</p>
+        <div class="command-card-tabs">
+          <button 
+            type="button" 
+            class="command-tab-pill" 
+            [class.active]="activeAdminTab === 'PERMISSIONS_MATRIX'"
+            (click)="$event.stopPropagation(); setActiveTab('PERMISSIONS_MATRIX')"
+          >
+            <span class="pill-ico">🔐</span> Permisos
+          </button>
+          <button 
+            type="button" 
+            class="command-tab-pill" 
+            [class.active]="activeAdminTab === 'AUDIT_LOGS'"
+            (click)="$event.stopPropagation(); setActiveTab('AUDIT_LOGS')"
+          >
+            <span class="pill-ico">📜</span> Auditoría
+          </button>
+        </div>
+      </div>
 
-      <button 
-        type="button" 
-        class="nav-tab-btn" 
-        [class.active]="activeAdminTab === 'AUDIT_LOGS'" 
-        (click)="activeAdminTab = 'AUDIT_LOGS'"
+      <!-- Card 4: Sistema & Respaldos -->
+      <div 
+        class="admin-command-card" 
+        [class.active-domain]="currentDomain === 'SYSTEM'"
+        (click)="selectDomain('SYSTEM')"
+        title="Centro de copias de seguridad, servidor cloud y sincronización"
       >
-        <span class="tab-icon">📜</span>
-        <span class="tab-title">Trazabilidad SCADA</span>
-        <span class="tab-badge">{{ auditLogStore.logs().length }}</span>
-      </button>
-
-      <button 
-        type="button" 
-        class="nav-tab-btn" 
-        [class.active]="activeAdminTab === 'PERMISSIONS_MATRIX'" 
-        (click)="activeAdminTab = 'PERMISSIONS_MATRIX'"
-      >
-        <span class="tab-icon">🔐</span>
-        <span class="tab-title">Matriz de Permisos</span>
-        <span class="tab-badge">RBAC Híbrido</span>
-      </button>
-
-      <button 
-        type="button" 
-        class="nav-tab-btn" 
-        [class.active]="activeAdminTab === 'PLANT_PARAMETERS'" 
-        (click)="activeAdminTab = 'PLANT_PARAMETERS'"
-      >
-        <span class="tab-icon">⚙️</span>
-        <span class="tab-title">Parámetros de Planta</span>
-        <span class="tab-badge">Metas & Umbrales</span>
-      </button>
-
-      <button 
-        type="button" 
-        class="nav-tab-btn" 
-        [class.active]="activeAdminTab === 'VEHICLES_FLEET'" 
-        (click)="activeAdminTab = 'VEHICLES_FLEET'"
-      >
-        <span class="tab-icon">🛻</span>
-        <span class="tab-title">Padrón de Camionetas</span>
-        <span class="tab-badge">{{ vehicleChecklistService.vehicles().length }} Unidades</span>
-      </button>
+        <div class="command-card-header">
+          <div class="card-domain-info">
+            <span class="card-icon-avatar bg-indigo">💾</span>
+            <div>
+              <span class="card-category-label">SISTEMA & DATOS</span>
+              <h4 class="card-metric-val">SQLite WAL</h4>
+            </div>
+          </div>
+          <span class="card-status-pill green">
+            <span class="pulse-dot"></span> Sincronizado
+          </span>
+        </div>
+        <p class="card-sub-desc">Respaldos JSON • {{ deviceFleetStore.devices().length }} Dispositivos</p>
+        <div class="command-card-tabs">
+          <button 
+            type="button" 
+            class="command-tab-pill" 
+            [class.active]="activeAdminTab === 'SYSTEM_BACKUPS'"
+            (click)="$event.stopPropagation(); setActiveTab('SYSTEM_BACKUPS')"
+          >
+            <span class="pill-ico">💾</span> Respaldos
+          </button>
+          <button 
+            type="button" 
+            class="command-tab-pill" 
+            [class.active]="activeAdminTab === 'TERMINALS_SYNC'"
+            (click)="$event.stopPropagation(); setActiveTab('TERMINALS_SYNC')"
+          >
+            <span class="pill-ico">☁️</span> Dispositivos
+          </button>
+        </div>
+      </div>
     </div>
 
+    <!-- Tab 1: Guardias & Cuadrillas -->
     <app-admin-guards-tab *ngIf="activeAdminTab === 'SUPERVISORS_CREW'" (notify)="showNotice($event)" (openBulkImport)="openBulkModal($event)"></app-admin-guards-tab>
+
+    <!-- Tab 2: Usuarios & Credenciales -->
+    <app-admin-users-tab *ngIf="activeAdminTab === 'USERS_ROLES'" (notify)="showNotice($event)" (issuedCredentials)="showIssuedCredentials($event)"></app-admin-users-tab>
+
+    <!-- Tab 3: Dispositivos & Conectividad -->
     <app-admin-terminals-tab *ngIf="activeAdminTab === 'TERMINALS_SYNC'" (notify)="showNotice($event)" (openBackendConfig)="openBackendConfigModal()"></app-admin-terminals-tab>
     <!-- Vercel Offline / Unlinked Backend Warning Banner -->
     <div class="vercel-backend-warning glass-panel animate-fade-in" *ngIf="isVercelDeployment && !hasCustomCloudBackend">
@@ -149,16 +220,190 @@
       </button>
     </div>
 
-    <app-admin-users-tab *ngIf="activeAdminTab === 'USERS_ROLES'" (notify)="showNotice($event)" (issuedCredentials)="showIssuedCredentials($event)"></app-admin-users-tab>
-    <!-- Audit Logs Table -->
+    <!-- Tab 4: Trazabilidad SCADA & Auditoría -->
     <app-admin-audit-logs-tab *ngIf="activeAdminTab === 'AUDIT_LOGS'"></app-admin-audit-logs-tab>
 
+    <!-- Tab 5: Matriz de Permisos RBAC -->
     <app-admin-permissions-tab *ngIf="activeAdminTab === 'PERMISSIONS_MATRIX'"></app-admin-permissions-tab>
-    <!-- APARTADO 6: PARÁMETROS DE PLANTA & METAS OPERACIONALES -->
+
+    <!-- Tab 6: Parámetros de Planta & Metas Operacionales -->
     <app-admin-plant-parameters-tab *ngIf="activeAdminTab === 'PLANT_PARAMETERS'"></app-admin-plant-parameters-tab>
 
-    <!-- APARTADO 7: PADRÓN DE CAMIONETAS MINERAS 4X4 (Gestión de Flota) -->
+    <!-- Tab 7: Padrón de Camionetas Mineras 4x4 -->
     <app-admin-vehicles-tab *ngIf="activeAdminTab === 'VEHICLES_FLEET'"></app-admin-vehicles-tab>
+
+    <!-- Tab 8: Centro de Copias de Seguridad & Mantenimiento del Sistema -->
+    <div class="system-backups-section animate-fade-in" *ngIf="activeAdminTab === 'SYSTEM_BACKUPS'">
+      <div class="header-banner-card glass-panel">
+        <div class="card-head">
+          <div class="head-with-icon">
+            <span class="fleet-icon">💾</span>
+            <div>
+              <h3>Centro de Copias de Seguridad y Mantenimiento del Sistema</h3>
+              <p class="section-sub">Resguardo estructurado de datos en JSON, importación masiva oficial, conexión con la nube y depuración del sistema.</p>
+            </div>
+          </div>
+          <div class="head-actions">
+            <button class="btn btn-primary" (click)="exportBackup()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              Exportar Backup Ahora
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="system-backups-grid">
+        <!-- Card 1: Exportar Backup JSON -->
+        <div class="system-action-card">
+          <div class="card-top-header">
+            <div class="action-icon-pill icon-blue">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+            </div>
+            <div class="card-title-group">
+              <h4>Exportar Copia de Seguridad</h4>
+              <span class="card-badge badge-blue">Formato JSON Seguro</span>
+            </div>
+          </div>
+          <p class="card-desc">
+            Genera y descarga un archivo JSON completo que contiene todos los usuarios, guardias, cuadrillas, parámetros calibrados de planta, checklists de camionetas y bitácoras de auditoría.
+          </p>
+          <div class="card-meta-info" *ngIf="lastBackupDate">
+            <span>Última exportación en esta sesión: <strong>{{ lastBackupDate }}</strong></span>
+          </div>
+          <div class="card-bottom-actions">
+            <button class="btn btn-primary full-width" (click)="exportBackup()">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              Descargar Backup JSON
+            </button>
+          </div>
+        </div>
+
+        <!-- Card 2: Restaurar Backup JSON -->
+        <div class="system-action-card">
+          <div class="card-top-header">
+            <div class="action-icon-pill icon-emerald">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
+            </div>
+            <div class="card-title-group">
+              <h4>Restaurar Copia de Seguridad</h4>
+              <span class="card-badge badge-emerald">Importación Segura</span>
+            </div>
+          </div>
+          <p class="card-desc">
+            Carga un archivo de respaldo JSON generado previamente. El sistema validará su formato y sincronizará de forma segura todas las tablas de base de datos.
+          </p>
+          <div class="card-meta-info">
+            <span>Requiere confirmación antes de sincronizar datos</span>
+          </div>
+          <div class="card-bottom-actions">
+            <input #restoreFileInput type="file" accept=".json" (change)="onFileSelectedForRestore($event)" style="display: none" />
+            <button class="btn btn-secondary full-width" (click)="restoreFileInput.click()">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
+              Examinar Archivo JSON para Restaurar
+            </button>
+          </div>
+        </div>
+
+        <!-- Card 3: Carga Masiva y Plantillas CSV -->
+        <div class="system-action-card">
+          <div class="card-top-header">
+            <div class="action-icon-pill icon-purple">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+              </svg>
+            </div>
+            <div class="card-title-group">
+              <h4>Nómina y Carga Masiva</h4>
+              <span class="card-badge badge-purple">Plantillas Oficiales</span>
+            </div>
+          </div>
+          <p class="card-desc">
+            Importa la nómina de personal organizada por guardia (1 Supervisor + 7 Operadores = 32 puestos oficiales) desde hojas de cálculo Excel o archivos CSV delimitados.
+          </p>
+          <div class="card-bottom-actions flex-actions">
+            <button class="btn btn-secondary" (click)="openBulkModal()">
+              🚀 Asistente de Carga
+            </button>
+            <button class="btn btn-secondary" (click)="downloadTemplateCsv('ALL')">
+              ⬇️ Plantilla Maestra (32 Puestos)
+            </button>
+          </div>
+        </div>
+
+        <!-- Card 4: Conectividad Cloud y Servidor Central -->
+        <div class="system-action-card">
+          <div class="card-top-header">
+            <div class="action-icon-pill icon-cyan">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path>
+              </svg>
+            </div>
+            <div class="card-title-group">
+              <h4>Conexión con Servidor Central</h4>
+              <span class="card-badge badge-cyan">Sincronización Cloud</span>
+            </div>
+          </div>
+          <p class="card-desc">
+            Configura el endpoint de la API central (Render / LAN Local) para permitir que múltiples dispositivos sincronicen información en tiempo real vía WebSocket.
+          </p>
+          <div class="card-meta-info">
+            <span>Endpoint actual: <code>{{ currentApiUrl }}</code></span>
+          </div>
+          <div class="card-bottom-actions">
+            <button class="btn btn-secondary full-width" (click)="openBackendConfigModal()">
+              🔗 Configurar URL del Servidor Central
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 5: Zona de Peligro / Reset App (Seguridad Crítica) -->
+      <div class="danger-zone-card">
+        <div class="danger-zone-header">
+          <div class="danger-icon">⚠️</div>
+          <div>
+            <h4>Zona de Seguridad: Restablecimiento de Fábrica (Reset App)</h4>
+            <p>
+              Operación destructiva protegida por contraseña administrativa. Purga completamente bitácoras operacionales, cuadrillas temporales, turnos y checklists, preservando únicamente tu cuenta oficial de Administrador.
+            </p>
+          </div>
+        </div>
+        <div class="danger-zone-actions">
+          <button class="btn btn-danger btn-reset-app" (click)="openResetAppModal()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <path d="M3 6h18"></path>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              <line x1="10" y1="11" x2="10" y2="17"></line>
+              <line x1="14" y1="11" x2="14" y2="17"></line>
+            </svg>
+            Iniciar Reset App (Requiere Contraseña)
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 
     <!-- Modal Bulk Import Users (Organizado por Guardias y Supervisores) -->

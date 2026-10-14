@@ -448,7 +448,7 @@ export class LoginComponent {
           if (!returnUrl || returnUrl === '/dashboard') {
             returnUrl = '/maintenance';
           }
-        } else if (!returnUrl) {
+        } else if (!returnUrl || returnUrl === '/admin') {
           returnUrl = '/dashboard';
         }
         this.router.navigateByUrl(returnUrl);
