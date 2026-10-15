@@ -10,6 +10,7 @@
     "start": "node dist/index.js",
     "seed": "tsx src/database/seed.ts",
     "purge": "tsx src/database/purge.ts",
+    "purge:master-sheet": "tsx src/database/purge-invalid-master-sheet.ts",
     "backup": "tsx src/database/backup.ts",
     "test": "tsx --import ./tests/setup-test-env.mjs --test tests/api.test.ts"
   },
