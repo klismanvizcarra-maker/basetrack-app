@@ -136,10 +136,21 @@ export interface MasterSheetEntry {
 
   // Columnas adicionales / raw
   rawCols?: Record<string, any>;
+  // Observaciones de rango no críticas detectadas al importar (la fila se aceptó pero requiere revisión)
+  validationWarnings?: string[];
   updatedAt?: string;
 }
 
-export type FreeboardStatus = 'NORMAL' | 'WARNING' | 'CRITICAL';
+/** Campos numéricos de un registro de planilla. */
+export type MasterSheetNumericField = {
+  [K in keyof MasterSheetEntry]-?: MasterSheetEntry[K] extends number ? K : never;
+}[keyof MasterSheetEntry];
+
+/** Campos de texto libre de un registro de planilla. */
+export type MasterSheetStringField = 'lineasActivas' | 'zonaOperativa' | 'reglasAlmacenamiento' | 'lamasSpigotsInfo';
+
+// INVALID: el registro tiene cotas / borde libre físicamente imposibles y no puede evaluarse
+export type FreeboardStatus = 'NORMAL' | 'WARNING' | 'CRITICAL' | 'INVALID';
 
 export interface FreeboardEvaluation {
   status: FreeboardStatus;
@@ -148,6 +159,8 @@ export interface FreeboardEvaluation {
   bgColor: string;
   borderColor: string;
   message: string;
+  /** Motivos por los que el registro no es evaluable (solo con status INVALID). */
+  errors?: string[];
 }
 
 export interface SheetSummary {

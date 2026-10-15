@@ -9,8 +9,9 @@ import { CircularGaugeComponent } from '../../shared/ui/circular-gauge.component
 import { DistributionDonutComponent } from '../../shared/ui/distribution-donut.component';
 import { WeeklyBarChartComponent } from '../../shared/ui/weekly-bar-chart.component';
 import { WaveAreaChartComponent } from '../../shared/ui/wave-area-chart.component';
-import { MasterSheetService } from '../../core/services/master-sheet.service';
+import { MasterSheetService, ImportRowIssue } from '../../core/services/master-sheet.service';
 import { MasterSheetEntry, SheetSummary } from '../../core/models/master-sheet.model';
+import { MasterAreaPanelsComponent } from './master-area-panels.component';
 
 export interface TrendMetricConfig {
   id: string;
@@ -27,6 +28,54 @@ export interface TrendMetricConfig {
   thresholdVal?: number;
   getValue: (entry: MasterSheetEntry) => number;
   getSecondaryValue?: (entry: MasterSheetEntry) => number;
+  /** Campo que alimenta la curva principal (para ocultar métricas sin datos). */
+  field: keyof MasterSheetEntry;
+  secondaryField?: keyof MasterSheetEntry;
+}
+
+const avgAB = (a: number, b: number): number => (a && b ? (a + b) / 2 : a || b || 0);
+
+/** Construye una métrica de tendencia a partir de los campos de la planilla. */
+function trendMetric(
+  id: string,
+  label: string,
+  primaryLabel: string,
+  color: string,
+  unit: string,
+  decimals: number,
+  field: keyof MasterSheetEntry,
+  opts: {
+    secondary?: [string, string, keyof MasterSheetEntry] | [string, string, (e: MasterSheetEntry) => number, keyof MasterSheetEntry];
+    threshold?: [string, number];
+  } = {}
+): TrendMetricConfig {
+  const num = (e: MasterSheetEntry, f: keyof MasterSheetEntry): number => {
+    const v = e[f];
+    return typeof v === 'number' && Number.isFinite(v) ? v : 0;
+  };
+  const config: TrendMetricConfig = {
+    id, label, primaryLabel, color, unit, decimals, field,
+    getValue: (e) => num(e, field)
+  };
+  if (opts.secondary) {
+    const [secLabel, secColor, secSource, secField] = opts.secondary as [string, string, any, any];
+    config.secondaryLabel = secLabel;
+    config.secondaryColor = secColor;
+    config.secondaryUnit = unit;
+    config.secondaryDecimals = decimals;
+    if (typeof secSource === 'function') {
+      config.getSecondaryValue = secSource;
+      config.secondaryField = secField;
+    } else {
+      config.getSecondaryValue = (e) => num(e, secSource);
+      config.secondaryField = secSource;
+    }
+  }
+  if (opts.threshold) {
+    config.thresholdLabel = opts.threshold[0];
+    config.thresholdVal = opts.threshold[1];
+  }
+  return config;
 }
 
 export interface TrendDataPoint {
@@ -36,6 +85,8 @@ export interface TrendDataPoint {
   val: number;
   formattedVal: string;
   displayVal: string;
+  /** En series largas solo algunas fechas llevan etiqueta (máx. ~12) para que el eje sea legible. */
+  showLabel: boolean;
 }
 
 export interface TrendStatsSummary {
@@ -60,7 +111,8 @@ export interface TrendStatsSummary {
     CircularGaugeComponent,
     DistributionDonutComponent,
     WeeklyBarChartComponent,
-    WaveAreaChartComponent
+    WaveAreaChartComponent,
+    MasterAreaPanelsComponent
   ],
   template: `
     <div class="dashboard-page animate-fade-in">
@@ -308,7 +360,7 @@ export interface TrendStatsSummary {
               <h2 class="hero-metric-title">
                 Borde Libre Operacional:
                 <span class="highlight-val" [style.color]="masterService.freeboardEval().color">
-                  {{ current.bordeLibreM.toFixed(2) }} m
+                  {{ damValue(current.bordeLibreM, 'm') }}
                 </span>
               </h2>
               <p class="hero-metric-desc">
@@ -320,17 +372,17 @@ export interface TrendStatsSummary {
               <div class="cota-level-breakdown">
                 <div class="cota-item">
                   <span class="cota-label">Cota Corona Dique</span>
-                  <span class="cota-val">{{ current.cotaCoronaMsnm.toFixed(2) }} msnm</span>
+                  <span class="cota-val">{{ damValue(current.cotaCoronaMsnm, 'msnm') }}</span>
                 </div>
                 <div class="cota-divider">-</div>
                 <div class="cota-item">
                   <span class="cota-label">Cota Embalse Agua/Relave</span>
-                  <span class="cota-val">{{ current.cotaEmbalseMsnm.toFixed(2) }} msnm</span>
+                  <span class="cota-val">{{ damValue(current.cotaEmbalseMsnm, 'msnm') }}</span>
                 </div>
                 <div class="cota-divider">=</div>
                 <div class="cota-item active">
                   <span class="cota-label">Revancha Real</span>
-                  <span class="cota-val highlight">{{ current.bordeLibreM.toFixed(2) }} m</span>
+                  <span class="cota-val highlight">{{ damValue(current.bordeLibreM, 'm') }}</span>
                 </div>
               </div>
             </div>
@@ -346,8 +398,8 @@ export interface TrendStatsSummary {
               </div>
               <div class="kpi-info">
                 <span class="kpi-label">Relave Enviado a Presa</span>
-                <span class="kpi-value">{{ current.relaveTotalVolDiaM3.toLocaleString() }} m³</span>
-                <span class="kpi-sub">Turno A: {{ current.relaveVolAM3.toLocaleString() }} | B: {{ current.relaveVolBM3.toLocaleString() }} m³</span>
+                <span class="kpi-value">{{ kv('relaveTotalVolDiaM3', 'm³', 0) }}</span>
+                <span class="kpi-sub">Turno A: {{ kv('relaveVolAM3', '', 0) }} | B: {{ kv('relaveVolBM3', 'm³', 0) }}</span>
               </div>
             </div>
 
@@ -359,8 +411,8 @@ export interface TrendStatsSummary {
               </div>
               <div class="kpi-info">
                 <span class="kpi-label">Agua Recuperada (Torre 5)</span>
-                <span class="kpi-value">{{ current.torre5VolDiaM3.toLocaleString() }} m³</span>
-                <span class="kpi-sub">Bombeo 24h continuo a Planta Concentradora</span>
+                <span class="kpi-value">{{ kv('torre5VolDiaM3', 'm³', 0) }}</span>
+                <span class="kpi-sub">Turno A: {{ kv('torre5VolAM3', '', 0) }} | B: {{ kv('torre5VolBM3', 'm³', 0) }}</span>
               </div>
             </div>
 
@@ -375,8 +427,8 @@ export interface TrendStatsSummary {
               </div>
               <div class="kpi-info">
                 <span class="kpi-label">2da Estación Ciclones</span>
-                <span class="kpi-value">{{ current.ciclones2daSolidosPromPct }}% <small>Sólidos</small></span>
-                <span class="kpi-sub">{{ current.ciclones2daMalla200PromPct }}% Malla -200 | {{ current.ciclonesPresionPsi }} PSI</span>
+                <span class="kpi-value">{{ kv('ciclones2daSolidosPromPct', '%', 2) }} <small>Sólidos</small></span>
+                <span class="kpi-sub">Malla -200: {{ kv('ciclones2daMalla200APct', '%', 2) }} (A) | {{ kv('ciclones2daMalla200BPct', '%', 2) }} (B)</span>
               </div>
             </div>
 
@@ -388,9 +440,9 @@ export interface TrendStatsSummary {
                 </svg>
               </div>
               <div class="kpi-info">
-                <span class="kpi-label">Arenas Compactadas</span>
-                <span class="kpi-value">{{ current.arenasProdTopografiaM3.toLocaleString() }} m³</span>
-                <span class="kpi-sub">Densidad Proctor: {{ current.compactacionPct }}%</span>
+                <span class="kpi-label">Arenas a Paddocks</span>
+                <span class="kpi-value">{{ kv('arenasTotalAcumM3', 'm³', 0) }}</span>
+                <span class="kpi-sub">Densidad pulpa: {{ kv('densidadPulpaA', '', 3) }} (A) | {{ kv('densidadPulpaB', 't/m³', 3) }} (B)</span>
               </div>
             </div>
 
@@ -402,8 +454,8 @@ export interface TrendStatsSummary {
               </div>
               <div class="kpi-info">
                 <span class="kpi-label">Filtraciones Totales</span>
-                <span class="kpi-value">{{ current.filtracionesTotalLs }} L/s</span>
-                <span class="kpi-sub">{{ current.filtracionesTotalM3Dia }} m³/día (Drenes + Subdrenaje)</span>
+                <span class="kpi-value">{{ kv('filtracionesTotalLs', 'L/s', 2) }}</span>
+                <span class="kpi-sub">{{ kv('filtracionesTotalM3Dia', 'm³/día', 0) }}</span>
               </div>
             </div>
 
@@ -417,8 +469,8 @@ export interface TrendStatsSummary {
               </div>
               <div class="kpi-info">
                 <span class="kpi-label">Control de pH Embalse</span>
-                <span class="kpi-value">{{ current.phEmbalseA }} pH</span>
-                <span class="kpi-sub">Vertedero: {{ current.phVertederoA }} pH | Sentina: {{ current.phSentina }} pH</span>
+                <span class="kpi-value">{{ kv('phEmbalseA', 'pH', 2) }}</span>
+                <span class="kpi-sub">Vertedero: {{ kv('phVertederoA', 'pH', 2) }} | Sentina: {{ kv('phSentina', 'pH', 2) }}</span>
               </div>
             </div>
           </section>
@@ -459,8 +511,8 @@ export interface TrendStatsSummary {
 
                 <div
                   class="dam-status-pill"
-                  [class.safe]="!damIsFreeboardWarning && !damIsFreeboardCritical"
-                  [class.warning]="damIsFreeboardWarning"
+                  [class.safe]="!damIsFreeboardWarning && !damIsFreeboardCritical && !damIsInvalid"
+                  [class.warning]="damIsFreeboardWarning || damIsInvalid"
                   [class.critical]="damIsFreeboardCritical"
                 >
                   <span class="pulse-beacon"></span>
@@ -473,34 +525,34 @@ export interface TrendStatsSummary {
             <div class="dam-metrics-strip">
               <div class="dam-metric-badge" (mouseenter)="activeDamPart = 'corona'" (mouseleave)="activeDamPart = null">
                 <span class="m-label">Cota Corona Dique</span>
-                <span class="m-val">{{ current.cotaCoronaMsnm.toFixed(2) }} msnm</span>
+                <span class="m-val">{{ damValue(current.cotaCoronaMsnm, 'msnm') }}</span>
               </div>
               <div class="dam-metric-badge" (mouseenter)="activeDamPart = 'embalse'" (mouseleave)="activeDamPart = null">
                 <span class="m-label">Cota Espejo de Agua</span>
-                <span class="m-val highlight-blue">{{ current.cotaEmbalseMsnm.toFixed(2) }} msnm</span>
+                <span class="m-val highlight-blue">{{ damValue(current.cotaEmbalseMsnm, 'msnm') }}</span>
               </div>
               <div class="dam-metric-badge" (mouseenter)="activeDamPart = 'borde_libre'" (mouseleave)="activeDamPart = null">
                 <span class="m-label">Borde Libre (Revancha)</span>
                 <span
                   class="m-val highlight-status"
-                  [class.text-safe]="!damIsFreeboardWarning && !damIsFreeboardCritical"
-                  [class.text-warn]="damIsFreeboardWarning"
+                  [class.text-safe]="!damIsFreeboardWarning && !damIsFreeboardCritical && !damIsInvalid"
+                  [class.text-warn]="damIsFreeboardWarning || damIsInvalid"
                   [class.text-crit]="damIsFreeboardCritical"
                 >
-                  {{ current.bordeLibreM.toFixed(2) }} m
+                  {{ damValue(current.bordeLibreM, 'm') }}
                 </span>
               </div>
               <div class="dam-metric-badge" (mouseenter)="activeDamPart = 'playa'" (mouseleave)="activeDamPart = null">
                 <span class="m-label">Longitud de Playa</span>
-                <span class="m-val">{{ current.longitudPlayaM }} m</span>
+                <span class="m-val">{{ kv('longitudPlayaM', 'm', 1) }}</span>
               </div>
               <div class="dam-metric-badge" (mouseenter)="activeDamPart = 'talud'" (mouseleave)="activeDamPart = null">
                 <span class="m-label">Crecimiento Dique</span>
-                <span class="m-val">+{{ current.crecimientoPresaM.toFixed(2) }} m/día</span>
+                <span class="m-val">{{ kv('crecimientoPresaM', 'm/día', 3) }}</span>
               </div>
               <div class="dam-metric-badge" (mouseenter)="activeDamPart = 'torre5'" (mouseleave)="activeDamPart = null">
                 <span class="m-label">Extracción Torre 5</span>
-                <span class="m-val">{{ current.torre5VolDiaM3.toLocaleString() }} m³</span>
+                <span class="m-val">{{ kv('torre5VolDiaM3', 'm³', 0) }}</span>
               </div>
             </div>
 
@@ -643,7 +695,7 @@ export interface TrendStatsSummary {
                 ></rect>
                 <line x1="175" y1="276" x2="145" y2="276" stroke="#0284c7" stroke-width="2"></line>
                 <polygon points="145,273 138,276 145,279" fill="#0284c7"></polygon>
-                <text x="135" y="271" fill="#0284c7" font-size="8.5" font-weight="700" text-anchor="end">Dren Basal ({{ current.filtracionesTotalLs }} L/s)</text>
+                <text x="135" y="271" fill="#0284c7" font-size="8.5" font-weight="700" text-anchor="end">Dren Basal ({{ kv('filtracionesTotalLs', 'L/s', 1) }})</text>
 
                 <!-- 7. Lagoon / Water Pond (Espejo de Agua Dinámico) -->
                 <polygon
@@ -689,7 +741,7 @@ export interface TrendStatsSummary {
                   font-weight="700"
                   text-anchor="middle"
                 >
-                  💧 Cota Agua: {{ current.cotaEmbalseMsnm.toFixed(2) }} msnm
+                  💧 Cota Agua: {{ damValue(current.cotaEmbalseMsnm, 'msnm') }}
                 </text>
 
                 <!-- 8. Decant Tower 5 (Torre 5 de Captación) -->
@@ -716,7 +768,7 @@ export interface TrendStatsSummary {
                   <!-- Tag -->
                   <rect x="735" y="24" width="125" height="20" rx="4" fill="#ffffff" stroke="#cbd5e1" stroke-width="1"></rect>
                   <text x="797" y="38" fill="#0f172a" font-size="9.5" font-weight="700" text-anchor="middle">
-                    Torre 5 ({{ current.torre5VolDiaM3.toLocaleString() }} m³)
+                    Torre 5 ({{ kv('torre5VolDiaM3', 'm³', 0) }})
                   </text>
                 </g>
 
@@ -730,7 +782,7 @@ export interface TrendStatsSummary {
                   <!-- Crest Elevation Pill -->
                   <rect x="250" y="44" width="150" height="25" rx="7" fill="#031795" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.15))"></rect>
                   <text x="325" y="60" fill="#ffffff" font-size="11" font-weight="800" text-anchor="middle">
-                    ▲ Corona: {{ current.cotaCoronaMsnm.toFixed(2) }} msnm
+                    ▲ Corona: {{ damValue(current.cotaCoronaMsnm, 'msnm') }}
                   </text>
                   <!-- Crest Width text -->
                   <text x="325" y="93" fill="#64748b" font-size="9" font-weight="600" text-anchor="middle">Ancho Corona</text>
@@ -812,7 +864,7 @@ export interface TrendStatsSummary {
                     font-weight="800"
                     text-anchor="middle"
                   >
-                    ↔ {{ current.bordeLibreM.toFixed(2) }} m
+                    ↔ {{ damValue(current.bordeLibreM, 'm') }}
                   </text>
                 </g>
 
@@ -849,7 +901,7 @@ export interface TrendStatsSummary {
                     font-weight="700"
                     text-anchor="middle"
                   >
-                    Playa: {{ current.longitudPlayaM }} m
+                    Playa: {{ kv('longitudPlayaM', 'm', 1) }}
                   </text>
                 </g>
 
@@ -919,225 +971,25 @@ export interface TrendStatsSummary {
             </div>
           </section>
 
-          <!-- OPERATIONAL DETAIL CARDS (2-Column Grid) -->
-          <section class="master-details-grid">
-            <!-- 1. Topografía & Geometría del Dique -->
-            <div class="detail-card glass-panel">
-              <div class="card-header-clean">
-                <div class="header-icon-box">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
-                    <polyline points="2 17 12 22 22 17"></polyline>
-                    <polyline points="2 12 12 17 22 12"></polyline>
-                  </svg>
-                </div>
-                <div>
-                  <h4>1. Topografía, Dique & Borde Libre</h4>
-                  <p class="card-caption">Control de cotas, crecimiento y revancha según GISTM</p>
-                </div>
-              </div>
-
-              <div class="metrics-table-wrapper">
-                <table class="detail-table">
-                  <tbody>
-                    <tr>
-                      <td class="col-title">Cota Corona Dique</td>
-                      <td class="col-val"><strong>{{ current.cotaCoronaMsnm.toFixed(2) }}</strong> msnm</td>
-                      <td class="col-note">Nivel estructural del coronamiento</td>
-                    </tr>
-                    <tr>
-                      <td class="col-title">Cota Embalse / Agua</td>
-                      <td class="col-val"><strong>{{ current.cotaEmbalseMsnm.toFixed(2) }}</strong> msnm</td>
-                      <td class="col-note">Superficie espejo de agua</td>
-                    </tr>
-                    <tr>
-                      <td class="col-title">Borde Libre (Freeboard)</td>
-                      <td class="col-val highlight-green"><strong>{{ current.bordeLibreM.toFixed(2) }}</strong> m</td>
-                      <td class="col-note">Mínimo regulatorio: 2.00 m</td>
-                    </tr>
-                    <tr>
-                      <td class="col-title">Crecimiento Diario Presa</td>
-                      <td class="col-val"><strong>{{ current.crecimientoPresaM.toFixed(2) }}</strong> m</td>
-                      <td class="col-note">Avance vertical de peralte</td>
-                    </tr>
-                    <tr>
-                      <td class="col-title">Altura Libre Operacional</td>
-                      <td class="col-val"><strong>{{ current.alturaLibreOperacionalM.toFixed(2) }}</strong> m</td>
-                      <td class="col-note">Margen neto de seguridad</td>
-                    </tr>
-                    <tr>
-                      <td class="col-title">Volumen Agua Real Acumulado</td>
-                      <td class="col-val"><strong>{{ current.volAguaRealAcumuladoM3.toLocaleString() }}</strong> m³</td>
-                      <td class="col-note">Almacenamiento total en vaso</td>
-                    </tr>
-                    <tr>
-                      <td class="col-title">Longitud de Playa de Relaves</td>
-                      <td class="col-val"><strong>{{ current.longitudPlayaM }}</strong> m</td>
-                      <td class="col-note">Distancia corona a espejo libre</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <!-- 2. Circuito Hídrico: Torre 5, Sentina, EI, Vertedero -->
-            <div class="detail-card glass-panel">
-              <div class="card-header-clean">
-                <div class="header-icon-box cyan">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-                  </svg>
-                </div>
-                <div>
-                  <h4>2. Circuito Hídrico & Bombeo</h4>
-                  <p class="card-caption">Recuperación de agua de procesos y subdrenaje</p>
-                </div>
-              </div>
-
-              <div class="metrics-table-wrapper">
-                <table class="detail-table">
-                  <tbody>
-                    <tr>
-                      <td class="col-title">Torre 5 (Agua Recuperada)</td>
-                      <td class="col-val highlight-blue"><strong>{{ current.torre5VolDiaM3.toLocaleString() }}</strong> m³</td>
-                      <td class="col-note">A: {{ current.torre5VolAM3.toLocaleString() }} | B: {{ current.torre5VolBM3.toLocaleString() }} m³</td>
-                    </tr>
-                    <tr>
-                      <td class="col-title">Agua Acumulada Torre 5</td>
-                      <td class="col-val"><strong>{{ (current.torre5VolAcumuladoM3 / 1000000).toFixed(2) }}</strong> M m³</td>
-                      <td class="col-note">Acumulado anual recirculado</td>
-                    </tr>
-                    <tr>
-                      <td class="col-title">Sentina Drenes (PO-001)</td>
-                      <td class="col-val"><strong>{{ current.sentinaBombeadoTotalM3 }}</strong> m³/día</td>
-                      <td class="col-note">Nivel PO-001: {{ current.sentinaPo001NivelAPct }}% (A) / {{ current.sentinaPo001NivelBPct }}% (B)</td>
-                    </tr>
-                    <tr>
-                      <td class="col-title">Estación Intermedia (EI)</td>
-                      <td class="col-val"><strong>{{ current.eiTotalM3 }}</strong> m³/día</td>
-                      <td class="col-note">Caudal medio: {{ current.eiCaudalPromLs }} L/s</td>
-                    </tr>
-                    <tr>
-                      <td class="col-title">Flujo Vertedero (Aforo)</td>
-                      <td class="col-val"><strong>{{ current.vertederoPromLs }}</strong> L/s</td>
-                      <td class="col-note">{{ current.vertederoTotalDiaM3 }} m³/día total</td>
-                    </tr>
-                    <tr>
-                      <td class="col-title">Agua Fresca a Planta</td>
-                      <td class="col-val"><strong>{{ current.aguaFrescaTotalDiaM3.toLocaleString() }}</strong> m³</td>
-                      <td class="col-note">Ratio: {{ current.ratioAguaTon }} m³/t tratada</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <!-- 3. Clasificación Metalúrgica: Baterías de Ciclones -->
-            <div class="detail-card glass-panel">
-              <div class="card-header-clean">
-                <div class="header-icon-box purple">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <polygon points="12 8 8 12 12 16 16 12 12 8"></polygon>
-                  </svg>
-                </div>
-                <div>
-                  <h4>3. Ciclones & Granulometría (1ra y 2da Estación)</h4>
-                  <p class="card-caption">Control de arenas de dique y separación hidrociclónica</p>
-                </div>
-              </div>
-
-              <div class="metrics-table-wrapper">
-                <table class="detail-table">
-                  <tbody>
-                    <tr>
-                      <td class="col-title">1ra Estación: % Sólidos Promedio</td>
-                      <td class="col-val"><strong>{{ current.ciclones1raSolidosPromPct }}%</strong></td>
-                      <td class="col-note">Turno A: {{ current.ciclones1raSolidosAPct }}% | B: {{ current.ciclones1raSolidosBPct }}%</td>
-                    </tr>
-                    <tr>
-                      <td class="col-title">1ra Estación: % Malla -200 Promedio</td>
-                      <td class="col-val"><strong>{{ current.ciclones1raMalla200PromPct }}%</strong></td>
-                      <td class="col-note">Turno A: {{ current.ciclones1raMalla200APct }}% | B: {{ current.ciclones1raMalla200BPct }}%</td>
-                    </tr>
-                    <tr>
-                      <td class="col-title">2da Estación: % Sólidos Promedio</td>
-                      <td class="col-val highlight-purple"><strong>{{ current.ciclones2daSolidosPromPct }}%</strong></td>
-                      <td class="col-note">Turno A: {{ current.ciclones2daSolidosAPct }}% | B: {{ current.ciclones2daSolidosBPct }}%</td>
-                    </tr>
-                    <tr>
-                      <td class="col-title">2da Estación: % Malla -200 Promedio</td>
-                      <td class="col-val highlight-purple"><strong>{{ current.ciclones2daMalla200PromPct }}%</strong></td>
-                      <td class="col-note">Objetivo dique: &le; 10% pasante</td>
-                    </tr>
-                    <tr>
-                      <td class="col-title">Presión de Operación Baterías</td>
-                      <td class="col-val"><strong>{{ current.ciclonesPresionPsi }}</strong> PSI</td>
-                      <td class="col-note">Presión manométrica de alimentación</td>
-                    </tr>
-                    <tr>
-                      <td class="col-title">Densidad de Pulpa de Arenas</td>
-                      <td class="col-val"><strong>{{ current.densidadPulpaProm }}</strong> t/m³</td>
-                      <td class="col-note">A: {{ current.densidadPulpaA }} | B: {{ current.densidadPulpaB }} t/m³</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <!-- 4. Disposición de Arenas, Talud & Líneas de Embalse -->
-            <div class="detail-card glass-panel">
-              <div class="card-header-clean">
-                <div class="header-icon-box amber">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                    <circle cx="11.5" cy="14.5" r="2.5"></circle>
-                  </svg>
-                </div>
-                <div>
-                  <h4>4. Disposición de Arenas & Talud</h4>
-                  <p class="card-caption">Líneas de descarga, distribución y compactación</p>
-                </div>
-              </div>
-
-              <div class="metrics-table-wrapper">
-                <table class="detail-table">
-                  <tbody>
-                    <tr>
-                      <td class="col-title">Descarga en Talud (Horas)</td>
-                      <td class="col-val"><strong>{{ current.descargaTaludHorasA + current.descargaTaludHorasB }}</strong> h/día</td>
-                      <td class="col-note">Turno A: {{ current.descargaTaludHorasA }}h | Turno B: {{ current.descargaTaludHorasB }}h</td>
-                    </tr>
-                    <tr>
-                      <td class="col-title">Descarga Corona Dique</td>
-                      <td class="col-val"><strong>{{ current.descargaCoronaM3.toLocaleString() }}</strong> m³</td>
-                      <td class="col-note">Relleno de coronamiento</td>
-                    </tr>
-                    <tr>
-                      <td class="col-title">Dren Basal</td>
-                      <td class="col-val"><strong>{{ current.drenBasalM3.toLocaleString() }}</strong> m³</td>
-                      <td class="col-note">Disposición en base de presa</td>
-                    </tr>
-                    <tr>
-                      <td class="col-title">Líneas Activas en Embalse</td>
-                      <td class="col-val highlight-dark"><strong>{{ current.lineasActivas }}</strong></td>
-                      <td class="col-note">{{ current.spigotsActivosTotal }} Spigots abiertos</td>
-                    </tr>
-                    <tr>
-                      <td class="col-title">Zona de Operación</td>
-                      <td class="col-val"><strong>{{ current.zonaOperativa }}</strong></td>
-                      <td class="col-note">Cola 16": {{ current.cola16PulgActiva ? 'Activa' : 'Inactiva' }}</td>
-                    </tr>
-                    <tr>
-                      <td class="col-title">Factor Corrección Flujo vs Topografía</td>
-                      <td class="col-val"><strong>{{ current.factorCorreccion }}</strong></td>
-                      <td class="col-note">Flujo: {{ current.arenasProdFlujometroM3 }} m³ | Topo: {{ current.arenasProdTopografiaM3 }} m³</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
+          <!-- OBSERVACIONES DEL DÍA (validación de rangos de la planilla) -->
+          <section
+            class="day-observations glass-panel"
+            *ngIf="masterService.freeboardEval().errors?.length || current.validationWarnings?.length"
+          >
+            <strong>Observaciones del registro {{ current.fecha }}</strong>
+            <ul>
+              <li *ngFor="let err of masterService.freeboardEval().errors" class="obs-error">{{ err }}</li>
+              <li *ngFor="let warn of current.validationWarnings">{{ warn }}</li>
+            </ul>
           </section>
+
+          <!-- DETALLE OPERATIVO POR ÁREA (todos los campos de la planilla) -->
+          <app-master-area-panels
+            class="master-areas-block"
+            [entry]="current"
+            [fieldsWithData]="masterService.fieldsWithData()"
+            [damInvalid]="damIsInvalid"
+          ></app-master-area-panels>
 
           <!-- HISTORICAL MULTI-METRIC TREND ANALYSIS CENTER -->
           <section class="trend-chart-section glass-panel">
@@ -1177,6 +1029,20 @@ export interface TrendStatsSummary {
                 </button>
                 <button
                   class="range-pill"
+                  [class.active]="selectedTrendRange === '90d'"
+                  (click)="selectedTrendRange = '90d'"
+                >
+                  90 Días
+                </button>
+                <button
+                  class="range-pill"
+                  [class.active]="selectedTrendRange === '365d'"
+                  (click)="selectedTrendRange = '365d'"
+                >
+                  1 Año
+                </button>
+                <button
+                  class="range-pill"
                   [class.active]="selectedTrendRange === 'all'"
                   (click)="selectedTrendRange = 'all'"
                 >
@@ -1188,7 +1054,7 @@ export interface TrendStatsSummary {
             <!-- Metric Selector Ribbon (Chips with icons and theme colors) -->
             <div class="metric-ribbon">
               <button
-                *ngFor="let m of trendMetricConfigs"
+                *ngFor="let m of availableTrendMetrics"
                 class="metric-chip"
                 [class.active]="selectedTrendMetricId === m.id"
                 (click)="selectedTrendMetricId = m.id"
@@ -1335,6 +1201,7 @@ export interface TrendStatsSummary {
                 <!-- Data Points / Circles -->
                 <g *ngFor="let pt of trendPrimaryPoints">
                   <circle
+                    *ngIf="trendPrimaryPoints.length <= 60"
                     [attr.cx]="pt.x"
                     [attr.cy]="pt.y"
                     r="5.5"
@@ -1349,13 +1216,26 @@ export interface TrendStatsSummary {
                     <title>{{ pt.fecha }}: {{ pt.formattedVal }}</title>
                   </circle>
 
-                  <!-- Date label below -->
-                  <text [attr.x]="pt.x" y="230" fill="#64748b" font-size="10" font-weight="500" text-anchor="middle">
-                    {{ pt.fecha.slice(0, 5) }}
+                  <!-- Series largas: zona de hover invisible en lugar de círculos -->
+                  <circle
+                    *ngIf="trendPrimaryPoints.length > 60"
+                    [attr.cx]="pt.x"
+                    [attr.cy]="pt.y"
+                    r="4"
+                    fill="transparent"
+                    (mouseenter)="hoveredTrendPoint = pt"
+                    (mouseleave)="hoveredTrendPoint = null"
+                    (click)="masterService.selectDate(pt.fecha)"
+                  ></circle>
+
+                  <!-- Date label below (muestreada en series largas) -->
+                  <text *ngIf="pt.showLabel" [attr.x]="pt.x" y="230" fill="#64748b" font-size="10" font-weight="500" text-anchor="middle">
+                    {{ trendPrimaryPoints.length > 60 ? pt.fecha.slice(0, 6) + pt.fecha.slice(8) : pt.fecha.slice(0, 5) }}
                   </text>
 
-                  <!-- Value label above point -->
+                  <!-- Value label above point (solo en series cortas) -->
                   <text
+                    *ngIf="trendPrimaryPoints.length <= 31"
                     [attr.x]="pt.x"
                     [attr.y]="pt.y - 10"
                     fill="#0f172a"
@@ -1417,8 +1297,8 @@ export interface TrendStatsSummary {
                     <th>Relave Día (m³)</th>
                     <th>Torre 5 (m³)</th>
                     <th>Ciclones 2da (% Sólidos)</th>
-                    <th>Filtraciones (L/s)</th>
-                    <th>Arenas Comp. (m³)</th>
+                    <th>Filtraciones</th>
+                    <th>Arenas a Paddocks (m³)</th>
                     <th>Estado GISTM</th>
                   </tr>
                 </thead>
@@ -1431,23 +1311,29 @@ export interface TrendStatsSummary {
                     <td class="col-date">
                       <span class="date-badge">{{ item.fecha }}</span>
                     </td>
-                    <td class="col-highlight" [class.danger]="item.bordeLibreM < 2.0" [class.warning]="item.bordeLibreM >= 2.0 && item.bordeLibreM < 4.0">
-                      <strong>{{ item.bordeLibreM.toFixed(2) }} m</strong>
-                    </td>
-                    <td>{{ item.cotaEmbalseMsnm.toFixed(2) }} msnm</td>
-                    <td>{{ item.relaveTotalVolDiaM3.toLocaleString() }}</td>
-                    <td>{{ item.torre5VolDiaM3.toLocaleString() }}</td>
-                    <td>{{ item.ciclones2daSolidosPromPct }}% ({{ item.ciclones2daMalla200PromPct }}% -200)</td>
-                    <td>{{ item.filtracionesTotalLs }} L/s</td>
-                    <td>{{ item.arenasProdTopografiaM3.toLocaleString() }}</td>
+                    <ng-container *ngIf="!masterService.invalidDates().has(item.fecha); else invalidCotaCells">
+                      <td class="col-highlight" [class.danger]="item.bordeLibreM < 2.0" [class.warning]="item.bordeLibreM >= 2.0 && item.bordeLibreM < 4.0">
+                        <strong>{{ item.bordeLibreM.toFixed(2) }} m</strong>
+                      </td>
+                      <td>{{ item.cotaEmbalseMsnm.toFixed(2) }} msnm</td>
+                    </ng-container>
+                    <ng-template #invalidCotaCells>
+                      <td class="col-highlight warning"><strong>Dato inválido</strong></td>
+                      <td>—</td>
+                    </ng-template>
+                    <td>{{ kv('relaveTotalVolDiaM3', '', 0, item) }}</td>
+                    <td>{{ kv('torre5VolDiaM3', '', 0, item) }}</td>
+                    <td>{{ kv('ciclones2daSolidosPromPct', '%', 2, item) }}</td>
+                    <td>{{ kv('filtracionesTotalLs', 'L/s', 2, item) }}</td>
+                    <td>{{ kv('arenasTotalAcumM3', '', 0, item) }}</td>
                     <td>
                       <span
                         class="status-tag-pill"
-                        [class.normal]="item.bordeLibreM >= 4.0"
-                        [class.warning]="item.bordeLibreM >= 2.0 && item.bordeLibreM < 4.0"
-                        [class.critical]="item.bordeLibreM < 2.0"
+                        [class.normal]="!masterService.invalidDates().has(item.fecha) && item.bordeLibreM >= 4.0"
+                        [class.warning]="masterService.invalidDates().has(item.fecha) || (item.bordeLibreM >= 2.0 && item.bordeLibreM < 4.0)"
+                        [class.critical]="!masterService.invalidDates().has(item.fecha) && item.bordeLibreM < 2.0"
                       >
-                        {{ item.bordeLibreM >= 4.0 ? 'Normal' : item.bordeLibreM >= 2.0 ? 'Alerta' : 'Crítico' }}
+                        {{ masterService.invalidDates().has(item.fecha) ? 'Inválido' : item.bordeLibreM >= 4.0 ? 'Normal' : item.bordeLibreM >= 2.0 ? 'Alerta' : 'Crítico' }}
                       </span>
                     </td>
                   </tr>
@@ -1554,6 +1440,26 @@ export interface TrendStatsSummary {
             <!-- Parsing / Feedback Messages -->
             <div *ngIf="uploadStatusMessage" class="feedback-box" [class.success]="isUploadSuccess" [class.error]="!isUploadSuccess">
               <p>{{ uploadStatusMessage }}</p>
+            </div>
+
+            <!-- Filas rechazadas / observadas por validación de rangos físicos -->
+            <div *ngIf="uploadRejected.length > 0" class="validation-box rejected">
+              <strong>Filas rechazadas ({{ uploadRejected.length }}) — no se importaron:</strong>
+              <ul>
+                <li *ngFor="let row of uploadRejected.slice(0, maxIssueRows)">
+                  <span class="issue-date">{{ row.fecha }}</span> {{ row.reasons.join('; ') }}
+                </li>
+              </ul>
+              <p *ngIf="uploadRejected.length > maxIssueRows" class="issue-more">… y {{ uploadRejected.length - maxIssueRows }} filas más (detalle completo en la consola).</p>
+            </div>
+            <div *ngIf="uploadWarnings.length > 0" class="validation-box warning">
+              <strong>Registros importados con observaciones ({{ uploadWarnings.length }}):</strong>
+              <ul>
+                <li *ngFor="let row of uploadWarnings.slice(0, maxIssueRows)">
+                  <span class="issue-date">{{ row.fecha }}</span> {{ row.reasons.join('; ') }}
+                </li>
+              </ul>
+              <p *ngIf="uploadWarnings.length > maxIssueRows" class="issue-more">… y {{ uploadWarnings.length - maxIssueRows }} registros más (detalle completo en la consola).</p>
             </div>
           </div>
 
@@ -2169,103 +2075,28 @@ export interface TrendStatsSummary {
       text-overflow: ellipsis;
     }
 
-    /* Master Details Grid */
-    .master-details-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 18px;
+    /* Observaciones del día y panel de áreas */
+    .day-observations {
       margin-top: 18px;
+      padding: 12px 16px;
+      border-left: 4px solid var(--warning);
+      font-size: 0.8rem;
+      color: var(--text-secondary);
 
-      @media (max-width: 1024px) {
-        grid-template-columns: 1fr;
+      strong { color: var(--text-primary); }
+
+      ul {
+        margin: 6px 0 0;
+        padding-left: 18px;
       }
+
+      li { margin-bottom: 2px; }
+
+      .obs-error { color: var(--danger); font-weight: 600; }
     }
 
-    .detail-card {
-      padding: 22px;
-      border-radius: 12px;
-      background: #ffffff;
-      border: 1px solid #e2e8f0;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    .card-header-clean {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-
-      h4 {
-        font-size: 0.98rem;
-        font-weight: 700;
-        color: #0f172a;
-      }
-
-      .card-caption {
-        font-size: 0.74rem;
-        color: #64748b;
-      }
-    }
-
-    .header-icon-box {
-      width: 36px;
-      height: 36px;
-      border-radius: 8px;
-      background: #eff6ff;
-      color: #031795;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-
-      &.cyan { background: #ecfeff; color: #0891b2; }
-      &.purple { background: #f5f3ff; color: #7c3aed; }
-      &.amber { background: #fffbeb; color: #d97706; }
-    }
-
-    .metrics-table-wrapper {
-      overflow-x: auto;
-    }
-
-    .detail-table {
-      width: 100%;
-      border-collapse: collapse;
-
-      tr {
-        border-bottom: 1px solid #f1f5f9;
-
-        &:last-child {
-          border-bottom: none;
-        }
-      }
-
-      td {
-        padding: 9px 8px;
-        font-size: 0.8rem;
-      }
-
-      .col-title {
-        color: #475569;
-        font-weight: 500;
-        width: 44%;
-      }
-
-      .col-val {
-        color: #0f172a;
-        white-space: nowrap;
-
-        &.highlight-green { color: #059669; }
-        &.highlight-blue { color: #2563eb; }
-        &.highlight-purple { color: #7c3aed; }
-        &.highlight-dark { color: #031795; }
-      }
-
-      .col-note {
-        color: #94a3b8;
-        font-size: 0.72rem;
-        text-align: right;
-      }
+    .master-areas-block {
+      margin-top: 18px;
     }
 
     /* Dam Cross-Section Section */
@@ -3115,6 +2946,46 @@ export interface TrendStatsSummary {
       }
     }
 
+    .validation-box {
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 0.78rem;
+      max-height: 180px;
+      overflow-y: auto;
+
+      ul {
+        margin: 6px 0 0;
+        padding-left: 18px;
+      }
+
+      li {
+        margin-bottom: 4px;
+        overflow-wrap: anywhere;
+      }
+
+      .issue-date {
+        font-weight: 700;
+        margin-right: 4px;
+      }
+
+      .issue-more {
+        margin: 4px 0 0;
+        font-style: italic;
+      }
+
+      &.rejected {
+        background: #fef2f2;
+        color: #991b1b;
+        border: 1px solid #fecaca;
+      }
+
+      &.warning {
+        background: #fffbeb;
+        color: #92400e;
+        border: 1px solid #fde68a;
+      }
+    }
+
     .sheet-selector-wrapper {
       display: flex;
       flex-direction: column;
@@ -3176,6 +3047,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
   isProcessingUpload = false;
   uploadStatusMessage = '';
   isUploadSuccess = false;
+  uploadRejected: ImportRowIssue[] = [];
+  uploadWarnings: ImportRowIssue[] = [];
+  readonly maxIssueRows = 15;
 
   // Search filter in table
   searchFilter = '';
@@ -3301,127 +3175,85 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   // --- Historical Trend Analysis Center Engine ---
   selectedTrendMetricId: string = 'borde_libre';
-  selectedTrendRange: '7d' | '15d' | '30d' | 'all' = '15d';
+  selectedTrendRange: '7d' | '15d' | '30d' | '90d' | '365d' | 'all' = '30d';
   showSecondaryCurve: boolean = false;
   hoveredTrendPoint: TrendDataPoint | null = null;
 
+  /**
+   * Métricas del centro de tendencias. Cada una declara los campos que usa (`fields`) para
+   * mostrarse solo si la planilla trae esos datos. Las curvas primaria y secundaria comparten
+   * eje Y, por eso se emparejan magnitudes de la misma unidad y escala.
+   * Solo se dibujan umbrales normativos (GISTM / LMP), no metas inventadas.
+   */
   trendMetricConfigs: TrendMetricConfig[] = [
-    {
-      id: 'borde_libre',
-      label: 'Borde Libre',
-      primaryLabel: 'Borde Libre (m)',
-      color: '#031795',
-      unit: 'm',
-      decimals: 2,
-      secondaryLabel: 'Crecimiento Dique (m)',
-      secondaryColor: '#d97706',
-      secondaryUnit: 'm',
-      secondaryDecimals: 2,
-      thresholdLabel: 'GISTM Mínimo: 2.00 m',
-      thresholdVal: 2.0,
-      getValue: (e) => e.bordeLibreM ?? 0,
-      getSecondaryValue: (e) => e.crecimientoPresaM ?? 0
-    },
-    {
-      id: 'relaves',
-      label: 'Relaves a Presa',
-      primaryLabel: 'Relave Diario (m³)',
-      color: '#10b981',
-      unit: 'm³',
-      decimals: 0,
-      secondaryLabel: 'Torre 5 Recup. (m³)',
-      secondaryColor: '#0284c7',
-      secondaryUnit: 'm³',
-      secondaryDecimals: 0,
-      thresholdLabel: 'Capacidad Nom.: 30,000 m³',
-      thresholdVal: 30000,
-      getValue: (e) => e.relaveTotalVolDiaM3 ?? 0,
-      getSecondaryValue: (e) => e.torre5VolDiaM3 ?? 0
-    },
-    {
-      id: 'torre5',
-      label: 'Torre 5 Recup.',
-      primaryLabel: 'Torre 5 (m³/día)',
-      color: '#0284c7',
-      unit: 'm³',
-      decimals: 0,
-      secondaryLabel: 'Sentina Drenes (m³)',
-      secondaryColor: '#8b5cf6',
-      secondaryUnit: 'm³',
-      secondaryDecimals: 0,
-      thresholdLabel: 'Meta Recup.: 20,000 m³',
-      thresholdVal: 20000,
-      getValue: (e) => e.torre5VolDiaM3 ?? 0,
-      getSecondaryValue: (e) => e.sentinaBombeadoTotalM3 ?? 0
-    },
-    {
-      id: 'ciclones',
-      label: 'Ciclones 2da Estación',
-      primaryLabel: '% Sólidos Arenas',
-      color: '#7c3aed',
-      unit: '%',
-      decimals: 2,
-      secondaryLabel: '% Malla -200 Pasante',
-      secondaryColor: '#f59e0b',
-      secondaryUnit: '%',
-      secondaryDecimals: 2,
-      thresholdLabel: 'Meta Sólidos: 70.0%',
-      thresholdVal: 70.0,
-      getValue: (e) => e.ciclones2daSolidosPromPct ?? 0,
-      getSecondaryValue: (e) => e.ciclones2daMalla200PromPct ?? 0
-    },
-    {
-      id: 'filtraciones',
-      label: 'Filtraciones Totales',
-      primaryLabel: 'Filtraciones (L/s)',
-      color: '#ef4444',
-      unit: 'L/s',
-      decimals: 2,
-      secondaryLabel: 'Vertedero (L/s)',
-      secondaryColor: '#06b6d4',
-      secondaryUnit: 'L/s',
-      secondaryDecimals: 2,
-      thresholdLabel: 'Límite Alerta: 5.0 L/s',
-      thresholdVal: 5.0,
-      getValue: (e) => e.filtracionesTotalLs ?? 0,
-      getSecondaryValue: (e) => e.vertederoPromLs ?? 0
-    },
-    {
-      id: 'arenas',
-      label: 'Arenas Compactadas',
-      primaryLabel: 'Arenas Flujómetro (m³)',
-      color: '#d97706',
-      unit: 'm³',
-      decimals: 0,
-      secondaryLabel: 'Topografía (m³)',
-      secondaryColor: '#10b981',
-      secondaryUnit: 'm³',
-      secondaryDecimals: 0,
-      thresholdLabel: 'Meta Diaria: 10,000 m³',
-      thresholdVal: 10000,
-      getValue: (e) => e.arenasProdFlujometroM3 ?? 0,
-      getSecondaryValue: (e) => e.arenasProdTopografiaM3 ?? 0
-    },
-    {
-      id: 'ph',
-      label: 'Control de pH',
-      primaryLabel: 'pH Embalse',
-      color: '#059669',
-      unit: 'pH',
-      decimals: 2,
-      secondaryLabel: 'pH Vertedero',
-      secondaryColor: '#2563eb',
-      secondaryUnit: 'pH',
-      secondaryDecimals: 2,
-      thresholdLabel: 'Límite Ambiental: 9.0 pH',
-      thresholdVal: 9.0,
-      getValue: (e) => e.phEmbalseA ?? 0,
-      getSecondaryValue: (e) => e.phVertederoA ?? 0
-    }
+    trendMetric('borde_libre', 'Borde Libre', 'Borde Libre (m)', '#031795', 'm', 2, 'bordeLibreM', {
+      secondary: ['Altura Libre Operacional (m)', '#d97706', 'alturaLibreOperacionalM'],
+      threshold: ['GISTM Mínimo: 2.00 m', 2.0]
+    }),
+    trendMetric('cotas', 'Cotas del Dique', 'Cota Embalse (msnm)', '#2563eb', 'msnm', 2, 'cotaEmbalseMsnm', {
+      secondary: ['Cota Corona (msnm)', '#0f172a', 'cotaCoronaMsnm']
+    }),
+    trendMetric('crecimiento', 'Crecimiento Diario', 'Crecimiento (m/día)', '#b45309', 'm', 3, 'crecimientoPresaM'),
+    trendMetric('vol_agua', 'Volumen Agua Real', 'Volumen Agua Real (m³)', '#0369a1', 'm³', 0, 'volAguaRealAcumuladoM3'),
+    trendMetric('relaves', 'Relave a Presa', 'Relave Diario (m³)', '#10b981', 'm³', 0, 'relaveTotalVolDiaM3', {
+      secondary: ['Torre 5 Recuperada (m³)', '#0284c7', 'torre5VolDiaM3']
+    }),
+    trendMetric('relave_flujo', 'Flujo de Relave', 'Flujo Turno A (m³/h)', '#059669', 'm³/h', 1, 'relaveFlujoAM3h', {
+      secondary: ['Flujo Turno B (m³/h)', '#65a30d', 'relaveFlujoBM3h']
+    }),
+    trendMetric('relave_horas', 'Horas Bombeo Relave', 'Horas Turno A', '#16a34a', 'h', 1, 'relaveHorasA', {
+      secondary: ['Horas Turno B', '#ca8a04', 'relaveHorasB']
+    }),
+    trendMetric('torre5', 'Torre 5 por Turno', 'Torre 5 Turno A (m³)', '#0284c7', 'm³', 0, 'torre5VolAM3', {
+      secondary: ['Torre 5 Turno B (m³)', '#7c3aed', 'torre5VolBM3']
+    }),
+    trendMetric('tirante', 'Tirante Captación', 'Tirante TA (m)', '#0e7490', 'm', 2, 'tiranteCaptacionTAM', {
+      secondary: ['Tirante TB (m)', '#9333ea', 'tiranteCaptacionTBM']
+    }),
+    trendMetric('espejo', 'Espejo Libre', 'Espejo Turno A (m)', '#1d4ed8', 'm', 2, 'espejoLibreAM', {
+      secondary: ['Espejo Turno B (m)', '#db2777', 'espejoLibreBM']
+    }),
+    trendMetric('agua_fresca', 'Agua Fresca', 'Agua Fresca (m³/día)', '#14b8a6', 'm³', 0, 'aguaFrescaTotalDiaM3'),
+    trendMetric('ratio_agua', 'Ratio Agua/Ton', 'Ratio (m³/t)', '#0d9488', 'm³/t', 2, 'ratioAguaTon'),
+    trendMetric('vertedero', 'Vertedero', 'Vertedero Prom. (L/s)', '#06b6d4', 'L/s', 2, 'vertederoPromLs', {
+      secondary: ['Filtraciones Totales (L/s)', '#ef4444', 'filtracionesTotalLs']
+    }),
+    trendMetric('filtraciones', 'Filtraciones', 'Filtraciones (L/s)', '#ef4444', 'L/s', 2, 'filtracionesTotalLs'),
+    trendMetric('sentina', 'Sentina & Est. Intermedia', 'Sentina Bombeado (m³)', '#8b5cf6', 'm³', 1, 'sentinaBombeadoTotalM3', {
+      secondary: ['Est. Intermedia (m³)', '#6366f1', 'eiTotalM3']
+    }),
+    trendMetric('ciclones2', 'Ciclones 2da Est.', '% Sólidos 2da Est.', '#7c3aed', '%', 2, 'ciclones2daSolidosPromPct', {
+      secondary: ['% Malla -200 (prom. A/B)', '#f59e0b', (e) => avgAB(e.ciclones2daMalla200APct, e.ciclones2daMalla200BPct), 'ciclones2daMalla200APct']
+    }),
+    trendMetric('ciclones1', 'Ciclones 1ra Est.', '% Malla -200 Turno A', '#a855f7', '%', 2, 'ciclones1raMalla200APct', {
+      secondary: ['% Malla -200 Turno B', '#f97316', 'ciclones1raMalla200BPct']
+    }),
+    trendMetric('arenas', 'Arenas a Paddocks', 'Arenas del Día (m³)', '#d97706', 'm³', 0, 'arenasTotalAcumM3', {
+      secondary: ['Producción Flujómetro (m³)', '#10b981', 'arenasProdFlujometroM3']
+    }),
+    trendMetric('densidad', 'Densidad de Pulpa', 'Densidad Turno A (t/m³)', '#92400e', 't/m³', 3, 'densidadPulpaA', {
+      secondary: ['Densidad Turno B (t/m³)', '#57534e', 'densidadPulpaB']
+    }),
+    trendMetric('ph', 'Control de pH', 'pH Embalse', '#059669', 'pH', 2, 'phEmbalseA', {
+      secondary: ['pH Vertedero', '#2563eb', 'phVertederoA'],
+      threshold: ['LMP pH máximo: 9.0', 9.0]
+    })
   ];
 
+  /** Solo las métricas cuya curva principal tiene datos en la planilla cargada. */
+  get availableTrendMetrics(): TrendMetricConfig[] {
+    const withData = this.masterService.fieldsWithData();
+    return this.trendMetricConfigs.filter(c => withData.has(c.field));
+  }
+
   get currentMetricConfig(): TrendMetricConfig {
-    return this.trendMetricConfigs.find(c => c.id === this.selectedTrendMetricId) || this.trendMetricConfigs[0];
+    const available = this.availableTrendMetrics;
+    const config = available.find(c => c.id === this.selectedTrendMetricId) || available[0] || this.trendMetricConfigs[0];
+    // La curva secundaria se omite si la planilla no trae ese dato
+    if (config.secondaryField && !this.masterService.fieldsWithData().has(config.secondaryField)) {
+      return { ...config, secondaryLabel: undefined, getSecondaryValue: undefined };
+    }
+    return config;
   }
 
   get trendFilteredEntries(): MasterSheetEntry[] {
@@ -3437,6 +3269,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
         break;
       case '30d':
         sliceCount = 30;
+        break;
+      case '90d':
+        sliceCount = 90;
+        break;
+      case '365d':
+        sliceCount = 365;
         break;
       case 'all':
       default:
@@ -3592,6 +3430,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     const minY = 35;
     const maxY = 205;
     const step = entries.length > 1 ? (maxX - minX) / (entries.length - 1) : 0;
+    const labelEvery = Math.max(1, Math.ceil(entries.length / 12));
 
     return entries.map((e, idx) => {
       const x = entries.length === 1 ? (minX + maxX) / 2 : minX + idx * step;
@@ -3606,7 +3445,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
         fecha: e.fecha,
         val,
         formattedVal: this.formatMetricVal(val, config.unit, config.decimals),
-        displayVal: this.formatMetricPointVal(val, config.unit, config.decimals)
+        displayVal: this.formatMetricPointVal(val, config.unit, config.decimals),
+        showLabel: (entries.length - 1 - idx) % labelEvery === 0
       };
     });
   }
@@ -3730,17 +3570,42 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   get damIsFreeboardCritical(): boolean {
     const entry = this.masterService.activeEntry();
-    return !!entry && entry.bordeLibreM < 2.0;
+    return !!entry && !this.damIsInvalid && entry.bordeLibreM < 2.0;
   }
 
   get damIsFreeboardWarning(): boolean {
     const entry = this.masterService.activeEntry();
-    return !!entry && entry.bordeLibreM >= 2.0 && entry.bordeLibreM < 4.0;
+    return !!entry && !this.damIsInvalid && entry.bordeLibreM >= 2.0 && entry.bordeLibreM < 4.0;
+  }
+
+  /**
+   * Valor formateado de un campo del registro activo. Si la planilla no trae ese campo
+   * (0 en todos los días) devuelve "Sin dato" en lugar de un 0 engañoso.
+   */
+  kv(field: keyof MasterSheetEntry, unit: string, decimals: number, row?: MasterSheetEntry): string {
+    const entry = row ?? this.masterService.activeEntry();
+    const value = entry?.[field];
+    if (!this.masterService.fieldsWithData().has(field) || typeof value !== 'number' || !Number.isFinite(value)) {
+      return 'Sin dato';
+    }
+    const formatted = value.toLocaleString('es-PE', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+    return unit ? `${formatted} ${unit}` : formatted;
+  }
+
+  /** El registro activo tiene cotas físicamente imposibles: no se evalúa el borde libre. */
+  get damIsInvalid(): boolean {
+    return this.masterService.freeboardEval().status === 'INVALID';
+  }
+
+  /** Formatea una cota / borde libre, ocultando valores no evaluables del registro activo. */
+  damValue(value: number, unit: string): string {
+    return this.damIsInvalid ? 'Dato inválido' : `${value.toFixed(2)} ${unit}`;
   }
 
   get damFreeboardStatusText(): string {
     const entry = this.masterService.activeEntry();
     if (!entry) return 'Sin Datos';
+    if (this.damIsInvalid) return 'Dato inválido: revisar planilla';
     if (entry.bordeLibreM >= 4.0) return 'Operación Segura (> 4.0 m)';
     if (entry.bordeLibreM >= 2.0) return 'Alerta Operativa (2.0 - 4.0 m)';
     return '¡Alerta Crítica GISTM (< 2.0 m)!';
@@ -3753,27 +3618,29 @@ export class DashboardComponent implements OnInit, OnDestroy {
       case 'corona':
         return {
           title: 'Corona del Dique (Cresta)',
-          value: `${entry.cotaCoronaMsnm.toFixed(2)} msnm`,
-          note: `Nivel estructural superior de coronamiento. Crecimiento diario de presa: +${entry.crecimientoPresaM.toFixed(2)} m/día.`
+          value: this.damValue(entry.cotaCoronaMsnm, 'msnm'),
+          note: `Nivel estructural superior de coronamiento. Crecimiento diario de presa: ${this.kv('crecimientoPresaM', 'm/día', 3)}.`
         };
       case 'embalse':
         return {
           title: 'Espejo de Agua / Laguna de Relaves',
-          value: `${entry.cotaEmbalseMsnm.toFixed(2)} msnm`,
-          note: `Nivel de espejo libre de agua en vaso. Almacenamiento real acumulado: ${entry.volAguaRealAcumuladoM3.toLocaleString()} m³.`
+          value: this.damValue(entry.cotaEmbalseMsnm, 'msnm'),
+          note: `Nivel de espejo libre de agua en vaso. Almacenamiento real acumulado: ${this.kv('volAguaRealAcumuladoM3', 'm³', 0)}.`
         };
       case 'borde_libre':
         const isCrit = entry.bordeLibreM < 2.0;
         const isWarn = entry.bordeLibreM >= 2.0 && entry.bordeLibreM < 4.0;
         return {
           title: 'Borde Libre Operacional (Freeboard)',
-          value: `${entry.bordeLibreM.toFixed(2)} m`,
-          note: isCrit
+          value: this.damValue(entry.bordeLibreM, 'm'),
+          note: this.damIsInvalid
+            ? 'Registro no evaluable: cotas fuera de rango físico. Revisar y volver a cargar la planilla.'
+            : isCrit
             ? '¡PELIGRO CRÍTICO! Revancha menor a 2.00 m según estándar global de relaves GISTM.'
             : isWarn
             ? 'Alerta preventiva: Revancha ajustada (2.0 a 4.0 m). Monitorear recirculación de Torre 5.'
             : 'Margen seguro de operación (> 4.00 m) conforme a diseño y cota máxima permisible.',
-          statusClass: isCrit ? 'critical' : isWarn ? 'warning' : 'safe'
+          statusClass: this.damIsInvalid ? 'warning' : isCrit ? 'critical' : isWarn ? 'warning' : 'safe'
         };
       case 'playa':
         return {
@@ -3785,12 +3652,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
         return {
           title: 'Talud de Aguas Abajo (Downstream Slope)',
           value: `Compactación Proctor: ${entry.compactacionPct}%`,
-          note: `Cuerpo resistente peraltado con arenas compactadas (${entry.arenasProdTopografiaM3.toLocaleString()} m³), bermas intermedias y enrocado riprap.`
+          note: `Cuerpo resistente peraltado con arenas compactadas (${this.kv('arenasTotalAcumM3', 'm³/día', 0)}), bermas intermedias y enrocado riprap.`
         };
       case 'torre5':
         return {
           title: 'Torre 5 de Captación (Decant Tower)',
-          value: `${entry.torre5VolDiaM3.toLocaleString()} m³/día`,
+          value: this.kv('torre5VolDiaM3', 'm³/día', 0),
           note: `Extracción y recirculación continua de agua clarificada hacia la Planta Concentradora (Acumulado: ${(entry.torre5VolAcumuladoM3 / 1000000).toFixed(2)} M m³).`
         };
       case 'dren':
@@ -3811,6 +3678,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.selectedSheetName = '';
     this.uploadStatusMessage = '';
     this.isUploadSuccess = false;
+    this.uploadRejected = [];
+    this.uploadWarnings = [];
     this.showUploadModal = true;
   }
 
@@ -3820,6 +3689,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.availableSheets = [];
     this.selectedSheetName = '';
     this.uploadStatusMessage = '';
+    this.uploadRejected = [];
+    this.uploadWarnings = [];
   }
 
   onDragOver(e: DragEvent): void {
@@ -3862,17 +3733,24 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
     this.isProcessingUpload = true;
     this.uploadStatusMessage = 'Leyendo y procesando columnas de la planilla...';
+    this.uploadRejected = [];
+    this.uploadWarnings = [];
 
     const result = await this.masterService.parseUploadedFile(this.selectedFile, this.uploadMode, this.selectedSheetName);
     this.isProcessingUpload = false;
+    this.uploadRejected = result.rejected;
+    this.uploadWarnings = result.warnings;
 
     if (result.success) {
       this.isUploadSuccess = true;
       this.uploadStatusMessage = result.message;
       this.cdr.detectChanges();
-      setTimeout(() => {
-        this.closeUploadModal();
-      }, 1400);
+      // Si hubo filas rechazadas u observadas, el modal queda abierto para que el usuario lea el detalle
+      if (result.rejected.length === 0 && result.warnings.length === 0) {
+        setTimeout(() => {
+          this.closeUploadModal();
+        }, 1400);
+      }
     } else {
       this.isUploadSuccess = false;
       this.uploadStatusMessage = result.message;

@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { db } from '../database/db.js';
+import { validateMasterSheetRecord } from '../utils/master-sheet-validation.js';
 
 export function getDashboardMetrics(req: Request, res: Response) {
   try {
@@ -220,15 +221,35 @@ export function saveMasterSheetEntries(req: Request, res: Response) {
     `);
 
     let saved = 0;
+    // Registros con cota / borde libre físicamente imposibles no se persisten (ni sobrescriben los existentes)
+    const rejected: { fecha: string; reasons: string[] }[] = [];
     for (const item of entries) {
       if (!item.fecha) continue;
+      const reasons = validateMasterSheetRecord(item);
+      if (reasons.length > 0) {
+        rejected.push({ fecha: item.fecha, reasons });
+        continue;
+      }
       const id = item.id || `ms_${item.fecha.replace(/\//g, '_')}`;
       const reportDate = item.isoDate || item.fecha;
       stmt.run(id, reportDate, JSON.stringify(item));
       saved++;
     }
 
-    return res.json({ success: true, count: saved, message: `Se guardaron ${saved} registros en la base de datos.` });
+    if (saved === 0 && rejected.length > 0) {
+      return res.status(400).json({
+        success: false,
+        count: 0,
+        rejected,
+        message: `Ningún registro se guardó: ${rejected.length} registros tienen valores fuera de rango físico (cota / borde libre).`
+      });
+    }
+
+    let message = `Se guardaron ${saved} registros en la base de datos.`;
+    if (rejected.length > 0) {
+      message += ` Se rechazaron ${rejected.length} registros con valores fuera de rango físico.`;
+    }
+    return res.json({ success: true, count: saved, rejected, message });
   } catch (error: any) {
     return res.status(500).json({ success: false, message: error.message });
   }

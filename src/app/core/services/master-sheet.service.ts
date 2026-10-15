@@ -1,12 +1,33 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import * as XLSX from 'xlsx';
-import { MasterSheetEntry, FreeboardEvaluation, SheetSummary } from '../models/master-sheet.model';
+import { MasterSheetEntry, MasterSheetNumericField, MasterSheetStringField, FreeboardEvaluation, SheetSummary } from '../models/master-sheet.model';
+import { validateMasterSheetEntry } from '../models/master-sheet.validation';
+import {
+  NUMERIC_COLUMN_ALIASES,
+  STRING_COLUMN_ALIASES,
+  VERTICAL_NUMERIC_LABELS,
+  VERTICAL_STRING_LABELS,
+  normalizeHeader,
+  resolveColumns
+} from '../models/master-sheet.columns';
 import { getRealtimeData, saveRealtimeData } from '../storage/local-store.util';
 import { getApiBaseUrl } from '../constants/api.config';
-import { catchError, of, timeout } from 'rxjs';
+import { catchError, firstValueFrom, of, timeout } from 'rxjs';
 
 const STORAGE_KEY = 'master_sheet_records';
+
+/** Registro extraído de la planilla junto con los campos que venían vacíos en el archivo. */
+interface ParsedRow {
+  entry: MasterSheetEntry;
+  missing: Set<string>;
+}
+
+/** Fila rechazada u observada durante la importación, con sus motivos. */
+export interface ImportRowIssue {
+  fecha: string;
+  reasons: string[];
+}
 
 @Injectable({
   providedIn: 'root'
@@ -49,6 +70,33 @@ export class MasterSheetService {
     return idx >= 0 && idx < this.availableDates().length - 1;
   });
 
+  /**
+   * Campos que traen al menos un valor distinto de 0 en la planilla cargada.
+   * Un campo que vale 0 en TODOS los días no venía en el Excel: se muestra "Sin dato", no 0.
+   */
+  public fieldsWithData = computed(() => {
+    const set = new Set<string>();
+    for (const e of this.entries()) {
+      for (const [key, value] of Object.entries(e)) {
+        if (set.has(key)) continue;
+        if ((typeof value === 'number' && Number.isFinite(value) && value !== 0) ||
+            (typeof value === 'string' && value.trim() !== '' && key !== 'fecha' && key !== 'isoDate')) {
+          set.add(key);
+        }
+      }
+    }
+    return set;
+  });
+
+  /** Fechas cuyos registros tienen cotas / borde libre físicamente imposibles (no evaluables). */
+  public invalidDates = computed(() => {
+    const set = new Set<string>();
+    for (const e of this.entries()) {
+      if (validateMasterSheetEntry(e).errors.length > 0) set.add(e.fecha);
+    }
+    return set;
+  });
+
   public freeboardEval = computed<FreeboardEvaluation>(() => {
     const entry = this.activeEntry();
     if (!entry) {
@@ -59,6 +107,20 @@ export class MasterSheetService {
         bgColor: '#f1f5f9',
         borderColor: '#cbd5e1',
         message: 'No hay datos de cota cargados.'
+      };
+    }
+
+    // Nunca declarar "GISTM Normal" con cotas imposibles: primero validar rangos físicos críticos
+    const { errors } = validateMasterSheetEntry(entry);
+    if (errors.length > 0) {
+      return {
+        status: 'INVALID',
+        badgeLabel: 'Dato Inválido',
+        color: '#b45309',
+        bgColor: '#fff7ed',
+        borderColor: '#fdba74',
+        message: `Registro no evaluable: ${errors[0]}. Revisar y volver a cargar la planilla.`,
+        errors
       };
     }
 
@@ -138,12 +200,7 @@ export class MasterSheetService {
   public async inspectFile(file: File): Promise<SheetSummary[]> {
     try {
       const buffer = await file.arrayBuffer();
-      const workbook = XLSX.read(buffer, {
-        type: 'array',
-        cellDates: true,
-        cellNF: false,
-        cellText: false
-      });
+      const workbook = this.readWorkbook(buffer, file);
 
       if (!workbook.SheetNames || workbook.SheetNames.length === 0) return [];
 
@@ -269,18 +326,15 @@ export class MasterSheetService {
     dates: string[];
     sheetNames: string[];
     activeSheet: string;
+    rejected: ImportRowIssue[];
+    warnings: ImportRowIssue[];
     message: string;
   }> {
     this.isLoading.set(true);
 
     try {
       const buffer = await file.arrayBuffer();
-      const workbook = XLSX.read(buffer, {
-        type: 'array',
-        cellDates: true,
-        cellNF: false,
-        cellText: false
-      });
+      const workbook = this.readWorkbook(buffer, file);
 
       if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
         throw new Error('El archivo no contiene ninguna hoja de cálculo válida.');
@@ -322,20 +376,54 @@ export class MasterSheetService {
       const filenameDate = this.extractDateFromFilename(file.name);
 
       // Determine if layout is Horizontal (rows = days) or Vertical (rows = metrics)
-      let extractedEntries: MasterSheetEntry[] = [];
-      const horizontalResult = this.tryParseHorizontal(rawRows, filenameDate);
+      let parsedRows: ParsedRow[] = [];
+      const horizontalResult = this.tryParseHorizontal(rawRows, filenameDate, worksheet['!merges'] || []);
 
       if (horizontalResult && horizontalResult.length > 0) {
-        extractedEntries = horizontalResult;
+        parsedRows = horizontalResult;
       } else {
         const verticalEntry = this.tryParseVertical(rawRows, filenameDate);
         if (verticalEntry) {
-          extractedEntries = [verticalEntry];
+          parsedRows = [verticalEntry];
         }
       }
 
-      if (extractedEntries.length === 0) {
+      if (parsedRows.length === 0) {
         throw new Error(`No se pudieron extraer registros con fecha válida en la hoja "${targetSheetName}".`);
+      }
+
+      // Validación de rangos físicos: las filas con topografía imposible o ausente se rechazan
+      const rejected: ImportRowIssue[] = [];
+      const warnings: ImportRowIssue[] = [];
+      const extractedEntries: MasterSheetEntry[] = [];
+      for (const { entry, missing } of parsedRows) {
+        const check = validateMasterSheetEntry(entry, missing);
+        if (check.errors.length > 0) {
+          rejected.push({ fecha: entry.fecha, reasons: check.errors });
+          continue;
+        }
+        if (check.warnings.length > 0) {
+          entry.validationWarnings = check.warnings;
+          warnings.push({ fecha: entry.fecha, reasons: check.warnings });
+        }
+        extractedEntries.push(entry);
+      }
+
+      if (rejected.length > 0 || warnings.length > 0) {
+        console.warn('[MasterSheetService] Validación de importación:', { rejected, warnings });
+      }
+
+      if (extractedEntries.length === 0) {
+        return {
+          success: false,
+          count: 0,
+          dates: [],
+          sheetNames: workbook.SheetNames,
+          activeSheet: targetSheetName,
+          rejected,
+          warnings,
+          message: `No se importó ningún registro: las ${rejected.length} filas de la hoja "${targetSheetName}" tienen valores fuera de rango físico o sin dato de cota / borde libre. Revise que las columnas correspondan a la plantilla.`
+        };
       }
 
       // Step 3: Save & update state
@@ -358,16 +446,35 @@ export class MasterSheetService {
       this.lastUpdated.set(new Date());
 
       saveRealtimeData(STORAGE_KEY, updatedList);
-      this.syncToServer(updatedList);
+      // Solo se envían los registros validados de este archivo (el servidor ya tiene el resto)
+      const serverResult = await this.syncToServer(extractedEntries);
 
       this.isLoading.set(false);
+      let message = `Se importaron con éxito ${extractedEntries.length} registros operativos desde la hoja "${targetSheetName}".`;
+      if (rejected.length > 0) {
+        message += ` Se rechazaron ${rejected.length} filas por valores fuera de rango físico o sin dato de cota / borde libre.`;
+      }
+      if (warnings.length > 0) {
+        message += ` ${warnings.length} registros importados quedaron marcados con observaciones de rango para revisión.`;
+      }
+      // Informar si el servidor no confirmó el guardado (la importación quedó solo en este dispositivo)
+      if (!serverResult) {
+        message += ' ADVERTENCIA: no se pudo confirmar el guardado en el servidor; los datos quedaron solo en este dispositivo.';
+      } else if (Array.isArray(serverResult.rejected) && serverResult.rejected.length > 0) {
+        for (const r of serverResult.rejected) {
+          if (!rejected.some(x => x.fecha === r.fecha)) rejected.push({ fecha: r.fecha, reasons: r.reasons });
+        }
+        message += ` ADVERTENCIA: el servidor rechazó ${serverResult.rejected.length} registros (ver detalle).`;
+      }
       return {
         success: true,
         count: extractedEntries.length,
         dates: extractedEntries.map(e => e.fecha),
         sheetNames: workbook.SheetNames,
         activeSheet: targetSheetName,
-        message: `Se importaron con éxito ${extractedEntries.length} registros operativos desde la hoja "${targetSheetName}".`
+        rejected,
+        warnings,
+        message
       };
     } catch (err: any) {
       this.isLoading.set(false);
@@ -378,6 +485,8 @@ export class MasterSheetService {
         dates: [],
         sheetNames: [],
         activeSheet: '',
+        rejected: [],
+        warnings: [],
         message: err.message || 'Error al procesar el archivo Excel.'
       };
     }
@@ -408,7 +517,11 @@ export class MasterSheetService {
   /**
    * Attempts to parse horizontal table where each row is a date
    */
-  private tryParseHorizontal(rawRows: any[][], fallbackDate: { fecha: string; isoDate: string } | null): MasterSheetEntry[] {
+  private tryParseHorizontal(
+    rawRows: any[][],
+    fallbackDate: { fecha: string; isoDate: string } | null,
+    merges: XLSX.Range[]
+  ): ParsedRow[] {
     let startRowIdx = -1;
     let dateColIdx = 0;
 
@@ -429,21 +542,16 @@ export class MasterSheetService {
       return [];
     }
 
-    const headerNames: string[] = [];
     const numCols = Math.max(...rawRows.slice(0, Math.min(startRowIdx + 5, rawRows.length)).map(r => r ? r.length : 0));
+    const headerNames = this.buildHeaderNames(rawRows, startRowIdx, numCols, merges);
 
-    for (let c = 0; c < numCols; c++) {
-      const parts: string[] = [];
-      for (let r = 0; r < startRowIdx; r++) {
-        const val = rawRows[r]?.[c];
-        if (val !== undefined && val !== null && String(val).trim().length > 0) {
-          parts.push(String(val).trim());
-        }
-      }
-      headerNames.push(parts.join(' ').toLowerCase());
-    }
+    // Las columnas se resuelven por nombre de cabecera, una sola vez por hoja. Ya no se usan
+    // índices fijos: en planillas con otra disposición leían columnas ajenas (p. ej. un volumen
+    // acumulado de ~82 millones como "Cota Embalse").
+    const numericCols = resolveColumns(headerNames, NUMERIC_COLUMN_ALIASES, dateColIdx);
+    const stringCols = resolveColumns(headerNames, STRING_COLUMN_ALIASES, dateColIdx);
 
-    const entries: MasterSheetEntry[] = [];
+    const entries: ParsedRow[] = [];
     for (let r = startRowIdx; r < rawRows.length; r++) {
       const row = rawRows[r];
       if (!row || row.length === 0) continue;
@@ -455,17 +563,66 @@ export class MasterSheetService {
       }
       if (!dateInfo) continue;
 
-      const entry = this.mapRowToEntry(row, headerNames, dateInfo, dateColIdx);
-      entries.push(entry);
+      entries.push(this.mapRowToEntry(row, numericCols, stringCols, dateInfo));
     }
 
     return entries;
   }
 
   /**
+   * Construye el nombre normalizado de cada columna uniendo las filas de cabecera.
+   * Los títulos de grupo ("RELAVE ENVIADO A PRESA", "SENTINA DRENES"...) solo existen en la
+   * primera celda del grupo, así que se propagan a todas sus columnas: mediante las celdas
+   * combinadas del Excel si las hay, o arrastrando el título hacia la derecha sobre celdas
+   * vacías (plantilla oficial generada sin combinaciones).
+   */
+  private buildHeaderNames(rawRows: any[][], startRowIdx: number, numCols: number, merges: XLSX.Range[]): string[] {
+    const isBlank = (v: any) => v === undefined || v === null || String(v).trim().length === 0;
+    // Solo se usan como títulos las celdas de texto; los números sueltos en cabeceras no aportan
+    const textOf = (v: any) => (typeof v === 'string' ? normalizeHeader(v) : '');
+
+    const grid: string[][] = [];
+    for (let r = 0; r < startRowIdx; r++) {
+      grid.push(Array.from({ length: numCols }, (_, c) => textOf(rawRows[r]?.[c])));
+    }
+
+    const headerMerges = merges.filter(m => m.s.r < startRowIdx);
+    if (headerMerges.length > 0) {
+      for (const m of headerMerges) {
+        const title = grid[m.s.r]?.[m.s.c] || '';
+        if (!title) continue;
+        for (let r = m.s.r; r <= Math.min(m.e.r, startRowIdx - 1); r++) {
+          for (let c = m.s.c; c <= Math.min(m.e.c, numCols - 1); c++) {
+            if (!grid[r][c]) grid[r][c] = title;
+          }
+        }
+      }
+    } else {
+      // Todas las filas de cabecera salvo la última (la de nombres de columna) son títulos de grupo
+      for (let r = 0; r < startRowIdx - 1; r++) {
+        let carry = '';
+        for (let c = 0; c < numCols; c++) {
+          const raw = rawRows[r]?.[c];
+          if (isBlank(raw)) {
+            grid[r][c] = carry;
+          } else {
+            carry = grid[r][c];
+          }
+        }
+      }
+    }
+
+    const headers: string[] = [];
+    for (let c = 0; c < numCols; c++) {
+      headers.push(grid.map(row => row[c]).filter(Boolean).join(' '));
+    }
+    return headers;
+  }
+
+  /**
    * Attempts to parse vertical daily report where parameters are in rows
    */
-  private tryParseVertical(rawRows: any[][], fallbackDate: { fecha: string; isoDate: string } | null): MasterSheetEntry | null {
+  private tryParseVertical(rawRows: any[][], fallbackDate: { fecha: string; isoDate: string } | null): ParsedRow | null {
     let dateInfo: { fecha: string; isoDate: string } | null = null;
     for (let r = 0; r < Math.min(rawRows.length, 15); r++) {
       const row = rawRows[r];
@@ -487,334 +644,103 @@ export class MasterSheetService {
       };
     }
 
-    const findNum = (keywords: string[]): number => {
-      for (const r of rawRows) {
-        if (!r || !r[0]) continue;
-        const label = String(r[0]).toLowerCase();
-        if (keywords.every(kw => label.includes(kw))) {
+    // Reporte vertical: la etiqueta está en la primera columna y el valor en la primera celda con dato
+    const findRaw = (alternatives: string[][], numeric: boolean): any => {
+      for (const keywords of alternatives) {
+        for (const r of rawRows) {
+          if (!r || !r[0]) continue;
+          const label = normalizeHeader(r[0]);
+          if (!keywords.every(kw => label.includes(kw))) continue;
           for (let c = 1; c < r.length; c++) {
             const val = r[c];
-            if (val !== undefined && val !== null && val !== '') {
-              const num = this.cleanNumeric(val);
-              if (!isNaN(num) && num !== 0) return num;
-            }
+            if (val === undefined || val === null || String(val).trim().length === 0) continue;
+            if (!numeric || Number.isFinite(this.cleanNumeric(val))) return val;
           }
         }
       }
-      return 0;
+      return null;
     };
 
-    const findStr = (keywords: string[]): string => {
-      for (const r of rawRows) {
-        if (!r || !r[0]) continue;
-        const label = String(r[0]).toLowerCase();
-        if (keywords.every(kw => label.includes(kw))) {
-          for (let c = 1; c < r.length; c++) {
-            const val = r[c];
-            if (val !== undefined && val !== null && String(val).trim().length > 0) {
-              return String(val).trim();
-            }
-          }
-        }
+    const missing = new Set<string>();
+    const values: Record<string, number | string | boolean> = {};
+    for (const [field, alternatives] of Object.entries(VERTICAL_NUMERIC_LABELS) as [MasterSheetNumericField, string[][]][]) {
+      const raw = findRaw(alternatives, true);
+      const parsed = raw === null ? NaN : this.cleanNumeric(raw);
+      if (Number.isFinite(parsed)) {
+        values[field] = parsed;
+      } else {
+        values[field] = 0;
+        missing.add(field);
       }
-      return '';
-    };
+    }
+    for (const field of Object.keys(NUMERIC_COLUMN_ALIASES) as MasterSheetNumericField[]) {
+      if (!(field in values)) {
+        values[field] = 0;
+        missing.add(field);
+      }
+    }
+    for (const [field, alternatives] of Object.entries(VERTICAL_STRING_LABELS) as [MasterSheetStringField, string[][]][]) {
+      const raw = findRaw(alternatives, false);
+      values[field] = raw === null ? '' : String(raw).trim();
+    }
 
-    const fb = findNum(['borde', 'libre']) || findNum(['freeboard']) || 4.13;
-    const cotaCorona = findNum(['corona']) || 4170.00;
-    const cotaEmbalse = findNum(['embalse']) || (cotaCorona - fb) || 4165.87;
+    // La cota del espejo puede venir solo como "embalse" o deducirse como elevación
+    if (missing.has('elevacionCotaMsnm') && !missing.has('cotaEmbalseMsnm')) {
+      values['elevacionCotaMsnm'] = values['cotaEmbalseMsnm'];
+      missing.delete('elevacionCotaMsnm');
+    }
 
-    return {
+    const entry = {
+      ...values,
       fecha: dateInfo.fecha,
       isoDate: dateInfo.isoDate,
-      bordeLibreM: fb,
-      cotaCoronaMsnm: cotaCorona,
-      cotaEmbalseMsnm: cotaEmbalse,
-      elevacionCotaMsnm: cotaEmbalse,
-      crecimientoPresaM: findNum(['crecimiento']) || 0.05,
-      volAguaRealAcumuladoM3: findNum(['agua', 'real']) || 1420500,
-      alturaLibreOperacionalM: +(fb - 0.93).toFixed(2),
-
-      relaveTotalVolDiaM3: findNum(['relave', 'dia']) || findNum(['relave', 'total']) || 165232,
-      relaveVolAM3: findNum(['relave', 'a']) || 82410,
-      relaveVolBM3: findNum(['relave', 'b']) || 82822,
-      relaveTotalHoras: findNum(['relave', 'horas']) || 24,
-      relaveFlujoAM3h: findNum(['relave', 'flujo', 'a']) || 6867,
-      relaveFlujoBM3h: findNum(['relave', 'flujo', 'b']) || 6901,
-      relaveHorasA: 12,
-      relaveHorasB: 12,
-      relaveAcumuladoEmbalseM3: findNum(['relave', 'acumulado']) || 84520100,
-
-      torre5VolDiaM3: findNum(['torre', 'dia']) || findNum(['torre', 'total']) || 156283,
-      torre5VolAM3: findNum(['torre', 'a']) || 77800,
-      torre5VolBM3: findNum(['torre', 'b']) || 78483,
-      torre5HorasA: 12,
-      torre5HorasB: 12,
-      torre5VolAcumuladoM3: findNum(['torre', 'acumulado']) || 54200000,
-
-      ciclones2daSolidosPromPct: findNum(['2da', 'solidos']) || findNum(['solidos']) || 70.15,
-      ciclones2daMalla200PromPct: findNum(['2da', '-200']) || findNum(['-200']) || 9.0,
-      ciclones2daSolidosAPct: 70.10,
-      ciclones2daSolidosBPct: 70.20,
-      ciclones2daMalla200APct: 8.9,
-      ciclones2daMalla200BPct: 9.1,
-      ciclones1raSolidosPromPct: findNum(['1ra', 'solidos']) || 68.2,
-      ciclones1raMalla200PromPct: findNum(['1ra', '-200']) || 12.5,
-      ciclones1raSolidosAPct: 68.1,
-      ciclones1raSolidosBPct: 68.3,
-      ciclones1raMalla200APct: 12.4,
-      ciclones1raMalla200BPct: 12.6,
-      ciclonesPresionPsi: findNum(['psi']) || findNum(['presion']) || 18.5,
-
-      filtracionesTotalLs: findNum(['filtraciones', 'l/s']) || findNum(['filtracion']) || 1.5,
-      filtracionesTotalM3Dia: findNum(['filtraciones', 'm3']) || 129.6,
-      filtracionesDrenesLs: findNum(['drenes']) || 0.9,
-      filtracionesSentinaSubdrenLs: findNum(['subdrenaje']) || 0.6,
-      balanceFactor: 1.01,
-
-      sentinaBombeadoTotalM3: findNum(['sentina', 'total']) || findNum(['sentina']) || 840,
-      sentinaHorasA: 12,
-      sentinaVolAM3: 420,
-      sentinaHorasB: 12,
-      sentinaVolBM3: 420,
-      sentinaPo001NivelAPct: findNum(['po-001', 'a']) || 34,
-      sentinaPo001NivelBPct: findNum(['po-001', 'b']) || 35,
-
-      eiTotalM3: findNum(['intermedia', 'total']) || findNum(['intermedia']) || 1250,
-      eiCaudalPromLs: findNum(['intermedia', 'l/s']) || 14.5,
-      eiHorasA: 12,
-      eiVolAM3: 625,
-      eiHorasB: 12,
-      eiVolBM3: 625,
-
-      vertederoPromLs: findNum(['vertedero', 'l/s']) || findNum(['vertedero']) || 2.4,
-      vertederoTotalDiaM3: findNum(['vertedero', 'm3']) || 207.36,
-      vertederoTurnoALs: 2.3,
-      vertederoTurnoAM3: 99.36,
-      vertederoTurnoBLs: 2.5,
-      vertederoTurnoBM3: 108.0,
-
-      phEmbalseA: findNum(['ph', 'embalse']) || 7.80,
-      phEmbalseB: 7.84,
-      phVertederoA: findNum(['ph', 'vertedero']) || 7.64,
-      phVertederoB: 7.66,
-      phSentina: findNum(['ph', 'sentina']) || 7.50,
-
-      espejoLibreAM: findNum(['espejo']) || 185.0,
-      espejoLibreBM: 185.5,
-      tiranteCaptacionTAM: findNum(['tirante']) || 6.20,
-      tiranteCaptacionTBM: 6.22,
-
-      descargaTaludHorasA: 12,
-      descargaTaludHorasB: 12,
-      descargaCoronaM3: findNum(['corona', 'm3']) || 12400,
-      drenBasalM3: findNum(['dren', 'basal']) || 1800,
-      descargaHidraulicaM3: findNum(['descarga', 'hidraulica']) || 14200,
-
-      lineasActivas: findStr(['lineas', 'activas']) || 'L-03, L-04, L-07, L-12',
-      spigotsActivosTotal: findNum(['spigots']) || 28,
-      zonaOperativa: findStr(['zona']) || 'Zona Sur / Estribo Izquierdo',
       cola16PulgActiva: true,
-
-      reglasAlmacenamiento: findStr(['reglas']) || 'Regla Operativa GISTM 2026',
-      longitudPlayaM: findNum(['playa']) || 220,
-      cotaDiqueSecundarioMsnm: findNum(['dique', 'secundario']) || 4160.00,
-
-      aguaFrescaTotalDiaM3: findNum(['fresca', 'total']) || findNum(['fresca']) || 18400,
-      aguaFrescaVolAM3: 9200,
-      aguaFrescaVolBM3: 9200,
-      ratioAguaTon: findNum(['ratio']) || 0.65,
-
-      arenasTotalAcumM3: findNum(['arenas', 'acum']) || 14850,
-      arenasFlujometroAM3: 7400,
-      arenasFlujometroBM3: 7450,
-      lamasSpigotsInfo: findStr(['lamas']) || '1A, 2A, 3A activos (Estribo Izq)',
-      densidadPulpaProm: findNum(['densidad']) || 1.685,
-      densidadPulpaA: 1.68,
-      densidadPulpaB: 1.69,
-
-      arenasProdTopografiaM3: findNum(['prod', 'topo']) || findNum(['compactad']) || 14720,
-      arenasProdFlujometroM3: 14850,
-      factorCorreccion: 0.99,
-      compactacionPct: findNum(['compactacion']) || 98.4,
-
       updatedAt: new Date().toISOString()
-    };
+    } as MasterSheetEntry;
+
+    return { entry, missing };
   }
 
   /**
-   * Maps a raw row and header dictionary to a clean MasterSheetEntry
+   * Convierte una fila en MasterSheetEntry usando las columnas ya resueltas por cabecera.
+   * Una celda vacía o no numérica NO se reemplaza por un valor inventado: queda en 0 y se
+   * registra en `missing` para que la validación distinga "sin dato" de un 0 medido.
    */
-  private mapRowToEntry(row: any[], headers: string[], dateInfo: { fecha: string; isoDate: string }, dateCol: number): MasterSheetEntry {
-    const getNum = (keywords: string[], fallbackCol?: number): number => {
-      for (let c = 0; c < headers.length; c++) {
-        const h = headers[c];
-        if (keywords.every(kw => h.includes(kw))) {
-          const val = row[c];
-          if (val !== undefined && val !== null && val !== '') {
-            const parsed = this.cleanNumeric(val);
-            if (!isNaN(parsed)) return parsed;
-          }
-        }
-      }
-      if (fallbackCol !== undefined && row[fallbackCol] !== undefined && row[fallbackCol] !== null) {
-        const parsed = this.cleanNumeric(row[fallbackCol]);
-        if (!isNaN(parsed)) return parsed;
-      }
-      return 0;
-    };
+  private mapRowToEntry(
+    row: any[],
+    numericCols: Map<MasterSheetNumericField, number>,
+    stringCols: Map<MasterSheetStringField, number>,
+    dateInfo: { fecha: string; isoDate: string }
+  ): ParsedRow {
+    const missing = new Set<string>();
+    const values: Record<string, number | string | boolean> = {};
 
-    const getString = (keywords: string[], fallbackCol?: number): string => {
-      for (let c = 0; c < headers.length; c++) {
-        const h = headers[c];
-        if (keywords.every(kw => h.includes(kw))) {
-          const val = row[c];
-          if (val !== undefined && val !== null) return String(val).trim();
-        }
+    for (const field of Object.keys(NUMERIC_COLUMN_ALIASES) as MasterSheetNumericField[]) {
+      const col = numericCols.get(field);
+      const parsed = col === undefined ? NaN : this.cleanNumeric(row[col]);
+      if (Number.isFinite(parsed)) {
+        values[field] = parsed;
+      } else {
+        values[field] = 0;
+        missing.add(field);
       }
-      if (fallbackCol !== undefined && row[fallbackCol] !== undefined && row[fallbackCol] !== null) {
-        return String(row[fallbackCol]).trim();
-      }
-      return '';
-    };
+    }
 
-    return {
+    for (const field of Object.keys(STRING_COLUMN_ALIASES) as MasterSheetStringField[]) {
+      const col = stringCols.get(field);
+      const raw = col === undefined ? null : row[col];
+      values[field] = raw === undefined || raw === null ? '' : String(raw).trim();
+    }
+
+    const entry = {
+      ...values,
       fecha: dateInfo.fecha,
       isoDate: dateInfo.isoDate,
-
-      // Vertedero
-      vertederoTurnoALs: getNum(['vertedero', 'turno a', 'l/s'], 1),
-      vertederoTurnoAM3: getNum(['vertedero', 'turno a', 'm3'], 2),
-      vertederoTurnoBLs: getNum(['vertedero', 'turno b', 'l/s'], 3),
-      vertederoTurnoBM3: getNum(['vertedero', 'turno b', 'm3'], 4),
-      vertederoTotalDiaM3: getNum(['vertedero', 'total', 'm3'], 5) || (getNum(['vertedero', 'm3/día']) || 207.36),
-      vertederoPromLs: getNum(['vertedero', 'prom', 'l/s'], 6) || 2.4,
-
-      // Relave Presa
-      relaveFlujoAM3h: getNum(['relave', 'flujo', 'a'], 7) || 6867,
-      relaveHorasA: getNum(['relave', 'horas', 'a'], 8) || 12,
-      relaveVolAM3: getNum(['relave', 'vol', 'a'], 9) || 82410,
-      relaveFlujoBM3h: getNum(['relave', 'flujo', 'b'], 10) || 6901,
-      relaveHorasB: getNum(['relave', 'horas', 'b'], 11) || 12,
-      relaveVolBM3: getNum(['relave', 'vol', 'b'], 12) || 82822,
-      relaveTotalHoras: getNum(['relave', 'total horas'], 13) || 24,
-      relaveTotalVolDiaM3: getNum(['relave', 'vol', 'dia'], 14) || 165232,
-      relaveAcumuladoEmbalseM3: getNum(['relave', 'acumulado'], 15) || 84520100,
-
-      // Topografía & Borde Libre
-      cotaCoronaMsnm: getNum(['corona'], 16) || 4170.00,
-      elevacionCotaMsnm: getNum(['elevacion', 'cota'], 17) || 4165.87,
-      crecimientoPresaM: getNum(['crecimiento'], 18) || 0.05,
-      cotaEmbalseMsnm: getNum(['cota', 'embalse'], 19) || 4165.87,
-      bordeLibreM: getNum(['borde', 'libre'], 20) || getNum(['freeboard'], 20) || 4.13,
-      volAguaRealAcumuladoM3: getNum(['agua', 'real'], 21) || 1420500,
-      alturaLibreOperacionalM: getNum(['altura', 'libre'], 22) || 3.20,
-
-      // Sentina Drenes
-      sentinaHorasA: getNum(['sentina', 'horas', 'a'], 23) || 12,
-      sentinaVolAM3: getNum(['sentina', 'vol', 'a'], 24) || 420,
-      sentinaHorasB: getNum(['sentina', 'horas', 'b'], 25) || 12,
-      sentinaVolBM3: getNum(['sentina', 'vol', 'b'], 26) || 420,
-      sentinaBombeadoTotalM3: getNum(['sentina', 'total'], 27) || 840,
-      sentinaPo001NivelAPct: getNum(['po-001', 'a'], 28) || 34,
-      sentinaPo001NivelBPct: getNum(['po-001', 'b'], 29) || 35,
-
-      // Estación Intermedia
-      eiHorasA: getNum(['intermedia', 'horas', 'a'], 30) || 12,
-      eiVolAM3: getNum(['intermedia', 'vol', 'a'], 31) || 625,
-      eiHorasB: getNum(['intermedia', 'horas', 'b'], 32) || 12,
-      eiVolBM3: getNum(['intermedia', 'vol', 'b'], 33) || 625,
-      eiTotalM3: getNum(['intermedia', 'total'], 34) || 1250,
-      eiCaudalPromLs: getNum(['intermedia', 'l/s'], 35) || 14.5,
-
-      // Control pH
-      phEmbalseA: getNum(['ph', 'embalse', 'a'], 36) || 7.80,
-      phEmbalseB: getNum(['ph', 'embalse', 'b'], 37) || 7.84,
-      phVertederoA: getNum(['ph', 'vertedero', 'a'], 38) || 7.64,
-      phVertederoB: getNum(['ph', 'vertedero', 'b'], 39) || 7.66,
-      phSentina: getNum(['ph', 'sentina'], 40) || 7.50,
-
-      // Torre 5
-      torre5HorasA: getNum(['torre', 'horas', 'a'], 41) || 12,
-      torre5VolAM3: getNum(['torre', 'vol', 'a'], 42) || 77800,
-      torre5HorasB: getNum(['torre', 'horas', 'b'], 43) || 12,
-      torre5VolBM3: getNum(['torre', 'vol', 'b'], 44) || 78483,
-      torre5VolDiaM3: getNum(['torre', 'dia'], 45) || 156283,
-      torre5VolAcumuladoM3: getNum(['torre', 'acumulado'], 46) || 54200000,
-
-      // Espejos y Tirantes
-      espejoLibreAM: getNum(['espejo', 'a'], 47) || 185.0,
-      espejoLibreBM: getNum(['espejo', 'b'], 48) || 185.5,
-      tiranteCaptacionTAM: getNum(['tirante', 'a'], 49) || 6.20,
-      tiranteCaptacionTBM: getNum(['tirante', 'b'], 50) || 6.22,
-
-      // Ciclones
-      ciclones1raMalla200APct: getNum(['1ra', '-200', 'a'], 51) || 12.4,
-      ciclones1raMalla200BPct: getNum(['1ra', '-200', 'b'], 52) || 12.6,
-      ciclones1raMalla200PromPct: getNum(['1ra', '-200', 'prom'], 53) || 12.5,
-      ciclones1raSolidosAPct: getNum(['1ra', 'solidos', 'a'], 54) || 68.1,
-      ciclones1raSolidosBPct: getNum(['1ra', 'solidos', 'b'], 55) || 68.3,
-      ciclones1raSolidosPromPct: getNum(['1ra', 'solidos', 'prom'], 56) || 68.2,
-      ciclones2daMalla200APct: getNum(['2da', '-200', 'a'], 57) || 8.9,
-      ciclones2daMalla200BPct: getNum(['2da', '-200', 'b'], 58) || 9.1,
-      ciclones2daMalla200PromPct: getNum(['2da', '-200', 'prom'], 59) || 9.0,
-      ciclones2daSolidosAPct: getNum(['2da', 'solidos', 'a'], 60) || 70.10,
-      ciclones2daSolidosBPct: getNum(['2da', 'solidos', 'b'], 61) || 70.20,
-      ciclones2daSolidosPromPct: getNum(['2da', 'solidos', 'prom'], 62) || 70.15,
-      ciclonesPresionPsi: getNum(['ciclones', 'psi'], 63) || 18.5,
-
-      // Talud & Disposición
-      descargaTaludHorasA: getNum(['talud', 'a'], 64) || 12,
-      descargaTaludHorasB: getNum(['talud', 'b'], 65) || 12,
-      descargaCoronaM3: getNum(['descarga', 'corona'], 66) || 12400,
-      drenBasalM3: getNum(['dren', 'basal'], 67) || 1800,
-      descargaHidraulicaM3: getNum(['descarga', 'hidraulica'], 68) || 14200,
-
-      // Embalse
-      lineasActivas: getString(['lineas', 'activas'], 69) || 'L-03, L-04, L-07, L-12',
-      spigotsActivosTotal: getNum(['spigots'], 70) || 28,
-      zonaOperativa: getString(['zona'], 71) || 'Zona Sur / Estribo Izquierdo',
       cola16PulgActiva: true,
-
-      // Diques
-      reglasAlmacenamiento: getString(['reglas'], 72) || 'Regla Operativa GISTM 2026',
-      longitudPlayaM: getNum(['playa'], 73) || 220,
-      cotaDiqueSecundarioMsnm: getNum(['dique', 'secundario'], 74) || 4160.00,
-
-      // Agua Fresca
-      aguaFrescaVolAM3: getNum(['fresca', 'a'], 75) || 9200,
-      aguaFrescaVolBM3: getNum(['fresca', 'b'], 76) || 9200,
-      aguaFrescaTotalDiaM3: getNum(['fresca', 'total'], 77) || 18400,
-      ratioAguaTon: getNum(['ratio'], 78) || 0.65,
-
-      // Arenas Paddocks
-      arenasFlujometroAM3: getNum(['arenas', 'flujo', 'a'], 79) || 7400,
-      arenasFlujometroBM3: getNum(['arenas', 'flujo', 'b'], 80) || 7450,
-      arenasTotalAcumM3: getNum(['arenas', 'acum'], 81) || 14850,
-
-      // Lamas
-      lamasSpigotsInfo: getString(['lamas'], 82) || '1A, 2A, 3A activos (Estribo Izq)',
-
-      // Densidad
-      densidadPulpaA: getNum(['densidad', 'a'], 83) || 1.68,
-      densidadPulpaB: getNum(['densidad', 'b'], 84) || 1.69,
-      densidadPulpaProm: getNum(['densidad', 'prom'], 85) || 1.685,
-
-      // Producción & Compactación
-      arenasProdFlujometroM3: getNum(['prod', 'flujo'], 86) || 14850,
-      arenasProdTopografiaM3: getNum(['prod', 'topo'], 87) || 14720,
-      factorCorreccion: getNum(['factor', 'correccion'], 88) || 0.99,
-      compactacionPct: getNum(['compactacion'], 89) || 98.4,
-
-      // Filtraciones
-      filtracionesDrenesLs: getNum(['filtraciones', 'drenes'], 90) || 0.9,
-      filtracionesSentinaSubdrenLs: getNum(['filtraciones', 'sentina'], 91) || 0.6,
-      filtracionesTotalLs: getNum(['filtraciones', 'total', 'l/s'], 92) || 1.5,
-      filtracionesTotalM3Dia: getNum(['filtraciones', 'total', 'm3'], 93) || 129.6,
-      balanceFactor: getNum(['balance'], 94) || 1.01,
-
       updatedAt: new Date().toISOString()
-    };
+    } as MasterSheetEntry;
+
+    return { entry, missing };
   }
 
   /**
@@ -909,10 +835,16 @@ export class MasterSheetService {
 
   // --- Helpers ---
 
+  /**
+   * Convierte una celda a número. Devuelve NaN si la celda está vacía, es un error de Excel
+   * (#DIV/0!, #REF!, #N/A...) o no contiene un número: nunca se convierte en 0 silenciosamente.
+   */
   private cleanNumeric(val: any): number {
-    if (typeof val === 'number') return val;
+    if (typeof val === 'number') return Number.isFinite(val) ? val : NaN;
     if (typeof val === 'string') {
-      let str = val.replace(/m3|m³|l\/s|msnm|kton|ton|psi|%/gi, '').trim();
+      const raw = val.trim();
+      if (raw.length === 0 || raw.startsWith('#')) return NaN;
+      let str = raw.replace(/m3|m³|l\/s|msnm|kton|ton|psi|%/gi, '').trim();
       str = str.replace(/[^\d.,-]/g, '').trim();
       if (str.includes(',') && str.includes('.')) {
         if (str.lastIndexOf(',') > str.lastIndexOf('.')) {
@@ -927,12 +859,30 @@ export class MasterSheetService {
         } else {
           str = str.replace(/,/g, '');
         }
+      } else if ((str.match(/\./g) || []).length > 1) {
+        // "1.234.567" → separador de miles con punto (parseFloat lo truncaría a 1.234)
+        str = str.replace(/\./g, '');
       }
-      const clean = str.replace(/[^\d.-]/g, '').trim();
-      const num = parseFloat(clean);
-      return isNaN(num) ? 0 : num;
+      if (!/^-?\d+(\.\d+)?$|^-?\.\d+$/.test(str)) return NaN;
+      return parseFloat(str);
     }
-    return 0;
+    return NaN;
+  }
+
+  /**
+   * Lee el libro. En CSV los valores se conservan como texto: SheetJS interpreta las fechas de texto
+   * en formato EE. UU. (03/01/2030 → 1 de marzo) y la planilla usa día/mes/año; normalizeDate y
+   * cleanNumeric ya convierten el texto correctamente.
+   */
+  private readWorkbook(buffer: ArrayBuffer, file: File): XLSX.WorkBook {
+    const isCsv = /\.csv$/i.test(file.name) || file.type === 'text/csv';
+    return XLSX.read(buffer, {
+      type: 'array',
+      cellDates: true,
+      cellNF: false,
+      cellText: false,
+      raw: isCsv
+    });
   }
 
   private isDateValue(val: any): boolean {
@@ -995,7 +945,11 @@ export class MasterSheetService {
           // El servidor es la fuente de verdad: sus registros prevalecen sobre la caché local
           // (evita que una caché obsoleta oculte o reenvíe datos ya corregidos en el servidor)
           const map = new Map<string, MasterSheetEntry>();
-          for (const item of this.entries()) map.set(item.fecha, item);
+          // Los registros solo-locales se conservan si son válidos: el servidor nunca acepta inválidos,
+          // así que uno inválido en caché es un resto obsoleto (p. ej. un registro ya depurado)
+          for (const item of this.entries()) {
+            if (validateMasterSheetEntry(item).errors.length === 0) map.set(item.fecha, item);
+          }
           for (const item of res.data) map.set(item.fecha, item);
           const merged = Array.from(map.values()).sort((a, b) => b.isoDate.localeCompare(a.isoDate));
           this.entries.set(merged);
@@ -1011,10 +965,13 @@ export class MasterSheetService {
     });
   }
 
-  private syncToServer(records: MasterSheetEntry[]): void {
-    this.http.post<any>(`${getApiBaseUrl()}/dashboard/master-sheet`, { entries: records }).pipe(
-      timeout(4000),
-      catchError(() => of(null))
-    ).subscribe();
+  /** Envía los registros al servidor y devuelve su respuesta (incluida la de rechazo 400), o null si no respondió. */
+  private syncToServer(records: MasterSheetEntry[]): Promise<{ success: boolean; count: number; rejected?: ImportRowIssue[] } | null> {
+    return firstValueFrom(
+      this.http.post<any>(`${getApiBaseUrl()}/dashboard/master-sheet`, { entries: records }).pipe(
+        timeout(15000),
+        catchError((err) => of(err?.error && typeof err.error === 'object' ? err.error : null))
+      )
+    );
   }
 }
