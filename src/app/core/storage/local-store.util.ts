@@ -16,7 +16,9 @@ const DEVICE_LOCAL_KEYS = new Set([
   'basetrack_users_registry',
   'basetrack_device_id',
   'basetrack_device_name',
-  'basetrack_api_url'
+  'basetrack_api_url',
+  // Valores de la calculadora de planta: preferencia de cada equipo, no se replican
+  'basetrack_calc_state'
 ]);
 
 export function isDeviceLocalKey(key: string | undefined | null): boolean {
