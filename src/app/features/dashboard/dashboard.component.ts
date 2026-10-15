@@ -289,10 +289,12 @@ export interface TrendStatsSummary {
             <span class="stat-pill info">
               Guardias A y B (24h de operación continua)
             </span>
-            <button class="btn-restore-link" (click)="masterService.resetToDemo()" title="Restaurar a datos de ejemplo de la mina">
-              Restaurar Ejemplo
-            </button>
           </div>
+        </div>
+
+        <div *ngIf="!masterService.activeEntry()" class="master-empty-state glass-panel">
+          <strong>Sin registros de la planilla maestra</strong>
+          <p>Carga la planilla oficial con "Cargar Excel / CSV" para ver los indicadores de presa y relaves.</p>
         </div>
 
         <div *ngIf="masterService.activeEntry() as current">
@@ -1956,16 +1958,20 @@ export interface TrendStatsSummary {
       display: inline-block;
     }
 
-    .btn-restore-link {
-      background: none;
-      border: none;
-      font-size: 0.75rem;
+    .master-empty-state {
+      padding: 2rem 1.5rem;
+      text-align: center;
       color: #64748b;
-      cursor: pointer;
-      text-decoration: underline;
 
-      &:hover {
+      strong {
+        display: block;
         color: #0f172a;
+        margin-bottom: 0.35rem;
+      }
+
+      p {
+        margin: 0;
+        font-size: 0.85rem;
       }
     }
 

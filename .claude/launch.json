@@ -9,6 +9,17 @@
         "start"
       ],
       "port": 4200
+    },
+    {
+      "name": "backend",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "server",
+        "run",
+        "dev"
+      ],
+      "port": 3001
     }
   ]
 }

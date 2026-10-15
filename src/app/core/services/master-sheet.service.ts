@@ -98,19 +98,13 @@ export class MasterSheetService {
   }
 
   /**
-   * Initializes master sheet data from local storage or loads realistic seed data.
+   * Initializes master sheet data from the local cache (real records only, never synthetic seed data).
    */
   public initData(): void {
     const stored = getRealtimeData<MasterSheetEntry[]>(STORAGE_KEY, []);
     if (stored && Array.isArray(stored) && stored.length > 0) {
       this.entries.set(stored);
       this.selectedDate.set(stored[0].fecha);
-      this.lastUpdated.set(new Date());
-    } else {
-      const seed = this.generateSeedData();
-      this.entries.set(seed);
-      this.selectedDate.set(seed[0].fecha);
-      saveRealtimeData(STORAGE_KEY, seed);
       this.lastUpdated.set(new Date());
     }
 
@@ -824,154 +818,6 @@ export class MasterSheetService {
   }
 
   /**
-   * Generates comprehensive seed data matching Anglo American Quellaveco / Basetrack specifications
-   */
-  public generateSeedData(): MasterSheetEntry[] {
-    const list: MasterSheetEntry[] = [];
-    const baseDate = new Date(2026, 6, 13); // 13/07/2026
-
-    for (let i = 0; i < 14; i++) {
-      const d = new Date(baseDate);
-      d.setDate(baseDate.getDate() - i);
-
-      const dayStr = String(d.getDate()).padStart(2, '0');
-      const monthStr = String(d.getMonth() + 1).padStart(2, '0');
-      const yearStr = d.getFullYear();
-      const fecha = `${dayStr}/${monthStr}/${yearStr}`;
-      const isoDate = `${yearStr}-${monthStr}-${dayStr}`;
-
-      const delta = i * 0.04;
-      const cotaEmbalse = 4165.87 - delta;
-      const cotaCorona = 4170.00;
-      const bordeLibre = +(cotaCorona - cotaEmbalse).toFixed(2);
-
-      const relaveDia = Math.round(165232 - (i % 3) * 2100 + (i % 2) * 1400);
-      const torre5Dia = Math.round(156283 - (i % 4) * 1900 + (i % 3) * 800);
-
-      list.push({
-        fecha,
-        isoDate,
-        vertederoTurnoALs: 2.3,
-        vertederoTurnoAM3: 99.36,
-        vertederoTurnoBLs: 2.5,
-        vertederoTurnoBM3: 108.0,
-        vertederoTotalDiaM3: 207.36,
-        vertederoPromLs: 2.4,
-
-        relaveFlujoAM3h: 6867,
-        relaveHorasA: 12,
-        relaveVolAM3: Math.round(relaveDia / 2),
-        relaveFlujoBM3h: 6901,
-        relaveHorasB: 12,
-        relaveVolBM3: Math.round(relaveDia / 2),
-        relaveTotalHoras: 24,
-        relaveTotalVolDiaM3: relaveDia,
-        relaveAcumuladoEmbalseM3: 84520100 - i * 165000,
-
-        cotaCoronaMsnm: cotaCorona,
-        elevacionCotaMsnm: cotaEmbalse,
-        crecimientoPresaM: 0.05,
-        cotaEmbalseMsnm: cotaEmbalse,
-        bordeLibreM: bordeLibre,
-        volAguaRealAcumuladoM3: 1420500 - i * 12000,
-        alturaLibreOperacionalM: +(bordeLibre - 0.93).toFixed(2),
-
-        sentinaHorasA: 12,
-        sentinaVolAM3: 420,
-        sentinaHorasB: 12,
-        sentinaVolBM3: 420,
-        sentinaBombeadoTotalM3: 840,
-        sentinaPo001NivelAPct: 34 + (i % 4),
-        sentinaPo001NivelBPct: 35 + (i % 3),
-
-        eiHorasA: 12,
-        eiVolAM3: 625,
-        eiHorasB: 12,
-        eiVolBM3: 625,
-        eiTotalM3: 1250,
-        eiCaudalPromLs: 14.5,
-
-        phEmbalseA: +(7.80 + (i % 3) * 0.02).toFixed(2),
-        phEmbalseB: +(7.84 - (i % 2) * 0.02).toFixed(2),
-        phVertederoA: 7.64,
-        phVertederoB: 7.66,
-        phSentina: 7.50,
-
-        torre5HorasA: 12,
-        torre5VolAM3: Math.round(torre5Dia / 2),
-        torre5HorasB: 12,
-        torre5VolBM3: Math.round(torre5Dia / 2),
-        torre5VolDiaM3: torre5Dia,
-        torre5VolAcumuladoM3: 54200000 - i * 155000,
-
-        espejoLibreAM: 185.0,
-        espejoLibreBM: 185.5,
-        tiranteCaptacionTAM: 6.20,
-        tiranteCaptacionTBM: 6.22,
-
-        ciclones1raMalla200APct: 12.4,
-        ciclones1raMalla200BPct: 12.6,
-        ciclones1raMalla200PromPct: 12.5,
-        ciclones1raSolidosAPct: 68.1,
-        ciclones1raSolidosBPct: 68.3,
-        ciclones1raSolidosPromPct: 68.2,
-        ciclones2daMalla200APct: 8.9,
-        ciclones2daMalla200BPct: 9.1,
-        ciclones2daMalla200PromPct: 9.0,
-        ciclones2daSolidosAPct: 70.10,
-        ciclones2daSolidosBPct: 70.20,
-        ciclones2daSolidosPromPct: +(70.15 - (i % 4) * 0.1).toFixed(2),
-        ciclonesPresionPsi: +(18.5 + (i % 3) * 0.2).toFixed(1),
-
-        descargaTaludHorasA: 12,
-        descargaTaludHorasB: 12,
-        descargaCoronaM3: 12400,
-        drenBasalM3: 1800,
-        descargaHidraulicaM3: 14200,
-
-        lineasActivas: 'L-03, L-04, L-07, L-12',
-        spigotsActivosTotal: 28,
-        zonaOperativa: 'Zona Sur / Estribo Izquierdo',
-        cola16PulgActiva: true,
-
-        reglasAlmacenamiento: 'Regla Operativa GISTM 2026',
-        longitudPlayaM: 220,
-        cotaDiqueSecundarioMsnm: 4160.00,
-
-        aguaFrescaVolAM3: 9200,
-        aguaFrescaVolBM3: 9200,
-        aguaFrescaTotalDiaM3: 18400,
-        ratioAguaTon: 0.65,
-
-        arenasFlujometroAM3: 7400,
-        arenasFlujometroBM3: 7450,
-        arenasTotalAcumM3: 14850,
-
-        lamasSpigotsInfo: '1A, 2A, 3A activos (Estribo Izq)',
-
-        densidadPulpaA: 1.68,
-        densidadPulpaB: 1.69,
-        densidadPulpaProm: 1.685,
-
-        arenasProdFlujometroM3: 14850,
-        arenasProdTopografiaM3: 14720,
-        factorCorreccion: 0.99,
-        compactacionPct: 98.4,
-
-        filtracionesDrenesLs: 0.9,
-        filtracionesSentinaSubdrenLs: 0.6,
-        filtracionesTotalLs: 1.5,
-        filtracionesTotalM3Dia: 129.6,
-        balanceFactor: 1.01,
-
-        updatedAt: new Date().toISOString()
-      });
-    }
-
-    return list;
-  }
-
-  /**
    * Generates and triggers download of the official blank .xlsx Master Template
    */
   public downloadMasterTemplate(): void {
@@ -1061,17 +907,6 @@ export class MasterSheetService {
     XLSX.writeFile(wb, `Reporte_Presa_BASETRACK_${new Date().toISOString().slice(0, 10)}.xlsx`);
   }
 
-  /**
-   * Resets local storage to default demo data
-   */
-  public resetToDemo(): void {
-    const seed = this.generateSeedData();
-    this.entries.set(seed);
-    this.selectedDate.set(seed[0].fecha);
-    saveRealtimeData(STORAGE_KEY, seed);
-    this.lastUpdated.set(new Date());
-  }
-
   // --- Helpers ---
 
   private cleanNumeric(val: any): number {
@@ -1150,19 +985,27 @@ export class MasterSheetService {
   }
 
   private fetchServerRecords(): void {
+    const initialSelection = this.selectedDate();
     this.http.get<any>(`${getApiBaseUrl()}/dashboard/master-sheet`).pipe(
       timeout(3000),
       catchError(() => of(null))
     ).subscribe({
       next: (res) => {
         if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
-          const current = this.entries();
+          // El servidor es la fuente de verdad: sus registros prevalecen sobre la caché local
+          // (evita que una caché obsoleta oculte o reenvíe datos ya corregidos en el servidor)
           const map = new Map<string, MasterSheetEntry>();
+          for (const item of this.entries()) map.set(item.fecha, item);
           for (const item of res.data) map.set(item.fecha, item);
-          for (const item of current) map.set(item.fecha, item);
           const merged = Array.from(map.values()).sort((a, b) => b.isoDate.localeCompare(a.isoDate));
           this.entries.set(merged);
-          saveRealtimeData(STORAGE_KEY, merged);
+          // Si el usuario no ha navegado aún, mostrar la fecha más reciente del servidor
+          if (this.selectedDate() === initialSelection || !merged.some(e => e.fecha === this.selectedDate())) {
+            this.selectedDate.set(merged[0].fecha);
+          }
+          this.lastUpdated.set(new Date());
+          // ADR-015: cachear un GET nunca debe emitirse como cambio local
+          saveRealtimeData(STORAGE_KEY, merged, { skipBroadcast: true });
         }
       }
     });
