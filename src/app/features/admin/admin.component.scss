@@ -418,6 +418,13 @@
       flex: 1 1 340px;
       min-width: 260px;
 
+      // En columna (pantallas angostas) la base de 340px se volvía altura y dejaba un hueco vacío
+      @media (max-width: 992px) {
+        flex: 0 0 auto;
+        min-width: 0;
+        width: 100%;
+      }
+
       .fleet-icon {
         font-size: 2.2rem;
         line-height: 1;
