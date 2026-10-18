@@ -5,7 +5,7 @@ import { AuthService } from '../../core/auth/auth.service';
 import { ShiftCode } from '../../core/auth/auth.models';
 import { ThemeService } from '../../core/theme/theme.service';
 import { Router } from '@angular/router';
-import { generateAvatarSvg, getEffectiveAvatar } from '../../shared/utils/avatar.util';
+import { generateAvatarSvg, getEffectiveAvatar, getUserInitials } from '../../shared/utils/avatar.util';
 import { CloudSyncService } from '../../core/services/cloud-sync.service';
 
 @Component({
@@ -78,9 +78,11 @@ import { CloudSyncService } from '../../core/services/cloud-sync.service';
                 <h4>{{ profileForm.fullName || 'Usuario' }}</h4>
                 <div class="badges-row">
                   <span class="badge" [class.badge-primary]="authService.currentUser()?.role === 'ADMIN'" [class.badge-success]="authService.currentUser()?.role === 'SUPERVISOR'" [class.badge-warning]="authService.currentUser()?.role === 'OPERATOR'">
-                    {{ authService.currentUser()?.role || 'OPERATOR' }}
+                    {{ authService.currentUser()?.role === 'ADMIN' ? 'ADMINISTRADOR GENERAL' : (authService.currentUser()?.role === 'SUPERVISOR' ? 'SUPERVISOR DE GUARDIA' : (authService.currentUser()?.role || 'OPERADOR')) }}
                   </span>
-                  <span class="badge badge-slate">{{ profileForm.shift }}</span>
+                  <span class="badge badge-slate" *ngIf="authService.currentUser()?.role !== 'ADMIN' && profileForm.shift">
+                    {{ profileForm.shift.startsWith('G') ? 'GUARDIA ' + profileForm.shift.slice(1) : profileForm.shift }}
+                  </span>
                 </div>
               </div>
             </div>
@@ -94,20 +96,20 @@ import { CloudSyncService } from '../../core/services/cloud-sync.service';
                     <polyline points="17 8 12 3 7 8"></polyline>
                     <line x1="12" y1="3" x2="12" y2="15"></line>
                   </svg>
-                  <span>Subir Foto</span>
+                  <span>Subir Fotocheck / Foto</span>
                 </button>
-                <button type="button" class="btn btn-secondary btn-reset-avatar" (click)="resetToDefaultAvatar()" title="Restablecer al avatar vectorial oficial de tu rol">
+                <button type="button" class="btn btn-secondary btn-reset-avatar" (click)="resetToDefaultAvatar()">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="1 4 1 10 7 10"></polyline>
                     <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
                   </svg>
-                  <span>Restablecer</span>
+                  <span>Iniciales {{ userInitials }}</span>
                 </button>
               </div>
 
               <!-- Quick Plant Avatars Preset Gallery -->
               <div class="preset-gallery">
-                <span class="preset-title">Avatares Oficiales de Planta:</span>
+                <span class="preset-title">Estilos de Monograma & Logotipo:</span>
                 <div class="presets-grid">
                   <button
                     type="button"
@@ -115,12 +117,14 @@ import { CloudSyncService } from '../../core/services/cloud-sync.service';
                     class="preset-item-card"
                     [class.active]="profileForm.avatarUrl === p.url"
                     (click)="selectPresetAvatar(p.url)"
-                    [title]="p.label"
                   >
                     <div class="preset-thumb">
-                      <img [src]="p.url" [alt]="p.label" />
+                      <img [src]="p.url" [alt]="p.shortLabel" />
                     </div>
-                    <span class="preset-label">{{ p.shortLabel || p.label }}</span>
+                    <div class="preset-info">
+                      <span class="preset-label">{{ p.shortLabel }}</span>
+                      <span class="preset-sublabel">{{ p.subLabel }}</span>
+                    </div>
                     <span class="preset-check" *ngIf="profileForm.avatarUrl === p.url">
                       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
                         <polyline points="20 6 9 17 4 12"></polyline>
@@ -930,14 +934,29 @@ import { CloudSyncService } from '../../core/services/cloud-sync.service';
           }
         }
 
+        .preset-info {
+          display: flex;
+          flex-direction: column;
+          gap: 1px;
+          min-width: 0;
+          flex: 1;
+        }
+
         .preset-label {
           font-size: 0.74rem;
-          font-weight: 600;
+          font-weight: 700;
           color: var(--text-primary);
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
-          flex: 1;
+        }
+
+        .preset-sublabel {
+          font-size: 0.62rem;
+          color: var(--text-muted);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
         .preset-check {
@@ -947,21 +966,27 @@ import { CloudSyncService } from '../../core/services/cloud-sync.service';
           width: 18px;
           height: 18px;
           border-radius: var(--radius-full);
-          background: var(--primary-purple);
+          background: #031795;
           color: #ffffff;
           flex-shrink: 0;
         }
 
         &:hover {
-          border-color: var(--primary-purple);
-          background: var(--primary-bg-subtle);
+          border-color: #031795;
+          background: var(--bg-card-hover);
           transform: translateY(-1px);
         }
 
         &.active {
-          border-color: var(--primary-purple);
-          background: var(--primary-bg-subtle);
-          box-shadow: 0 0 0 2px var(--primary-glow);
+          border-color: #031795;
+          background: #f0f4ff;
+          box-shadow: 0 0 0 2px rgba(3, 23, 149, 0.25);
+        }
+
+        :host-context(.dark-theme) &.active {
+          background: rgba(3, 23, 149, 0.28);
+          border-color: #3b82f6;
+          box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.35);
         }
       }
     }
@@ -1636,34 +1661,47 @@ export class ProfileComponent implements OnInit {
   successMessage = '';
   errorMessage = '';
 
-  // Preset avatar photos for plant operators / engineers (Mejora 3)
-  presetAvatars = [
-    {
-      label: 'Administrador / Jefe de Planta',
-      shortLabel: 'Administrador',
-      url: generateAvatarSvg('Administrador', 'ADMIN')
-    },
-    {
-      label: 'Supervisor de Guardia (G1-G4)',
-      shortLabel: 'Supervisor',
-      url: generateAvatarSvg('Supervisor', 'SUPERVISOR', 'G1')
-    },
-    {
-      label: 'Operador de Bombas & Molienda',
-      shortLabel: 'Op. Bombas',
-      url: generateAvatarSvg('Operador Bombas', 'OPERADOR')
-    },
-    {
-      label: 'Especialista de Mantenimiento',
-      shortLabel: 'Mantenimiento',
-      url: generateAvatarSvg('Mantenimiento', 'MAINTENANCE')
-    },
-    {
-      label: 'Isotipo Oficial BASETRACK',
-      shortLabel: 'BASETRACK',
-      url: '/images/basetrack-icon-transparent.png'
-    }
-  ];
+  get userInitials(): string {
+    const name = this.profileForm.fullName || this.authService.currentUser()?.fullName || this.authService.currentUser()?.username;
+    return getUserInitials(name);
+  }
+
+  // Estilos de monograma corporativo (siempre con las iniciales reales del usuario) & Logotipo oficial
+  get presetAvatars(): Array<{ label: string; shortLabel: string; subLabel: string; url: string }> {
+    const name = this.profileForm.fullName || this.authService.currentUser()?.fullName || this.authService.currentUser()?.username || 'Usuario';
+    return [
+      {
+        label: 'Azul Cobalto Oficial',
+        shortLabel: 'Cobalto Oficial',
+        subLabel: 'Oficial BASETRACK',
+        url: generateAvatarSvg(name, 'ADMIN', undefined, { bg1: '#031795', bg2: '#0f172a' })
+      },
+      {
+        label: 'Verde Esmeralda Planta',
+        shortLabel: 'Esmeralda',
+        subLabel: 'Operaciones',
+        url: generateAvatarSvg(name, 'OPERATOR', undefined, { bg1: '#059669', bg2: '#064e3b' })
+      },
+      {
+        label: 'Ámbar Minero Industrial',
+        shortLabel: 'Ámbar Minero',
+        subLabel: 'Mantenimiento',
+        url: generateAvatarSvg(name, 'MAINTENANCE', undefined, { bg1: '#d97706', bg2: '#78350f' })
+      },
+      {
+        label: 'Azul Real Supervisión',
+        shortLabel: 'Azul Real',
+        subLabel: 'Supervisión',
+        url: generateAvatarSvg(name, 'SUPERVISOR', undefined, { bg1: '#1d4ed8', bg2: '#1e3a8a' })
+      },
+      {
+        label: 'Isotipo Oficial BASETRACK',
+        shortLabel: 'BASETRACK',
+        subLabel: 'Isotipo Institucional',
+        url: '/images/basetrack-icon-transparent.png'
+      }
+    ];
+  }
 
   /* --- Password Strength & Validation Getters (Mejora 4) --- */
   get passwordStrength(): { score: number; label: string; colorClass: string } {

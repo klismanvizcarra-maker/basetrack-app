@@ -77,10 +77,15 @@ export function getRoleTheme(role?: string): RoleTheme {
  * Genera un avatar vectorial SVG en formato data-uri autónomo (0 peticiones de red).
  * Diseñado exclusivamente con las iniciales nítidas centradas del usuario (ej. "MV").
  */
-export function generateAvatarSvg(name?: string, role?: string, shift?: string): string {
+export function generateAvatarSvg(
+  name?: string, 
+  role?: string, 
+  shift?: string,
+  themeOverride?: { bg1: string; bg2: string; label?: string }
+): string {
   const initials = getUserInitials(name);
-  const theme = getRoleTheme(role);
-  const gradId = `avatarGrad_${initials}_${Math.abs(hashString(name || 'BT'))}`;
+  const theme = themeOverride || getRoleTheme(role);
+  const gradId = `avatarGrad_${initials}_${Math.abs(hashString((name || 'BT') + (theme.bg1 || '')))}`;
 
   // SVG de monograma con iniciales limpias, alta legibilidad a cualquier resolución
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
