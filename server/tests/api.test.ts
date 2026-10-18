@@ -1869,6 +1869,29 @@ test('47. Security: el admin con la clave pública inicial debe cambiarla', asyn
   }
 });
 
+test('48. Reportes: el administrador nunca queda como operador ni su "guardia" ADMIN como guardia', async () => {
+  const res = await fetch(`${baseUrl}/tailings`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ station_tag: 'DESC-48', pumping_line_status: 'NORMAL', freeboard_meters: 2.8 })
+  });
+  assert.strictEqual(res.status, 201);
+  const { id } = await res.json() as any;
+  const row = db.prepare('SELECT operator_name, shift_code FROM tailings_reports WHERE id = ?').get(id) as { operator_name: string; shift_code: string };
+  assert.strictEqual(row.operator_name, 'Sin asignar');
+  assert.strictEqual(row.shift_code, '');
+
+  // Con operador y guardia explícitos se respetan
+  const res2 = await fetch(`${baseUrl}/tailings`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ station_tag: 'DESC-48', pumping_line_status: 'NORMAL', operator_name: 'OPERADOR PRUEBA 48', shift_code: 'GUARDIA_C' })
+  });
+  const row2 = db.prepare('SELECT operator_name, shift_code FROM tailings_reports WHERE id = ?').get(((await res2.json()) as any).id) as { operator_name: string; shift_code: string };
+  assert.strictEqual(row2.operator_name, 'OPERADOR PRUEBA 48');
+  assert.strictEqual(row2.shift_code, 'G3');
+});
+
 test.after(async () => {
   // Purge any test users or links created during testing and restore clean slate
   try {

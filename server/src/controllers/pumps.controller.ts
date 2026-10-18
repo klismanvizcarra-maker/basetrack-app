@@ -5,7 +5,8 @@ import { AuthenticatedRequest } from '../middlewares/auth.middleware.js';
 import { logAudit } from '../middlewares/error.middleware.js';
 import { broadcastWsEvent } from '../websocket/ws.js';
 import { nextTicketNumber } from './maintenance.controller.js';
-import { siteToday } from '../utils/site-date.js';
+import { siteToday, resolveGuardCode } from '../utils/site-date.js';
+import { resolveOperatorName } from '../utils/system-admin.js';
 
 export function getAllPumps(req: Request, res: Response) {
   try {
@@ -41,8 +42,8 @@ export function createPumpReport(req: AuthenticatedRequest, res: Response) {
     }
 
     const id = crypto.randomUUID();
-    const operatorName = req.user?.fullName || req.body.operator_name || 'Operador Central';
-    const shiftCode = req.user?.shift || req.body.shift_code || 'G1';
+    const operatorName = resolveOperatorName(req.user, req.body.operator_name);
+    const shiftCode = resolveGuardCode(req.body.shift_code, req.user?.shift);
 
     db.prepare(`
       INSERT INTO pump_reports (
@@ -277,7 +278,7 @@ export function savePumpOperationalSheet(req: AuthenticatedRequest, res: Respons
     }
     const report_date = normalizeDate(rawDate);
     const shift = normalizeShift(shift_code || req.user?.shift || 'G1');
-    const operator = req.user?.fullName || operator_name || 'Operador Central';
+    const operator = resolveOperatorName(req.user, operator_name);
 
     // Helper: Sanitize pumps list, enforce maintenance locks and auto-create OTs for 'Falla'
     const sanitizeAndLinkPumps = (pumps: any[]) => {

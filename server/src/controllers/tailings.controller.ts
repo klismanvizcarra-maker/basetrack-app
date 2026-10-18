@@ -4,6 +4,8 @@ import { db } from '../database/db.js';
 import { AuthenticatedRequest } from '../middlewares/auth.middleware.js';
 import { logAudit } from '../middlewares/error.middleware.js';
 import { broadcastWsEvent } from '../websocket/ws.js';
+import { resolveOperatorName } from '../utils/system-admin.js';
+import { resolveGuardCode } from '../utils/site-date.js';
 
 export function getAllTailings(req: Request, res: Response) {
   try {
@@ -44,8 +46,8 @@ export function createTailingsReport(req: AuthenticatedRequest, res: Response) {
     }
 
     const id = crypto.randomUUID();
-    const operatorName = req.body.operator_name || req.user?.fullName || 'Operador de Presa';
-    const shiftCode = req.body.shift_code || req.user?.shift || 'G1';
+    const operatorName = resolveOperatorName(req.user, req.body.operator_name);
+    const shiftCode = resolveGuardCode(req.body.shift_code, req.user?.shift);
 
     db.prepare(`
       INSERT INTO tailings_reports (

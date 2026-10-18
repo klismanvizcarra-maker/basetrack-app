@@ -238,6 +238,16 @@ export class CrewService {
 
   constructor() {
     this.loadPositions().subscribe();
+
+    // El personal debe estar disponible en cualquier pantalla (p. ej. firmas y DNI de los reportes PDF),
+    // no solo tras visitar Cuadrilla: se hidrata desde la caché local y, con sesión, se refresca del servidor
+    const cached = getRealtimeData<CrewMember[]>('crew_members', []);
+    if (Array.isArray(cached) && cached.length > 0) {
+      this.allMembers.set(cached.filter(m => !(m?.name || '').toLowerCase().includes('marck')));
+    }
+    if (getRealtimeData<string | null>('token', null)) {
+      this.loadCrew().subscribe({ error: () => {} });
+    }
   }
 
   // ==========================================

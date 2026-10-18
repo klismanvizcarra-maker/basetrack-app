@@ -73,7 +73,7 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
               <div class="meta-row"><strong>FORMATO:</strong> <span>FOR-SST-VEH-01</span></div>
               <div class="meta-row"><strong>VERSIÓN:</strong> <span>03 (2026)</span></div>
               <div class="meta-row"><strong>FECHA:</strong> <span>{{ checklist.date }} {{ checklist.time }}</span></div>
-              <div class="meta-row"><strong>PLACA / TAG:</strong> <span>{{ checklist.vehicle_plate }} / {{ vehicleInfo?.tag || 'CAM-01' }}</span></div>
+              <div class="meta-row"><strong>PLACA / TAG:</strong> <span>{{ checklist.vehicle_plate }} / {{ vehicleInfo?.tag || '—' }}</span></div>
             </div>
           </div>
 
@@ -84,22 +84,22 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
           <!-- Datos de Unidad y Conductor -->
           <div class="unit-driver-banner">
             <div class="unit-col">
-              <div class="row-spec"><strong>VEHÍCULO:</strong> <span>{{ vehicleInfo?.model || 'Toyota Hilux 4x4 Turbodiésel' }} ({{ vehicleInfo?.color || 'Blanco' }})</span></div>
-              <div class="row-spec"><strong>ÁREA ASIGNADA:</strong> <span>{{ vehicleInfo?.area || 'Operaciones Planta' }}</span></div>
+              <div class="row-spec"><strong>VEHÍCULO:</strong> <span>{{ vehicleInfo?.model || '—' }}{{ vehicleInfo?.color ? ' (' + vehicleInfo?.color + ')' : '' }}</span></div>
+              <div class="row-spec"><strong>ÁREA ASIGNADA:</strong> <span>{{ vehicleInfo?.area || '—' }}</span></div>
               <div class="row-spec"><strong>ODÓMETRO / KM:</strong> <span class="highlight-val">{{ checklist.odometer | number }} km</span></div>
             </div>
             <div class="driver-col">
               <div class="row-spec"><strong>CONDUCTOR:</strong> <span class="highlight-driver">{{ checklist.driver_name }}</span></div>
-              <div class="row-spec"><strong>DNI / BREVETE:</strong> <span>DNI {{ checklist.driver_dni }} • Lic. {{ checklist.driver_license || 'Vigente' }}</span></div>
+              <div class="row-spec"><strong>DNI / BREVETE:</strong> <span>DNI {{ checklist.driver_dni }} • Lic. {{ checklist.driver_license || 'No registrada' }}</span></div>
               <div class="row-spec"><strong>GUARDIA / TURNO:</strong> <span>Guardia {{ checklist.shift }} (Turno {{ checklist.shift_type }})</span></div>
             </div>
             <div class="status-col">
               <span class="status-header">CONDICIÓN OPERATIVA</span>
-              <div class="status-badge-box" [class]="'badge-' + (checklist.operational_status || 'APTO').toLowerCase()">
-                {{ checklist.operational_status }}
+              <div class="status-badge-box" [class]="'badge-' + (checklist.operational_status || 'sin-estado').toLowerCase()">
+                {{ checklist.operational_status || 'SIN ESTADO' }}
               </div>
               <span class="status-sub">
-                {{ checklist.operational_status === 'APTO' ? 'AUTORIZADO PARA CIRCULAR' : (checklist.operational_status === 'OBSERVADO' ? 'CIRCULACIÓN CONDICIONADA' : 'INMOVILIZADO / PROHIBIDO') }}
+                {{ checklist.operational_status === 'APTO' ? 'AUTORIZADO PARA CIRCULAR' : (checklist.operational_status === 'OBSERVADO' ? 'CIRCULACIÓN CONDICIONADA' : (checklist.operational_status === 'NO_APTO' ? 'INMOVILIZADO / PROHIBIDO' : 'ESTADO NO REGISTRADO')) }}
               </span>
             </div>
           </div>
@@ -128,7 +128,7 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
 
           <!-- Tabla Compacta de 26 Ítems en 2 Columnas -->
           <div class="doc-section">
-            <div class="section-heading">INSPECCIÓN DETALLADA DE 26 PUNTOS NORMATIVOS DE SEGURIDAD (D.S. 024-2016-EM)</div>
+            <div class="section-heading">INSPECCIÓN DETALLADA DE {{ totalItemsCount }} PUNTOS NORMATIVOS DE SEGURIDAD (D.S. 024-2016-EM)</div>
             
             <div class="two-columns-items">
               
@@ -361,11 +361,11 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
                           <polyline points="20 6 9 17 4 12"></polyline>
                         </svg>
                       </span>
-                      <span class="seal-txt">VERIFICADO</span>
+                      <span class="seal-txt">SIN FOTO</span>
                     </div>
                   </div>
-                  <span class="no-photo-title">INSPECCIÓN VISUAL CONFORME</span>
-                  <span class="no-photo-desc">Carrocería, lunas y neumáticos sin averías ni abolladuras reportadas.</span>
+                  <span class="no-photo-title">SIN EVIDENCIA FOTOGRÁFICA</span>
+                  <span class="no-photo-desc">La inspección se registró sin foto adjunta.</span>
                 </div>
               </div>
 
@@ -378,8 +378,8 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
               <div class="sig-line"></div>
               <span class="sig-name">{{ checklist.driver_name }}</span>
               <span class="sig-role">CONDUCTOR / INSPECTOR VEHICULAR</span>
-              <span class="sig-detail">DNI: {{ checklist.driver_dni }} • Brevete: {{ checklist.driver_license || 'Conforme' }}</span>
-              <span class="sig-stamp">Firma Digital Registrada • {{ checklist.date }} {{ checklist.time }}</span>
+              <span class="sig-detail">DNI: {{ checklist.driver_dni }} • Brevete: {{ checklist.driver_license || 'No registrado' }}</span>
+              <span class="sig-stamp">Registrado en sistema • {{ checklist.date }} {{ checklist.time }}</span>
             </div>
 
             <div class="signature-box">
@@ -387,7 +387,7 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
               <span class="sig-name">{{ supervisorName }}</span>
               <span class="sig-role">SUPERVISOR DE GUARDIA {{ checklist.shift }} / RESPONSABLE SST</span>
               <span class="sig-detail">DNI: {{ supervisorDni }} • BASETRACK INDUSTRIAL</span>
-              <span class="sig-stamp">Validación de Turno Aprobada</span>
+              <span class="sig-stamp">Firma del supervisor</span>
             </div>
           </div>
 
@@ -1249,7 +1249,7 @@ export class VehicleChecklistReportPdfComponent implements OnInit, OnChanges {
     const summary = `=====================================================
 BASETRACK INDUSTRIAL - INSPECCIÓN PRE-USO CAMIONETA 4X4
 =====================================================
-Placa: ${this.checklist.vehicle_plate} (${this.vehicleInfo?.model || 'Toyota Hilux'})
+Placa: ${this.checklist.vehicle_plate}${this.vehicleInfo?.model ? ' (' + this.vehicleInfo.model + ')' : ''}
 Fecha/Hora: ${this.checklist.date} ${this.checklist.time}
 Guardia: ${this.checklist.shift} (${this.checklist.shift_type})
 Conductor: ${this.checklist.driver_name} (DNI: ${this.checklist.driver_dni})

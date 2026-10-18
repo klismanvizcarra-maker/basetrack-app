@@ -4,7 +4,7 @@ import { db } from '../database/db.js';
 import { AuthenticatedRequest } from '../middlewares/auth.middleware.js';
 import { logAudit } from '../middlewares/error.middleware.js';
 import { broadcastWsEvent } from '../websocket/ws.js';
-import { siteToday } from '../utils/site-date.js';
+import { siteToday, resolveGuardCode } from '../utils/site-date.js';
 
 const SAMPLE_PERCENT_FIELDS = ['solids_feed', 'solids_of', 'solids_uf', 'mesh200_feed', 'mesh200_of', 'mesh200_uf'] as const;
 
@@ -41,7 +41,7 @@ export function createCycloneReport(req: AuthenticatedRequest, res: Response) {
     }
 
     const id = crypto.randomUUID();
-    const shiftCode = req.user?.shift || req.body.shift_code || 'G1';
+    const shiftCode = resolveGuardCode(req.body.shift_code, req.user?.shift);
 
     db.prepare(`
       INSERT INTO cyclone_reports (
@@ -179,7 +179,7 @@ export function createStationSample(req: AuthenticatedRequest, res: Response) {
     }
 
     const id = crypto.randomUUID();
-    const finalShift = req.user?.shift || shift_code || 'G1';
+    const finalShift = resolveGuardCode(shift_code, req.user?.shift);
     const finalDate = date || siteToday();
 
     db.prepare(`
@@ -281,7 +281,7 @@ export function updateStationSample(req: AuthenticatedRequest, res: Response) {
     const existing = db.prepare('SELECT id FROM cyclone_station_samples WHERE id = ?').get(id) as any;
 
     if (!existing) {
-      const finalShift = req.user?.shift || shift_code || 'G1';
+      const finalShift = resolveGuardCode(shift_code, req.user?.shift);
       const finalDate = date || siteToday();
 
       db.prepare(`

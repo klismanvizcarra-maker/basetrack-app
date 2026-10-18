@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { StationSample, GeneralAverages } from '../cyclones/cyclones.component';
 import { PdfExportService } from '../../core/services/pdf-export.service';
 import { CrewService } from '../../core/services/crew.service';
+import { PlantParametersService } from '../../core/services/plant-parameters.service';
 import { copyToClipboard } from '../../core/utils/clipboard.util';
 import { getCurrentActiveShift } from '../../shared/utils/roster.util';
 
@@ -85,22 +86,22 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
           <div class="kpi-banner-grid">
             <div class="kpi-cell">
               <span class="kpi-title">Malla -200 Overflow (OF)</span>
-              <span class="kpi-val highlight-emerald">{{ calcAvg.mesh200_of | number:'1.1-1' }} <small>%</small></span>
-              <span class="kpi-sub">Target: 60% - 68%</span>
+              <span class="kpi-val" [class.highlight-emerald]="meshOk" [class.highlight-red]="!meshOk && calcAvg.mesh200_of > 0">{{ totalSamples ? (calcAvg.mesh200_of | number:'1.1-1') : '—' }} <small *ngIf="totalSamples">%</small></span>
+              <span class="kpi-sub">Meta: {{ targetMesh }}% · mínimo {{ minMesh }}%</span>
             </div>
             <div class="kpi-cell">
               <span class="kpi-title">% Sólidos Alimentación</span>
-              <span class="kpi-val">{{ calcAvg.solids_feed | number:'1.1-1' }} <small>%</small></span>
+              <span class="kpi-val">{{ totalSamples ? (calcAvg.solids_feed | number:'1.1-1') : '—' }} <small *ngIf="totalSamples">%</small></span>
               <span class="kpi-sub">Densidad de Pulpa</span>
             </div>
             <div class="kpi-cell">
               <span class="kpi-title">% Sólidos Overflow</span>
-              <span class="kpi-val highlight-blue">{{ calcAvg.solids_of | number:'1.1-1' }} <small>%</small></span>
+              <span class="kpi-val highlight-blue">{{ totalSamples ? (calcAvg.solids_of | number:'1.1-1') : '—' }} <small *ngIf="totalSamples">%</small></span>
               <span class="kpi-sub">Clasificación a Flotación</span>
             </div>
             <div class="kpi-cell">
               <span class="kpi-title">% Sólidos Underflow</span>
-              <span class="kpi-val">{{ calcAvg.solids_uf | number:'1.1-1' }} <small>%</small></span>
+              <span class="kpi-val">{{ totalSamples ? (calcAvg.solids_uf | number:'1.1-1') : '—' }} <small *ngIf="totalSamples">%</small></span>
               <span class="kpi-sub">Carga Circulante Gruesa</span>
             </div>
           </div>
@@ -136,9 +137,12 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
                   <td class="font-bold highlight-emerald-td">{{ s.mesh200_of | number:'1.1-1' }}%</td>
                   <td>{{ s.mesh200_uf | number:'1.1-1' }}%</td>
                 </tr>
-                <!-- Fila de Promedio Ponderado -->
+                <tr *ngIf="displaySamples.length === 0">
+                  <td colspan="8" class="text-center">Sin muestras registradas en el turno.</td>
+                </tr>
+                <!-- Promedio aritmético de las muestras con valor (no ponderado por caudal) -->
                 <tr class="avg-summary-row">
-                  <td colspan="2" class="text-right font-bold">PROMEDIO PONDERADO:</td>
+                  <td colspan="2" class="text-right font-bold">PROMEDIO{{ totalSamples > displaySamples.length ? ' (' + totalSamples + ' MUESTRAS)' : '' }}:</td>
                   <td class="font-bold">{{ calcAvg.solids_feed | number:'1.1-1' }}%</td>
                   <td class="font-bold highlight-blue-td">{{ calcAvg.solids_of | number:'1.1-1' }}%</td>
                   <td class="font-bold">{{ calcAvg.solids_uf | number:'1.1-1' }}%</td>
@@ -148,35 +152,41 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
                 </tr>
               </tbody>
             </table>
+            <p class="table-note" *ngIf="totalSamples > displaySamples.length">
+              Se muestran las primeras {{ displaySamples.length }} de {{ totalSamples }} muestras; los promedios consideran todas.
+            </p>
           </div>
 
-          <!-- 2. CONTROL OPERACIONAL DE CYCLOPAC Y DESCARGA -->
+          <!-- 2. RESUMEN CALCULADO DE LAS MUESTRAS (sin parámetros supuestos de presión ni ciclones en línea) -->
           <div class="doc-section">
-            <div class="section-heading">2. PARÁMETROS OPERATIVOS DE NIDO CYCLOPAC & ESTABILIDAD HIDRÁULICA</div>
+            <div class="section-heading">2. RESUMEN DEL MUESTREO DEL TURNO</div>
             <div class="three-col-grid">
               <div class="info-block">
-                <span class="block-title">Presión en Manifold:</span>
-                <span class="block-val">12.5 PSI <small>(Rango: 10 - 15 PSI)</small></span>
-                <span class="block-sub">Presión de alimentación uniforme</span>
+                <span class="block-title">Muestras registradas:</span>
+                <span class="block-val">{{ totalSamples }}</span>
+                <span class="block-sub">{{ batteryCount }} batería(s) muestreada(s)</span>
               </div>
               <div class="info-block">
-                <span class="block-title">Ciclones en Operación:</span>
-                <span class="block-val highlight-emerald">4 / 6 Ciclones</span>
-                <span class="block-sub">C-1, C-2, C-3, C-4 en línea (C-5, C-6 Standby)</span>
+                <span class="block-title">Muestras bajo mínimo -200M OF:</span>
+                <span class="block-val" [class.highlight-red]="samplesBelowMin > 0">{{ samplesBelowMin }}</span>
+                <span class="block-sub">Mínimo de planta: {{ minMesh }}%</span>
               </div>
               <div class="info-block">
-                <span class="block-title">Condición de Descarga:</span>
-                <span class="block-val highlight-blue">En Paraguas (Spray)</span>
-                <span class="block-sub">Descarga cónica estable sin roping</span>
+                <span class="block-title">Rango presión de alimentación:</span>
+                <span class="block-val">{{ pressureRange }}</span>
+                <span class="block-sub">Parámetro de planta (no medido por el sistema)</span>
               </div>
             </div>
           </div>
 
-          <!-- 3. NOVEDADES OPERACIONALES & OBSERVACIONES -->
+          <!-- 3. OBSERVACIONES -->
           <div class="doc-section">
             <div class="section-heading">3. OBSERVACIONES METALÚRGICAS Y CONSIGNAS DE TURNO</div>
             <div class="notes-content-box">
-              Ciclones operando de acuerdo con la ventana metalúrgica de planta. Buen corte d50 hacia circuito de flotación rougher. Se inspeccionaron ápices de goma sin presencia de taponamiento ni desbalance en la presión del manifold.
+              <ng-container *ngIf="samplesBelowMin > 0; else noObs">
+                {{ samplesBelowMin }} muestra(s) con malla -200 en overflow por debajo del mínimo de planta ({{ minMesh }}%). Requiere revisión del corte de clasificación.
+              </ng-container>
+              <ng-template #noObs>Sin observaciones registradas.</ng-template>
             </div>
           </div>
 
@@ -189,7 +199,7 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
                 <span class="sign-dni">DNI: <strong>{{ operatorDni }}</strong></span>
                 <span class="sign-role">{{ operatorRole }}</span>
               </div>
-              <span class="sig-stamp">MUESTREO CONFORME</span>
+              <span class="sig-stamp">FIRMA DEL OPERADOR</span>
             </div>
             <div class="signature-box">
               <div class="sig-line"></div>
@@ -198,7 +208,7 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
                 <span class="sign-dni">DNI: <strong>{{ supervisorDni }}</strong></span>
                 <span class="sign-role">{{ supervisorRole }}</span>
               </div>
-              <span class="sig-stamp">AUDITADO Y APROBADO</span>
+              <span class="sig-stamp">FIRMA DEL SUPERVISOR</span>
             </div>
           </div>
 
@@ -214,6 +224,12 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
     </div>
   `,
   styles: [`
+    .table-note {
+      margin: 4px 0 0;
+      font-size: 0.65rem;
+      color: #64748b;
+    }
+
     .report-backdrop {
       position: fixed;
       inset: 0;
@@ -451,6 +467,7 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
 
         &.highlight-emerald { color: #031795; }
         &.highlight-blue { color: #0284c7; }
+        &.highlight-red { color: #dc2626; }
       }
 
       .kpi-sub {
@@ -696,6 +713,7 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
 export class CycloneReportPdfComponent implements OnInit {
   private pdfService = inject(PdfExportService);
   private crewService = inject(CrewService);
+  private plantParams = inject(PlantParametersService);
 
   @Input() samples: StationSample[] = [];
   @Input() station: string = '2DA ESTACIÓN CICLONES';
@@ -706,6 +724,8 @@ export class CycloneReportPdfComponent implements OnInit {
   @Input() set isOpen(val: boolean) {
     this._isOpen = val;
     if (val) {
+      // Las firmas dependen de la estación, guardia y datos vigentes al abrir, no al crear el componente
+      this.ngOnInit();
       setTimeout(() => {
         this.downloadDirectPdf();
       }, 350);
@@ -736,6 +756,34 @@ export class CycloneReportPdfComponent implements OnInit {
       return this.samples.slice(0, 10);
     }
     return this.defaultSamples;
+  }
+
+  get totalSamples(): number {
+    return this.samples?.length || 0;
+  }
+
+  get targetMesh(): number {
+    return this.plantParams.targetMesh200();
+  }
+
+  get minMesh(): number {
+    return this.plantParams.parameters().cyclones_min_mesh200_of;
+  }
+
+  get pressureRange(): string {
+    return this.plantParams.feedPressureRange();
+  }
+
+  get meshOk(): boolean {
+    return this.calcAvg.mesh200_of >= this.minMesh;
+  }
+
+  get batteryCount(): number {
+    return new Set((this.samples || []).map(s => s.battery_tag)).size;
+  }
+
+  get samplesBelowMin(): number {
+    return (this.samples || []).filter(s => Number(s.mesh200_of) > 0 && Number(s.mesh200_of) < this.minMesh).length;
   }
 
   get calcAvg(): GeneralAverages {
@@ -779,12 +827,17 @@ export class CycloneReportPdfComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    // Se recalcula en cada apertura: no arrastrar firmantes de una estación o guardia anterior
+    this.operatorName = '--- Vacante ---';
+    this.operatorDni = '---';
+    this.supervisorName = getCurrentActiveShift().activeGuard.supervisorName;
+    this.supervisorDni = '---';
     if (this.samples.length > 0 && this.samples[0].date) {
       this.reportDate = this.samples[0].date;
     }
     const currentActive = getCurrentActiveShift();
     const posKey = this.station.includes('2DA') ? 'CICLONES_2' : 'CICLONES_1';
-    const shift = this.shiftCode || currentActive.activeGuard.code;
+    const shift = /^G[1-4]$/.test(this.shiftCode || '') ? this.shiftCode : currentActive.activeGuard.code;
     const assignedOp = this.crewService.getAssignedOperatorForPosition(posKey, shift);
     if (assignedOp) {
       this.operatorName = assignedOp.name;
@@ -842,12 +895,11 @@ export class CycloneReportPdfComponent implements OnInit {
   }
 
   copyExecutiveSummary(): void {
-    const summary = `*BASETRACK - PLANILLA METALÚRGICA DE CICLONES (1 HOJA)*
+    const summary = `*BASETRACK - PLANILLA METALÚRGICA DE CICLONES*
 Fecha: ${this.reportDate} | Guardia: ${this.shiftCode} | Estación: ${this.station}
-Malla -200 OF: ${this.calcAvg.mesh200_of.toFixed(1)}% (Target Conforme)
+Malla -200 OF: ${this.calcAvg.mesh200_of.toFixed(1)}% (${this.totalSamples === 0 ? 'sin muestras' : this.meshOk ? 'sobre el mínimo' : 'BAJO EL MÍNIMO'} de ${this.minMesh}%)
 % Sólidos: Alim ${this.calcAvg.solids_feed.toFixed(1)}% | OF ${this.calcAvg.solids_of.toFixed(1)}% | UF ${this.calcAvg.solids_uf.toFixed(1)}%
-Presión Manifold: 12.5 PSI (Estable) | Descarga: Paraguas (Spray)
-Documento Oficial Validado`;
+Muestras: ${this.totalSamples} | Bajo mínimo -200M: ${this.samplesBelowMin}`;
 
     copyToClipboard(summary).then((success) => {
       if (success) {

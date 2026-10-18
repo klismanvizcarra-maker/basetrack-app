@@ -73,7 +73,7 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
               <div class="meta-row"><strong>CÓDIGO:</strong> <span>REP-BMB-{{ activeSheet.shift_code || 'G1' }}</span></div>
               <div class="meta-row"><strong>FECHA:</strong> <span>{{ activeSheet.report_date || todayDate }}</span></div>
               <div class="meta-row"><strong>GUARDIA:</strong> <span>{{ activeSheet.shift_code || 'G1' }}</span></div>
-              <div class="meta-row"><strong>OPERADOR:</strong> <span>{{ activeSheet.operator_name || operatorName }}</span></div>
+              <div class="meta-row"><strong>OPERADOR:</strong> <span>{{ operatorName }}</span></div>
             </div>
           </div>
 
@@ -257,7 +257,7 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
             <div class="obs-dual-grid">
               <div class="notes-content-box">
                 <span class="notes-label">NOTAS Y EVENTOS DEL TURNO:</span>
-                <p class="notes-p">{{ activeSheet.additional_obs?.notas || 'Operación sin novedades críticas registradas durante la guardia.' }}</p>
+                <p class="notes-p">{{ activeSheet.additional_obs?.notas || 'Sin notas registradas por el operador.' }}</p>
               </div>
               <div class="side-metrics-box">
                 <div class="side-m-row"><span class="sm-k">Af. Cantera:</span><span class="sm-dots"></span><strong class="sm-v">{{ activeSheet.additional_obs?.af_cantera || '---' }}</strong></div>
@@ -272,12 +272,12 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
           <div class="signatures-grid">
             <div class="signature-box">
               <div class="sig-line"></div>
-              <span class="sig-name">{{ activeSheet.operator_name || operatorName }}</span>
+              <span class="sig-name">{{ operatorName }}</span>
               <div class="sign-meta-block">
                 <span class="sign-dni">DNI: <strong>{{ operatorDni }}</strong></span>
                 <span class="sig-role">{{ operatorRole }}</span>
               </div>
-              <span class="sig-stamp">REG. OPERACIONES CONFORME</span>
+              <span class="sig-stamp">FIRMA DEL OPERADOR</span>
             </div>
             <div class="signature-box">
               <div class="sig-line"></div>
@@ -286,7 +286,7 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
                 <span class="sign-dni">DNI: <strong>{{ supervisorDni }}</strong></span>
                 <span class="sig-role">{{ supervisorRole }}</span>
               </div>
-              <span class="sig-stamp">VALIDADO Y AUDITADO</span>
+              <span class="sig-stamp">FIRMA DEL SUPERVISOR</span>
             </div>
           </div>
 
@@ -944,6 +944,8 @@ export class PumpReportPdfComponent implements OnInit {
   @Input() set isOpen(val: boolean) {
     this._isOpen = val;
     if (val) {
+      // Las firmas dependen de la estación, guardia y datos vigentes al abrir, no al crear el componente
+      this.ngOnInit();
       setTimeout(() => {
         this.downloadDirectPdf();
       }, 350);
@@ -1033,6 +1035,15 @@ export class PumpReportPdfComponent implements OnInit {
     return (this.activeSheet.torre5_pumps || []).filter(p => p.status === 'Operativo').length;
   }
 
+  /** Bombas en Falla o Mantenimiento, para que el resumen no las omita. */
+  get outOfServiceTags(): string {
+    const s = this.activeSheet;
+    return [...(s.sentina_pumps || []), ...(s.intermedia_pumps || []), ...(s.torre5_pumps || [])]
+      .filter(p => p.status === 'Falla' || p.status === 'Mantenimiento')
+      .map(p => `${p.tag} (${p.status})`)
+      .join(', ');
+  }
+
   get totalOperatingCount(): number {
     return this.sentinaOperatingCount + this.intermediaOperatingCount + this.torre5OperatingCount;
   }
@@ -1043,16 +1054,31 @@ export class PumpReportPdfComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    // Se recalcula en cada apertura: no arrastrar firmantes de una estación o guardia anterior
+    this.operatorName = '--- Vacante ---';
+    this.operatorDni = '---';
+    this.supervisorName = getCurrentActiveShift().activeGuard.supervisorName;
+    this.supervisorDni = '---';
     if (this.sheet?.report_date) {
       this.todayDate = this.sheet.report_date;
     }
     const currentShift = getCurrentActiveShift();
-    const shift = this.activeSheet?.shift_code || currentShift.activeGuard.code;
+    const sheetShift = this.activeSheet?.shift_code;
+    const shift = sheetShift && /^G[1-4]$/.test(sheetShift) ? sheetShift : currentShift.activeGuard.code;
     const assignedOp = this.crewService.getAssignedOperatorForPosition('BOMBAS', shift);
     if (assignedOp) {
       this.operatorName = assignedOp.name;
       this.operatorDni = assignedOp.document_id;
       this.operatorRole = 'Operador de bombas';
+    }
+    // Si la planilla registra a su operador, firma esa persona con SU DNI (nombre y DNI de la misma ficha).
+    // Una planilla guardada a nombre del administrador de sistema no lo convierte en operador (§3.1).
+    const sheetOperator = (this.activeSheet?.operator_name || '').trim();
+    const isAdminName = /marck|admin/i.test(sheetOperator);
+    if (sheetOperator && sheetOperator !== '--- Vacante ---' && !isAdminName) {
+      const member = this.crewService.allMembers().find(m => m.name?.trim().toLowerCase() === sheetOperator.toLowerCase());
+      this.operatorName = sheetOperator;
+      this.operatorDni = member?.document_id || '---';
     }
     const sup = this.crewService.getActiveSupervisorForShift(shift);
     if (sup) {
@@ -1118,13 +1144,13 @@ export class PumpReportPdfComponent implements OnInit {
     const s = this.activeSheet;
     const summary = `*BASETRACK - REPORTE DE BOMBAS Y SENTINAS (FORMATO PLANTA)*
 Fecha: ${s.report_date || this.todayDate} | Guardia: ${s.shift_code || 'G1'}
-Operador: ${s.operator_name || this.operatorName}
-Bombas Operando: ${this.totalOperatingCount} de ${this.totalPumpsCount} (Sentina: ${this.sentinaOperatingCount}/8, Intermedia: ${this.intermediaOperatingCount}/6, Torre 5: ${this.torre5OperatingCount}/10)
+Operador: ${this.operatorName}
+Bombas Operando: ${this.totalOperatingCount} de ${this.totalPumpsCount} (Sentina: ${this.sentinaOperatingCount}/${s.sentina_pumps?.length || 0}, Intermedia: ${this.intermediaOperatingCount}/${s.intermedia_pumps?.length || 0}, Torre 5: ${this.torre5OperatingCount}/${s.torre5_pumps?.length || 0})
 Niveles: ORCA: ${s.levels?.orca || '---'} | Espejo: ${s.levels?.espejo || '---'} | Captación: ${s.levels?.captacion || '---'}
 Nivel Sentina: ${s.main_indicators?.nivel_sentina || '---'} | Bombeo Turno: ${s.main_indicators?.bombeo_turno_intermedia || '---'}
 pH Aforador: ${s.main_indicators?.ph_aforador || '---'} | pH Cortafugas: ${s.main_indicators?.ph_cortafugas || '---'}
 Notas: ${s.additional_obs?.notas || '---'}
-Reporte Oficial Validado`;
+Fuera de servicio (falla/mantenimiento): ${this.outOfServiceTags || 'ninguna'}`;
 
     copyToClipboard(summary).then((success) => {
       if (success) {

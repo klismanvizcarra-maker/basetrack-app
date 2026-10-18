@@ -1,8 +1,9 @@
 import { Component, Input, Output, EventEmitter, OnInit, inject, ChangeDetectionStrategy } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, DecimalPipe } from '@angular/common';
 import { TailingsReport } from '../tailings/tailings.component';
 import { PdfExportService } from '../../core/services/pdf-export.service';
 import { CrewService } from '../../core/services/crew.service';
+import { PlantParametersService } from '../../core/services/plant-parameters.service';
 import { copyToClipboard } from '../../core/utils/clipboard.util';
 import { getCurrentActiveShift } from '../../shared/utils/roster.util';
 
@@ -81,27 +82,27 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
             <h2>REPORTE DIARIO DE DESCARGA, ESPESAMIENTO Y ESTABILIDAD FÍSICA DE PRESA</h2>
           </div>
 
-          <!-- Resumen de Indicadores Clave (KPIs) -->
+          <!-- Resumen de Indicadores Clave (KPIs): última lectura registrada, nunca valores supuestos -->
           <div class="kpi-banner-grid">
             <div class="kpi-cell">
               <span class="kpi-title">Borde Libre (Freeboard)</span>
-              <span class="kpi-val highlight-emerald">3.8 <small>m</small></span>
-              <span class="kpi-sub">Margen Seguro (&gt; 2.5m)</span>
+              <span class="kpi-val" [class.highlight-emerald]="freeboardState === 'ok'" [class.highlight-red]="freeboardState === 'critical'" [class.highlight-amber]="freeboardState === 'warning'">{{ fmt(latest?.freeboard_meters, '1.1-2') }} <small *ngIf="latest">m</small></span>
+              <span class="kpi-sub">{{ freeboardLabel }}</span>
             </div>
             <div class="kpi-cell">
-              <span class="kpi-title">Cota Espejo de Agua</span>
-              <span class="kpi-val">4,120.4 <small>msnm</small></span>
-              <span class="kpi-sub">Dentro de Cota de Diseño</span>
+              <span class="kpi-title">Nivel de Presa</span>
+              <span class="kpi-val">{{ fmt(latest?.dam_level_meters, '1.1-1') }} <small *ngIf="latest">m</small></span>
+              <span class="kpi-sub">{{ latest ? 'Última lectura registrada' : 'Sin registros' }}</span>
             </div>
             <div class="kpi-cell">
               <span class="kpi-title">Piezómetro Muro Principal</span>
-              <span class="kpi-val highlight-blue">142.6 <small>kPa</small></span>
-              <span class="kpi-sub">Línea Freática Estable</span>
+              <span class="kpi-val highlight-blue">{{ fmt(latest?.piezometer_kpa, '1.1-1') }} <small *ngIf="hasValue(latest?.piezometer_kpa)">kPa</small></span>
+              <span class="kpi-sub">{{ hasValue(latest?.piezometer_kpa) ? 'Última lectura registrada' : 'Sin lectura' }}</span>
             </div>
             <div class="kpi-cell">
               <span class="kpi-title">Turbidez Sobrenadante</span>
-              <span class="kpi-val">12.4 <small>NTU</small></span>
-              <span class="kpi-sub">Apta para Recirculación</span>
+              <span class="kpi-val">{{ fmt(latest?.turbidity_ntu, '1.1-1') }} <small *ngIf="hasValue(latest?.turbidity_ntu)">NTU</small></span>
+              <span class="kpi-sub">{{ hasValue(latest?.turbidity_ntu) ? 'Última lectura registrada' : 'Sin lectura' }}</span>
             </div>
           </div>
 
@@ -140,33 +141,39 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
             </table>
           </div>
 
-          <!-- 2. CONTROL DE ESPIGOTAMIENTO Y AGUA RECUPERADA -->
+          <!-- 2. RESUMEN DE LAS LECTURAS DEL PERIODO (calculado de los registros) -->
           <div class="doc-section">
-            <div class="section-heading">2. CONTROL DE ESPIGOTAMIENTO, BALSA DE AGUA CLARIFICADA Y PLAYA DE RELAVES</div>
+            <div class="section-heading">2. RESUMEN DE LECTURAS REGISTRADAS</div>
             <div class="three-col-grid">
               <div class="info-block">
-                <span class="block-title">Rotación de Espigotes:</span>
-                <span class="block-val highlight-emerald">Espigotes #04 a #08 Abiertos</span>
-                <span class="block-sub">Descarga hacia margen este formando playa</span>
+                <span class="block-title">Lecturas registradas:</span>
+                <span class="block-val">{{ displayItems.length }}</span>
+                <span class="block-sub">{{ stationCount }} estación(es) de descarga</span>
               </div>
               <div class="info-block">
-                <span class="block-title">Balsa de Agua Recuperada:</span>
-                <span class="block-val highlight-blue">740 m³/h <small>(Operando)</small></span>
-                <span class="block-sub">Retorno constante a cajón de agua de proceso</span>
+                <span class="block-title">Caudal promedio:</span>
+                <span class="block-val highlight-blue">{{ avgFlow !== null ? (avgFlow | number:'1.0-1') + ' m³/h' : '—' }}</span>
+                <span class="block-sub">% sólidos promedio: {{ avgSolids !== null ? (avgSolids | number:'1.1-1') + '%' : '—' }}</span>
               </div>
               <div class="info-block">
-                <span class="block-title">Inspección de Línea HDPE:</span>
-                <span class="block-val">Sin Fugas ni Atoros</span>
-                <span class="block-sub">Inspección de termofusiones y bridas OK</span>
+                <span class="block-title">Líneas en alerta o restringidas:</span>
+                <span class="block-val" [class.highlight-red]="lineIssues > 0">{{ lineIssues }}</span>
+                <span class="block-sub">Borde libre mínimo del periodo: {{ minFreeboardInPeriod !== null ? (minFreeboardInPeriod | number:'1.1-2') + ' m' : '—' }}</span>
               </div>
             </div>
           </div>
 
-          <!-- 3. OBSERVACIONES GEOTÉCNICAS Y CONSIGNAS DE SEGURIDAD -->
+          <!-- 3. OBSERVACIONES: solo las notas escritas por los operadores -->
           <div class="doc-section">
             <div class="section-heading">3. OBSERVACIONES GEOTÉCNICAS, SEGURIDAD AMBIENTAL Y CONSIGNAS DE TURNO</div>
             <div class="notes-content-box">
-              Presa de relaves operando con estabilidad física y química conforme a los estándares de diseño. Se verificó el borde libre de 3.8 metros, garantizando margen de resguardo ante eventos hidrológicos. Laguna alejada a más de 85 metros de la corona del dique.
+              <ng-container *ngIf="observationNotes.length > 0; else noNotes">
+                <div *ngFor="let n of observationNotes">• {{ n }}</div>
+              </ng-container>
+              <ng-template #noNotes>Sin observaciones registradas en las lecturas del periodo.</ng-template>
+              <div *ngIf="freeboardState === 'critical'" class="critical-note">
+                ALERTA: borde libre por debajo del mínimo normativo de {{ regulatoryMinFreeboard }} m (D.S. 024-2016-EM).
+              </div>
             </div>
           </div>
 
@@ -179,7 +186,7 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
                 <span class="sign-dni">DNI: <strong>{{ operatorDni }}</strong></span>
                 <span class="sign-role">{{ operatorRole }}</span>
               </div>
-              <span class="sig-stamp">INSPECCIÓN CONFORME</span>
+              <span class="sig-stamp">FIRMA DEL OPERADOR</span>
             </div>
             <div class="signature-box">
               <div class="sig-line"></div>
@@ -188,7 +195,7 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
                 <span class="sign-dni">DNI: <strong>{{ supervisorDni }}</strong></span>
                 <span class="sign-role">{{ supervisorRole }}</span>
               </div>
-              <span class="sig-stamp">AUDITADO Y APROBADO</span>
+              <span class="sig-stamp">FIRMA DEL SUPERVISOR</span>
             </div>
           </div>
 
@@ -204,6 +211,12 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
     </div>
   `,
   styles: [`
+    .critical-note {
+      margin-top: 6px;
+      font-weight: 700;
+      color: #dc2626;
+    }
+
     .report-backdrop {
       position: fixed;
       inset: 0;
@@ -441,6 +454,8 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
 
         &.highlight-emerald { color: #031795; }
         &.highlight-blue { color: #0284c7; }
+        &.highlight-red { color: #dc2626; }
+        &.highlight-amber { color: #d97706; }
       }
 
       .kpi-sub {
@@ -545,6 +560,7 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
 
         &.highlight-emerald { color: #047857; }
         &.highlight-blue { color: #0284c7; }
+        &.highlight-red { color: #dc2626; }
       }
 
       .block-sub {
@@ -686,6 +702,8 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
 export class TailingsReportPdfComponent implements OnInit {
   private pdfService = inject(PdfExportService);
   private crewService = inject(CrewService);
+  private plantParams = inject(PlantParametersService);
+  private decimal = new DecimalPipe('en-US');
 
   @Input() items: TailingsReport[] = [];
   
@@ -693,6 +711,8 @@ export class TailingsReportPdfComponent implements OnInit {
   @Input() set isOpen(val: boolean) {
     this._isOpen = val;
     if (val) {
+      // Las firmas dependen de la estación, guardia y datos vigentes al abrir, no al crear el componente
+      this.ngOnInit();
       setTimeout(() => {
         this.downloadDirectPdf();
       }, 350);
@@ -722,10 +742,75 @@ export class TailingsReportPdfComponent implements OnInit {
     return this.items || [];
   }
 
+  /** Mínimo normativo de borde libre (CLAUDE.md §3.5); la meta de planta es un parámetro configurable. */
+  readonly regulatoryMinFreeboard = 1.0;
+
+  /** Lectura más reciente (la lista llega ordenada de la más nueva a la más antigua). */
+  get latest(): TailingsReport | null {
+    return this.displayItems[0] || null;
+  }
+
+  hasValue(v: unknown): boolean {
+    return v !== null && v !== undefined && v !== '' && Number.isFinite(Number(v));
+  }
+
+  fmt(v: unknown, digits: string): string {
+    return this.hasValue(v) ? (this.decimal.transform(Number(v), digits) || '—') : '—';
+  }
+
+  get freeboardState(): 'none' | 'critical' | 'warning' | 'ok' {
+    const fb = this.latest?.freeboard_meters;
+    if (!this.hasValue(fb)) return 'none';
+    if (Number(fb) < this.regulatoryMinFreeboard) return 'critical';
+    if (Number(fb) < this.plantParams.minFreeboard()) return 'warning';
+    return 'ok';
+  }
+
+  get freeboardLabel(): string {
+    switch (this.freeboardState) {
+      case 'critical': return `Bajo mínimo normativo (< ${this.regulatoryMinFreeboard} m)`;
+      case 'warning': return `Bajo meta de planta (< ${this.plantParams.minFreeboard()} m)`;
+      case 'ok': return `Dentro de meta (≥ ${this.plantParams.minFreeboard()} m)`;
+      default: return 'Sin registros';
+    }
+  }
+
+  private avgOf(field: keyof TailingsReport): number | null {
+    const vals = this.displayItems.map(i => Number(i[field])).filter(v => Number.isFinite(v) && v > 0);
+    return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+  }
+
+  get avgFlow(): number | null { return this.avgOf('flow_rate_m3h'); }
+  get avgSolids(): number | null { return this.avgOf('solids_percentage'); }
+
+  get stationCount(): number {
+    return new Set(this.displayItems.map(i => i.station_tag)).size;
+  }
+
+  get lineIssues(): number {
+    return this.displayItems.filter(i => i.pumping_line_status === 'ALERT' || i.pumping_line_status === 'RESTRICTED').length;
+  }
+
+  get minFreeboardInPeriod(): number | null {
+    const vals = this.displayItems.map(i => Number(i.freeboard_meters)).filter(v => Number.isFinite(v));
+    return vals.length ? Math.min(...vals) : null;
+  }
+
+  get observationNotes(): string[] {
+    return this.displayItems
+      .filter(i => i.notes && i.notes.trim())
+      .map(i => `${i.station_tag}: ${i.notes!.trim()}`);
+  }
+
   ngOnInit(): void {
-    const shift = (this.items && this.items.length > 0 && this.items[0].shift_code)
-      ? this.items[0].shift_code
-      : getCurrentActiveShift().activeGuard.code;
+    // Se recalcula en cada apertura: no arrastrar firmantes de una estación o guardia anterior
+    this.operatorName = '--- Vacante ---';
+    this.operatorDni = '---';
+    this.supervisorName = getCurrentActiveShift().activeGuard.supervisorName;
+    this.supervisorDni = '---';
+    // Guardia del reporte solo si es válida (G1–G4); si no, la guardia activa (el supervisor y su DNI deben coincidir)
+    const reported = this.items?.[0]?.shift_code;
+    const shift = reported && /^G[1-4]$/.test(reported) ? reported : getCurrentActiveShift().activeGuard.code;
     this.displayShift = shift;
 
     const assignedOp = this.crewService.getAssignedOperatorForPosition('DESCARGA_1', shift);
@@ -785,14 +870,13 @@ export class TailingsReportPdfComponent implements OnInit {
   }
 
   copyExecutiveSummary(): void {
-    const summary = `*BASETRACK - REPORTE OFICIAL DE PRESA DE RELAVES (1 HOJA)*
+    const l = this.latest;
+    const summary = `*BASETRACK - REPORTE DE PRESA DE RELAVES*
 Fecha: ${this.todayDate} | Guardia: ${this.displayShift}
 Operador: ${this.operatorName}
-Borde Libre: 3.8m (Margen Seguro > 2.5m) | Cota Espejo: 4,120.4 msnm
-Presión Piezométrica: 142.6 kPa (Línea Freática Conforme)
-Agua Recuperada: 740 m³/h | Turbidez: 12.4 NTU
-Operación y descarga de relaves estable
-Documento Oficial Validado`;
+Borde Libre: ${this.fmt(l?.freeboard_meters, '1.1-2')} m (${this.freeboardLabel}) | Nivel de presa: ${this.fmt(l?.dam_level_meters, '1.1-1')} m
+Piezómetro: ${this.fmt(l?.piezometer_kpa, '1.1-1')} kPa | Turbidez: ${this.fmt(l?.turbidity_ntu, '1.1-1')} NTU
+Lecturas: ${this.displayItems.length} | Líneas en alerta/restringidas: ${this.lineIssues}`;
 
     copyToClipboard(summary).then((success) => {
       if (success) {

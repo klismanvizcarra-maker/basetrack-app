@@ -3993,13 +3993,19 @@ export class ShiftHandoverComponent implements OnInit, OnDestroy {
     this.newHandover.shift_code = `${outGuard}_${shiftInfo.shiftName}_${dateCode}`;
   }
 
+  /** Guardia saliente registrada en el código del turno (p. ej. "G3_DIA_1018"); si no, se deduce del supervisor. */
+  handoverOutgoingGuard(h: ShiftHandover): string {
+    const fromCode = (h.shift_code || '').toUpperCase().match(/^(G[1-4])_/);
+    return fromCode ? fromCode[1] : this.resolveSupervisorGuard(h.outgoing_supervisor);
+  }
+
   resolveSupervisorGuard(name?: string): string {
-    if (!name) return 'G1';
+    if (!name) return '—';
     const found = this.officialSupervisors.find(s => s.name.trim().toLowerCase() === name.trim().toLowerCase());
     if (found) return found.shift;
     // Respaldo: ficha de cuadrilla en la base de datos (coincidencia exacta del nombre, nunca parcial)
     const member = this.crewService.allMembers().find(m => m.name?.trim().toLowerCase() === name.trim().toLowerCase());
-    return member?.shift_code || 'G1';
+    return member?.shift_code || '—';
   }
 
   resolveSupervisorDni(name?: string): string {
@@ -4542,7 +4548,7 @@ export class ShiftHandoverComponent implements OnInit, OnDestroy {
       escapeCsv(h.shift_code),
       escapeCsv(h.date),
       escapeCsv(h.shift_type),
-      escapeCsv(this.resolveSupervisorGuard(h.outgoing_supervisor)),
+      escapeCsv(this.handoverOutgoingGuard(h)),
       escapeCsv(h.outgoing_supervisor),
       escapeCsv(h.outgoing_dni || this.resolveSupervisorDni(h.outgoing_supervisor)),
       escapeCsv(h.outgoing_role || 'Supervisor de guardia'),

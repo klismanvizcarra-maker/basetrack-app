@@ -4,6 +4,7 @@ import { HttpClient } from '@angular/common/http';
 import { ShiftHandover } from '../shift-handover/shift-handover.component';
 import { PdfExportService } from '../../core/services/pdf-export.service';
 import { CrewService } from '../../core/services/crew.service';
+import { PlantParametersService } from '../../core/services/plant-parameters.service';
 import { VehicleChecklistService, HandoverVehicleObservation } from '../../core/services/vehicle-checklist.service';
 import { copyToClipboard } from '../../core/utils/clipboard.util';
 import { getApiBaseUrl } from '../../core/constants/api.config';
@@ -77,7 +78,7 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
               <div class="meta-row"><strong>CÓDIGO DOC:</strong> <span>REP-GRD-{{ reportData.shift_code }}</span></div>
               <div class="meta-row"><strong>FECHA:</strong> <span>{{ reportData.date }}</span></div>
               <div class="meta-row"><strong>TURNO:</strong> <span>{{ reportData.shift_type }} (12 HORAS)</span></div>
-              <div class="meta-row"><strong>ESTADO:</strong> <span class="status-accepted">OFICIAL CONFORME</span></div>
+              <div class="meta-row"><strong>ESTADO:</strong> <span [class.status-accepted]="isAccepted">{{ isAccepted ? 'ACEPTADO' : 'PENDIENTE DE CONFORMIDAD' }}</span></div>
             </div>
           </div>
 
@@ -104,8 +105,8 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
             </div>
             <div class="kpi-cell">
               <span class="kpi-title">Borde Libre Presa</span>
-              <span class="kpi-val highlight-blue">{{ liveFreeboard | number:'1.1-2' }} <small>m</small></span>
-              <span class="kpi-sub">{{ liveFreeboard > 0 ? (liveFreeboard >= 2.5 ? 'Margen Seguro (> 2.5m)' : 'Alerta de Cota (< 2.5m)') : 'Sin Lecturas de Presa' }}</span>
+              <span class="kpi-val" [class.highlight-blue]="freeboardState === 'ok'" [class.text-danger]="freeboardState === 'critical'">{{ latestTailings ? (liveFreeboard | number:'1.1-2') : '—' }} <small *ngIf="latestTailings">m</small></span>
+              <span class="kpi-sub">{{ freeboardLabel }}</span>
             </div>
           </div>
 
@@ -335,22 +336,22 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
               <div class="metric-card">
                 <span class="m-lbl">Espejo de Agua</span>
                 <span class="m-val">{{ liveWaterMirror | number:'1.1-2' }} <small>msnm</small></span>
-                <span class="m-note">Cota verificada de laguna</span>
+                <span class="m-note">{{ latestTailings ? 'Última lectura registrada' : 'Sin lecturas' }}</span>
               </div>
               <div class="metric-card">
                 <span class="m-lbl">Borde Libre</span>
-                <span class="m-val">{{ liveFreeboard | number:'1.1-2' }} <small>metros</small></span>
-                <span class="m-note">{{ liveFreeboard >= 2.5 ? 'Margen de seguridad alto (>2.5m)' : 'Alerta de cota baja (<2.5m)' }}</span>
+                <span class="m-val" [class.text-danger]="freeboardState === 'critical'">{{ latestTailings ? (liveFreeboard | number:'1.1-2') : '—' }} <small *ngIf="latestTailings">metros</small></span>
+                <span class="m-note">{{ freeboardLabel }}</span>
               </div>
               <div class="metric-card">
                 <span class="m-lbl">Piezometría Muro</span>
                 <span class="m-val">{{ livePiezometer | number:'1.1-1' }} <small>kPa</small></span>
-                <span class="m-note">Línea freática estable</span>
+                <span class="m-note">{{ livePiezometer ? 'Última lectura registrada' : 'Sin lectura' }}</span>
               </div>
               <div class="metric-card">
                 <span class="m-lbl">Turbidez de Agua Clara</span>
                 <span class="m-val">{{ liveTurbidity | number:'1.1-1' }} <small>NTU</small></span>
-                <span class="m-note">Cumple estándar ambiental</span>
+                <span class="m-note">{{ liveTurbidity ? 'Última lectura registrada' : 'Sin lectura' }}</span>
               </div>
             </div>
           </div>
@@ -440,7 +441,7 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
                   <span class="sign-role">{{ outgoingSupervisorRole }} (Turno Saliente)</span>
                 </div>
                 <span class="sign-date">Fecha y Hora: {{ reportData.date }} 19:00</span>
-                <span class="sign-status-tag">ENTREGADO CONFORME</span>
+                <span class="sign-status-tag">ENTREGADO</span>
               </div>
               <div class="signature-box">
                 <div class="sign-line"></div>
@@ -672,6 +673,10 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
         &:last-child { margin-bottom: 0; }
         strong { color: #475569; }
         span { font-weight: 600; color: #0f172a; }
+      }
+
+      .text-danger {
+        color: #dc2626 !important;
       }
 
       .status-accepted {
@@ -1216,6 +1221,7 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
 export class ShiftReportPdfComponent implements OnInit, OnChanges {
   private pdfService = inject(PdfExportService);
   private crewService = inject(CrewService);
+  private plantParamsService = inject(PlantParametersService);
   private vehicleService = inject(VehicleChecklistService);
   private http = inject(HttpClient);
 
@@ -1450,7 +1456,7 @@ export class ShiftReportPdfComponent implements OnInit, OnChanges {
           statusLabel = 'FALLA';
         }
 
-        let pressStr = '0 PSI';
+        let pressStr = '—';
         if (p.pressure_bar !== undefined && p.pressure_bar !== null && p.pressure_bar > 0) {
           pressStr = `${(p.pressure_bar * 14.5038).toFixed(1)} PSI (${p.pressure_bar} bar)`;
         } else if (p.pressure_psi) {
@@ -1474,9 +1480,9 @@ export class ShiftReportPdfComponent implements OnInit, OnChanges {
           systemName: formatSystemName(p.system, p.name),
           badgeClass,
           statusLabel,
-          currentAmps: p.current_amps ? `${p.current_amps} A` : '0 A',
+          currentAmps: p.current_amps ? `${p.current_amps} A` : '—',
           pressure: pressStr,
-          observations: p.notes || (statusLabel === 'OPERANDO' ? 'Operación en rango normal' : (statusLabel === 'STANDBY' ? 'Listo para respaldo' : 'Inspección técnica'))
+          observations: p.notes || '—'
         };
       });
     }
@@ -1508,9 +1514,10 @@ export class ShiftReportPdfComponent implements OnInit, OnChanges {
             systemName: p.system,
             badgeClass,
             statusLabel,
-            currentAmps: p.motor_amps ? `${p.motor_amps} A` : (statusLabel === 'OPERANDO' ? '125 A' : '0 A'),
-            pressure: p.pressure_psi ? `${p.pressure_psi} PSI` : (statusLabel === 'OPERANDO' ? '45 PSI' : '0 PSI'),
-            observations: p.notes || (statusLabel === 'OPERANDO' ? 'Operación en rango normal' : (statusLabel === 'STANDBY' ? 'Listo para respaldo' : 'Inspección técnica'))
+            // La planilla no registra amperaje ni presión: no se inventan lecturas
+            currentAmps: p.motor_amps ? `${p.motor_amps} A` : '—',
+            pressure: p.pressure_psi ? `${p.pressure_psi} PSI` : '—',
+            observations: p.notes || '—'
           };
         });
       }
@@ -1599,7 +1606,7 @@ export class ShiftReportPdfComponent implements OnInit, OnChanges {
       {
         name: '1ra Estación (CY1/2)',
         activeCount: s1.length > 0 ? `${s1.length} registros` : 'Sin registros',
-        pressure: s1.length > 0 ? '16.2 PSI' : '---',
+        pressure: '—',
         solidsFeed: avg1.feed,
         solidsOf: avg1.of,
         solidsUf: avg1.uf,
@@ -1609,7 +1616,7 @@ export class ShiftReportPdfComponent implements OnInit, OnChanges {
       {
         name: '2da Estación (CY3/4)',
         activeCount: s2.length > 0 ? `${s2.length} registros` : 'Sin registros',
-        pressure: s2.length > 0 ? '18.5 PSI' : '---',
+        pressure: '—',
         solidsFeed: avg2.feed,
         solidsOf: avg2.of,
         solidsUf: avg2.uf,
@@ -1636,10 +1643,27 @@ export class ShiftReportPdfComponent implements OnInit, OnChanges {
   }
 
   get liveFreeboard(): number {
-    if (this.latestTailings?.freeboard_meters) {
-      return Number(this.latestTailings.freeboard_meters);
+    const fb = Number(this.latestTailings?.freeboard_meters);
+    return Number.isFinite(fb) ? fb : 0;
+  }
+
+  /** Estado del borde libre: mínimo normativo 1.0 m (D.S. 024-2016-EM) y meta de planta configurable. */
+  get freeboardState(): 'none' | 'critical' | 'warning' | 'ok' {
+    if (!this.latestTailings) return 'none';
+    const fb = Number(this.latestTailings.freeboard_meters);
+    if (!Number.isFinite(fb)) return 'none';
+    if (fb < 1.0) return 'critical';
+    if (fb < this.plantParamsService.minFreeboard()) return 'warning';
+    return 'ok';
+  }
+
+  get freeboardLabel(): string {
+    switch (this.freeboardState) {
+      case 'critical': return 'Bajo mínimo normativo (< 1.0m)';
+      case 'warning': return `Bajo meta de planta (< ${this.plantParamsService.minFreeboard()}m)`;
+      case 'ok': return `Dentro de meta (≥ ${this.plantParamsService.minFreeboard()}m)`;
+      default: return 'Sin lecturas de presa';
     }
-    return 0;
   }
 
   get livePiezometer(): number {
@@ -1768,10 +1792,10 @@ Recibe: ${this.incomingSupervisorName} (DNI: ${this.incomingSupervisorDni})
 Tonelaje Procesado: ${(this.reportData.tonnage_processed || this.liveTonnage).toLocaleString()} TMS
 Malla -200 Final (OF): ${this.liveMesh200Of}%
 Disponibilidad Bombas: ${this.pumpAvailabilityPercent}% (${this.pumpOperatingCount}/${this.pumpTotalCount} Operativas)
-Borde Libre Presa: ${this.liveFreeboard}m (${this.liveFreeboard >= 2.5 ? 'Estable' : 'Alerta'})
+Borde Libre Presa: ${this.latestTailings ? this.liveFreeboard + 'm' : '—'} (${this.freeboardLabel})
 Novedad de Planta: ${this.reportData.plant_status}
 Pendientes Críticos: ${this.reportData.pending_tasks || 'Ninguno'}${vehText}${otText}${tlText}
-Estado: ${this.isAccepted ? 'ACEPTADO Y CONFORME' : 'PENDIENTE DE CONFORMIDAD'}`;
+Estado: ${this.isAccepted ? 'ACEPTADO' : 'PENDIENTE DE CONFORMIDAD'}`;
 
     copyToClipboard(summary).then((success) => {
       if (success) {
