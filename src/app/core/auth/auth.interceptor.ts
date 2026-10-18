@@ -9,14 +9,14 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const token = getRealtimeData<string>('token', '') || 
     (typeof localStorage !== 'undefined' ? (localStorage.getItem('basetrack_token') || localStorage.getItem('basetrack_auth_token')) : null);
 
-  let authReq = req;
-  if (token) {
-    authReq = req.clone({
-      setHeaders: {
-        Authorization: `Bearer ${token}`
-      }
-    });
-  }
+  // Identidad de la terminal: el backend la usa para no reenviar por WebSocket el eco del
+  // propio cambio a la terminal que lo originó (ADR-014/015)
+  const deviceId = getRealtimeData<string | null>('device_id', null);
+  const headers: Record<string, string> = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  if (deviceId && req.url.includes('/api/')) headers['X-Device-Id'] = deviceId;
+
+  const authReq = Object.keys(headers).length > 0 ? req.clone({ setHeaders: headers }) : req;
 
   const router = inject(Router);
 

@@ -790,7 +790,8 @@ export class AdminComponent implements OnInit, OnDestroy {
                   crewList.push({
                     id: 'crew-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
                     name: r.full_name,
-                    document_id: r.document_id || ('DNI-' + Math.floor(10000000 + Math.random() * 90000000)),
+                    // Sin DNI real se deja vacío: nunca se inventa un documento (CLAUDE.md §3.2)
+                    document_id: r.document_id || '',
                     primary_role: r.primary_role || (r.role === 'SUPERVISOR' ? 'SUPERVISOR' : 'OPERADOR_BOMBAS'),
                     shift_code: r.shift || 'G1',
                     radio_channel: r.radio_channel || 'Canal 1 Operaciones',

@@ -12,6 +12,10 @@ export interface SyncEventPayload {
   timestamp: number;
 }
 
+function syncEventSignature(e: SyncEventPayload): string {
+  return `${e?.entity || ''}|${e?.action || ''}|${e?.key || ''}|${e?.timestamp || 0}`;
+}
+
 export type SyncState = 'ONLINE' | 'SYNCING' | 'OFFLINE' | 'LOCAL';
 
 import { getApiBaseUrl, DEFAULT_CLOUD_BACKEND_URL } from '../constants/api.config';
@@ -210,17 +214,28 @@ export class CloudSyncService {
     let queue = getRealtimeData<SyncEventPayload[]>('sync_queue', []);
     if (!Array.isArray(queue) || queue.length === 0) return;
 
-    // Safety defense: If queue is large, deduplicate and cap at 50 items
+    // Deduplicar (último SET por entidad/clave) y enviar en lotes de máximo 50 eventos (ADR-015).
+    // Los eventos que exceden el lote se conservan para el siguiente envío, nunca se descartan.
     if (queue.length > 50) {
       const seen = new Map<string, SyncEventPayload>();
       for (const item of queue) {
         const itemKey = (item.entity || '') + ':' + (item.action || '') + ':' + (item.key || '');
         seen.set(itemKey, item);
       }
-      queue = Array.from(seen.values()).slice(-50);
+      queue = Array.from(seen.values());
       saveRealtimeData('sync_queue', queue, { skipBroadcast: true });
       this.updatePendingCount();
     }
+    const batch = queue.slice(0, 50);
+    const batchSignatures = new Set(batch.map(syncEventSignature));
+    // Quita de la cola solo lo enviado: lo encolado mientras la petición estaba en vuelo se conserva
+    const removeSentFromQueue = () => {
+      const current = getRealtimeData<SyncEventPayload[]>('sync_queue', []);
+      const remaining = Array.isArray(current) ? current.filter(i => !batchSignatures.has(syncEventSignature(i))) : [];
+      saveRealtimeData('sync_queue', remaining, { skipBroadcast: true });
+      this.updatePendingCount();
+      return remaining.length;
+    };
 
     this.isProcessingQueue = true;
     this.syncStatus.set('SYNCING');
@@ -230,7 +245,7 @@ export class CloudSyncService {
       deviceId: this.deviceId,
       deviceName: this.deviceName,
       username: user?.username || null,
-      events: queue
+      events: batch
     };
 
     this.http.post<any>(`${this.apiUrl}/push`, payload).pipe(
@@ -239,20 +254,21 @@ export class CloudSyncService {
         // Fallback for pure Vercel static mode
         this.syncStatus.set(navigator.onLine ? 'ONLINE' : 'OFFLINE');
         this.isProcessingQueue = false;
-        // If server rejected with 400 (e.g. malformed or oversized batch), purge corrupt queue
-        if (err?.status === 400) {
+        // Lote rechazado de forma definitiva (400 corrupto, 403 acción reservada, 413 excesivo):
+        // se descarta solo ese lote para que no bloquee indefinidamente al resto de la cola
+        if (err?.status === 400 || err?.status === 403 || err?.status === 413) {
           console.warn('[CloudSync] Servidor rechazó lote con 400, descartando lote inválido:', err);
-          saveRealtimeData('sync_queue', [], { skipBroadcast: true });
-          this.updatePendingCount();
+          removeSentFromQueue();
         }
         return of(null);
       })
     ).subscribe(res => {
       this.isProcessingQueue = false;
       if (res && res.success) {
-        // Queue successfully pushed
-        saveRealtimeData('sync_queue', [], { skipBroadcast: true });
-        this.updatePendingCount();
+        // Lote enviado: si quedan eventos pendientes se envía el siguiente lote
+        if (removeSentFromQueue() > 0) {
+          setTimeout(() => this.flushQueue(), 0);
+        }
         this.syncStatus.set('ONLINE');
         this.lastSyncTime.set(new Date());
         if (res.lastServerId) {

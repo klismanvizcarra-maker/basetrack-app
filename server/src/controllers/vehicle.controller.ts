@@ -4,6 +4,8 @@ import { db, seedDefaultVehicles } from '../database/db.js';
 import { AuthenticatedRequest } from '../middlewares/auth.middleware.js';
 import { logAudit } from '../middlewares/error.middleware.js';
 import { broadcastWsEvent } from '../websocket/ws.js';
+import { siteToday } from '../utils/site-date.js';
+import { isSystemAdminIdentity } from '../utils/system-admin.js';
 
 export const OFFICIAL_VEHICLES = [
   { plate: 'BMC715', tag: 'CAM-01', model: 'Toyota Hilux 4x4 Turbodiésel', color: 'Blanco Industrial', area: 'Supervisión de Operaciones', baseOdometer: 48250 },
@@ -457,6 +459,10 @@ export function createVehicleChecklist(req: AuthenticatedRequest, res: Response)
       });
     }
 
+    if (isSystemAdminIdentity(driver_name)) {
+      return res.status(400).json({ success: false, message: 'El Administrador de sistema no puede figurar como conductor de camioneta.' });
+    }
+
     const odoNum = Number(odometer);
     if (isNaN(odoNum) || odoNum <= 0) {
       return res.status(400).json({
@@ -468,7 +474,7 @@ export function createVehicleChecklist(req: AuthenticatedRequest, res: Response)
     const validShift = ['G1', 'G2', 'G3', 'G4'].includes(shift) ? shift : 'G1';
     const validShiftType = shift_type === 'NOCHE' ? 'NOCHE' : 'DIA';
     const validStatus = ['APTO', 'OBSERVADO', 'NO_APTO'].includes(operational_status) ? operational_status : 'APTO';
-    const checkDate = date || new Date().toISOString().slice(0, 10);
+    const checkDate = date || siteToday();
     const checkTime = time || new Date().toTimeString().slice(0, 5);
 
     if (photo_url && typeof photo_url === 'string' && photo_url.length > 3 * 1024 * 1024) {

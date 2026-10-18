@@ -70,10 +70,12 @@ export interface TailingsReport {
         </div>
         <div class="metric-box glass-panel">
           <span class="m-title">Borde Libre (Freeboard)</span>
-          <span class="m-val">{{ latestFreeboard ? (latestFreeboard | number:'1.1-1') : '---' }} <small>metros</small></span>
-          <span class="m-status normal" *ngIf="latestFreeboard >= plantParamsService.minFreeboard()">Margen Seguro (≥ {{ plantParamsService.minFreeboard() }}m)</span>
-          <span class="m-status warn" *ngIf="latestFreeboard > 0 && latestFreeboard < plantParamsService.minFreeboard()">Alerta Margen Bajo (< {{ plantParamsService.minFreeboard() }}m)</span>
-          <span class="m-status" style="color: var(--text-muted)" *ngIf="!latestFreeboard">Sin registros</span>
+          <span class="m-val">{{ tailings.length > 0 ? (latestFreeboard | number:'1.1-1') : '---' }} <small>metros</small></span>
+          <!-- 0 m es el caso más crítico: se evalúa por existencia de reportes, no por valor > 0 -->
+          <span class="m-status crit" *ngIf="tailings.length > 0 && latestFreeboard < regulatoryMinFreeboard">Bajo mínimo normativo (< {{ regulatoryMinFreeboard }}m · D.S. 024-2016-EM)</span>
+          <span class="m-status warn" *ngIf="tailings.length > 0 && latestFreeboard >= regulatoryMinFreeboard && latestFreeboard < plantParamsService.minFreeboard()">Alerta Margen Bajo (< {{ plantParamsService.minFreeboard() }}m)</span>
+          <span class="m-status normal" *ngIf="tailings.length > 0 && latestFreeboard >= plantParamsService.minFreeboard() && latestFreeboard >= regulatoryMinFreeboard">Margen Seguro (≥ {{ plantParamsService.minFreeboard() }}m)</span>
+          <span class="m-status" style="color: var(--text-muted)" *ngIf="tailings.length === 0">Sin registros</span>
         </div>
         <div class="metric-box glass-panel">
           <span class="m-title">Presión Piezométrica Muro</span>
@@ -281,6 +283,7 @@ export interface TailingsReport {
 
       &.normal { color: var(--success); }
       &.warn { color: var(--warning); }
+      &.crit { color: var(--danger); }
     }
 
     /* Table */
@@ -409,6 +412,9 @@ export class TailingsComponent implements OnInit, OnDestroy {
   get latestDamLevel(): number {
     return this.tailings.length > 0 ? this.tailings[0].dam_level_meters : 0;
   }
+
+  /** Borde libre mínimo reglamentario (CLAUDE.md §3.5); la meta de planta puede ser mayor. */
+  readonly regulatoryMinFreeboard = 1.0;
 
   get latestFreeboard(): number {
     return this.tailings.length > 0 ? this.tailings[0].freeboard_meters : 0;

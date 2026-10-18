@@ -4,6 +4,8 @@ import { db } from '../database/db.js';
 import { AuthenticatedRequest } from '../middlewares/auth.middleware.js';
 import { logAudit } from '../middlewares/error.middleware.js';
 import { broadcastWsEvent } from '../websocket/ws.js';
+import { siteToday } from '../utils/site-date.js';
+import { isSystemAdminIdentity } from '../utils/system-admin.js';
 
 export function getCrewMembers(req: Request, res: Response) {
   try {
@@ -42,6 +44,9 @@ export function createCrewMember(req: AuthenticatedRequest, res: Response) {
 
     if (!name || !document_id || !primary_role || !shift_code) {
       return res.status(400).json({ success: false, message: 'Nombre, documento, rol y guardia son requeridos.' });
+    }
+    if (isSystemAdminIdentity(name)) {
+      return res.status(400).json({ success: false, message: 'El Administrador de sistema no puede registrarse como integrante de cuadrilla.' });
     }
 
     const id = crypto.randomUUID();
@@ -89,6 +94,9 @@ export function updateCrewMember(req: AuthenticatedRequest, res: Response) {
     const existing = db.prepare('SELECT * FROM crew_members WHERE id = ?').get(id);
     if (!existing) {
       return res.status(404).json({ success: false, message: 'Operador no encontrado' });
+    }
+    if (name !== undefined && isSystemAdminIdentity(name)) {
+      return res.status(400).json({ success: false, message: 'El Administrador de sistema no puede registrarse como integrante de cuadrilla.' });
     }
 
     db.prepare(`
@@ -159,7 +167,7 @@ export function deleteCrewMember(req: AuthenticatedRequest, res: Response) {
 
 export function getAreaAssignments(req: Request, res: Response) {
   try {
-    const shiftDate = (req.query.date as string) || new Date().toISOString().split('T')[0];
+    const shiftDate = (req.query.date as string) || siteToday();
     const rawShift = (req.query.shift_code as string) || 'G1';
     const shiftCode = rawShift === 'GUARDIA_A' ? 'G1' :
                       rawShift === 'GUARDIA_B' ? 'G2' :

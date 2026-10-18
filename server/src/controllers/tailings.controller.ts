@@ -24,6 +24,24 @@ export function createTailingsReport(req: AuthenticatedRequest, res: Response) {
     if (!station_tag || !pumping_line_status) {
       return res.status(400).json({ success: false, message: 'Estación de descarga y estado de línea son requeridos' });
     }
+    if (!['NORMAL', 'ALERT', 'RESTRICTED'].includes(String(pumping_line_status))) {
+      return res.status(400).json({ success: false, message: 'Estado de línea inválido (NORMAL, ALERT o RESTRICTED)' });
+    }
+
+    // Lecturas de presa: deben ser números reales no negativos (un texto o negativo falsearía el borde libre)
+    const numericFields: Record<string, unknown> = {
+      flow_rate_m3h, solids_percentage, dam_level_meters, freeboard_meters, piezometer_kpa, turbidity_ntu
+    };
+    for (const [field, value] of Object.entries(numericFields)) {
+      if (value === undefined || value === null || value === '') continue;
+      const n = Number(value);
+      if (!Number.isFinite(n) || n < 0) {
+        return res.status(400).json({ success: false, message: `Valor inválido en ${field}: debe ser un número no negativo` });
+      }
+    }
+    if (solids_percentage !== undefined && solids_percentage !== null && solids_percentage !== '' && Number(solids_percentage) > 100) {
+      return res.status(400).json({ success: false, message: 'El porcentaje de sólidos no puede superar 100%' });
+    }
 
     const id = crypto.randomUUID();
     const operatorName = req.body.operator_name || req.user?.fullName || 'Operador de Presa';

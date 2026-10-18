@@ -390,7 +390,7 @@ export interface MaintenanceRequest {
               </button>
 
               <div *ngIf="t.status === 'IN_PROGRESS'" class="in-progress-actions">
-                <button class="btn-action-primary btn-resolve" (click)="openPassModal(t)">
+                <button *ngIf="canIssuePass" class="btn-action-primary btn-resolve" (click)="openPassModal(t)">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
                     <polyline points="20 6 9 17 4 12"></polyline>
                   </svg>
@@ -2474,6 +2474,12 @@ export class MaintenanceComponent implements OnInit, OnDestroy {
     }
   }
 
+  /** El Pase Operativo solo lo emiten Mantenimiento o Supervisión (el backend lo exige, CLAUDE.md §3.4). */
+  get canIssuePass(): boolean {
+    const role = String(this.authService.currentUser()?.role || '');
+    return role === 'ADMIN' || role === 'SUPERVISOR' || role === 'MAINTENANCE';
+  }
+
   openPassModal(t: MaintenanceRequest): void {
     this.selectedPassTicket = t;
     this.passSignerName = this.authService.currentUser()?.fullName || 'Supervisor Mantenimiento';
@@ -2508,7 +2514,13 @@ export class MaintenanceComponent implements OnInit, OnDestroy {
       next: () => {
         this.loadTickets();
       },
-      error: () => {
+      error: (err) => {
+        // Rechazo del servidor (p. ej. 403 sin permiso): no se encola, se recarga el estado real
+        if (err?.status >= 400 && err?.status < 500) {
+          this.syncLocalPumpStatus(t.equipment_tag, 'Mantenimiento');
+          this.loadTickets();
+          return;
+        }
         this.offlineSync.queueAction(endpoint, 'PATCH' as any, {
           status: 'RESOLVED',
           operational_pass_by: signer,

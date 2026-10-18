@@ -5,6 +5,18 @@ import { AuthenticatedRequest } from '../middlewares/auth.middleware.js';
 import { logAudit } from '../middlewares/error.middleware.js';
 import { broadcastWsEvent } from '../websocket/ws.js';
 
+/** Correlativo de OT del año en curso (OT-AAAA-NNNN), compartido por mantenimiento y bombas. */
+export function nextTicketNumber(): string {
+  const currentYear = new Date().getFullYear();
+  let nextNum = ((db.prepare('SELECT COUNT(*) as count FROM maintenance_requests').get() as { count: number }).count || 0) + 1;
+  let ticketNumber = `OT-${currentYear}-${String(nextNum).padStart(4, '0')}`;
+  while (db.prepare('SELECT id FROM maintenance_requests WHERE ticket_number = ?').get(ticketNumber)) {
+    nextNum++;
+    ticketNumber = `OT-${currentYear}-${String(nextNum).padStart(4, '0')}`;
+  }
+  return ticketNumber;
+}
+
 export function getAllMaintenanceRequests(req: Request, res: Response) {
   try {
     const requests = db.prepare('SELECT * FROM maintenance_requests ORDER BY created_at DESC').all();
@@ -25,13 +37,7 @@ export function createMaintenanceRequest(req: AuthenticatedRequest, res: Respons
     }
 
     const id = crypto.randomUUID();
-    const currentYear = new Date().getFullYear();
-    let nextNum = ((db.prepare('SELECT COUNT(*) as count FROM maintenance_requests').get() as { count: number }).count || 0) + 1;
-    let ticketNumber = `OT-${currentYear}-${String(nextNum).padStart(4, '0')}`;
-    while (db.prepare('SELECT id FROM maintenance_requests WHERE ticket_number = ?').get(ticketNumber)) {
-      nextNum++;
-      ticketNumber = `OT-${currentYear}-${String(nextNum).padStart(4, '0')}`;
-    }
+    const ticketNumber = nextTicketNumber();
     const requesterName = req.user?.fullName || req.body.requester_name || 'Operador de Guardia';
 
     const tag = String(equipment_tag).trim().toUpperCase();
@@ -97,6 +103,10 @@ export function updateMaintenanceStatus(req: AuthenticatedRequest, res: Response
     }
 
     const isPassingToOperational = status === 'RESOLVED' || status === 'CLOSED';
+    // El Pase Operativo libera la bomba bloqueada: solo lo emite mantenimiento o supervisión (CLAUDE.md §3.4)
+    if (isPassingToOperational && !['ADMIN', 'SUPERVISOR', 'MAINTENANCE'].includes(String(req.user?.role))) {
+      return res.status(403).json({ success: false, message: 'Solo Mantenimiento o Supervisión pueden emitir el Pase Operativo' });
+    }
     const passBy = isPassingToOperational 
       ? (operational_pass_by || req.user?.fullName || req.user?.username || 'Supervisor Mantenimiento')
       : null;

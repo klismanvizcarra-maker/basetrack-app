@@ -1617,6 +1617,85 @@ test('41. Maintenance Lifecycle: MAINTENANCE role permissions, tag normalization
   assert.strictEqual(deleteData.success, true);
 });
 
+test('42. Pase Operativo: OPERATOR no puede resolver una OT, MAINTENANCE sí (CLAUDE.md §3.4)', async () => {
+  const operatorToken = generateToken({
+    username: 'operador_pase_tester',
+    role: 'OPERATOR',
+    shift: 'G1',
+    fullName: 'Operador Pase Tester'
+  } as any);
+  const maintToken = generateToken({
+    username: 'mantenimiento_pase_tester',
+    role: 'MAINTENANCE',
+    shift: 'GENERAL',
+    fullName: 'Tecnico Pase Tester'
+  } as any);
+
+  const createRes = await fetch(`${baseUrl}/maintenance`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({
+      equipment_tag: 'PU042',
+      title: 'Falla de sello mecánico',
+      description: 'Fuga en sello de bomba slurry',
+      priority: 'HIGH'
+    })
+  });
+  assert.strictEqual(createRes.status, 201);
+  const ticketId = ((await createRes.json()) as any).id;
+  assert.ok(ticketId);
+
+  const resolve = (token: string) => fetch(`${baseUrl}/maintenance/${ticketId}/status`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+    body: JSON.stringify({ status: 'RESOLVED', resolution_notes: 'Sello reemplazado' })
+  });
+
+  // 1. El operador tiene CAN_RECORD_DATA, pero no puede emitir el Pase Operativo
+  const operatorRes = await resolve(operatorToken);
+  assert.strictEqual(operatorRes.status, 403);
+  const afterOperator = db.prepare('SELECT status, operational_pass_by FROM maintenance_requests WHERE id = ?').get(ticketId) as any;
+  assert.strictEqual(afterOperator.status, 'PENDING');
+  assert.ok(!afterOperator.operational_pass_by);
+
+  // 2. Mantenimiento sí lo emite y queda registrado quién firmó el pase
+  const maintRes = await resolve(maintToken);
+  assert.strictEqual(maintRes.status, 200);
+  const afterMaint = db.prepare('SELECT status, operational_pass_by, operational_pass_at FROM maintenance_requests WHERE id = ?').get(ticketId) as any;
+  assert.strictEqual(afterMaint.status, 'RESOLVED');
+  assert.strictEqual(afterMaint.operational_pass_by, 'Tecnico Pase Tester');
+  assert.ok(afterMaint.operational_pass_at);
+});
+
+test('43. Validación de lecturas y del administrador fantasma (relaves, ciclones, relevo)', async () => {
+  const post = (path: string, body: unknown) => fetch(`${baseUrl}${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify(body)
+  });
+
+  // Relaves: estado de línea fuera del catálogo y borde libre negativo se rechazan con 400 (no 500)
+  assert.strictEqual((await post('/tailings', { station_tag: 'DESC-01', pumping_line_status: 'ROTO' })).status, 400);
+  assert.strictEqual((await post('/tailings', { station_tag: 'DESC-01', pumping_line_status: 'NORMAL', freeboard_meters: -1 })).status, 400);
+  assert.strictEqual((await post('/tailings', { station_tag: 'DESC-01', pumping_line_status: 'NORMAL', freeboard_meters: 'abc' })).status, 400);
+  assert.strictEqual((await post('/tailings', { station_tag: 'DESC-01', pumping_line_status: 'NORMAL', solids_percentage: 150 })).status, 400);
+  assert.strictEqual((await post('/tailings', { station_tag: 'DESC-01', pumping_line_status: 'ALERT', freeboard_meters: 0.8 })).status, 201);
+
+  // Ciclones: % -200M debe estar entre 0 y 100
+  const sample = { sample_time: '08:00', battery_tag: 'BATERÍA D', mesh200_uf: 120 };
+  assert.strictEqual((await post('/cyclones/station-samples', sample)).status, 400);
+  assert.strictEqual((await post('/cyclones/station-samples', { ...sample, mesh200_uf: 14.5 })).status, 201);
+
+  // Relevo: Marckv nunca figura como supervisor, ni implícitamente por ser quien registra
+  const adminRow = db.prepare("SELECT full_name FROM users WHERE LOWER(username) = 'marckv'").get() as { full_name: string };
+  const implicitAdmin = await post('/shift-handover', { shift_code: 'G1_TEST43', shift_type: 'DIA', incoming_supervisor: 'SUPERVISOR ENTRANTE 43' });
+  assert.strictEqual(implicitAdmin.status, 400);
+  const explicitAdmin = await post('/shift-handover', { shift_code: 'G1_TEST43', shift_type: 'DIA', outgoing_supervisor: 'SUPERVISOR SALIENTE 43', incoming_supervisor: adminRow.full_name });
+  assert.strictEqual(explicitAdmin.status, 400);
+  const valid = await post('/shift-handover', { shift_code: 'G1_TEST43', shift_type: 'DIA', outgoing_supervisor: 'SUPERVISOR SALIENTE 43', incoming_supervisor: 'SUPERVISOR ENTRANTE 43' });
+  assert.strictEqual(valid.status, 201);
+});
+
 test.after(async () => {
   // Purge any test users or links created during testing and restore clean slate
   try {

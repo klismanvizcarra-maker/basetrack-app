@@ -4,6 +4,8 @@ import { db } from '../database/db.js';
 import { AuthenticatedRequest } from '../middlewares/auth.middleware.js';
 import { logAudit } from '../middlewares/error.middleware.js';
 import { broadcastWsEvent } from '../websocket/ws.js';
+import { siteToday } from '../utils/site-date.js';
+import { isSystemAdminIdentity } from '../utils/system-admin.js';
 
 export function getAllShiftHandovers(req: Request, res: Response) {
   try {
@@ -53,8 +55,13 @@ export function createShiftHandover(req: AuthenticatedRequest, res: Response) {
     const inDni = incoming_dni || null;
     const inRole = incoming_role || 'Supervisor de guardia';
 
+    // El administrador de sistema nunca figura como supervisor de guardia (CLAUDE.md §3.1)
+    if (isSystemAdminIdentity(outSup) || isSystemAdminIdentity(inSup)) {
+      return res.status(400).json({ success: false, message: 'El Administrador de sistema no puede figurar como supervisor saliente ni entrante' });
+    }
+
     // Gotcha #4: Peru timezone UTC-5 fallback so 19:00 night shift does not flip to tomorrow
-    const handoverDate = date || new Date(Date.now() - 5 * 3600 * 1000).toISOString().split('T')[0];
+    const handoverDate = date || siteToday();
     const crewJson = assigned_crew ? (typeof assigned_crew === 'string' ? assigned_crew : JSON.stringify(assigned_crew)) : null;
     const checklistJson = checklist_data ? (typeof checklist_data === 'string' ? checklist_data : JSON.stringify(checklist_data)) : null;
 
@@ -105,14 +112,29 @@ export function acceptShiftHandover(req: AuthenticatedRequest, res: Response) {
   try {
     const id = String(req.params.id);
     const { incoming_supervisor, incoming_dni, incoming_role } = req.body || {};
-    const handover = db.prepare('SELECT id, shift_code FROM shift_handovers WHERE id = ?').get(id) as any;
+    const handover = db.prepare('SELECT id, shift_code, status FROM shift_handovers WHERE id = ?').get(id) as any;
 
     if (!handover) {
       return res.status(404).json({ success: false, message: 'Bitácora no encontrada' });
     }
+    if (handover.status === 'ACCEPTED') {
+      return res.status(409).json({ success: false, message: 'El relevo ya fue aceptado' });
+    }
 
+    // El administrador de sistema nunca figura como supervisor de guardia (CLAUDE.md §3.1)
+    if (!incoming_supervisor && req.user?.role === 'ADMIN') {
+      return res.status(400).json({ success: false, message: 'Debe indicar el supervisor entrante que recibe la guardia' });
+    }
+
+    // El JWT no incluye el DNI: se toma del registro del usuario
+    const userRow = req.user?.userId
+      ? db.prepare('SELECT document_id FROM users WHERE id = ?').get(req.user.userId) as { document_id?: string } | undefined
+      : undefined;
     const inSup = incoming_supervisor || req.user?.fullName || null;
-    const inDni = incoming_dni || (req.user as any)?.document_id || null;
+    if (isSystemAdminIdentity(inSup)) {
+      return res.status(400).json({ success: false, message: 'El Administrador de sistema no puede figurar como supervisor entrante' });
+    }
+    const inDni = incoming_dni || (incoming_supervisor ? null : userRow?.document_id) || null;
     const inRole = incoming_role || 'Supervisor de guardia';
 
     db.prepare(`

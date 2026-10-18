@@ -4,6 +4,20 @@ import { db } from '../database/db.js';
 import { AuthenticatedRequest } from '../middlewares/auth.middleware.js';
 import { logAudit } from '../middlewares/error.middleware.js';
 import { broadcastWsEvent } from '../websocket/ws.js';
+import { siteToday } from '../utils/site-date.js';
+
+const SAMPLE_PERCENT_FIELDS = ['solids_feed', 'solids_of', 'solids_uf', 'mesh200_feed', 'mesh200_of', 'mesh200_uf'] as const;
+
+/** % sólidos y % -200M deben estar entre 0 y 100: un valor inválido falsea el control de finos del muro. */
+function invalidSamplePercent(body: Record<string, unknown>): string | null {
+  for (const field of SAMPLE_PERCENT_FIELDS) {
+    const value = body[field];
+    if (value === undefined || value === null || value === '') continue;
+    const n = Number(value);
+    if (!Number.isFinite(n) || n < 0 || n > 100) return field;
+  }
+  return null;
+}
 
 export function getAllCyclones(req: Request, res: Response) {
   try {
@@ -159,10 +173,14 @@ export function createStationSample(req: AuthenticatedRequest, res: Response) {
     if (!sample_time || !battery_tag) {
       return res.status(400).json({ success: false, message: 'Hora de muestreo y batería son obligatorios' });
     }
+    const badField = invalidSamplePercent(req.body);
+    if (badField) {
+      return res.status(400).json({ success: false, message: `Valor inválido en ${badField}: debe ser un porcentaje entre 0 y 100` });
+    }
 
     const id = crypto.randomUUID();
     const finalShift = req.user?.shift || shift_code || 'G1';
-    const finalDate = date || new Date().toISOString().split('T')[0];
+    const finalDate = date || siteToday();
 
     db.prepare(`
       INSERT INTO cyclone_station_samples (
@@ -255,11 +273,16 @@ export function updateStationSample(req: AuthenticatedRequest, res: Response) {
       date
     } = req.body;
 
+    const badField = invalidSamplePercent(req.body);
+    if (badField) {
+      return res.status(400).json({ success: false, message: `Valor inválido en ${badField}: debe ser un porcentaje entre 0 y 100` });
+    }
+
     const existing = db.prepare('SELECT id FROM cyclone_station_samples WHERE id = ?').get(id) as any;
 
     if (!existing) {
       const finalShift = req.user?.shift || shift_code || 'G1';
-      const finalDate = date || new Date().toISOString().split('T')[0];
+      const finalDate = date || siteToday();
 
       db.prepare(`
         INSERT INTO cyclone_station_samples (

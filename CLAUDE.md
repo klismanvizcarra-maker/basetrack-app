@@ -26,7 +26,7 @@ Ejecutar siempre desde la raíz del proyecto:
 # Verificación integral obligatoria (Tests + Build):
 npm run verify
 
-# Ejecutar suite de pruebas del backend (35 tests automatizados):
+# Ejecutar suite de pruebas del backend (43 tests automatizados):
 npm run backend:test
 
 # Compilación de producción de Angular:
@@ -95,6 +95,6 @@ Para comprender el histórico y contexto profundo de cada módulo, consultar:
 ## 5. Criterios de Aceptación para Entregables ("Done")
 
 Una tarea sólo se considera terminada cuando:
-1. `npm run backend:test` aprueba **35 / 35 tests** sin fallos.
+1. `npm run backend:test` aprueba **43 / 43 tests** sin fallos.
 2. `npm run build` compila limpiamente sin errores de tipos TypeScript ni violaciones de budgets.
 3. Se documenta la modificación en el código preservando tipado estricto.

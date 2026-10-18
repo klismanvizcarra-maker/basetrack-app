@@ -4,7 +4,7 @@ import crypto from 'node:crypto';
 import bcrypt from 'bcryptjs';
 import fs from 'node:fs';
 import path from 'node:path';
-import { db, seedDefaultVehicles } from '../database/db.js';
+import { db, dbFilePath, seedDefaultVehicles } from '../database/db.js';
 import { AuthenticatedRequest } from '../middlewares/auth.middleware.js';
 import { logAudit } from '../middlewares/error.middleware.js';
 import { ALL_PERMISSIONS, DEFAULT_ROLE_PERMISSIONS, PermissionKey } from '../config/permissions.js';
@@ -291,10 +291,8 @@ export function getAuditLogs(req: Request, res: Response) {
 
 export function getDatabaseBackup(req: Request, res: Response) {
   try {
-    const dbPath = process.env.DB_PATH || './data/basetrack.db';
-    const resolved = path.resolve(process.cwd(), dbPath);
-
-    if (!fs.existsSync(resolved)) {
+    // Misma ruta que usa la conexión activa (en producción, el disco persistente)
+    if (!fs.existsSync(dbFilePath)) {
       return res.status(404).json({ success: false, message: 'Archivo de base de datos no encontrado' });
     }
 
@@ -315,6 +313,10 @@ export function getDatabaseBackup(req: Request, res: Response) {
       vehicles: db.prepare('SELECT * FROM vehicles').all(),
       vehicle_checklists: db.prepare('SELECT * FROM vehicle_checklists').all(),
       audit_logs: db.prepare('SELECT * FROM audit_logs').all(),
+      master_sheet_entries: db.prepare('SELECT * FROM master_sheet_entries').all(),
+      pump_shift_closures: db.prepare('SELECT * FROM pump_shift_closures').all(),
+      plant_parameters: db.prepare('SELECT * FROM plant_parameters').all(),
+      role_permissions: db.prepare('SELECT * FROM role_permissions').all(),
       exportedAt: new Date().toISOString(),
       system: 'BASETRACK_APP_V1'
     };
@@ -676,6 +678,20 @@ export function resetApp(req: AuthenticatedRequest, res: Response) {
       });
     }
 
+    // Respaldo físico obligatorio antes del borrado total (CLAUDE.md §3.6): sin respaldo no se borra nada
+    let snapshotPath = '';
+    try {
+      const backupsDir = path.join(path.dirname(dbFilePath), 'backups');
+      fs.mkdirSync(backupsDir, { recursive: true });
+      snapshotPath = path.join(backupsDir, `basetrack_prereset_${new Date().toISOString().replace(/[:.]/g, '-')}.db`);
+      db.exec(`VACUUM INTO '${snapshotPath.replace(/'/g, "''")}';`);
+    } catch (snapErr: any) {
+      return res.status(500).json({
+        success: false,
+        message: 'No se pudo crear el respaldo previo al restablecimiento. No se borró ningún dato: ' + snapErr.message
+      });
+    }
+
     // Execute complete database clean slate
     db.exec('PRAGMA foreign_keys = OFF;');
     db.exec('BEGIN TRANSACTION;');
@@ -701,12 +717,15 @@ export function resetApp(req: AuthenticatedRequest, res: Response) {
       db.prepare('DELETE FROM sync_events').run();
       db.prepare('DELETE FROM connected_devices').run();
       db.prepare('DELETE FROM vehicles').run();
+      db.prepare('DELETE FROM master_sheet_entries').run();
+      db.prepare('DELETE FROM pump_shift_closures').run();
       seedDefaultVehicles();
 
       // Wipe v2 / v3 backup tables if present
       try { db.prepare('DELETE FROM crew_area_assignments_v2').run(); } catch {}
       try { db.prepare('DELETE FROM crew_area_assignments_v3').run(); } catch {}
       try { db.prepare('DELETE FROM crew_members_v3').run(); } catch {}
+      try { db.prepare('DELETE FROM vehicle_checklists_v2').run(); } catch {}
 
       // 2. Delete all users except the authorized administrator
       db.prepare('DELETE FROM users WHERE id != ?').run(adminUser.id);
@@ -726,7 +745,7 @@ export function resetApp(req: AuthenticatedRequest, res: Response) {
       'RESET_APP',
       'SYSTEM',
       null,
-      `Restablecimiento total del sistema completado. Solicitado por ${adminUser.username} (${adminUser.full_name}).`,
+      `Restablecimiento total del sistema completado. Solicitado por ${adminUser.username} (${adminUser.full_name}). Respaldo previo: ${path.basename(snapshotPath)}`,
       req.ip || '127.0.0.1'
     );
 

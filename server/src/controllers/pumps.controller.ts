@@ -4,6 +4,8 @@ import { db } from '../database/db.js';
 import { AuthenticatedRequest } from '../middlewares/auth.middleware.js';
 import { logAudit } from '../middlewares/error.middleware.js';
 import { broadcastWsEvent } from '../websocket/ws.js';
+import { nextTicketNumber } from './maintenance.controller.js';
+import { siteToday } from '../utils/site-date.js';
 
 export function getAllPumps(req: Request, res: Response) {
   try {
@@ -85,12 +87,7 @@ export function updatePumpStatus(req: AuthenticatedRequest, res: Response) {
     } else if (status === 'FAULT' && !activeTicket) {
       // Auto-create maintenance request
       const ticketId = crypto.randomUUID();
-      let nextNum = ((db.prepare('SELECT COUNT(*) as count FROM maintenance_requests').get() as { count: number }).count || 0) + 1;
-      let ticketNumber = `OT-2026-${String(nextNum).padStart(4, '0')}`;
-      while (db.prepare('SELECT id FROM maintenance_requests WHERE ticket_number = ?').get(ticketNumber)) {
-        nextNum++;
-        ticketNumber = `OT-2026-${String(nextNum).padStart(4, '0')}`;
-      }
+      const ticketNumber = nextTicketNumber();
       const operator = req.user?.fullName || req.user?.username || 'Operador de Bombas';
       db.prepare(`
         INSERT INTO maintenance_requests (
@@ -152,7 +149,7 @@ export function updatePumpStatus(req: AuthenticatedRequest, res: Response) {
 }
 
 function normalizeDate(d?: string): string {
-  if (!d) return new Date().toISOString().slice(0, 10);
+  if (!d) return siteToday();
   if (d.includes('/')) {
     const parts = d.split('/');
     if (parts.length === 3) {
@@ -174,7 +171,7 @@ function normalizeShift(s?: string): string {
 
 export function getPumpOperationalSheet(req: Request, res: Response) {
   try {
-    const reportDate = normalizeDate((req.query.date as string) || new Date().toISOString().slice(0, 10));
+    const reportDate = normalizeDate((req.query.date as string) || siteToday());
     const shiftCode = normalizeShift((req.query.shift as string) || 'G1');
 
     let sheet = db.prepare(`
@@ -301,12 +298,7 @@ export function savePumpOperationalSheet(req: AuthenticatedRequest, res: Respons
         } else if (p.status === 'Falla') {
           // Auto-generate maintenance request for this pump tag
           const ticketId = crypto.randomUUID();
-          let nextNum = ((db.prepare('SELECT COUNT(*) as count FROM maintenance_requests').get() as { count: number }).count || 0) + 1;
-          let ticketNumber = `OT-2026-${String(nextNum).padStart(4, '0')}`;
-          while (db.prepare('SELECT id FROM maintenance_requests WHERE ticket_number = ?').get(ticketNumber)) {
-            nextNum++;
-            ticketNumber = `OT-2026-${String(nextNum).padStart(4, '0')}`;
-          }
+          const ticketNumber = nextTicketNumber();
 
           db.prepare(`
             INSERT INTO maintenance_requests (
@@ -454,7 +446,7 @@ export function savePumpOperationalSheet(req: AuthenticatedRequest, res: Respons
 
 export function closePumpShift(req: AuthenticatedRequest, res: Response) {
   try {
-    const report_date = req.body.report_date || new Date().toISOString().split('T')[0];
+    const report_date = req.body.report_date || siteToday();
     const shift_code = req.body.shift_code || req.user?.shift || 'G1';
     const notes = req.body.notes || null;
     const closed_by = req.user?.fullName || req.user?.username || 'Operador de Turno';

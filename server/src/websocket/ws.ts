@@ -37,7 +37,9 @@ let pingInterval: NodeJS.Timeout | null = null;
 export function initWebSocketServer(server: HttpServer): WebSocketServer {
   wss = new WebSocketServer({
     server,
-    path: '/ws'
+    path: '/ws',
+    // Mismo tope que /sync/push (500 KB por evento): el valor por defecto de ws es 100 MiB
+    maxPayload: 1024 * 1024
   });
 
   console.log('[WebSocket] Servidor de tiempo real inicializado en la ruta /ws');

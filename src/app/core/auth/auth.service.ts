@@ -139,11 +139,8 @@ export class AuthService {
     }
     if (key === 'marckv') {
       registry['admin'] = registry[key];
-      registry['operador_bombas'] = {
-        ...registry[key],
-        username: 'operador_bombas',
-        fullName: `${user.fullName} (Operador Bombas)`
-      };
+      // Marckv es un usuario de sistema: nunca se registra como operador (CLAUDE.md §3.1)
+      delete registry['operador_bombas'];
     }
 
     saveRealtimeData('users_registry', registry);

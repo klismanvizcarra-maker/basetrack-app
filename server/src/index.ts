@@ -36,7 +36,7 @@ app.use(cors({
       },
   credentials: false,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'X-Device-Id', 'X-Device-Name']
 }));
 
 // Security Headers Middleware (OWASP Defense in Depth)

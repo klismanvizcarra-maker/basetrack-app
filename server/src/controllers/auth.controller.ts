@@ -37,18 +37,22 @@ export async function login(req: Request, res: Response) {
       }
     }
     if (!user) {
-      // Allow login with first name, alias or partial name (e.g. 'klisman', 'klismanvizcarra' -> KLISMANV)
+      // Allow login with first name, alias or partial name (e.g. 'klisman', 'klismanvizcarra' -> KLISMANV).
+      // Solo si la coincidencia es única: un alias ambiguo nunca debe elegir una cuenta arbitraria.
       const cleanLower = cleanUser.toLowerCase().replace(/[^a-z0-9]/g, '');
-      const candidates = db.prepare("SELECT * FROM users WHERE role != 'ADMIN'").all() as any[];
-      user = candidates.find(c => {
-        const uLower = (c.username || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-        const fnLower = (c.full_name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-        return uLower === cleanLower ||
-               uLower.startsWith(cleanLower) ||
-               cleanLower.startsWith(uLower) ||
-               fnLower.includes(cleanLower) ||
-               (cleanLower.includes('klisman') && (uLower.includes('klisman') || fnLower.includes('klisman')));
-      }) || null;
+      if (cleanLower.length >= 3) {
+        const candidates = db.prepare("SELECT * FROM users WHERE role != 'ADMIN'").all() as any[];
+        const matches = candidates.filter(c => {
+          const uLower = (c.username || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+          const fnLower = (c.full_name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+          if (!uLower) return false;
+          return uLower === cleanLower ||
+                 uLower.startsWith(cleanLower) ||
+                 cleanLower.startsWith(uLower) ||
+                 fnLower.includes(cleanLower);
+        });
+        user = matches.length === 1 ? matches[0] : null;
+      }
     }
   }
 
@@ -198,18 +202,20 @@ export async function updateProfile(req: AuthenticatedRequest, res: Response) {
             phone_extension = COALESCE(?, phone_extension),
             primary_role = COALESCE(?, primary_role),
             shift_code = COALESCE(?, shift_code)
-          WHERE (document_id IS NOT NULL AND document_id = ?) 
+          WHERE (document_id IS NOT NULL AND document_id != '' AND document_id = ?)
              OR name = ?
         `).run(
-          updatedFullName, 
-          updatedAvatar, 
-          updatedDocId, 
-          updatedRadio, 
-          updatedPhone, 
-          updatedRole, 
+          updatedFullName,
+          updatedAvatar,
+          updatedDocId,
+          updatedRadio,
+          updatedPhone,
+          updatedRole,
           updatedShift,
-          updatedDocId || '',
-          updatedFullName
+          // Se ubica la ficha por los datos ANTERIORES del usuario: buscar por el nombre/DNI nuevo
+          // sobrescribiría la ficha de otro integrante que ya tenga ese nombre o DNI
+          user.document_id || '',
+          user.full_name
         );
 
         if (crewUpdate.changes === 0 && updatedDocId) {
