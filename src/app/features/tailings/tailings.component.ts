@@ -39,7 +39,7 @@ export interface TailingsReport {
     <div class="tailings-page animate-fade-in">
       <div class="page-top-bar no-print">
         <div>
-          <h2>Reporte de Descarga</h2>
+          <h2>Presa de Relaves & Descarga</h2>
           <p class="section-sub">Espesamiento de pulpas, porcentaje de sólidos y estabilidad de presa</p>
         </div>
         <div class="top-actions">

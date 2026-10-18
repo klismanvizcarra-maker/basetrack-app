@@ -440,7 +440,7 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
                   <span class="sign-dni">DNI: <strong>{{ outgoingSupervisorDni }}</strong></span>
                   <span class="sign-role">{{ outgoingSupervisorRole }} (Turno Saliente)</span>
                 </div>
-                <span class="sign-date">Fecha y Hora: {{ reportData.date }} 19:00</span>
+                <span class="sign-date">Fecha y Hora: {{ reportData.date }} {{ reportData.shift_type === 'NOCHE' ? '07:00' : '19:00' }}</span>
                 <span class="sign-status-tag">ENTREGADO</span>
               </div>
               <div class="signature-box">
@@ -450,7 +450,7 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
                   <span class="sign-dni">DNI: <strong>{{ incomingSupervisorDni }}</strong></span>
                   <span class="sign-role">{{ incomingSupervisorRole }} (Turno Entrante)</span>
                 </div>
-                <span class="sign-date">Fecha y Hora: {{ reportData.date }} 19:15</span>
+                <span class="sign-date">Fecha y Hora: {{ reportData.date }} {{ reportData.shift_type === 'NOCHE' ? '07:15' : '19:15' }}</span>
                 <span class="sign-status-tag">{{ isAccepted ? 'RECIBIDO CONFORME' : 'PENDIENTE DE CONFORMIDAD' }}</span>
               </div>
             </div>

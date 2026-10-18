@@ -773,7 +773,7 @@ import { generateAvatarSvg, getEffectiveAvatar } from '../../shared/utils/avatar
             type="text"
             class="form-control"
             [(ngModel)]="editAssignmentData.station_location"
-            placeholder="Ej. Sentina Principal y Bombas PP-101"
+            placeholder="Ej. Sentina Principal y Bombas PU001"
           />
         </div>
 

@@ -34,5 +34,8 @@ Thumbs.db
 .vercel
 .env*
 
+# Source PDFs
+FlowSheet001_D.pdf
+
 # Datos personales reales (DNI): nunca al repositorio
 private/

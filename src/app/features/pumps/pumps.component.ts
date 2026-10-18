@@ -3013,9 +3013,9 @@ export class PumpsComponent implements OnInit, OnDestroy {
   updatedNotes = '';
 
   newPump = {
-    tag: 'PP-104',
-    name: 'Bomba Slurry Alimentación Ciclones 04',
-    system: 'ALIMENTACION_CICLONES',
+    tag: 'PU009',
+    name: 'Bomba Slurry Sentina 09',
+    system: 'SENTINA',
     status: 'OPERATING' as const,
     flow_rate_m3h: 1820,
     pressure_bar: 4.7,

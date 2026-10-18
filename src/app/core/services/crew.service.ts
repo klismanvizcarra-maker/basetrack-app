@@ -138,13 +138,13 @@ export class CrewService {
     {
       key: 'BOMBAS',
       title: 'Operador de bombas',
-      defaultLocation: 'Sala de Bombas Slurry PP-101 a PP-104 & Sentinas',
+      defaultLocation: 'Estaciones de Bombas PU001 a PU030 (Sentina, Intermedia, Torre 5)',
       defaultRadio: 'Canal 3 Bombas',
       badgeClass: 'card-bombas',
       routeLink: '/pumps',
       routeLabel: 'Reporte de bombas',
       iconSvg: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 9 9h-9V3z"/></svg>',
-      description: 'Monitoreo de flujo, amperaje y presión en bombas PP-101 a PP-104 y niveles de poza',
+      description: 'Monitoreo de flujo, amperaje y presión en bombas PU001 a PU030 y niveles de poza',
       isCustom: false
     },
     {
@@ -1050,7 +1050,7 @@ export class CrewService {
         defaultRole: 'OPERADOR_BOMBAS',
         phone: 'Ext. 4120',
         radio: 'Canal 3 Bombas',
-        location: 'Sala de Bombas Slurry PP-101 a PP-104 & Sentinas',
+        location: 'Estaciones de Bombas PU001 a PU030 & Sentinas',
         notes: 'Monitoreo de flujo, amperaje y presión en bombas y pozas'
       },
       {

@@ -112,7 +112,7 @@ import { ThemeService } from '../../core/theme/theme.service';
                   <circle cx="12" cy="12" r="4"></circle>
                 </svg>
               </span>
-              <span class="nav-label">Reporte de bombas</span>
+              <span class="nav-label">Reporte de Bombas</span>
             </a>
           </li>
 
@@ -123,7 +123,7 @@ import { ThemeService } from '../../core/theme/theme.service';
                   <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"></path>
                 </svg>
               </span>
-              <span class="nav-label">Reporte de ciclones</span>
+              <span class="nav-label">Reporte de Ciclones</span>
             </a>
           </li>
 
@@ -135,7 +135,7 @@ import { ThemeService } from '../../core/theme/theme.service';
                   <path d="m5 20 5-13 4 8 5-11 3 16"></path>
                 </svg>
               </span>
-              <span class="nav-label">Reporte de descarga</span>
+              <span class="nav-label">Presa de Relaves & Descarga</span>
             </a>
           </li>
 

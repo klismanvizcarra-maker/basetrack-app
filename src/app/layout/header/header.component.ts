@@ -1904,9 +1904,9 @@ export class HeaderComponent implements OnDestroy {
     if (url.includes('shift-handover')) return 'Cambio de Guardia';
     if (url.includes('crew')) return 'Gestión de Cuadrilla';
     if (url.includes('roster')) return 'Rol de Guardias (8x8)';
-    if (url.includes('pumps')) return 'Reporte de bombas';
-    if (url.includes('cyclones')) return 'Reporte de ciclones';
-    if (url.includes('tailings')) return 'Reporte de descarga';
+    if (url.includes('pumps')) return 'Reporte de Bombas';
+    if (url.includes('cyclones')) return 'Reporte de Ciclones';
+    if (url.includes('tailings')) return 'Presa de Relaves & Descarga';
     if (url.includes('calculators')) return 'Calculadora Planta';
     if (url.includes('flowsheet')) return 'Diagrama P&ID';
     if (url.includes('vehicle-checklist')) return 'Checklist Camionetas';

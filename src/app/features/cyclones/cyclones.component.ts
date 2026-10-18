@@ -2928,9 +2928,9 @@ export class CyclonesComponent implements OnInit, OnDestroy {
 
   get availableBatteries(): string[] {
     if (this.selectedStation.toLowerCase().includes('1ra')) {
-      return ['CY1', 'CY2', 'CY3', 'CY4'];
+      return ['CY1', 'CY2'];
     }
-    return ['CY3', 'CY4', 'CY1', 'CY2', 'CY5', 'CY6'];
+    return ['CY3', 'CY4'];
   }
 
   addSampleRow(): void {

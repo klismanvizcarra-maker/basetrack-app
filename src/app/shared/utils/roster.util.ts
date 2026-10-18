@@ -316,9 +316,27 @@ export function getMonthRoster(year: number, monthIndex: number): MonthRoster {
 }
 
 /**
+ * Retorna un objeto Date calibrado exactamente en la hora oficial de faena (Perú UTC-5, sin horario de verano),
+ * independientemente del huso horario configurado en el navegador del operador o servidor remoto.
+ */
+export function getSiteNow(): Date {
+  try {
+    const d = new Date();
+    const peruStr = d.toLocaleString('en-US', { timeZone: 'America/Lima' });
+    const parsed = new Date(peruStr);
+    if (!isNaN(parsed.getTime())) return parsed;
+  } catch {
+    // Entornos sin soporte Intl específico
+  }
+  const now = new Date();
+  const utcMs = now.getTime() + (now.getTimezoneOffset() * 60000);
+  return new Date(utcMs - (5 * 3600 * 1000));
+}
+
+/**
  * Retorna la fecha local en formato YYYY-MM-DD sin desplazamiento UTC
  */
-export function getLocalDateString(d: Date = new Date()): string {
+export function getLocalDateString(d: Date = getSiteNow()): string {
   const yyyy = d.getFullYear();
   const mm = String(d.getMonth() + 1).padStart(2, '0');
   const dd = String(d.getDate()).padStart(2, '0');
@@ -326,7 +344,7 @@ export function getLocalDateString(d: Date = new Date()): string {
 }
 
 /**
- * Determina cuál guardia está activamente en planta en este instante según la hora local.
+ * Determina cuál guardia está activamente en planta en este instante según la hora oficial de faena (Perú UTC-5).
  * Turno Día: 07:00:00 a 18:59:59
  * Turno Noche: 19:00:00 a 06:59:59
  */
@@ -337,7 +355,7 @@ export function getCurrentActiveShift(): {
   referenceDate: Date;
   dateStr: string;
 } {
-  const now = new Date();
+  const now = getSiteNow();
   const currentHour = now.getHours();
   const isDayShift = currentHour >= 7 && currentHour < 19;
 
