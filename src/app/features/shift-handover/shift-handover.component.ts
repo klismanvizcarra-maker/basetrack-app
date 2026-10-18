@@ -2228,7 +2228,9 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
 
     .guards-dual-columns {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      /* minmax(0, 1fr): una opción larga del selector (nombre + DNI) no debe ensanchar la columna
+         y sacar la guardia entrante fuera del modal */
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 14px;
 
       @media (max-width: 640px) {
@@ -2237,6 +2239,7 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
     }
 
     .guard-side-box {
+      min-width: 0;
       background: var(--bg-card);
       border: 1px solid var(--border-subtle);
       border-left: 4px solid #1d4ed8;
@@ -2248,6 +2251,13 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
 
       &.entrante {
         border-left-color: #059669;
+      }
+
+      select {
+        width: 100%;
+        min-width: 0;
+        max-width: 100%;
+        text-overflow: ellipsis;
       }
     }
 
@@ -2270,8 +2280,11 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
 
     .sup-credential-pill {
       display: flex;
+      flex-wrap: wrap;
       justify-content: space-between;
-      gap: 6px;
+      gap: 4px 6px;
+      min-width: 0;
+      overflow-wrap: anywhere;
       font-size: 0.72rem;
       background: var(--bg-card-subtle);
       padding: 6px 10px;
