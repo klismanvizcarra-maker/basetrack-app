@@ -59,7 +59,7 @@ export interface ShiftHandover {
   incoming_role?: string;
   incoming_guard?: string;
   plant_status: string;
-  tonnage_processed: number;
+  tonnage_processed: number | null;
   safety_incidents: string;
   operational_highlights: string;
   pending_tasks: string;
@@ -229,42 +229,46 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
 
         <div class="strip-grid">
           <div class="kpi-mini-card">
-            <span class="kpi-mini-label">Tratamiento de Turno</span>
+            <span class="kpi-mini-label">Meta de Tratamiento</span>
             <div class="kpi-mini-val-row">
               <strong class="kpi-mini-val">{{ liveTonnage | number }}</strong>
               <span class="kpi-mini-unit">Ton</span>
             </div>
-            <span class="kpi-mini-sub text-emerald">● Target 24,500 Ton</span>
+            <span class="kpi-mini-sub">Objetivo por turno (parámetro de planta)</span>
           </div>
 
           <div class="kpi-mini-card">
             <span class="kpi-mini-label">Disponibilidad Bombas</span>
             <div class="kpi-mini-val-row">
-              <strong class="kpi-mini-val">{{ livePumpAvail | number:'1.0-1' }}%</strong>
-              <span class="kpi-mini-unit">({{ livePumpOperating }}/{{ livePumpTotal }})</span>
+              <strong class="kpi-mini-val">{{ livePumpAvail !== null ? (livePumpAvail | number:'1.0-1') + '%' : '—' }}</strong>
+              <span class="kpi-mini-unit" *ngIf="livePumpAvail !== null">({{ livePumpOperating }}/{{ livePumpTotal }} operativas)</span>
             </div>
-            <span class="kpi-mini-sub" [class.text-emerald]="livePumpAvail >= 85" [class.text-amber]="livePumpAvail < 85">
-              {{ livePumpAvail >= 85 ? '● Disponibilidad Alta' : '▲ Monitorear Reservas' }}
+            <span class="kpi-mini-sub" *ngIf="livePumpAvail === null">Sin planilla registrada</span>
+            <span class="kpi-mini-sub" *ngIf="livePumpAvail !== null" [class.text-emerald]="livePumpAvail >= 85" [class.text-amber]="livePumpAvail < 85">
+              {{ livePumpAvail >= 85 ? '● Disponibilidad Alta' : '▲ Equipos en falla o mantenimiento' }}
             </span>
           </div>
 
           <div class="kpi-mini-card">
             <span class="kpi-mini-label">Granulometría Malla -200</span>
             <div class="kpi-mini-val-row">
-              <strong class="kpi-mini-val">{{ liveCycloneMesh200 | number:'1.1-2' }}%</strong>
-              <span class="kpi-mini-unit">OF</span>
+              <strong class="kpi-mini-val">{{ liveCycloneMesh200 !== null ? (liveCycloneMesh200 | number:'1.1-2') + '%' : '—' }}</strong>
+              <span class="kpi-mini-unit" *ngIf="liveCycloneMesh200 !== null">OF</span>
             </div>
-            <span class="kpi-mini-sub text-emerald">● Sólidos: {{ liveCycloneSolids | number:'1.1-1' }}%</span>
+            <span class="kpi-mini-sub">{{ liveCycloneSolids !== null ? 'Sólidos OF: ' + (liveCycloneSolids | number:'1.1-1') + '%' : 'Sin muestras registradas' }}</span>
           </div>
 
           <div class="kpi-mini-card">
             <span class="kpi-mini-label">Presa de Relaves (Borde Libre)</span>
             <div class="kpi-mini-val-row">
-              <strong class="kpi-mini-val" [class.text-emerald]="liveTailingsFreeboard >= 2.5">{{ liveTailingsFreeboard | number:'1.2-2' }}</strong>
-              <span class="kpi-mini-unit">m</span>
+              <strong class="kpi-mini-val" [class.text-emerald]="freeboardState === 'ok'" [class.text-red]="freeboardState === 'critical'">{{ liveTailingsFreeboard !== null ? (liveTailingsFreeboard | number:'1.2-2') : '—' }}</strong>
+              <span class="kpi-mini-unit" *ngIf="liveTailingsFreeboard !== null">m</span>
             </div>
-            <span class="kpi-mini-sub" [class.text-emerald]="liveTailingsFreeboard >= 2.5">
-              {{ liveTailingsFreeboard >= 2.5 ? '● Cota Segura (>2.5m)' : '▲ Alerta de Margen' }}
+            <span class="kpi-mini-sub" [class.text-emerald]="freeboardState === 'ok'" [class.text-amber]="freeboardState === 'warning'" [class.text-red]="freeboardState === 'critical'">
+              {{ freeboardState === 'none' ? 'Sin reportes registrados'
+                : freeboardState === 'critical' ? '▲ Bajo mínimo normativo (< 1.0m)'
+                : freeboardState === 'warning' ? '▲ Bajo meta de planta (< ' + plantParamsService.minFreeboard() + 'm)'
+                : '● Dentro de meta (≥ ' + plantParamsService.minFreeboard() + 'm)' }}
             </span>
           </div>
 
@@ -1563,6 +1567,14 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
       &.text-amber {
         color: #d97706;
       }
+
+      &.text-red {
+        color: var(--danger);
+      }
+    }
+
+    .kpi-mini-val.text-red {
+      color: var(--danger);
     }
 
     /* Guard Pill Badges */
@@ -3761,13 +3773,15 @@ export class ShiftHandoverComponent implements OnInit, OnDestroy {
   selectedStatusFilter = 'TODOS';
 
   // Live Plant Telemetry Metrics
+  // Valores medidos: null = sin registros (se muestra "—"), nunca un valor supuesto
   liveTonnage = this.plantParamsService.tonnageTarget();
   livePumpOperating = 0;
   livePumpTotal = 0;
-  livePumpAvail = 100;
-  liveCycloneSolids = 0;
-  liveCycloneMesh200 = 0;
-  liveTailingsFreeboard = 2.65;
+  livePumpAvail: number | null = null;
+  liveCycloneSolids: number | null = null;
+  liveCycloneMesh200: number | null = null;
+  liveTailingsFreeboard: number | null = null;
+  readonly regulatoryMinFreeboard = 1.0;
   
   // Auto-sync feedback
   isSyncing = false;
@@ -3801,15 +3815,17 @@ export class ShiftHandoverComponent implements OnInit, OnDestroy {
     incoming_guard: 'G2' as GuardCode,
     shift_code: 'G4_DIA_' + siteToday().slice(5).replace('-', ''),
     shift_type: 'DIA' as 'DIA' | 'NOCHE',
-    outgoing_supervisor: 'FERNANDEZ ASCURRA DANTE PACO',
-    outgoing_dni: '18110964',
+    // Sin personas fijas: los supervisores se toman del roster al abrir el formulario
+    outgoing_supervisor: '',
+    outgoing_dni: '',
     outgoing_role: 'Supervisor de guardia',
-    incoming_supervisor: 'ALIAGA CASTAÑEDA EMILIO URIEL',
-    incoming_dni: '46593500',
+    incoming_supervisor: '',
+    incoming_dni: '',
     incoming_role: 'Supervisor de guardia',
-    plant_status: 'Operación de planta en condiciones normales de proceso. Circuitos de molienda y flotación estables.',
-    tonnage_processed: this.plantParamsService.tonnageTarget(),
-    safety_incidents: 'Cero accidentes laborales (LTI: 0). Charla de seguridad de 5 minutos dictada.',
+    plant_status: '',
+    // El tonelaje y los incidentes los declara el supervisor: nunca se precargan valores supuestos
+    tonnage_processed: null as number | null,
+    safety_incidents: '',
     pending_tasks: ''
   };
 
@@ -3981,18 +3997,14 @@ export class ShiftHandoverComponent implements OnInit, OnDestroy {
     this.newHandover.shift_type = shiftInfo.shiftName;
 
     const outSup = this.officialSupervisors.find(s => s.shift === outGuard);
-    if (outSup) {
-      this.newHandover.outgoing_supervisor = outSup.name;
-      this.newHandover.outgoing_dni = outSup.dni;
-      this.newHandover.outgoing_role = outSup.role;
-    }
+    this.newHandover.outgoing_supervisor = outSup?.name || '';
+    this.newHandover.outgoing_dni = outSup?.dni || '';
+    if (outSup) this.newHandover.outgoing_role = outSup.role;
 
     const inSup = this.officialSupervisors.find(s => s.shift === inGuard);
-    if (inSup) {
-      this.newHandover.incoming_supervisor = inSup.name;
-      this.newHandover.incoming_dni = inSup.dni;
-      this.newHandover.incoming_role = inSup.role;
-    }
+    this.newHandover.incoming_supervisor = inSup?.name || '';
+    this.newHandover.incoming_dni = inSup?.dni || '';
+    if (inSup) this.newHandover.incoming_role = inSup.role;
 
     const dateCode = (shiftInfo.dateStr || getLocalDateString()).slice(5).replace('-', '');
     this.newHandover.shift_code = `${outGuard}_${shiftInfo.shiftName}_${dateCode}`;
@@ -4085,65 +4097,55 @@ export class ShiftHandoverComponent implements OnInit, OnDestroy {
   }
 
   loadOperationalPlantMetrics(): void {
-    // 1. Bombas Slurry
-    const cachedPumps = getRealtimeData<any[]>('pumps_telemetry', []);
-    if (cachedPumps && cachedPumps.length > 0) {
-      this.livePumpTotal = cachedPumps.length;
-      this.livePumpOperating = cachedPumps.filter(p => (p.status || '').toUpperCase() === 'OPERATING').length;
-      this.livePumpAvail = this.livePumpTotal > 0 ? (this.livePumpOperating / this.livePumpTotal) * 100 : 100;
-    }
-    this.http.get<any>(`${getApiBaseUrl()}/pumps`).subscribe({
-      next: (res) => {
-        if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
-          this.livePumpTotal = res.data.length;
-          this.livePumpOperating = res.data.filter((p: any) => (p.status || '').toUpperCase() === 'OPERATING').length;
-          this.livePumpAvail = (this.livePumpOperating / this.livePumpTotal) * 100;
-        }
-      },
+    // 1. Bombas: estado real de la planilla operativa (Operativo / Stand by / Mantenimiento / Falla)
+    const applySheet = (sheet: any) => {
+      const pumps: any[] = sheet ? [...(sheet.sentina_pumps || []), ...(sheet.intermedia_pumps || []), ...(sheet.torre5_pumps || [])] : [];
+      if (pumps.length === 0) return;
+      const unavailable = pumps.filter(p => p?.status === 'Falla' || p?.status === 'Mantenimiento').length;
+      this.livePumpTotal = pumps.length;
+      this.livePumpOperating = pumps.filter(p => p?.status === 'Operativo').length;
+      // Disponibilidad = equipos que no están en falla ni en mantenimiento (Stand by cuenta como disponible)
+      this.livePumpAvail = ((pumps.length - unavailable) / pumps.length) * 100;
+    };
+    applySheet(getRealtimeData<any>('pump_sheet_latest', null));
+    this.http.get<any>(`${getApiBaseUrl()}/pumps/operational-sheet`).subscribe({
+      next: (res) => applySheet(res?.data || res),
       error: () => {}
     });
 
-    // 2. Ciclones
+    // 2. Ciclones: promedio de rebalse (OF) de las muestras de estación
+    const applySamples = (samples: any[]) => {
+      const mesh = samples.map(s => Number(s?.mesh200_of)).filter(v => Number.isFinite(v) && v > 0);
+      const solids = samples.map(s => Number(s?.solids_of)).filter(v => Number.isFinite(v) && v > 0);
+      if (mesh.length > 0) this.liveCycloneMesh200 = mesh.reduce((a, b) => a + b, 0) / mesh.length;
+      if (solids.length > 0) this.liveCycloneSolids = solids.reduce((a, b) => a + b, 0) / solids.length;
+    };
     const cachedSamples = getRealtimeData<any[]>('cyclone_samples', []);
-    if (cachedSamples && cachedSamples.length > 0) {
-      const validMesh = cachedSamples.map(s => parseFloat(s.mesh_minus_200_of || s.mesh200 || 0)).filter(v => v > 0);
-      const validSolids = cachedSamples.map(s => parseFloat(s.solids_percentage || s.solids || 0)).filter(v => v > 0);
-      if (validMesh.length > 0) {
-        this.liveCycloneMesh200 = validMesh.reduce((a, b) => a + b, 0) / validMesh.length;
-      }
-      if (validSolids.length > 0) {
-        this.liveCycloneSolids = validSolids.reduce((a, b) => a + b, 0) / validSolids.length;
-      }
-    }
+    if (Array.isArray(cachedSamples)) applySamples(cachedSamples);
     this.http.get<any>(`${getApiBaseUrl()}/cyclones/station-samples`).subscribe({
-      next: (res) => {
-        if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
-          const validMesh = res.data.map((s: any) => parseFloat(s.mesh_minus_200_of || s.mesh200 || 0)).filter((v: number) => v > 0);
-          const validSolids = res.data.map((s: any) => parseFloat(s.solids_percentage || s.solids || 0)).filter((v: number) => v > 0);
-          if (validMesh.length > 0) {
-            this.liveCycloneMesh200 = validMesh.reduce((a: number, b: number) => a + b, 0) / validMesh.length;
-          }
-          if (validSolids.length > 0) {
-            this.liveCycloneSolids = validSolids.reduce((a: number, b: number) => a + b, 0) / validSolids.length;
-          }
-        }
-      },
+      next: (res) => { if (res?.success && Array.isArray(res.data)) applySamples(res.data); },
       error: () => {}
     });
 
-    // 3. Relaves
-    const cachedTailings = getRealtimeData<any[]>('tailings_reports', []);
-    if (cachedTailings && cachedTailings.length > 0) {
-      this.liveTailingsFreeboard = parseFloat(cachedTailings[0].freeboard_m || 2.65);
-    }
+    // 3. Relaves: último borde libre reportado (campo freeboard_meters)
+    const applyTailings = (reports: any[]) => {
+      const value = Number(reports?.[0]?.freeboard_meters);
+      if (reports?.length > 0 && Number.isFinite(value)) this.liveTailingsFreeboard = value;
+    };
+    applyTailings(getRealtimeData<any[]>('tailings_reports', []));
     this.http.get<any>(`${getApiBaseUrl()}/tailings`).subscribe({
-      next: (res) => {
-        if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
-          this.liveTailingsFreeboard = parseFloat(res.data[0].freeboard_m || 2.65);
-        }
-      },
+      next: (res) => { if (res?.success && Array.isArray(res.data)) applyTailings(res.data); },
       error: () => {}
     });
+  }
+
+  /** Estado del borde libre: mínimo normativo (1.0 m) y meta de planta (parámetro configurable). */
+  get freeboardState(): 'none' | 'critical' | 'warning' | 'ok' {
+    const fb = this.liveTailingsFreeboard;
+    if (fb === null) return 'none';
+    if (fb < this.regulatoryMinFreeboard) return 'critical';
+    if (fb < this.plantParamsService.minFreeboard()) return 'warning';
+    return 'ok';
   }
 
   loadObservedVehicles(): void {
@@ -4182,17 +4184,19 @@ export class ShiftHandoverComponent implements OnInit, OnDestroy {
     this.loadObservedVehicles();
 
     setTimeout(() => {
-      const pumpDesc = this.livePumpTotal > 0 
-        ? `${this.livePumpOperating}/${this.livePumpTotal} bombas slurry en servicio (${this.livePumpAvail.toFixed(0)}% disp)` 
-        : 'Bombas en régimen operativo continuo';
-      const cycloneDesc = this.liveCycloneMesh200 > 0 
-        ? `Malla -200 OF promediando ${this.liveCycloneMesh200.toFixed(1)}%` 
-        : 'Batería de ciclones estable';
-      const tailingsDesc = `Presa de relaves con borde libre de ${this.liveTailingsFreeboard.toFixed(2)}m (margen seguro)`;
+      // Solo se resumen datos medidos; lo que no tiene registro se indica como tal
+      const pumpDesc = this.livePumpTotal > 0 && this.livePumpAvail !== null
+        ? `${this.livePumpOperating}/${this.livePumpTotal} bombas operativas (${this.livePumpAvail.toFixed(0)}% de disponibilidad)`
+        : 'Sin planilla de bombas registrada';
+      const cycloneDesc = this.liveCycloneMesh200 !== null
+        ? `Malla -200 OF promediando ${this.liveCycloneMesh200.toFixed(1)}%`
+        : 'Sin muestras de ciclones registradas';
+      const fb = this.liveTailingsFreeboard;
+      const tailingsDesc = fb === null
+        ? 'Sin reportes de borde libre registrados'
+        : `Presa de relaves con borde libre de ${fb.toFixed(2)}m (${this.freeboardState === 'critical' ? 'BAJO MÍNIMO NORMATIVO 1.0m' : this.freeboardState === 'warning' ? 'bajo la meta de planta' : 'dentro de la meta de planta'})`;
 
-      this.newHandover.plant_status = `Operación continua de planta a cargo de Guardia ${this.newHandover.outgoing_guard}: ${pumpDesc}. ${cycloneDesc}. ${tailingsDesc}. Circuitos de molienda y flotación estables dentro de parámetros de diseño.`;
-      this.newHandover.tonnage_processed = this.plantParamsService.tonnageTarget();
-      this.newHandover.safety_incidents = 'Cero accidentes laborales (LTI: 0, MDI: 0). Charla de 5 minutos dictada al 100% de la cuadrilla. EPP verificado.';
+      this.newHandover.plant_status = `Guardia ${this.newHandover.outgoing_guard}: ${pumpDesc}. ${cycloneDesc}. ${tailingsDesc}.`;
 
       if (this.observedVehicles.length > 0) {
         const vehNotes = this.observedVehicles
@@ -4501,11 +4505,12 @@ export class ShiftHandoverComponent implements OnInit, OnDestroy {
         incoming_supervisor: nextSup?.name || shiftInfo.nextGuard.supervisorName || 'Supervisor Entrante',
         incoming_dni: nextSup?.document_id || '---',
         incoming_role: 'Supervisor de guardia',
-        plant_status: `Operación continua de planta a cargo de Guardia ${shiftInfo.activeGuard.code}. Circuitos de molienda, bombas y flotación en rangos normales de proceso.`,
-        tonnage_processed: this.plantParamsService.tonnageTarget(),
-        safety_incidents: 'Cero accidentes laborales (LTI: 0, MDI: 0). Charla de 5 minutos dictada al 100% de la cuadrilla. EPP verificado.',
-        operational_highlights: 'Monitoreo de parámetros metalúrgicos y balance de agua estable.',
-        pending_tasks: 'Continuar régimen operacional y vigilancia de presa de relaves.',
+        plant_status: `Guardia ${shiftInfo.activeGuard.code}: vista previa sin relevo registrado.`,
+        // Vista previa sin relevo registrado: no se inventan tonelaje, incidentes ni novedades
+        tonnage_processed: null,
+        safety_incidents: '',
+        operational_highlights: '',
+        pending_tasks: '',
         status: 'SUBMITTED',
         created_at: new Date().toISOString()
       };

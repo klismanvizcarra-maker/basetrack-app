@@ -1053,6 +1053,8 @@ export interface MaintenanceTicketItem {
       align-items: center;
       gap: 0.45rem;
       flex-shrink: 0;
+      flex-wrap: wrap;
+      max-width: 100%;
     }
 
     .action-btn, .action-btn-fullscreen {

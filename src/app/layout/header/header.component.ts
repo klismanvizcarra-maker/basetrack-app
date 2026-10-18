@@ -788,6 +788,29 @@ import { getEffectiveAvatar } from '../../shared/utils/avatar.util';
       }
     }
 
+    /* Tablet / laptop angosto con la barra lateral visible: la cabecera no debe desbordar
+       el área de contenido (empujaba toda la página a un scroll horizontal) */
+    @media (min-width: 769px) and (max-width: 1279px) {
+      .app-header {
+        padding: 0 16px;
+        gap: 12px;
+      }
+
+      .header-left,
+      .title-with-icon {
+        min-width: 0;
+      }
+
+      .header-right {
+        gap: 8px;
+      }
+
+      .user-meta,
+      .btn-install-header {
+        display: none;
+      }
+    }
+
     .user-name {
       font-size: 0.85rem;
       font-weight: 600;
@@ -1885,6 +1908,7 @@ export class HeaderComponent implements OnDestroy {
     if (url.includes('cyclones')) return 'Reporte de ciclones';
     if (url.includes('tailings')) return 'Reporte de descarga';
     if (url.includes('calculators')) return 'Calculadora Planta';
+    if (url.includes('flowsheet')) return 'Diagrama P&ID';
     if (url.includes('vehicle-checklist')) return 'Checklist Camionetas';
     if (url.includes('maintenance')) return 'Mantenimiento & Evidencias';
     if (url.includes('admin')) return 'Administración de Planta';

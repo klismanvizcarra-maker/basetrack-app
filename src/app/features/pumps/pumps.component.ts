@@ -1283,6 +1283,8 @@ export interface ShiftHistorySummary {
         display: flex;
         align-items: center;
         gap: 10px;
+        /* En pantallas angostas el indicador de guardado pasa a otra línea en vez de salirse */
+        flex-wrap: wrap;
 
         .autosave-badge {
           display: inline-flex;
@@ -3303,14 +3305,14 @@ export class PumpsComponent implements OnInit, OnDestroy {
 
     const raw = getRealtimeData<any>('maintenance_tickets', []);
     const tickets = Array.isArray(raw) ? raw : (raw && Array.isArray(raw.data) ? raw.data : []);
-    let resolvedTicketId: string | null = null;
+    const resolvedTicketIds: string[] = [];
     tickets.forEach((t: any) => {
       if (t && t.equipment_tag === tag && (t.status === 'PENDING' || t.status === 'IN_PROGRESS')) {
         t.status = 'RESOLVED';
         t.operational_pass_by = this.authService.currentUser()?.fullName || 'Supervisor de Guardia';
         t.operational_pass_at = new Date().toISOString();
         t.resolution_notes = 'Pase Operativo Directo otorgado por Administración/Supervisión';
-        resolvedTicketId = t.id;
+        resolvedTicketIds.push(t.id);
       }
     });
     saveRealtimeData('maintenance_tickets', tickets);
@@ -3319,8 +3321,9 @@ export class PumpsComponent implements OnInit, OnDestroy {
     this.isLockModalOpen = false;
     this.onSheetChange();
 
-    if (resolvedTicketId) {
-      this.http.patch<any>(`${getApiBaseUrl()}/maintenance/${resolvedTicketId}/status`, {
+    // Solo las OT del servidor (los borradores locales 'm-' no existen allí y darían 404)
+    for (const ticketId of resolvedTicketIds.filter(id => !String(id).startsWith('m-'))) {
+      this.http.patch<any>(`${getApiBaseUrl()}/maintenance/${ticketId}/status`, {
         status: 'RESOLVED',
         operational_pass_by: this.authService.currentUser()?.fullName || 'Supervisor de Guardia',
         resolution_notes: 'Pase Operativo Directo otorgado por Administración/Supervisión'
@@ -3338,14 +3341,14 @@ export class PumpsComponent implements OnInit, OnDestroy {
     const existing = Array.isArray(raw) ? raw : (raw && Array.isArray(raw.data) ? raw.data : []);
     const hasActive = existing.some((t: any) => t && t.equipment_tag === tag && (t.status === 'PENDING' || t.status === 'IN_PROGRESS'));
     if (!hasActive) {
-      const currentYear = new Date().getFullYear();
-      const ticketNum = `OT-${currentYear}-${String(Math.floor(50 + Math.random() * 40)).padStart(4, '0')}`;
+      // El correlativo real lo asigna el servidor; el borrador local nunca inventa un número de OT
+      const ticketNum = 'OT-PENDIENTE';
       const newTicket = {
         id: 'm-' + Date.now(),
         ticket_number: ticketNum,
         equipment_tag: tag,
         title: `Falla reportada en Bomba ${tag}`,
-        description: `Orden de trabajo generada automáticamente desde la Planilla de Bombas por ${this.sheet.operator_name || 'Operador Central'}`,
+        description: `Orden de trabajo generada automáticamente desde la Planilla de Bombas${this.sheet.operator_name ? ` por ${this.sheet.operator_name}` : ''}`,
         priority: 'HIGH',
         status: 'PENDING',
         requester_name: this.sheet.operator_name || 'Operador de Bombas',
@@ -3369,12 +3372,23 @@ export class PumpsComponent implements OnInit, OnDestroy {
         assigned_to: newTicket.assigned_to,
         photo_url: newTicket.photo_url,
         estimated_hours: newTicket.estimated_hours,
-        requester_name: newTicket.requester_name
+        requester_name: newTicket.requester_name,
+        source_module: 'PUMPS_STATION'
       };
 
       if (this.offlineSync.isOnline()) {
         this.http.post<any>(endpoint, payload).subscribe({
-          next: () => { },
+          next: (res) => {
+            // Reemplaza el borrador por la OT real para no duplicarla en Mantenimiento
+            if (res?.id) {
+              const current = getRealtimeData<any[]>('maintenance_tickets', []);
+              const list = Array.isArray(current) ? current : [];
+              saveRealtimeData('maintenance_tickets', list.map(t => t?.id === newTicket.id
+                ? { ...t, id: res.id, ticket_number: res.ticketNumber || t.ticket_number }
+                : t));
+              this.updateLockedPumpTags();
+            }
+          },
           error: () => {
             this.offlineSync.queueAction(endpoint, 'POST', payload, 'OT Falla ' + tag);
           }

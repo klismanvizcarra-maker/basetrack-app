@@ -2071,7 +2071,9 @@ export class MaintenanceComponent implements OnInit, OnDestroy {
           // Only merge local pending drafts created offline (id starting with 'm-')
           if (cached && cached.length > 0) {
             for (const c of cached) {
-              if (c && c.id && typeof c.id === 'string' && c.id.startsWith('m-') && !merged.some(m => m.id === c.id)) {
+              // Un borrador local se descarta si el servidor ya tiene una OT activa para ese equipo
+              const serverHasActive = serverTickets.some((m: MaintenanceRequest) => m.equipment_tag === c?.equipment_tag && (m.status === 'PENDING' || m.status === 'IN_PROGRESS'));
+              if (c && c.id && typeof c.id === 'string' && c.id.startsWith('m-') && !serverHasActive && !merged.some(m => m.id === c.id)) {
                 merged.unshift(c);
               }
             }

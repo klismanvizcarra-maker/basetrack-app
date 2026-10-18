@@ -266,12 +266,13 @@ export class AuthService {
     return this.http.put<any>(`${this.apiUrl}/change-password`, data).pipe(
       tap(res => {
         // El servidor invalida los tokens previos (token_version) y devuelve uno nuevo para esta terminal
-        if (res?.token) this.adoptRefreshedToken(res.token);
-        const user = this.currentUserSignal();
-        if (user?.mustChangePassword) {
-          const updated = { ...user, mustChangePassword: false };
-          this.currentUserSignal.set(updated);
-          saveRealtimeData('user', updated);
+        // La contraseña ya no es temporal: se actualiza también el registro local de perfiles,
+        // que al recargar se combina sobre el usuario guardado y volvería a exigir el cambio
+        if (res?.token) {
+          this.adoptRefreshedToken(res.token, { mustChangePassword: false });
+        } else {
+          const user = this.currentUserSignal();
+          if (user?.mustChangePassword) this.setLocalUser({ ...user, mustChangePassword: false });
         }
       }),
       map(res => ({

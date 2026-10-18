@@ -18,6 +18,9 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: '25mb' }));
 purgeAndSetSoleAdmin();
+// El admin recién creado debe cambiar su clave pública inicial; la suite simula un admin que ya la rotó
+const ADMIN_TEST_PASSWORD = 'AdminPruebas#2026';
+db.prepare("UPDATE users SET password_hash = ?, must_change_password = 0 WHERE username = 'Marckv'").run(bcrypt.hashSync(ADMIN_TEST_PASSWORD, 10));
 app.use('/api', apiRouter);
 app.use(errorHandler);
 
@@ -53,7 +56,7 @@ test('2. POST /api/auth/login should authenticate admin and return JWT', async (
   const res = await fetch(`${baseUrl}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username: 'Marckv', password: '91209966' })
+    body: JSON.stringify({ username: 'Marckv', password: ADMIN_TEST_PASSWORD })
   });
 
   assert.strictEqual(res.status, 200);
@@ -698,14 +701,14 @@ test('22. POST /api/admin/reset-app: require admin password confirmation and per
   });
   assert.strictEqual(wrongPassRes.status, 401);
 
-  // 3. Succeeds with correct admin password (91209966)
+  // 3. Succeeds with correct admin password
   const resetRes = await fetch(`${baseUrl}/admin/reset-app`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${authToken}`
     },
-    body: JSON.stringify({ password: '91209966' })
+    body: JSON.stringify({ password: ADMIN_TEST_PASSWORD })
   });
   assert.strictEqual(resetRes.status, 200);
   const resetJson = await resetRes.json() as any;
@@ -1842,6 +1845,28 @@ test('46. Security: password change and admin reset invalidate previously issued
   // El token nuevo solo se entrega cuando el Administrador restablece su propia cuenta
   assert.strictEqual(((await reset.json()) as any).token, undefined);
   assert.strictEqual((await fetch(`${baseUrl}/auth/me`, { headers: { 'Authorization': `Bearer ${changedToken}` } })).status, 401);
+});
+
+test('47. Security: el admin con la clave pública inicial debe cambiarla', async () => {
+  const admin = db.prepare("SELECT id, password_hash, must_change_password FROM users WHERE username = 'Marckv'").get() as { id: string; password_hash: string; must_change_password: number };
+  try {
+    // Admin existente que nunca rotó la clave pública: el arranque le exige cambiarla
+    db.prepare('UPDATE users SET password_hash = ?, must_change_password = 0 WHERE id = ?').run(bcrypt.hashSync('91209966', 10), admin.id);
+    initDatabase();
+    const flagged = db.prepare('SELECT must_change_password FROM users WHERE id = ?').get(admin.id) as { must_change_password: number };
+    assert.strictEqual(flagged.must_change_password, 1);
+
+    const login = await fetch(`${baseUrl}/auth/login`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: 'Marckv', password: '91209966' })
+    });
+    const loginJson = await login.json() as any;
+    assert.strictEqual(loginJson.user.mustChangePassword, true);
+    const blocked = await fetch(`${baseUrl}/pumps`, { headers: { 'Authorization': `Bearer ${loginJson.token}` } });
+    assert.strictEqual(blocked.status, 403);
+  } finally {
+    db.prepare('UPDATE users SET password_hash = ?, must_change_password = ? WHERE id = ?').run(admin.password_hash, admin.must_change_password, admin.id);
+  }
 });
 
 test.after(async () => {

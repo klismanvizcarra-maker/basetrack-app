@@ -144,9 +144,12 @@ export class NotificationService {
           items.push({
             id: 'tailings-freeboard-alert',
             title: `Borde Libre Bajo: ${Number(latestTailings.freeboard_meters).toFixed(1)}m`,
-            description: `El borde libre en Presa Cortadera está por debajo del umbral mínimo reglamentario (${minFreeboard}m).`,
+            // 1.0 m es el mínimo normativo (D.S. 024-2016-EM); minFreeboard es la meta de planta, que puede ser mayor
+            description: Number(latestTailings.freeboard_meters) < 1.0
+              ? `El borde libre en Presa Cortadera está por debajo del mínimo normativo (1.0m · D.S. 024-2016-EM).`
+              : `El borde libre en Presa Cortadera está por debajo de la meta de planta (${minFreeboard}m).`,
             timeAgo: timeAgoLabel(tailingsTs, now),
-            severity: 'critical',
+            severity: Number(latestTailings.freeboard_meters) < 1.0 ? 'critical' : 'warning',
             category: 'CRITICAL',
             route: '/tailings',
             isRead: readIds.has('tailings-freeboard-alert'),

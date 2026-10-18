@@ -769,8 +769,8 @@ export function initDatabase() {
       const adminId = crypto.randomUUID();
       const adminHash = bcrypt.hashSync('91209966', 10);
       db.prepare(`
-        INSERT INTO users (id, username, email, password_hash, full_name, role, shift, avatar_url, is_active, document_id, primary_role)
-        VALUES (?, ?, ?, ?, ?, 'ADMIN', 'ADMIN', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80', 1, '', 'ADMIN')
+        INSERT INTO users (id, username, email, password_hash, full_name, role, shift, avatar_url, is_active, document_id, primary_role, must_change_password)
+        VALUES (?, ?, ?, ?, ?, 'ADMIN', 'ADMIN', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80', 1, '', 'ADMIN', 1)
       `).run(
         adminId,
         'Marckv',
@@ -783,6 +783,11 @@ export function initDatabase() {
       db.prepare("UPDATE users SET document_id = '' WHERE role = 'ADMIN' OR username = 'Marckv'").run();
       db.prepare("DELETE FROM crew_members WHERE LOWER(name) = 'marck vizcarra' OR document_id = '91209966'").run();
       // The existing admin password hash is never overwritten on boot, so password changes survive restarts/deploys
+      // La clave inicial del admin es pública (está en el repositorio): si sigue vigente, forzar su cambio
+      const admin = db.prepare("SELECT id, password_hash FROM users WHERE username = 'Marckv' AND must_change_password = 0").get() as { id: string; password_hash: string } | undefined;
+      if (admin && bcrypt.compareSync('91209966', admin.password_hash)) {
+        db.prepare('UPDATE users SET must_change_password = 1 WHERE id = ?').run(admin.id);
+      }
     }
 
     // 1b. Ensure Default Maintenance User: mantenimiento

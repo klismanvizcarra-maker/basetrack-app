@@ -41,6 +41,8 @@ export function createMaintenanceRequest(req: AuthenticatedRequest, res: Respons
     const requesterName = req.user?.fullName || req.body.requester_name || 'Operador de Guardia';
 
     const tag = String(equipment_tag).trim().toUpperCase();
+    // Origen de la OT: las generadas por la planilla de bombas se identifican como tales
+    const sourceModule = req.body.source_module === 'PUMPS_STATION' ? 'PUMPS_STATION' : 'MANUAL';
     const photo = photo_url && typeof photo_url === 'string' && !photo_url.includes('unsplash.com/photo-1581092335397')
       ? photo_url.trim()
       : '';
@@ -49,11 +51,11 @@ export function createMaintenanceRequest(req: AuthenticatedRequest, res: Respons
       INSERT INTO maintenance_requests (
         id, ticket_number, equipment_tag, title, description,
         priority, status, requester_name, assigned_to, photo_url, estimated_hours, source_module
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'MANUAL')
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       id, ticketNumber, tag, title, description,
       priority, 'PENDING', requesterName, assigned_to || 'Equipo Mecánico de Turno',
-      photo, estimated_hours || 2.0
+      photo, estimated_hours || 2.0, sourceModule
     );
 
     // Broadcast WebSocket real-time update
@@ -71,7 +73,7 @@ export function createMaintenanceRequest(req: AuthenticatedRequest, res: Respons
         assigned_to: assigned_to || 'Equipo Mecánico de Turno',
         photo_url: photo,
         estimated_hours: estimated_hours || 2.0,
-        source_module: 'MANUAL'
+        source_module: sourceModule
       },
       key: 'maintenance_request_' + id,
       deviceId: req.headers['x-device-id']?.toString() || 'server_api',
