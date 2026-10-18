@@ -1333,6 +1333,7 @@ import { generateAvatarSvg, getEffectiveAvatar } from '../../shared/utils/avatar
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
+      flex-wrap: wrap;
       gap: 10px;
     }
 
@@ -1340,6 +1341,7 @@ import { generateAvatarSvg, getEffectiveAvatar } from '../../shared/utils/avatar
       display: flex;
       align-items: center;
       gap: 12px;
+      min-width: 0;
     }
 
     .pos-icon {

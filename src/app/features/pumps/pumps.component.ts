@@ -1818,12 +1818,14 @@ export interface ShiftHistorySummary {
     /* SECTION B: LEVELS (INLINE EDITABLE) */
     .levels-grid {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       padding: 14px 20px;
       gap: 16px;
 
       @media (max-width: 640px) {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
+        padding: 12px;
+        gap: 10px;
       }
 
       .level-item-box {
@@ -1857,6 +1859,8 @@ export interface ShiftHistorySummary {
           font-size: 0.92rem;
           font-weight: 800;
           font-variant-numeric: tabular-nums;
+          min-width: 0;
+          width: 100%;
           transition: all 0.2s ease;
 
           &:focus {
@@ -1875,19 +1879,24 @@ export interface ShiftHistorySummary {
     /* SECTION C: INDICATORS (INLINE EDITABLE) */
     .indicators-dual-columns {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
       padding: 16px 20px;
       gap: 24px;
 
       @media (max-width: 800px) {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
         gap: 12px;
+      }
+
+      @media (max-width: 480px) {
+        padding: 12px;
       }
 
       .indicator-column {
         display: flex;
         flex-direction: column;
         gap: 8px;
+        min-width: 0;
       }
 
       .indicator-row {
@@ -1906,6 +1915,11 @@ export interface ShiftHistorySummary {
           color: var(--text-secondary);
           white-space: nowrap;
           font-weight: 600;
+
+          @media (max-width: 480px) {
+            white-space: normal;
+            min-width: 0;
+          }
         }
 
         .ind-leader {

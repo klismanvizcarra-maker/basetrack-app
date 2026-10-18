@@ -178,13 +178,16 @@ export interface TrendStatsSummary {
                 <line x1="8" y1="2" x2="8" y2="6"></line>
                 <line x1="3" y1="10" x2="21" y2="10"></line>
               </svg>
+              <label class="date-select-label" for="mastersheet-date-select">Operación:</label>
               <select
+                id="mastersheet-date-select"
                 class="date-select"
+                aria-label="Fecha de operación"
                 [ngModel]="masterService.selectedDate()"
                 (ngModelChange)="masterService.selectDate($event)"
               >
                 <option *ngFor="let d of masterService.availableDates()" [value]="d">
-                  Operación: {{ d }}
+                  {{ d }}
                 </option>
               </select>
             </div>
@@ -1508,6 +1511,46 @@ export interface TrendStatsSummary {
       display: flex;
       align-items: center;
       gap: 10px;
+      min-width: 0;
+      max-width: 100%;
+    }
+
+    /* Móvil: el navegador de fechas ocupa todo el ancho y los botones quedan solo con icono */
+    @media (max-width: 600px) {
+      .mastersheet-toolbar {
+        padding: 12px;
+      }
+
+      .toolbar-date-navigator {
+        width: 100%;
+        gap: 6px;
+      }
+
+      .nav-date-btn {
+        flex-shrink: 0;
+        padding: 8px 10px;
+
+        span {
+          display: none;
+        }
+      }
+
+      .date-selector-wrapper {
+        flex: 1;
+        min-width: 0;
+        padding: 6px 8px;
+
+        .date-select-label {
+          display: none;
+        }
+      }
+
+      .date-select {
+        width: 100%;
+        min-width: 0;
+        font-size: 0.8rem;
+        text-overflow: ellipsis;
+      }
     }
 
     .nav-date-btn {
@@ -1548,6 +1591,13 @@ export interface TrendStatsSummary {
 
     .calendar-icon {
       color: var(--primary-purple);
+    }
+
+    .date-select-label {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      white-space: nowrap;
     }
 
     .date-select {
@@ -2149,9 +2199,14 @@ export interface TrendStatsSummary {
       border-radius: 10px;
       gap: 4px;
       border: 1px solid var(--border-subtle);
+      max-width: 100%;
+      overflow-x: auto;
+      scrollbar-width: none;
     }
 
     .range-pill {
+      flex-shrink: 0;
+      white-space: nowrap;
       padding: 6px 12px;
       border: none;
       background: transparent;

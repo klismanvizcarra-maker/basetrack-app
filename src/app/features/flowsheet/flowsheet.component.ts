@@ -2329,6 +2329,44 @@ export interface MaintenanceTicketItem {
         min-width: 36px;
         font-size: 0.7rem;
       }
+      /* Móvil: título y acciones comparten fila sin empujarse fuera de pantalla */
+      .page-top-bar {
+        gap: 0.5rem;
+      }
+      .title-block {
+        flex: 1 1 auto;
+        min-width: 0;
+      }
+      .title-with-badge h2 {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .top-actions {
+        flex-wrap: nowrap;
+      }
+      /* La barra del lienzo no debe exceder el ancho del visor */
+      .hud-controls {
+        left: 0.5rem;
+        max-width: calc(100% - 1rem);
+        overflow-x: auto;
+        scrollbar-width: none;
+      }
+      .hud-sheet-select {
+        max-width: 120px;
+      }
+      .canvas-hint {
+        width: calc(100% - 1.5rem);
+        max-width: none;
+        white-space: normal;
+        border-radius: 14px;
+        bottom: 0.5rem;
+      }
+      .canvas-hint .hint-close {
+        flex-shrink: 0;
+        min-width: 28px;
+        min-height: 28px;
+      }
     }
   `]
 })
