@@ -5,10 +5,10 @@ import bcrypt from 'bcryptjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import { db, dbFilePath, seedDefaultVehicles } from '../database/db.js';
-import { AuthenticatedRequest } from '../middlewares/auth.middleware.js';
+import { AuthenticatedRequest, bumpTokenVersion, issueFreshToken } from '../middlewares/auth.middleware.js';
 import { logAudit } from '../middlewares/error.middleware.js';
 import { ALL_PERMISSIONS, DEFAULT_ROLE_PERMISSIONS, PermissionKey } from '../config/permissions.js';
-import { broadcastWsEvent } from '../websocket/ws.js';
+import { broadcastWsEvent, disconnectWsClients } from '../websocket/ws.js';
 
 function normalizeShift(shift?: any): string {
   if (!shift) return 'G1';
@@ -850,6 +850,13 @@ export function resetUserPassword(req: AuthenticatedRequest, res: Response) {
 
     const hash = bcrypt.hashSync(newPassword, 10);
     db.prepare('UPDATE users SET password_hash = ?, must_change_password = 1 WHERE id = ?').run(hash, id);
+    // Las sesiones abiertas con la contraseña anterior dejan de ser válidas. Si el Administrador
+    // restablece su propia cuenta, su terminal actual recibe un token nuevo y conserva su canal.
+    bumpTokenVersion(id);
+    const isSelfReset = req.user?.userId === id;
+    disconnectWsClients({ userId: id }, 'Contraseña restablecida por el Administrador',
+      isSelfReset ? req.headers['x-device-id']?.toString() : undefined);
+    const token = isSelfReset ? issueFreshToken(id) : undefined;
 
     logAudit(
       req.user?.userId || null,
@@ -864,7 +871,8 @@ export function resetUserPassword(req: AuthenticatedRequest, res: Response) {
     return res.json({
       success: true,
       message: `Contraseña restablecida exitosamente para ${user.username}. Deberá cambiarla al iniciar sesión.`,
-      temporaryPassword: newPassword
+      temporaryPassword: newPassword,
+      ...(token ? { token } : {})
     });
   } catch (error: any) {
     return res.status(500).json({ success: false, message: error.message });
@@ -887,6 +895,11 @@ export function toggleUserStatus(req: AuthenticatedRequest, res: Response) {
 
     const newStatus = typeof isActive === 'boolean' ? (isActive ? 1 : 0) : (user.is_active === 0 ? 1 : 0);
     db.prepare('UPDATE users SET is_active = ? WHERE id = ?').run(newStatus, id);
+    if (newStatus === 0) {
+      // Suspensión efectiva en el servidor: tokens emitidos invalidados y canales cerrados
+      bumpTokenVersion(id);
+      disconnectWsClients({ userId: id }, 'Cuenta suspendida por el Administrador');
+    }
 
     logAudit(
       req.user?.userId || null,
@@ -968,6 +981,17 @@ export function revokeDeviceSession(req: AuthenticatedRequest, res: Response) {
     }
 
     db.prepare('UPDATE connected_devices SET is_revoked = 1 WHERE device_id = ?').run(deviceId);
+
+    // Invalidar los tokens del usuario de la terminal para que no siga operando con su JWT de 24 h.
+    // Nunca el del propio Administrador que revoca: eso lo dejaría fuera de su sesión actual.
+    const device = db.prepare('SELECT user_id FROM connected_devices WHERE device_id = ?').get(deviceId) as { user_id?: string | null } | undefined;
+    const deviceUserId = device?.user_id ? String(device.user_id) : '';
+    const revokeReason = 'Sesión revocada por el Administrador de Planta';
+    if (deviceUserId && deviceUserId !== req.user?.userId) {
+      bumpTokenVersion(deviceUserId);
+      disconnectWsClients({ userId: deviceUserId }, revokeReason);
+    }
+    disconnectWsClients({ deviceId }, revokeReason);
 
     // Insert sync event so remote device terminates session
     db.prepare(`
