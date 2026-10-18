@@ -1,7 +1,8 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, tap, catchError, of } from 'rxjs';
+import { Observable, tap, catchError, of, throwError } from 'rxjs';
 import { getApiBaseUrl } from '../constants/api.config';
+import { isNetworkError, serverErrorMessage } from '../../shared/utils/http-error.util';
 import { getRealtimeData, saveRealtimeData } from '../storage/local-store.util';
 import { AuthService } from './auth.service';
 
@@ -192,16 +193,18 @@ export class PermissionsService {
   }
 
   public updateRolePermission(role: 'ADMIN' | 'SUPERVISOR' | 'OPERATOR' | 'MAINTENANCE', permissions: PermissionKey[]): Observable<any> {
+    const snapshot = this.snapshot();
     const updated = { ...this.rolePermissionsSignal(), [role]: permissions };
     this.rolePermissionsSignal.set(updated);
     saveRealtimeData('basetrack_role_permissions', updated);
 
     return this.http.put(`${this.apiUrl}/roles`, { role, permissions }).pipe(
-      catchError(() => of({ success: true, localOnly: true }))
+      catchError(err => this.handleWriteError(err, snapshot))
     );
   }
 
   public updateUserOverride(userId: string, overrides: Record<string, boolean>): Observable<any> {
+    const snapshot = this.snapshot();
     const current = { ...this.userOverridesSignal() };
     if (Object.keys(overrides).length === 0) {
       delete current[userId];
@@ -212,18 +215,36 @@ export class PermissionsService {
     saveRealtimeData('basetrack_user_permission_overrides', current);
 
     return this.http.put(`${this.apiUrl}/users/${userId}`, { permissions: overrides }).pipe(
-      catchError(() => of({ success: true, localOnly: true }))
+      catchError(err => this.handleWriteError(err, snapshot))
     );
   }
 
   public resetToDefaults(): Observable<any> {
+    const snapshot = this.snapshot();
     this.rolePermissionsSignal.set({ ...DEFAULT_ROLE_PERMISSIONS });
     this.userOverridesSignal.set({});
     saveRealtimeData('basetrack_role_permissions', DEFAULT_ROLE_PERMISSIONS);
     saveRealtimeData('basetrack_user_permission_overrides', {});
 
     return this.http.post(`${this.apiUrl}/reset`, {}).pipe(
-      catchError(() => of({ success: true, localOnly: true }))
+      catchError(err => this.handleWriteError(err, snapshot))
     );
+  }
+
+  private snapshot(): { roles: any; overrides: any } {
+    return { roles: this.rolePermissionsSignal(), overrides: this.userOverridesSignal() };
+  }
+
+  /** Sin red se conserva el cambio local; si el servidor lo rechaza, se revierte y se informa. */
+  private handleWriteError(err: any, snapshot: { roles: any; overrides: any }): Observable<any> {
+    if (isNetworkError(err)) {
+      return of({ success: true, localOnly: true });
+    }
+    this.rolePermissionsSignal.set(snapshot.roles);
+    this.userOverridesSignal.set(snapshot.overrides);
+    saveRealtimeData('basetrack_role_permissions', snapshot.roles);
+    saveRealtimeData('basetrack_user_permission_overrides', snapshot.overrides);
+    this.refreshMatrix();
+    return throwError(() => new Error(serverErrorMessage(err, 'El servidor rechazó el cambio de permisos.')));
   }
 }

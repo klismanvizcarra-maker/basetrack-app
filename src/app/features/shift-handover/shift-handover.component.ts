@@ -12,6 +12,7 @@ import { CrewService } from '../../core/services/crew.service';
 import { PermissionsService } from '../../core/auth/permissions.service';
 import { VehicleChecklistService, HandoverVehicleObservation } from '../../core/services/vehicle-checklist.service';
 import { getCurrentActiveShift, getLocalDateString, GuardCode } from '../../shared/utils/roster.util';
+import { siteToday } from '../../shared/utils/site-date.util';
 import { PlantParametersService } from '../../core/services/plant-parameters.service';
 
 export interface HandoverChecklistItem {
@@ -2723,7 +2724,7 @@ export class ShiftHandoverComponent implements OnInit, OnDestroy {
   newHandover = {
     outgoing_guard: 'G4' as GuardCode,
     incoming_guard: 'G2' as GuardCode,
-    shift_code: 'G4_DIA_' + new Date().toISOString().slice(5, 10).replace('-', ''),
+    shift_code: 'G4_DIA_' + siteToday().slice(5).replace('-', ''),
     shift_type: 'DIA' as 'DIA' | 'NOCHE',
     outgoing_supervisor: 'FERNANDEZ ASCURRA DANTE PACO',
     outgoing_dni: '18110964',

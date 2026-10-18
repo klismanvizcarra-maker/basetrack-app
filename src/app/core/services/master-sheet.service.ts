@@ -13,6 +13,7 @@ import {
 } from '../models/master-sheet.columns';
 import { getRealtimeData, saveRealtimeData } from '../storage/local-store.util';
 import { getApiBaseUrl } from '../constants/api.config';
+import { siteToday } from '../../shared/utils/site-date.util';
 import { catchError, firstValueFrom, of, timeout } from 'rxjs';
 
 const STORAGE_KEY = 'master_sheet_records';
@@ -640,7 +641,7 @@ export class MasterSheetService {
     if (!dateInfo) {
       dateInfo = fallbackDate || {
         fecha: new Date().toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' }),
-        isoDate: new Date().toISOString().slice(0, 10)
+        isoDate: siteToday()
       };
     }
 
@@ -830,7 +831,7 @@ export class MasterSheetService {
     const ws = XLSX.utils.json_to_sheet(exportRows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'DATOS_OPERATIVOS');
-    XLSX.writeFile(wb, `Reporte_Presa_BASETRACK_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    XLSX.writeFile(wb, `Reporte_Presa_BASETRACK_${siteToday()}.xlsx`);
   }
 
   // --- Helpers ---

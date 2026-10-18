@@ -1,9 +1,10 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, tap, catchError, of, map, timeout } from 'rxjs';
+import { Observable, tap, catchError, of, map, timeout, throwError } from 'rxjs';
 import { OfflineSyncService } from '../offline/offline-sync.service';
 import { updateGuardsCatalog, getCurrentActiveShift } from '../../shared/utils/roster.util';
 import { getRealtimeData, saveRealtimeData } from '../storage/local-store.util';
+import { isNetworkError, serverErrorMessage } from '../../shared/utils/http-error.util';
 
 export type PositionKey = 'SUPERVISOR' | 'SALA_CONTROL' | 'BOMBAS' | 'CICLONES_1' | 'CICLONES_2' | 'DISTRIBUIDOR' | 'DESCARGA_1' | 'DESCARGA_2' | 'MISCELANEOS' | string;
 
@@ -375,6 +376,7 @@ export class CrewService {
   }
 
   createPosition(pos: Partial<CrewPositionMeta>): Observable<any> {
+    const snapshot = this.snapshotCrew();
     const rawKey = pos.key || ('POS_' + (pos.title || 'EXTRA').replace(/[^a-zA-Z0-9]/g, '_').toUpperCase() + '_' + Date.now().toString(36));
     const newPos: CrewPositionMeta = {
       key: rawKey,
@@ -403,6 +405,8 @@ export class CrewService {
       description: newPos.description
     }).pipe(
       catchError(err => {
+        const rejected = this.rejectOnServerError(err, snapshot, 'No se pudo crear la posición.');
+        if (rejected) return rejected;
         console.warn('[CrewService] Error guardando posición en API, registrada localmente:', err);
         return of({ success: true, key: newPos.key });
       })
@@ -410,6 +414,7 @@ export class CrewService {
   }
 
   deletePosition(key: string): Observable<any> {
+    const snapshot = this.snapshotCrew();
     const current = this.positions().filter(p => p.key !== key);
     this.positions.set(current);
 
@@ -422,6 +427,8 @@ export class CrewService {
 
     return this.http.delete(`${this.apiUrl}/positions/${key}`).pipe(
       catchError(err => {
+        const rejected = this.rejectOnServerError(err, snapshot, 'No se pudo eliminar la posición.');
+        if (rejected) return rejected;
         console.warn('[CrewService] Error eliminando posición en API:', err);
         return of({ success: true });
       })
@@ -540,6 +547,7 @@ export class CrewService {
   }
 
   saveAssignment(payload: Partial<CrewAreaAssignment>): Observable<any> {
+    const snapshot = this.snapshotCrew();
     const url = `${this.apiUrl}/assignments`;
 
     const assignId = payload.id || ('assign-' + (payload.position_key || 'pos').toString().toLowerCase() + '-' + Date.now());
@@ -610,6 +618,8 @@ export class CrewService {
 
     return this.http.post<any>(url, completePayload).pipe(
       catchError((err) => {
+        const rejected = this.rejectOnServerError(err, snapshot, 'No se pudo guardar la asignación.');
+        if (rejected) return rejected;
         console.warn('[CrewService] Fallo al guardar en backend, agregando a cola offline:', err);
         this.offlineSync.queueAction(url, 'POST', completePayload, `Asignación ${completePayload.position_title}`);
         return of({ success: true, message: 'Guardado local offline' });
@@ -618,6 +628,7 @@ export class CrewService {
   }
 
   checkin(assignmentId: string, eppVerified?: boolean, safetyTalk?: boolean): Observable<any> {
+    const snapshot = this.snapshotCrew();
     const url = `${this.apiUrl}/assignments/${assignmentId}/checkin`;
     const payload = {
       epp_verified: eppVerified,
@@ -648,6 +659,8 @@ export class CrewService {
 
     return this.http.patch(url, payload).pipe(
       catchError((err) => {
+        const rejected = this.rejectOnServerError(err, snapshot, 'No se pudo registrar el check-in.');
+        if (rejected) return rejected;
         this.offlineSync.queueAction(url, 'PATCH', payload, `Check-in Asignación ${assignmentId}`);
         return of({ success: true });
       })
@@ -655,6 +668,7 @@ export class CrewService {
   }
 
   createCrewMember(member: Partial<CrewMember>): Observable<any> {
+    const snapshot = this.snapshotCrew();
     const url = `${this.apiUrl}/members`;
     const offlineId = 'local-' + Date.now();
     const localNew: CrewMember = {
@@ -680,6 +694,8 @@ export class CrewService {
         this.loadCrew(member.shift_code).subscribe();
       }),
       catchError((err) => {
+        const rejected = this.rejectOnServerError(err, snapshot, 'No se pudo registrar el operador.');
+        if (rejected) return rejected;
         console.warn('[CrewService] HTTP fail on createCrewMember, queued offline:', err);
         this.offlineSync.queueAction(url, 'POST', member, `Nuevo Operador ${member.name}`);
         return of({ success: true, id: offlineId });
@@ -688,6 +704,7 @@ export class CrewService {
   }
 
   updateCrewMember(id: string, member: Partial<CrewMember>): Observable<any> {
+    const snapshot = this.snapshotCrew();
     const url = `${this.apiUrl}/members/${id}`;
 
     const updatedAll = this.allMembers().map(m => m.id === id ? { ...m, ...member } as CrewMember : m);
@@ -703,6 +720,8 @@ export class CrewService {
 
     return this.http.put(url, member).pipe(
       catchError((err) => {
+        const rejected = this.rejectOnServerError(err, snapshot, 'No se pudo actualizar el operador.');
+        if (rejected) return rejected;
         this.offlineSync.queueAction(url, 'PUT', member, `Actualizar Operador ${member.name || id}`);
         return of({ success: true });
       })
@@ -710,6 +729,7 @@ export class CrewService {
   }
 
   deleteCrewMember(id: string): Observable<any> {
+    const snapshot = this.snapshotCrew();
     const url = `${this.apiUrl}/members/${id}`;
 
     const filteredAll = this.allMembers().filter(m => m.id !== id);
@@ -725,6 +745,8 @@ export class CrewService {
 
     return this.http.delete(url).pipe(
       catchError((err) => {
+        const rejected = this.rejectOnServerError(err, snapshot, 'No se pudo dar de baja al operador.');
+        if (rejected) return rejected;
         this.offlineSync.queueAction(url, 'DELETE' as any, {}, `Baja Operador ${id}`);
         return of({ success: true });
       })
@@ -776,6 +798,8 @@ export class CrewService {
         this.loadSupervisorOperators().subscribe();
       }),
       catchError(err => {
+        const rejected = this.rejectOnServerError(err, null, 'No se pudo asignar el operador al supervisor.');
+        if (rejected) return rejected;
         console.warn('[CrewService] Fallback local para asignar operador a supervisor:', err);
         const current = [...this.supervisorsWithOperators()];
         const sup = current.find(s => s.id === supervisorId || s.username === supervisorId);
@@ -812,6 +836,8 @@ export class CrewService {
         this.loadSupervisorOperators().subscribe();
       }),
       catchError(err => {
+        const rejected = this.rejectOnServerError(err, null, 'No se pudo desvincular el operador.');
+        if (rejected) return rejected;
         console.warn('[CrewService] Fallback local para desvincular operador:', err);
         const current = [...this.supervisorsWithOperators()];
         const sup = current.find(s => s.id === supervisorId || s.username === supervisorId);
@@ -833,6 +859,8 @@ export class CrewService {
         this.loadSupervisorOperators().subscribe();
       }),
       catchError(err => {
+        const rejected = this.rejectOnServerError(err, null, 'No se pudo ejecutar la asignación automática.');
+        if (rejected) return rejected;
         console.warn('[CrewService] Fallback auto-assign local:', err);
         return of({ success: true });
       })
@@ -1251,5 +1279,36 @@ export class CrewService {
 
   private saveCache(key: string, data: any): void {
     saveRealtimeData(key, data, { skipBroadcast: true });
+  }
+
+  private snapshotCrew() {
+    return {
+      positions: this.positions(),
+      activeAssignments: this.activeAssignments(),
+      allMembers: this.allMembers(),
+      crewMembers: this.crewMembers()
+    };
+  }
+
+  /**
+   * Sin red (status 0 / timeout) se conserva el cambio local y la cola offline.
+   * Si el servidor respondió con error, se revierte el estado optimista y se propaga su mensaje:
+   * un rechazo nunca debe mostrarse como guardado ni encolarse para reintento.
+   */
+  private rejectOnServerError(err: any, snapshot: ReturnType<CrewService['snapshotCrew']> | null, fallback: string): Observable<never> | null {
+    if (isNetworkError(err)) return null;
+    if (snapshot) {
+      this.positions.set(snapshot.positions);
+      this.saveCache('basetrack_custom_positions', snapshot.positions.filter(p => p.isCustom));
+      this.activeAssignments.set(snapshot.activeAssignments);
+      const first = snapshot.activeAssignments[0];
+      if (first && first.shift_date && first.shift_code && first.shift_type) {
+        this.saveCache(`basetrack_assignments_${first.shift_date}_${first.shift_code}_${first.shift_type}`, snapshot.activeAssignments);
+      }
+      this.allMembers.set(snapshot.allMembers);
+      this.crewMembers.set(snapshot.crewMembers);
+      this.saveCache('basetrack_crew_members', snapshot.allMembers);
+    }
+    return throwError(() => new Error(serverErrorMessage(err, fallback)));
   }
 }

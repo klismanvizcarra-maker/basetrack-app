@@ -2,6 +2,7 @@ import { Injectable, signal, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { IndexedDbService, SyncQueueItem } from '../storage/indexed-db.service';
 import { firstValueFrom } from 'rxjs';
+import { siteToday } from '../../shared/utils/site-date.util';
 
 @Injectable({
   providedIn: 'root'
@@ -192,7 +193,7 @@ export class OfflineSyncService {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `BASETRACK_BACKUP_LOCAL_${new Date().toISOString().slice(0, 10)}.json`;
+      a.download = `BASETRACK_BACKUP_LOCAL_${siteToday()}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);

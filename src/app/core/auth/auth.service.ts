@@ -49,6 +49,7 @@ INITIAL_USERS_REGISTRY['marckv'] = DEFAULT_ADMIN_USER;
 INITIAL_USERS_REGISTRY['mantenimiento'] = DEFAULT_MAINTENANCE_USER;
 
 import { getApiBaseUrl } from '../constants/api.config';
+import { isNetworkError, serverErrorMessage } from '../../shared/utils/http-error.util';
 
 @Injectable({
   providedIn: 'root'
@@ -188,10 +189,17 @@ export class AuthService {
       shift: (payload.shift as any) || 'G1',
       avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${payload.username}`
     };
-    this.saveUserToRegistry(newUser);
 
     return this.http.post(`${this.apiUrl}/register`, payload).pipe(
-      catchError(() => of({ success: true, message: 'Usuario registrado localmente' }))
+      tap(() => this.saveUserToRegistry(newUser)),
+      catchError((err) => {
+        // Solo sin red se admite el registro local; un rechazo del servidor (400/403/409) se informa
+        if (!isNetworkError(err)) {
+          return throwError(() => new Error(serverErrorMessage(err, 'El servidor rechazó el registro del usuario.')));
+        }
+        this.saveUserToRegistry(newUser);
+        return of({ success: true, message: 'Usuario registrado localmente' });
+      })
     );
   }
 
@@ -236,7 +244,14 @@ export class AuthService {
         message: res?.message || 'Perfil y fotografía actualizados exitosamente',
         user: res?.user || updatedUser
       })),
-      catchError(() => {
+      catchError((err) => {
+        if (!isNetworkError(err)) {
+          // El servidor rechazó el cambio: se revierte el estado local y se informa el motivo
+          this.setLocalUser(current);
+          this.syncWithCrewCache(current);
+          this.refreshCurrentUser().subscribe();
+          return throwError(() => new Error(serverErrorMessage(err, 'El servidor rechazó la actualización del perfil.')));
+        }
         return of({
           success: true,
           message: 'Perfil y fotografía guardados en tiempo real (almacenamiento persistente)',

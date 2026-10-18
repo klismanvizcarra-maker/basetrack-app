@@ -60,15 +60,18 @@ export class AdminPermissionsTabComponent {
     } else {
       updated = Array.from(new Set([...current, key]));
     }
-    this.permissionsService.updateRolePermission(role, updated).subscribe();
+    this.permissionsService.updateRolePermission(role, updated).subscribe({ error: (err) => this.showPermissionsError(err) });
   }
 
   setAllPermsForRole(role: 'SUPERVISOR' | 'OPERATOR', enable: boolean): void {
     const allKeys = this.allPermissionsList.map(p => p.key);
     const updated = enable ? allKeys : [];
-    this.permissionsService.updateRolePermission(role, updated).subscribe(() => {
-      this.permissionsSaveMessage = `⚡ Permisos para ${role} actualizados (${enable ? 'Todos Habilitados' : 'Todos Restringidos'}).`;
-      setTimeout(() => this.permissionsSaveMessage = '', 3500);
+    this.permissionsService.updateRolePermission(role, updated).subscribe({
+      next: () => {
+        this.permissionsSaveMessage = `⚡ Permisos para ${role} actualizados (${enable ? 'Todos Habilitados' : 'Todos Restringidos'}).`;
+        setTimeout(() => this.permissionsSaveMessage = '', 3500);
+      },
+      error: (err) => this.showPermissionsError(err)
     });
   }
 
@@ -79,9 +82,12 @@ export class AdminPermissionsTabComponent {
 
   resetPermissionsToDefault(): void {
     if (confirm('¿Confirma restaurar la matriz de permisos y excepciones a los valores de fábrica?')) {
-      this.permissionsService.resetToDefaults().subscribe(() => {
-        this.permissionsSaveMessage = '🔄 Matriz restaurada a valores por defecto de fábrica.';
-        setTimeout(() => this.permissionsSaveMessage = '', 4000);
+      this.permissionsService.resetToDefaults().subscribe({
+        next: () => {
+          this.permissionsSaveMessage = '🔄 Matriz restaurada a valores por defecto de fábrica.';
+          setTimeout(() => this.permissionsSaveMessage = '', 4000);
+        },
+        error: (err) => this.showPermissionsError(err)
       });
     }
   }
@@ -113,21 +119,32 @@ export class AdminPermissionsTabComponent {
     const checkbox = event.target as HTMLInputElement;
     const currentOverrides = { ...(this.permissionsService.userOverridesSignal()[userId] || {}) };
     currentOverrides[key] = checkbox.checked;
-    this.permissionsService.updateUserOverride(userId, currentOverrides).subscribe(() => {
-      this.permissionsSaveMessage = '✅ Excepción de permiso guardada para el usuario.';
-      setTimeout(() => this.permissionsSaveMessage = '', 3500);
+    this.permissionsService.updateUserOverride(userId, currentOverrides).subscribe({
+      next: () => {
+        this.permissionsSaveMessage = '✅ Excepción de permiso guardada para el usuario.';
+        setTimeout(() => this.permissionsSaveMessage = '', 3500);
+      },
+      error: (err) => this.showPermissionsError(err)
     });
   }
 
   clearUserOverrides(userId: string): void {
-    this.permissionsService.updateUserOverride(userId, {}).subscribe(() => {
-      this.permissionsSaveMessage = 'Excepciones removidas; el usuario hereda los permisos de su rol.';
-      setTimeout(() => this.permissionsSaveMessage = '', 3500);
+    this.permissionsService.updateUserOverride(userId, {}).subscribe({
+      next: () => {
+        this.permissionsSaveMessage = 'Excepciones removidas; el usuario hereda los permisos de su rol.';
+        setTimeout(() => this.permissionsSaveMessage = '', 3500);
+      },
+      error: (err) => this.showPermissionsError(err)
     });
   }
 
   hasCustomOverrides(userId: string): boolean {
     const overrides = this.permissionsService.userOverridesSignal()[userId];
     return !!overrides && Object.keys(overrides).length > 0;
+  }
+
+  private showPermissionsError(err: any): void {
+    this.permissionsSaveMessage = `⚠️ ${err?.message || 'El servidor rechazó el cambio de permisos.'}`;
+    setTimeout(() => this.permissionsSaveMessage = '', 6000);
   }
 }

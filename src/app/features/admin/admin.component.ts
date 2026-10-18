@@ -24,6 +24,7 @@ import { AdminUsersTabComponent } from './tabs/users/users-tab.component';
 import { UsersStore, UserItem } from './tabs/users/users.store';
 import { AdminPermissionsTabComponent } from './tabs/permissions/permissions-tab.component';
 import { resetGuardsCatalog } from '../../shared/utils/roster.util';
+import { siteToday } from '../../shared/utils/site-date.util';
 
 const DEFAULT_USERS: UserItem[] = [
   {
@@ -126,7 +127,13 @@ export class AdminComponent implements OnInit, OnDestroy {
     } else {
       updated = current.filter(k => k !== key);
     }
-    this.permissionsService.updateRolePermission(role, updated).subscribe();
+    this.permissionsService.updateRolePermission(role, updated).subscribe({
+      // El servicio ya revirtió la matriz; se restaura la casilla y se informa el rechazo
+      error: (err) => {
+        checkbox.checked = !checkbox.checked;
+        console.warn('[Admin] Cambio de permiso rechazado:', err?.message);
+      }
+    });
   }
 
   // Inicialización con datos por defecto
@@ -186,7 +193,7 @@ export class AdminComponent implements OnInit, OnDestroy {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `credenciales_temporales_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `credenciales_temporales_${siteToday()}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -400,7 +407,7 @@ export class AdminComponent implements OnInit, OnDestroy {
           const url = window.URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
-          a.download = `basetrack_backup_${new Date().toISOString().slice(0, 10)}.json`;
+          a.download = `basetrack_backup_${siteToday()}.json`;
           a.click();
           window.URL.revokeObjectURL(url);
           this.lastBackupDate = new Date().toLocaleDateString('es-PE') + ' ' + new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
@@ -419,7 +426,7 @@ export class AdminComponent implements OnInit, OnDestroy {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `basetrack_local_backup_${new Date().toISOString().slice(0, 10)}.json`;
+        a.download = `basetrack_local_backup_${siteToday()}.json`;
         a.click();
         window.URL.revokeObjectURL(url);
         this.lastBackupDate = new Date().toLocaleDateString('es-PE') + ' ' + new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });

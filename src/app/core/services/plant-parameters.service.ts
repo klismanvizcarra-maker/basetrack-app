@@ -1,7 +1,8 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, of, tap, catchError, map } from 'rxjs';
+import { Observable, of, tap, catchError, map, throwError } from 'rxjs';
 import { getApiBaseUrl } from '../constants/api.config';
+import { isNetworkError, serverErrorMessage } from '../../shared/utils/http-error.util';
 import { getRealtimeData, saveRealtimeData } from '../storage/local-store.util';
 
 export interface PlantParameters {
@@ -115,6 +116,8 @@ export class PlantParametersService {
       updated_at: new Date().toISOString()
     };
 
+    const previous = this.parameters();
+
     // Update locally and in realtime storage immediately
     this.parameters.set(payload);
     saveRealtimeData(STORAGE_KEY, payload);
@@ -129,11 +132,20 @@ export class PlantParametersService {
           saveRealtimeData(STORAGE_KEY, res.data);
         }
       }),
-      catchError(() => of({
-        success: true,
-        message: 'Parámetros de planta guardados localmente y en memoria operativa.',
-        data: payload
-      }))
+      catchError((err) => {
+        if (!isNetworkError(err)) {
+          // El servidor rechazó los parámetros: se revierte al último estado y se informa el motivo
+          this.parameters.set(previous);
+          saveRealtimeData(STORAGE_KEY, previous);
+          this.fetchFromBackend().subscribe();
+          return throwError(() => new Error(serverErrorMessage(err, 'El servidor rechazó los parámetros de planta.')));
+        }
+        return of({
+          success: true,
+          message: 'Parámetros de planta guardados localmente y en memoria operativa.',
+          data: payload
+        });
+      })
     );
   }
 
