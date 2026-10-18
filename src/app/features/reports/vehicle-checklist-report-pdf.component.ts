@@ -45,7 +45,12 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
               </svg>
               {{ copiedText ? '¡Copiado!' : 'Copiar' }}
             </button>
-            <button type="button" class="close-btn" (click)="closeModal()">✕</button>
+            <button type="button" class="close-btn" (click)="closeModal()" aria-label="Cerrar modal">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
           </div>
         </div>
 
@@ -275,7 +280,16 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
                 
                 <div class="obs-header-status">
                   <div class="obs-status-tag" [class.tag-alert]="checklist.has_observations || defectiveItems.length > 0" [class.tag-ok]="!checklist.has_observations && defectiveItems.length === 0">
-                    <span class="status-icon">{{ (checklist.has_observations || defectiveItems.length > 0) ? '⚠️' : '✅' }}</span>
+                    <span class="status-icon">
+                      <svg *ngIf="checklist.has_observations || defectiveItems.length > 0" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align: -1px;">
+                        <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path>
+                        <line x1="12" y1="9" x2="12" y2="13"></line>
+                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                      </svg>
+                      <svg *ngIf="!checklist.has_observations && defectiveItems.length === 0" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align: -1px;">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                    </span>
                     <span>{{ (checklist.has_observations || defectiveItems.length > 0) ? 'CONDICIÓN CON OBSERVACIONES REPORTADAS' : 'INSPECCIÓN PRE-OPERACIONAL 100% CONFORME' }}</span>
                   </div>
                   <span class="obs-timestamp">Inspección: {{ checklist.date }} • {{ checklist.time }} hrs</span>
@@ -302,7 +316,15 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
                 <!-- Declaración Jurada Minera Formal -->
                 <div class="declaration-legal-card">
                   <div class="dec-header">
-                    <span class="dec-scale">⚖️</span>
+                    <span class="dec-scale">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"></path>
+                        <path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"></path>
+                        <path d="M7 21h10"></path>
+                        <path d="M12 3v18"></path>
+                        <path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"></path>
+                      </svg>
+                    </span>
                     <strong>DECLARACIÓN JURADA DE INSPECCIÓN VEHICULAR (D.S. 024-2016-EM):</strong>
                   </div>
                   <p class="dec-body">
@@ -317,7 +339,13 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
                 <div *ngIf="checklist.photo_url" class="photo-frame">
                   <div class="photo-banner-header">
                     <span>EVIDENCIA PRE-USO</span>
-                    <span class="photo-res">HD 📷</span>
+                    <span class="photo-res">
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 3px; vertical-align: -1px;">
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                        <circle cx="12" cy="13" r="4"></circle>
+                      </svg>
+                      HD
+                    </span>
                   </div>
                   <img [src]="checklist.photo_url" alt="Foto evidencia" class="pdf-obs-img" />
                   <div class="photo-footer-badge">
@@ -328,7 +356,11 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
                 <div *ngIf="!checklist.photo_url" class="no-photo-card">
                   <div class="no-photo-seal-box">
                     <div class="seal-ring">
-                      <span class="seal-icon">✓</span>
+                      <span class="seal-icon">
+                        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                          <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                      </span>
                       <span class="seal-txt">VERIFICADO</span>
                     </div>
                   </div>
@@ -477,7 +509,9 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
           background: transparent;
           border: none;
           color: #94a3b8;
-          font-size: 1.3rem;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
           cursor: pointer;
           padding: 4px 8px;
           border-radius: 4px;

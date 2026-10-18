@@ -12,6 +12,8 @@ import { CrewService } from '../../core/services/crew.service';
 import { getCurrentActiveShift } from '../../shared/utils/roster.util';
 import { PlantParametersService } from '../../core/services/plant-parameters.service';
 
+import { RouterModule } from '@angular/router';
+
 export interface TailingsReport {
   id: string;
   station_tag: string;
@@ -32,7 +34,7 @@ export interface TailingsReport {
   selector: 'app-tailings',
   changeDetection: ChangeDetectionStrategy.Eager,
   standalone: true,
-  imports: [CommonModule, FormsModule, ModalComponent, TailingsReportPdfComponent],
+  imports: [CommonModule, RouterModule, FormsModule, ModalComponent, TailingsReportPdfComponent],
   template: `
     <div class="tailings-page animate-fade-in">
       <div class="page-top-bar no-print">
@@ -41,6 +43,16 @@ export interface TailingsReport {
           <p class="section-sub">Espesamiento de pulpas, porcentaje de sólidos y estabilidad de presa</p>
         </div>
         <div class="top-actions">
+          <a routerLink="/flowsheet" class="btn btn-secondary action-btn-pdf" title="Abrir Diagrama P&ID Oficial de Presa Cortadera">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="6" cy="6" r="2.5"></circle>
+              <circle cx="18" cy="18" r="2.5"></circle>
+              <circle cx="18" cy="6" r="2.5"></circle>
+              <path d="M6 8.5v7a2.5 2.5 0 0 0 2.5 2.5H15.5"></path>
+              <path d="M8.5 6H15.5"></path>
+            </svg>
+            <span class="btn-text">Ver Diagrama P&ID</span>
+          </a>
           <button class="btn btn-secondary action-btn-pdf" (click)="isPdfModalOpen = true" title="Exportar reporte de relaves en PDF a una sola hoja">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>

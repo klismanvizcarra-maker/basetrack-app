@@ -85,7 +85,7 @@ export function createUsersBulk(req: AuthenticatedRequest, res: Response) {
         const documentId = (item.document_id || item.dni || item.doc || ('DNI-' + Math.floor(10000000 + Math.random() * 90000000))).toString().trim();
         const radio = item.radio_channel || 'Canal 1 Operaciones';
         const phone = item.phone_extension || null;
-        const avatar = item.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${username}`;
+        const avatar = item.avatar_url && !item.avatar_url.includes('dicebear') && !item.avatar_url.includes('bottts') ? item.avatar_url : null;
 
         if (!username || !email || !fullName) {
           skippedList.push({ username: username || 'Sin usuario', email: email || 'Sin email', reason: 'Campos requeridos incompletos' });
@@ -440,13 +440,28 @@ export function restoreDatabaseBackup(req: AuthenticatedRequest, res: Response) 
       // 6. Shift handovers
       if (Array.isArray(data.shift_handovers) && data.shift_handovers.length > 0) {
         const stmt = db.prepare(`
-          INSERT OR REPLACE INTO shift_handovers (id, shift_code, date, shift_type, outgoing_supervisor, incoming_supervisor, plant_status, tonnage_processed, safety_incidents, operational_highlights, pending_tasks, status, created_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, datetime('now')))
+          INSERT OR REPLACE INTO shift_handovers (
+            id, shift_code, date, shift_type, outgoing_supervisor, incoming_supervisor,
+            outgoing_dni, outgoing_role, incoming_dni, incoming_role,
+            plant_status, tonnage_processed, safety_incidents, operational_highlights,
+            pending_tasks, status, assigned_crew, checklist_data, maintenance_orders, timeline_events,
+            created_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, datetime('now')))
         `);
         let count = 0;
         for (const sh of data.shift_handovers) {
           if (sh.id && sh.shift_code) {
-            stmt.run(sh.id, sh.shift_code, sh.date, sh.shift_type || 'DIA', sh.outgoing_supervisor || '', sh.incoming_supervisor || '', sh.plant_status || 'Operación Normal', sh.tonnage_processed || 0, sh.safety_incidents || '', sh.operational_highlights || '', sh.pending_tasks || '', sh.status || 'SUBMITTED', sh.created_at || null);
+            const crewStr = sh.assigned_crew ? (typeof sh.assigned_crew === 'string' ? sh.assigned_crew : JSON.stringify(sh.assigned_crew)) : null;
+            const chkStr = sh.checklist_data ? (typeof sh.checklist_data === 'string' ? sh.checklist_data : JSON.stringify(sh.checklist_data)) : null;
+            const maintStr = sh.maintenance_orders ? (typeof sh.maintenance_orders === 'string' ? sh.maintenance_orders : JSON.stringify(sh.maintenance_orders)) : null;
+            const timeStr = sh.timeline_events ? (typeof sh.timeline_events === 'string' ? sh.timeline_events : JSON.stringify(sh.timeline_events)) : null;
+            stmt.run(
+              sh.id, sh.shift_code, sh.date, sh.shift_type || 'DIA', sh.outgoing_supervisor || '', sh.incoming_supervisor || '',
+              sh.outgoing_dni || null, sh.outgoing_role || null, sh.incoming_dni || null, sh.incoming_role || null,
+              sh.plant_status || 'Operación Normal', sh.tonnage_processed || 0, sh.safety_incidents || '', sh.operational_highlights || '',
+              sh.pending_tasks || '', sh.status || 'SUBMITTED', crewStr, chkStr, maintStr, timeStr,
+              sh.created_at || null
+            );
             count++;
           }
         }

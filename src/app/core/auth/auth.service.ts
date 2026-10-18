@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { Observable, tap, catchError, of, map, throwError, timeout } from 'rxjs';
 import { User, AuthResponse, LoginPayload, RegisterPayload } from './auth.models';
 import { getRealtimeData, saveRealtimeData, removeRealtimeData, purgeStoredPasswords } from '../storage/local-store.util';
+import { generateAvatarSvg } from '../../shared/utils/avatar.util';
 
 const DEFAULT_ADMIN_USER: User = {
   id: 'u-marckv',
@@ -14,7 +15,7 @@ const DEFAULT_ADMIN_USER: User = {
   document_id: '',
   role: 'ADMIN',
   shift: 'ADMIN',
-  avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80'
+  avatarUrl: generateAvatarSvg('Marck Vizcarra', 'ADMIN')
 };
 
 const DEFAULT_MAINTENANCE_USER: User = {
@@ -25,7 +26,7 @@ const DEFAULT_MAINTENANCE_USER: User = {
   document_id: '',
   role: 'MAINTENANCE',
   shift: 'GENERAL',
-  avatarUrl: 'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=250&q=80'
+  avatarUrl: generateAvatarSvg('Mantenimiento', 'MAINTENANCE')
 };
 
 // Registro local de perfiles (nombre, rol, avatar) para mostrar el personal sin conexión. Nunca contiene contraseñas.
@@ -186,7 +187,7 @@ export class AuthService {
       fullName: payload.fullName,
       role: (payload.role as any) || 'OPERATOR',
       shift: (payload.shift as any) || 'G1',
-      avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${payload.username}`
+      avatarUrl: generateAvatarSvg(payload.fullName || payload.username, payload.role, payload.shift)
     };
     this.saveUserToRegistry(newUser);
 

@@ -1,14 +1,6 @@
 import { Component, OnInit, OnDestroy, inject, ChangeDetectorRef, NgZone, ChangeDetectionStrategy, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
-import { timeout, catchError, of } from 'rxjs';
-import { getApiBaseUrl } from '../../core/constants/api.config';
-import { StatCardComponent } from '../../shared/ui/stat-card.component';
-import { CircularGaugeComponent } from '../../shared/ui/circular-gauge.component';
-import { DistributionDonutComponent } from '../../shared/ui/distribution-donut.component';
-import { WeeklyBarChartComponent } from '../../shared/ui/weekly-bar-chart.component';
-import { WaveAreaChartComponent } from '../../shared/ui/wave-area-chart.component';
 import { MasterSheetService, ImportRowIssue } from '../../core/services/master-sheet.service';
 import { MasterSheetEntry, SheetSummary } from '../../core/models/master-sheet.model';
 import { MasterAreaPanelsComponent } from './master-area-panels.component';
@@ -107,48 +99,32 @@ export interface TrendStatsSummary {
   imports: [
     CommonModule,
     FormsModule,
-    StatCardComponent,
-    CircularGaugeComponent,
-    DistributionDonutComponent,
-    WeeklyBarChartComponent,
-    WaveAreaChartComponent,
     MasterAreaPanelsComponent
   ],
   template: `
     <div class="dashboard-page animate-fade-in">
-      <!-- 0. Main View Mode Switcher -->
+      <!-- 0. Header Bar -->
       <header class="dashboard-header-bar">
         <div class="header-left">
-          <div class="view-switch-tabs">
-            <button
-              class="tab-btn"
-              [class.active]="activeTab === 'telemetry'"
-              (click)="activeTab = 'telemetry'"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
-              </svg>
-              <span>Telemetría en Vivo (SCADA)</span>
-            </button>
-            <button
-              class="tab-btn"
-              [class.active]="activeTab === 'mastersheet'"
-              (click)="activeTab = 'mastersheet'"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                <polyline points="14 2 14 8 20 8"></polyline>
-                <line x1="16" y1="13" x2="8" y2="13"></line>
-                <line x1="16" y1="17" x2="8" y2="17"></line>
-                <polyline points="10 9 9 9 8 9"></polyline>
-              </svg>
-              <span>Planilla Maestra de Presa & Relaves</span>
+          <div class="header-title-block">
+            <div class="title-row">
+              <div class="title-icon-pill">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                  <line x1="16" y1="13" x2="8" y2="13"></line>
+                  <line x1="16" y1="17" x2="8" y2="17"></line>
+                  <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+              </div>
+              <h1 class="main-title">Planilla Maestra de Presa & Relaves</h1>
               <span class="badge-office">Excel / CSV</span>
-            </button>
+            </div>
+            <p class="section-sub">Monitoreo operacional consolidado, balance hídrico y estabilidad de dique (GISTM)</p>
           </div>
         </div>
 
-        <div class="header-right" *ngIf="activeTab === 'mastersheet'">
+        <div class="header-right">
           <!-- Fast Actions for Master Sheet -->
           <div class="action-buttons-group">
             <button class="btn-action primary" (click)="openUploadModal()">
@@ -180,113 +156,6 @@ export interface TrendStatsSummary {
           </div>
         </div>
       </header>
-
-      <!-- ========================================== -->
-      <!-- TAB 1: TELEMETRÍA EN VIVO (SCADA)          -->
-      <!-- ========================================== -->
-      <ng-container *ngIf="activeTab === 'telemetry'">
-        <!-- 1. Top Row: 5 KPI Cards -->
-        <section class="kpi-grid">
-          <app-stat-card
-            *ngFor="let card of kpiCards"
-            [title]="card.title"
-            [value]="card.value"
-            [trend]="card.trend"
-            [isPositive]="card.isPositive"
-          >
-          </app-stat-card>
-        </section>
-
-        <!-- 2. Second Row: Order Summary, Overview, Top Items -->
-        <section class="mid-grid">
-          <div class="dashboard-card glass-panel summary-panel">
-            <div class="card-head">
-              <div class="head-titles">
-                <h3>Resumen Operativo</h3>
-                <p class="subtitle">Disponibilidad del circuito de bombeo</p>
-              </div>
-              <div class="filter-dropdown">
-                <span>Hoy</span>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polyline points="6 9 12 15 18 9"></polyline>
-                </svg>
-              </div>
-            </div>
-
-            <div class="gauges-row">
-              <app-circular-gauge
-                *ngFor="let gauge of operationGauges"
-                [percentage]="gauge.percentage"
-                [label]="gauge.label"
-                [color]="gauge.color"
-              >
-              </app-circular-gauge>
-            </div>
-          </div>
-
-          <div class="dashboard-card glass-panel overview-panel">
-            <div class="card-head">
-              <div class="head-titles">
-                <h3>Visión General</h3>
-                <p class="subtitle">Aporte volumétrico por guardia</p>
-              </div>
-              <span class="view-all-link">Ver Todo</span>
-            </div>
-
-            <app-distribution-donut
-              [heroPercentage]="shiftDistribution.heroPercentage"
-              [slices]="shiftDistribution.slices"
-            >
-            </app-distribution-donut>
-          </div>
-
-          <div class="dashboard-card glass-panel top-items-panel">
-            <div class="card-head">
-              <div class="head-titles">
-                <h3>Equipos Críticos</h3>
-                <p class="subtitle">Telemetría de mayor impacto</p>
-              </div>
-              <span class="view-all-link">Ver Todo</span>
-            </div>
-
-            <div class="items-list">
-              <div *ngFor="let item of topEquipment" class="item-row">
-                <img [src]="item.imageUrl" [alt]="item.name" class="item-thumb" />
-                <div class="item-info">
-                  <span class="item-name">{{ item.name }}</span>
-                  <span class="item-system">{{ item.system }}</span>
-                </div>
-                <span class="item-metric">{{ item.metric }}</span>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- 3. Third Row: Weekly Comparison & Annual Production Curve -->
-        <section class="bottom-grid">
-          <div class="dashboard-card glass-panel chart-panel">
-            <app-weekly-bar-chart
-              [title]="'Monitoreo Semanal de Caudales'"
-              [subtitle]="'Comparativa día a día (m³/h)'"
-              [data]="weeklyComparisonData"
-            >
-            </app-weekly-bar-chart>
-          </div>
-
-          <div class="dashboard-card glass-panel chart-panel">
-            <app-wave-area-chart
-              [title]="'Tonelaje Procesado y Rendimiento Anual'"
-              [points]="productionCurveData"
-            >
-            </app-wave-area-chart>
-          </div>
-        </section>
-      </ng-container>
-
-      <!-- ======================================================== -->
-      <!-- TAB 2: PLANILLA MAESTRA DE PRESA & RELAVES (EXCEL / CSV) -->
-      <!-- ======================================================== -->
-      <ng-container *ngIf="activeTab === 'mastersheet'">
         <!-- Date Navigator & Logbook Status Banner -->
         <div class="mastersheet-toolbar glass-panel">
           <div class="toolbar-date-navigator">
@@ -315,7 +184,7 @@ export interface TrendStatsSummary {
                 (ngModelChange)="masterService.selectDate($event)"
               >
                 <option *ngFor="let d of masterService.availableDates()" [value]="d">
-                  📅 Operación: {{ d }}
+                  Operación: {{ d }}
                 </option>
               </select>
             </div>
@@ -498,14 +367,14 @@ export interface TrendStatsSummary {
                     [class.active]="damViewMode === 'operational'"
                     (click)="damViewMode = 'operational'"
                   >
-                    📐 Cotas Operativas
+                    Cotas Operativas
                   </button>
                   <button
                     class="dam-pill"
                     [class.active]="damViewMode === 'geotechnical'"
                     (click)="damViewMode = 'geotechnical'"
                   >
-                    🧱 Zonificación Geotécnica
+                    Zonificación Geotécnica
                   </button>
                 </div>
 
@@ -741,7 +610,7 @@ export interface TrendStatsSummary {
                   font-weight="700"
                   text-anchor="middle"
                 >
-                  💧 Cota Agua: {{ damValue(current.cotaEmbalseMsnm, 'msnm') }}
+                  Cota Agua: {{ damValue(current.cotaEmbalseMsnm, 'msnm') }}
                 </text>
 
                 <!-- 8. Decant Tower 5 (Torre 5 de Captación) -->
@@ -817,7 +686,7 @@ export interface TrendStatsSummary {
                     font-weight="700"
                     text-anchor="middle"
                   >
-                    ⚠️ Límite Mínimo GISTM: 2.00 m
+                    Límite Mínimo GISTM: 2.00 m
                   </text>
                 </g>
 
@@ -1117,7 +986,7 @@ export interface TrendStatsSummary {
               </div>
 
               <span class="legend-tip">
-                💡 Haz clic en cualquier punto del gráfico para ver ese día en todo el Dashboard
+                Haz clic en cualquier punto del gráfico para ver ese día en todo el Dashboard
               </span>
             </div>
 
@@ -1256,7 +1125,7 @@ export interface TrendStatsSummary {
                 [style.top.px]="hov.y - 65"
               >
                 <div class="tooltip-header">
-                  <span>📅 {{ hov.fecha }}</span>
+                  <span>{{ hov.fecha }}</span>
                 </div>
                 <div class="tooltip-val" [style.color]="currentMetricConfig.color">
                   <strong>{{ hov.formattedVal }}</strong>
@@ -1342,7 +1211,6 @@ export interface TrendStatsSummary {
             </div>
           </section>
         </div>
-      </ng-container>
 
       <!-- ======================================================== -->
       <!-- UPLOAD MODAL FOR OFFICE EXCEL (.XLSX) AND CSV FILES      -->
@@ -1363,7 +1231,12 @@ export interface TrendStatsSummary {
                 <p class="subtitle">Soporta archivos directos de Microsoft Office (.xlsx, .xls) y CSV</p>
               </div>
             </div>
-            <button class="btn-close" (click)="closeUploadModal()">✕</button>
+            <button class="btn-close" (click)="closeUploadModal()" aria-label="Cerrar modal">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
           </div>
 
           <div class="modal-body">
@@ -1414,7 +1287,7 @@ export interface TrendStatsSummary {
               </label>
               <select [(ngModel)]="selectedSheetName" class="sheet-select-dropdown">
                 <option *ngFor="let s of availableSheets" [value]="s.name">
-                  📄 {{ s.name }} ({{ s.rowCount }} filas {{ s.hasDates ? '• con fechas' : '' }}) {{ s.isRecommended ? '⭐ Recomendada' : '' }}
+                  {{ s.name }} ({{ s.rowCount }} filas {{ s.hasDates ? '• con fechas' : '' }}) {{ s.isRecommended ? '[Recomendada]' : '' }}
                 </option>
               </select>
             </div>
@@ -1491,59 +1364,60 @@ export interface TrendStatsSummary {
       }
     }
 
-    /* Header Bar & Tabs */
+    /* Header Bar */
     .dashboard-header-bar {
       display: flex;
       align-items: center;
       justify-content: space-between;
       flex-wrap: wrap;
-      gap: 12px;
+      gap: 16px;
       padding-bottom: 4px;
     }
 
-    .view-switch-tabs {
-      display: inline-flex;
-      background: #f1f5f9;
-      padding: 4px;
-      border-radius: 12px;
-      border: 1px solid #e2e8f0;
+    .header-title-block {
+      display: flex;
+      flex-direction: column;
       gap: 4px;
     }
 
-    .tab-btn {
+    .title-row {
       display: flex;
       align-items: center;
-      gap: 8px;
-      padding: 8px 16px;
-      border: none;
-      background: transparent;
-      border-radius: 8px;
-      font-size: 0.86rem;
-      font-weight: 600;
-      color: #64748b;
-      cursor: pointer;
-      transition: all 0.2s ease;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
 
-      svg {
-        stroke: currentColor;
-      }
+    .title-icon-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: var(--primary-bg-subtle);
+      color: var(--primary-purple);
+      border: 1px solid var(--primary-border);
+    }
 
-      &:hover {
-        color: #0f172a;
-      }
+    .main-title {
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: var(--text-primary);
+      letter-spacing: -0.02em;
+      margin: 0;
+    }
 
-      &.active {
-        background: #ffffff;
-        color: #031795;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-      }
+    .section-sub {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      margin: 0;
     }
 
     .badge-office {
       font-size: 0.68rem;
       padding: 2px 6px;
-      background: #e0e7ff;
-      color: #031795;
+      background: var(--primary-bg-subtle);
+      color: var(--primary-purple);
       border-radius: 6px;
       font-weight: 700;
       letter-spacing: 0.3px;
@@ -1585,84 +1459,16 @@ export interface TrendStatsSummary {
       }
 
       &.outline {
-        background: #ffffff;
-        color: #334155;
-        border-color: #cbd5e1;
+        background: var(--bg-card);
+        color: var(--text-secondary);
+        border-color: var(--border-subtle);
 
         &:hover {
-          background: #f8fafc;
-          border-color: #94a3b8;
-          color: #0f172a;
+          background: var(--bg-card-hover);
+          border-color: var(--border-focus);
+          color: var(--text-primary);
         }
       }
-    }
-
-    /* KPI Grid (SCADA) */
-    .kpi-grid {
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 18px;
-
-      @media (max-width: 1200px) {
-        grid-template-columns: repeat(3, 1fr);
-      }
-      @media (max-width: 768px) {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 10px;
-
-        app-stat-card:last-child {
-          grid-column: span 2;
-        }
-      }
-      @media (max-width: 480px) {
-        grid-template-columns: 1fr;
-        app-stat-card:last-child {
-          grid-column: span 1;
-        }
-      }
-    }
-
-    .mid-grid {
-      display: grid;
-      grid-template-columns: 1.4fr 1fr 1.1fr;
-      gap: 20px;
-
-      @media (max-width: 1280px) {
-        grid-template-columns: 1fr;
-        gap: 14px;
-      }
-    }
-
-    .bottom-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 20px;
-
-      @media (max-width: 1024px) {
-        grid-template-columns: 1fr;
-        gap: 14px;
-      }
-    }
-
-    .dashboard-card {
-      padding: 24px;
-      border-radius: 12px;
-      background: #ffffff;
-      border: 1px solid #e2e8f0;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-      display: flex;
-      flex-direction: column;
-
-      @media (max-width: 768px) {
-        padding: 16px 14px;
-      }
-    }
-
-    .card-head {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      margin-bottom: 20px;
     }
 
     .head-titles {
@@ -1673,91 +1479,13 @@ export interface TrendStatsSummary {
       h3 {
         font-size: 1.05rem;
         font-weight: 700;
-        color: #0f172a;
+        color: var(--text-primary);
       }
 
       .subtitle {
         font-size: 0.75rem;
-        color: #64748b;
+        color: var(--text-muted);
       }
-    }
-
-    .filter-dropdown {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 5px 12px;
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 6px;
-      font-size: 0.78rem;
-      color: #475569;
-      cursor: pointer;
-    }
-
-    .view-all-link {
-      font-size: 0.75rem;
-      color: #031795;
-      cursor: pointer;
-      font-weight: 600;
-    }
-
-    .gauges-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-around;
-      gap: 16px;
-      padding: 10px 0;
-    }
-
-    .items-list {
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-    }
-
-    .item-row {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      padding: 8px 10px;
-      border-radius: 8px;
-
-      &:hover {
-        background: #f8fafc;
-      }
-    }
-
-    .item-thumb {
-      width: 44px;
-      height: 44px;
-      border-radius: 8px;
-      object-fit: cover;
-      border: 1px solid #e2e8f0;
-    }
-
-    .item-info {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-
-    .item-name {
-      font-size: 0.85rem;
-      font-weight: 600;
-      color: #0f172a;
-    }
-
-    .item-system {
-      font-size: 0.72rem;
-      color: #64748b;
-    }
-
-    .item-metric {
-      font-size: 0.9rem;
-      font-weight: 700;
-      color: #0f172a;
     }
 
     /* ========================================= */
@@ -1770,10 +1498,10 @@ export interface TrendStatsSummary {
       flex-wrap: wrap;
       gap: 14px;
       padding: 14px 20px;
-      background: #ffffff;
-      border: 1px solid #e2e8f0;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
       border-radius: 12px;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+      box-shadow: var(--shadow-card);
     }
 
     .toolbar-date-navigator {
@@ -1787,18 +1515,19 @@ export interface TrendStatsSummary {
       align-items: center;
       gap: 6px;
       padding: 7px 12px;
-      background: #f8fafc;
-      border: 1px solid #cbd5e1;
+      background: var(--bg-card-subtle);
+      border: 1px solid var(--border-subtle);
       border-radius: 8px;
       font-size: 0.8rem;
       font-weight: 600;
-      color: #334155;
+      color: var(--text-secondary);
       cursor: pointer;
       transition: all 0.2s;
 
       &:hover:not(:disabled) {
-        background: #e2e8f0;
-        color: #0f172a;
+        background: var(--bg-card-hover);
+        color: var(--text-primary);
+        border-color: var(--border-focus);
       }
 
       &:disabled {
@@ -1811,14 +1540,14 @@ export interface TrendStatsSummary {
       display: flex;
       align-items: center;
       gap: 8px;
-      background: #f1f5f9;
+      background: var(--bg-input);
       padding: 6px 14px;
       border-radius: 8px;
-      border: 1px solid #cbd5e1;
+      border: 1px solid var(--border-subtle);
     }
 
     .calendar-icon {
-      color: #031795;
+      color: var(--primary-purple);
     }
 
     .date-select {
@@ -1826,7 +1555,7 @@ export interface TrendStatsSummary {
       background: transparent;
       font-size: 0.88rem;
       font-weight: 700;
-      color: #0f172a;
+      color: var(--text-primary);
       outline: none;
       cursor: pointer;
     }
@@ -1843,16 +1572,16 @@ export interface TrendStatsSummary {
       align-items: center;
       gap: 6px;
       font-size: 0.78rem;
-      color: #475569;
-      background: #f8fafc;
+      color: var(--text-muted);
+      background: var(--bg-card-subtle);
       padding: 4px 10px;
       border-radius: 20px;
-      border: 1px solid #e2e8f0;
+      border: 1px solid var(--border-subtle);
 
       &.info {
-        background: #eff6ff;
-        color: #1e40af;
-        border-color: #bfdbfe;
+        background: var(--primary-bg-subtle);
+        color: var(--primary-lavender);
+        border-color: var(--primary-border);
       }
     }
 
@@ -1860,18 +1589,18 @@ export interface TrendStatsSummary {
       width: 7px;
       height: 7px;
       border-radius: 50%;
-      background: #10b981;
+      background: var(--success);
       display: inline-block;
     }
 
     .master-empty-state {
       padding: 2rem 1.5rem;
       text-align: center;
-      color: #64748b;
+      color: var(--text-muted);
 
       strong {
         display: block;
-        color: #0f172a;
+        color: var(--text-primary);
         margin-bottom: 0.35rem;
       }
 
@@ -1890,9 +1619,12 @@ export interface TrendStatsSummary {
       gap: 20px;
       padding: 22px 26px;
       border-radius: 14px;
-      background: #ffffff;
+      background: var(--bg-card);
       border-left: 6px solid;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+      border-top: 1px solid var(--border-subtle);
+      border-right: 1px solid var(--border-subtle);
+      border-bottom: 1px solid var(--border-subtle);
+      box-shadow: var(--shadow-card);
       margin-top: 14px;
     }
 
@@ -1925,7 +1657,7 @@ export interface TrendStatsSummary {
     .hero-metric-title {
       font-size: 1.35rem;
       font-weight: 800;
-      color: #0f172a;
+      color: var(--text-primary);
       display: flex;
       align-items: baseline;
       gap: 10px;
@@ -1938,7 +1670,7 @@ export interface TrendStatsSummary {
 
     .hero-metric-desc {
       font-size: 0.85rem;
-      color: #475569;
+      color: var(--text-secondary);
       line-height: 1.4;
     }
 
@@ -1951,10 +1683,10 @@ export interface TrendStatsSummary {
       display: flex;
       align-items: center;
       gap: 12px;
-      background: #f8fafc;
+      background: var(--bg-card-subtle);
       padding: 12px 18px;
       border-radius: 10px;
-      border: 1px solid #e2e8f0;
+      border: 1px solid var(--border-subtle);
 
       @media (max-width: 600px) {
         flex-direction: column;
@@ -1968,16 +1700,17 @@ export interface TrendStatsSummary {
       gap: 2px;
 
       &.active {
-        background: #ffffff;
+        background: var(--bg-card);
         padding: 4px 10px;
         border-radius: 6px;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+        border: 1px solid var(--border-subtle);
+        box-shadow: var(--shadow-card);
       }
     }
 
     .cota-label {
       font-size: 0.68rem;
-      color: #64748b;
+      color: var(--text-muted);
       font-weight: 600;
       text-transform: uppercase;
     }
@@ -1985,16 +1718,16 @@ export interface TrendStatsSummary {
     .cota-val {
       font-size: 0.92rem;
       font-weight: 700;
-      color: #0f172a;
+      color: var(--text-primary);
 
       &.highlight {
-        color: #031795;
+        color: var(--primary-purple);
       }
     }
 
     .cota-divider {
       font-weight: 700;
-      color: #94a3b8;
+      color: var(--text-placeholder);
     }
 
     /* Master KPIs Grid */
@@ -2018,8 +1751,8 @@ export interface TrendStatsSummary {
     .master-kpi-card {
       padding: 16px;
       border-radius: 12px;
-      background: #ffffff;
-      border: 1px solid #e2e8f0;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
       display: flex;
       flex-direction: column;
@@ -2058,18 +1791,18 @@ export interface TrendStatsSummary {
     .kpi-value {
       font-size: 1.25rem;
       font-weight: 800;
-      color: #0f172a;
+      color: var(--text-primary);
 
       small {
         font-size: 0.78rem;
         font-weight: 600;
-        color: #64748b;
+        color: var(--text-muted);
       }
     }
 
     .kpi-sub {
       font-size: 0.7rem;
-      color: #64748b;
+      color: var(--text-muted);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -2103,9 +1836,9 @@ export interface TrendStatsSummary {
     .dam-cross-section {
       padding: 24px;
       border-radius: 14px;
-      background: #ffffff;
-      border: 1px solid #e2e8f0;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      box-shadow: var(--shadow-card);
       margin-top: 18px;
       display: flex;
       flex-direction: column;
@@ -2128,7 +1861,7 @@ export interface TrendStatsSummary {
       h3 {
         font-size: 1.15rem;
         font-weight: 800;
-        color: #0f172a;
+        color: var(--text-primary);
       }
     }
 
@@ -2142,11 +1875,11 @@ export interface TrendStatsSummary {
     .dam-mode-pills {
       display: flex;
       align-items: center;
-      background: #f1f5f9;
+      background: var(--bg-input);
       padding: 4px;
       border-radius: 10px;
       gap: 4px;
-      border: 1px solid #e2e8f0;
+      border: 1px solid var(--border-subtle);
     }
 
     .dam-pill {
@@ -2156,19 +1889,19 @@ export interface TrendStatsSummary {
       border-radius: 6px;
       font-size: 0.76rem;
       font-weight: 600;
-      color: #64748b;
+      color: var(--text-muted);
       cursor: pointer;
       transition: all 0.2s;
 
       &:hover {
-        color: #0f172a;
+        color: var(--text-primary);
       }
 
       &.active {
-        background: #ffffff;
-        color: #031795;
+        background: var(--bg-card);
+        color: var(--primary-purple);
         font-weight: 700;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        box-shadow: var(--shadow-card);
       }
     }
 
@@ -2182,24 +1915,24 @@ export interface TrendStatsSummary {
       font-weight: 700;
 
       &.safe {
-        background: #ecfdf5;
-        color: #065f46;
-        border: 1px solid #a7f3d0;
-        .pulse-beacon { background: #10b981; }
+        background: var(--success-bg);
+        color: var(--success);
+        border: 1px solid rgba(16, 185, 129, 0.35);
+        .pulse-beacon { background: var(--success); }
       }
 
       &.warning {
-        background: #fffbeb;
-        color: #92400e;
-        border: 1px solid #fde68a;
-        .pulse-beacon { background: #f59e0b; }
+        background: var(--warning-bg);
+        color: var(--warning);
+        border: 1px solid rgba(245, 158, 11, 0.35);
+        .pulse-beacon { background: var(--warning); }
       }
 
       &.critical {
-        background: #fef2f2;
-        color: #991b1b;
-        border: 1px solid #fecaca;
-        .pulse-beacon { background: #ef4444; }
+        background: var(--danger-bg);
+        color: var(--danger);
+        border: 1px solid rgba(239, 68, 68, 0.35);
+        .pulse-beacon { background: var(--danger); }
       }
     }
 
@@ -2244,29 +1977,29 @@ export interface TrendStatsSummary {
       flex-direction: column;
       gap: 3px;
       padding: 10px 12px;
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
+      background: var(--bg-card-subtle);
+      border: 1px solid var(--border-subtle);
       border-radius: 8px;
       transition: all 0.2s;
       cursor: pointer;
 
       &:hover {
-        background: #eff6ff;
-        border-color: #93c5fd;
+        background: var(--bg-card-hover);
+        border-color: var(--border-focus);
       }
     }
 
     .m-label {
       font-size: 0.68rem;
       font-weight: 600;
-      color: #64748b;
+      color: var(--text-muted);
       text-transform: uppercase;
     }
 
     .m-val {
       font-size: 0.88rem;
       font-weight: 800;
-      color: #0f172a;
+      color: var(--text-primary);
 
       &.highlight-blue {
         color: #0284c7;
@@ -2285,11 +2018,11 @@ export interface TrendStatsSummary {
 
     .dam-svg-container {
       width: 100%;
-      background: #ffffff;
-      border: 1px solid #e2e8f0;
+      background: var(--bg-canvas);
+      border: 1px solid var(--border-subtle);
       border-radius: 12px;
       overflow: hidden;
-      box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.03);
+      box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.08);
     }
 
     .dam-profile-svg {
@@ -2313,31 +2046,31 @@ export interface TrendStatsSummary {
       align-items: center;
       gap: 12px;
       padding: 12px 16px;
-      background: #eff6ff;
-      border: 1px solid #bfdbfe;
+      background: var(--primary-bg-subtle);
+      border: 1px solid var(--primary-border);
       border-radius: 8px;
       animation: fadeIn 0.2s ease-in;
     }
 
     .inspector-badge-icon {
-      color: #1e40af;
+      color: var(--primary-lavender);
       display: flex;
       align-items: center;
     }
 
     .inspector-text {
       font-size: 0.82rem;
-      color: #1e3a8a;
+      color: var(--text-primary);
 
       .inspector-val {
         font-weight: 800;
-        color: #031795;
+        color: var(--primary-purple);
       }
     }
 
     .inspector-desc {
       font-size: 0.74rem;
-      color: #3b82f6;
+      color: var(--primary-lavender);
       margin-top: 2px;
     }
 
@@ -2354,7 +2087,7 @@ export interface TrendStatsSummary {
       align-items: center;
       gap: 6px;
       font-size: 0.75rem;
-      color: #475569;
+      color: var(--text-secondary);
       font-weight: 500;
     }
 
@@ -2379,9 +2112,9 @@ export interface TrendStatsSummary {
     .trend-chart-section {
       padding: 24px;
       border-radius: 14px;
-      background: #ffffff;
-      border: 1px solid #e2e8f0;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      box-shadow: var(--shadow-card);
       margin-top: 18px;
       display: flex;
       flex-direction: column;
@@ -2404,18 +2137,18 @@ export interface TrendStatsSummary {
       h3 {
         font-size: 1.15rem;
         font-weight: 800;
-        color: #0f172a;
+        color: var(--text-primary);
       }
     }
 
     .range-selector-pills {
       display: flex;
       align-items: center;
-      background: #f1f5f9;
+      background: var(--bg-input);
       padding: 4px;
       border-radius: 10px;
       gap: 4px;
-      border: 1px solid #e2e8f0;
+      border: 1px solid var(--border-subtle);
     }
 
     .range-pill {
@@ -2425,19 +2158,19 @@ export interface TrendStatsSummary {
       border-radius: 6px;
       font-size: 0.76rem;
       font-weight: 600;
-      color: #64748b;
+      color: var(--text-muted);
       cursor: pointer;
       transition: all 0.2s;
 
       &:hover {
-        color: #0f172a;
+        color: var(--text-primary);
       }
 
       &.active {
-        background: #ffffff;
-        color: #031795;
+        background: var(--bg-card);
+        color: var(--primary-purple);
         font-weight: 700;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        box-shadow: var(--shadow-card);
       }
     }
 
@@ -2454,27 +2187,27 @@ export interface TrendStatsSummary {
       align-items: center;
       gap: 8px;
       padding: 8px 14px;
-      border: 1px solid #e2e8f0;
+      border: 1px solid var(--border-subtle);
       border-radius: 20px;
-      background: #f8fafc;
+      background: var(--bg-card-subtle);
       font-size: 0.8rem;
       font-weight: 600;
-      color: #475569;
+      color: var(--text-secondary);
       cursor: pointer;
       white-space: nowrap;
       transition: all 0.2s;
 
       &:hover {
-        background: #f1f5f9;
-        color: #0f172a;
+        background: var(--bg-card-hover);
+        color: var(--text-primary);
       }
 
       &.active {
-        background: #ffffff;
-        border-color: #031795;
-        color: #031795;
+        background: var(--bg-card);
+        border-color: var(--primary-purple);
+        color: var(--primary-purple);
         font-weight: 700;
-        box-shadow: 0 2px 4px rgba(3, 23, 149, 0.12);
+        box-shadow: var(--shadow-card);
       }
     }
 
@@ -2499,8 +2232,8 @@ export interface TrendStatsSummary {
 
     .stat-mini-card {
       padding: 12px 14px;
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
+      background: var(--bg-card-subtle);
+      border: 1px solid var(--border-subtle);
       border-radius: 10px;
       display: flex;
       flex-direction: column;
@@ -2509,7 +2242,7 @@ export interface TrendStatsSummary {
 
     .stat-mini-label {
       font-size: 0.68rem;
-      color: #64748b;
+      color: var(--text-muted);
       font-weight: 700;
       text-transform: uppercase;
     }
@@ -2524,7 +2257,7 @@ export interface TrendStatsSummary {
     .stat-mini-val {
       font-size: 1.15rem;
       font-weight: 800;
-      color: #0f172a;
+      color: var(--text-primary);
 
       &.text-max { color: #0284c7; }
       &.text-min { color: #d97706; }
@@ -2537,18 +2270,18 @@ export interface TrendStatsSummary {
       border-radius: 4px;
 
       &.positive {
-        background: #ecfdf5;
-        color: #059669;
+        background: var(--success-bg);
+        color: var(--success);
       }
       &.negative {
-        background: #fef2f2;
-        color: #dc2626;
+        background: var(--danger-bg);
+        color: var(--danger);
       }
     }
 
     .stat-mini-sub {
       font-size: 0.68rem;
-      color: #94a3b8;
+      color: var(--text-muted);
     }
 
     .chart-legend-toolbar {
@@ -2572,7 +2305,7 @@ export interface TrendStatsSummary {
       align-items: center;
       gap: 6px;
       font-size: 0.78rem;
-      color: #334155;
+      color: var(--text-secondary);
     }
 
     .legend-line {
@@ -2604,7 +2337,7 @@ export interface TrendStatsSummary {
 
     .legend-tip {
       font-size: 0.72rem;
-      color: #64748b;
+      color: var(--text-muted);
       font-weight: 500;
     }
 
@@ -2632,9 +2365,9 @@ export interface TrendStatsSummary {
 
     .chart-floating-tooltip {
       position: absolute;
-      background: #ffffff;
-      border: 1px solid #cbd5e1;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      box-shadow: var(--shadow-card);
       padding: 6px 12px;
       border-radius: 8px;
       pointer-events: none;
@@ -2644,11 +2377,12 @@ export interface TrendStatsSummary {
       display: flex;
       flex-direction: column;
       gap: 2px;
+      color: var(--text-primary);
     }
 
     .tooltip-header {
       font-size: 0.7rem;
-      color: #64748b;
+      color: var(--text-muted);
       font-weight: 600;
     }
 
@@ -2659,16 +2393,16 @@ export interface TrendStatsSummary {
 
     .tooltip-hint {
       font-size: 0.65rem;
-      color: #94a3b8;
+      color: var(--text-placeholder);
     }
 
     /* Master Log Table */
     .master-table-section {
       padding: 22px;
       border-radius: 12px;
-      background: #ffffff;
-      border: 1px solid #e2e8f0;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      box-shadow: var(--shadow-card);
       margin-top: 18px;
     }
 
@@ -2686,19 +2420,19 @@ export interface TrendStatsSummary {
       align-items: center;
       gap: 8px;
       padding: 6px 12px;
-      background: #f8fafc;
-      border: 1px solid #cbd5e1;
+      background: var(--bg-input);
+      border: 1px solid var(--border-subtle);
       border-radius: 8px;
 
       svg {
-        stroke: #64748b;
+        stroke: var(--text-muted);
       }
 
       .search-input {
         border: none;
         background: transparent;
         font-size: 0.8rem;
-        color: #0f172a;
+        color: var(--text-primary);
         outline: none;
       }
     }
@@ -2717,16 +2451,16 @@ export interface TrendStatsSummary {
         font-size: 0.72rem;
         font-weight: 700;
         text-transform: uppercase;
-        color: #64748b;
-        background: #f8fafc;
-        border-bottom: 1px solid #e2e8f0;
+        color: var(--text-muted);
+        background: var(--bg-card-subtle);
+        border-bottom: 1px solid var(--border-subtle);
       }
 
       td {
         padding: 12px;
         font-size: 0.8rem;
-        color: #334155;
-        border-bottom: 1px solid #f1f5f9;
+        color: var(--text-secondary);
+        border-bottom: 1px solid var(--border-subtle);
       }
 
       tbody tr {
@@ -2734,13 +2468,13 @@ export interface TrendStatsSummary {
         transition: background 0.15s;
 
         &:hover {
-          background: #f8fafc;
+          background: var(--bg-card-hover);
         }
 
         &.selected-row {
-          background: #eff6ff;
+          background: var(--primary-bg-subtle);
           td {
-            color: #031795;
+            color: var(--primary-purple);
           }
         }
       }
@@ -2748,7 +2482,7 @@ export interface TrendStatsSummary {
 
     .date-badge {
       font-weight: 700;
-      color: #0f172a;
+      color: var(--text-primary);
     }
 
     .status-tag-pill {
@@ -2758,16 +2492,16 @@ export interface TrendStatsSummary {
       border-radius: 12px;
 
       &.normal {
-        background: #ecfdf5;
-        color: #059669;
+        background: var(--success-bg);
+        color: var(--success);
       }
       &.warning {
-        background: #fffbeb;
-        color: #d97706;
+        background: var(--warning-bg);
+        color: var(--warning);
       }
       &.critical {
-        background: #fef2f2;
-        color: #dc2626;
+        background: var(--danger-bg);
+        color: var(--danger);
       }
     }
 
@@ -2787,10 +2521,10 @@ export interface TrendStatsSummary {
     .modal-card {
       width: 100%;
       max-width: 580px;
-      background: #ffffff;
+      background: var(--bg-card);
       border-radius: 16px;
-      border: 1px solid #e2e8f0;
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      border: 1px solid var(--border-subtle);
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.25), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
       display: flex;
       flex-direction: column;
       overflow: hidden;
@@ -2801,7 +2535,7 @@ export interface TrendStatsSummary {
       align-items: center;
       justify-content: space-between;
       padding: 20px 24px;
-      border-bottom: 1px solid #e2e8f0;
+      border-bottom: 1px solid var(--border-subtle);
     }
 
     .modal-title-group {
@@ -2812,12 +2546,12 @@ export interface TrendStatsSummary {
       h3 {
         font-size: 1.1rem;
         font-weight: 700;
-        color: #0f172a;
+        color: var(--text-primary);
       }
 
       .subtitle {
         font-size: 0.76rem;
-        color: #64748b;
+        color: var(--text-muted);
       }
     }
 
@@ -2825,8 +2559,8 @@ export interface TrendStatsSummary {
       width: 40px;
       height: 40px;
       border-radius: 10px;
-      background: #eff6ff;
-      color: #031795;
+      background: var(--primary-bg-subtle);
+      color: var(--primary-purple);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -2836,11 +2570,11 @@ export interface TrendStatsSummary {
       border: none;
       background: transparent;
       font-size: 1.1rem;
-      color: #94a3b8;
+      color: var(--text-muted);
       cursor: pointer;
 
       &:hover {
-        color: #0f172a;
+        color: var(--text-primary);
       }
     }
 
@@ -2852,17 +2586,17 @@ export interface TrendStatsSummary {
     }
 
     .drop-zone {
-      border: 2px dashed #cbd5e1;
+      border: 2px dashed var(--border-subtle);
       border-radius: 12px;
       padding: 30px 20px;
       text-align: center;
       cursor: pointer;
-      background: #f8fafc;
+      background: var(--bg-card-subtle);
       transition: all 0.2s;
 
       &:hover, &.drag-over {
-        border-color: #031795;
-        background: #f0f4ff;
+        border-color: var(--primary-purple);
+        background: var(--primary-bg-subtle);
       }
     }
 
@@ -2872,20 +2606,20 @@ export interface TrendStatsSummary {
 
     .drop-main-text {
       font-size: 0.9rem;
-      color: #0f172a;
+      color: var(--text-primary);
       margin-bottom: 4px;
     }
 
     .drop-sub-text {
       font-size: 0.75rem;
-      color: #64748b;
+      color: var(--text-muted);
     }
 
     .file-badge {
       display: inline-block;
       margin-top: 10px;
       padding: 3px 10px;
-      background: #031795;
+      background: var(--primary-purple);
       color: #ffffff;
       border-radius: 12px;
       font-size: 0.72rem;
@@ -2903,10 +2637,10 @@ export interface TrendStatsSummary {
       align-items: flex-start;
       gap: 12px;
       padding: 10px 14px;
-      border: 1px solid #e2e8f0;
+      border: 1px solid var(--border-subtle);
       border-radius: 8px;
       cursor: pointer;
-      background: #ffffff;
+      background: var(--bg-card);
 
       input {
         margin-top: 3px;
@@ -2914,17 +2648,17 @@ export interface TrendStatsSummary {
 
       strong {
         font-size: 0.84rem;
-        color: #0f172a;
+        color: var(--text-primary);
       }
 
       p {
         font-size: 0.74rem;
-        color: #64748b;
+        color: var(--text-muted);
         margin-top: 2px;
       }
 
       &:hover {
-        background: #f8fafc;
+        background: var(--bg-card-hover);
       }
     }
 
@@ -2934,15 +2668,15 @@ export interface TrendStatsSummary {
       font-size: 0.82rem;
 
       &.success {
-        background: #ecfdf5;
-        color: #065f46;
-        border: 1px solid #a7f3d0;
+        background: var(--success-bg);
+        color: var(--success);
+        border: 1px solid rgba(16, 185, 129, 0.35);
       }
 
       &.error {
-        background: #fef2f2;
-        color: #991b1b;
-        border: 1px solid #fecaca;
+        background: var(--danger-bg);
+        color: var(--danger);
+        border: 1px solid rgba(239, 68, 68, 0.35);
       }
     }
 
@@ -2974,15 +2708,15 @@ export interface TrendStatsSummary {
       }
 
       &.rejected {
-        background: #fef2f2;
-        color: #991b1b;
-        border: 1px solid #fecaca;
+        background: var(--danger-bg);
+        color: var(--danger);
+        border: 1px solid rgba(239, 68, 68, 0.35);
       }
 
       &.warning {
-        background: #fffbeb;
-        color: #92400e;
-        border: 1px solid #fde68a;
+        background: var(--warning-bg);
+        color: var(--warning);
+        border: 1px solid rgba(245, 158, 11, 0.35);
       }
     }
 
@@ -2991,8 +2725,8 @@ export interface TrendStatsSummary {
       flex-direction: column;
       gap: 6px;
       padding: 12px 14px;
-      background: #eff6ff;
-      border: 1px solid #bfdbfe;
+      background: var(--primary-bg-subtle);
+      border: 1px solid var(--primary-border);
       border-radius: 8px;
     }
 
@@ -3002,17 +2736,17 @@ export interface TrendStatsSummary {
       gap: 6px;
       font-size: 0.78rem;
       font-weight: 700;
-      color: #1e40af;
+      color: var(--primary-lavender);
     }
 
     .sheet-select-dropdown {
       padding: 8px 12px;
-      background: #ffffff;
-      border: 1px solid #93c5fd;
+      background: var(--bg-input);
+      border: 1px solid var(--border-subtle);
       border-radius: 6px;
       font-size: 0.85rem;
       font-weight: 600;
-      color: #0f172a;
+      color: var(--text-primary);
       outline: none;
       cursor: pointer;
     }
@@ -3023,19 +2757,43 @@ export interface TrendStatsSummary {
       justify-content: flex-end;
       gap: 10px;
       padding: 16px 24px;
-      border-top: 1px solid #e2e8f0;
-      background: #f8fafc;
+      border-top: 1px solid var(--border-subtle);
+      background: var(--bg-card-subtle);
+    }
+
+    :host-context(.dark-theme) {
+      .title-icon-pill {
+        background: rgba(59, 130, 246, 0.15);
+        color: #60a5fa;
+        border-color: rgba(59, 130, 246, 0.3);
+      }
+
+      .badge-office {
+        background: rgba(59, 130, 246, 0.18);
+        color: #93c5fd;
+      }
+
+      .kpi-icon-wrap.blue { background: rgba(37, 99, 235, 0.18); color: #60a5fa; }
+      .kpi-icon-wrap.cyan { background: rgba(8, 145, 178, 0.18); color: #38bdf8; }
+      .kpi-icon-wrap.purple { background: rgba(124, 58, 237, 0.18); color: #a78bfa; }
+      .kpi-icon-wrap.amber { background: rgba(217, 119, 6, 0.18); color: #fbbf24; }
+      .kpi-icon-wrap.emerald { background: rgba(5, 150, 105, 0.18); color: #34d399; }
+      .kpi-icon-wrap.indigo { background: rgba(79, 70, 229, 0.18); color: #818cf8; }
+
+      .dam-svg-container {
+        background: #090e1a;
+      }
+
+      .dam-footer-legend .legend-chip {
+        color: #cbd5e1;
+      }
     }
   `]
 })
 export class DashboardComponent implements OnInit, OnDestroy {
-  private http = inject(HttpClient);
   private cdr = inject(ChangeDetectorRef);
   private ngZone = inject(NgZone);
   public masterService = inject(MasterSheetService);
-
-  // Active view tab: 'telemetry' or 'mastersheet'
-  activeTab: 'telemetry' | 'mastersheet' = 'mastersheet';
 
   // Modal & File Upload State
   showUploadModal = false;
@@ -3054,86 +2812,15 @@ export class DashboardComponent implements OnInit, OnDestroy {
   // Search filter in table
   searchFilter = '';
 
-  // SCADA / Telemetry state
-  kpiCards = [
-    { title: 'Caudal Total Slurry', value: '0 m³/h', trend: 'Sincronizado', isPositive: true },
-    { title: 'Tonelaje Procesado', value: '0.0 kTon', trend: 'Sin entregas', isPositive: true },
-    { title: 'Disponibilidad Planta', value: '100 %', trend: 'Normal', isPositive: true },
-    { title: 'Bombas en Servicio', value: '0 / 0', trend: 'Normal', isPositive: true },
-    { title: 'Personal en Turno', value: '0 Oper.', trend: 'Sincronizado', isPositive: true }
-  ];
-
-  operationGauges = [
-    { label: 'En Standby', percentage: 25, color: '#f59e0b' },
-    { label: 'Bombeo Activo', percentage: 85, color: '#031795' },
-    { label: 'Alertas', percentage: 7, color: '#dc2626' }
-  ];
-
-  shiftDistribution = {
-    heroPercentage: 25,
-    slices: [
-      { name: 'Guardia 1 (G1)', percentage: 25, color: '#031795' },
-      { name: 'Guardia 2 (G2)', percentage: 25, color: '#1d4ed8' },
-      { name: 'Guardia 3 (G3)', percentage: 25, color: '#3b82f6' },
-      { name: 'Guardia 4 (G4)', percentage: 25, color: '#93c5fd' }
-    ]
-  };
-
-  topEquipment = [
-    {
-      name: 'Bomba Slurry PP-101',
-      system: 'Alimentación Ciclones 01',
-      metric: '1,850 m³/h',
-      imageUrl: 'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=120&q=80'
-    },
-    {
-      name: 'Bomba Relaves TL-201',
-      system: 'Transporte a Presa Principal',
-      metric: '2,150 m³/h',
-      imageUrl: 'https://images.unsplash.com/photo-1504917599217-d4dc5ebe6122?auto=format&fit=crop&w=120&q=80'
-    },
-    {
-      name: 'Batería Cyclopac 01',
-      system: 'Clasificación Molienda',
-      metric: '18.5 PSI',
-      imageUrl: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=120&q=80'
-    }
-  ];
-
-  weeklyComparisonData = [
-    { day: 'Dom', current: 780, previous: 650 },
-    { day: 'Lun', current: 510, previous: 480 },
-    { day: 'Mar', current: 740, previous: 520 },
-    { day: 'Mié', current: 410, previous: 490 },
-    { day: 'Jue', current: 430, previous: 530 },
-    { day: 'Vie', current: 670, previous: 620 },
-    { day: 'Sáb', current: 820, previous: 690 }
-  ];
-
-  productionCurveData = [
-    { label: 'ene', value: 18 },
-    { label: 'feb', value: 22 },
-    { label: 'mar', value: 20 },
-    { label: 'abr', value: 26 },
-    { label: 'may', value: 34 },
-    { label: 'jun', value: 45 },
-    { label: 'jul', value: 30 },
-    { label: 'ago', value: 35 },
-    { label: 'sep', value: 39 },
-    { label: 'oct', value: 42 },
-    { label: 'nov', value: 50 },
-    { label: 'dic', value: 58 }
-  ];
-
   private syncListener = (e: any) => {
     if (e?.detail?.source === 'local') return;
     this.ngZone.run(() => {
-      this.fetchMetrics();
+      this.masterService.initData();
+      this.cdr.markForCheck();
     });
   };
 
   ngOnInit(): void {
-    this.fetchMetrics();
     if (typeof window !== 'undefined') {
       window.addEventListener('basetrack_cloud_sync', this.syncListener);
     }
@@ -3143,26 +2830,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
     if (typeof window !== 'undefined') {
       window.removeEventListener('basetrack_cloud_sync', this.syncListener);
     }
-  }
-
-  fetchMetrics(): void {
-    this.http.get<any>(`${getApiBaseUrl()}/dashboard/metrics`).pipe(
-      timeout(3500),
-      catchError(() => of(null))
-    ).subscribe({
-      next: (res) => {
-        if (res && res.success && res.data) {
-          const d = res.data;
-          if (d.kpiCards) this.kpiCards = d.kpiCards;
-          if (d.operationSummary?.gauges) this.operationGauges = d.operationSummary.gauges;
-          if (d.shiftDistribution) this.shiftDistribution = d.shiftDistribution;
-          if (d.topCriticalEquipment) this.topEquipment = d.topCriticalEquipment;
-          if (d.weeklyComparison?.days) this.weeklyComparisonData = d.weeklyComparison.days;
-          if (d.productionCurve?.points) this.productionCurveData = d.productionCurve.points;
-          this.cdr.markForCheck();
-        }
-      }
-    });
   }
 
   // --- Filtered Master Sheet Table ---

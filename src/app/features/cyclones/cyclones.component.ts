@@ -149,7 +149,10 @@ export interface GeneralAverages {
               <input type="date" [(ngModel)]="filterDate" (change)="filterSamples()" />
             </div>
             <button *ngIf="selectedShift !== 'ALL' || filterDate" class="btn-clear-filters" (click)="resetFilters()" title="Quitar filtros">
-              ✕
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
             </button>
           </div>
         </div>
@@ -420,7 +423,14 @@ export interface GeneralAverages {
         <div class="geotech-card glass-panel" [style.border-left-color]="sandClassification.color">
           <div class="geotech-header">
             <div class="geotech-title-wrap">
-              <span class="geotech-icon">{{ sandClassification.icon }}</span>
+              <span class="geotech-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path *ngIf="sandClassification.status === 'APTO'" d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                  <path *ngIf="sandClassification.status === 'OBSERVADO'" d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4m0 4h.01"></path>
+                  <circle *ngIf="sandClassification.status === 'CRITICO'" cx="12" cy="12" r="10"></circle>
+                  <line *ngIf="sandClassification.status === 'CRITICO'" x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+                </svg>
+              </span>
               <div>
                 <div class="geotech-tag-row">
                   <span class="norma-pill">GISTM / D.S. 024-2016-EM</span>
@@ -876,7 +886,13 @@ export interface GeneralAverages {
       <app-modal [isOpen]="isDeleteModalOpen" [title]="'Eliminar Muestreo Metalúrgico'" (close)="isDeleteModalOpen = false">
         <div class="delete-modal-content" *ngIf="groupToDelete">
           <div class="delete-warning-banner">
-            <span class="warning-icon">⚠️</span>
+            <span class="warning-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                <line x1="12" y1="9" x2="12" y2="13"></line>
+                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+              </svg>
+            </span>
             <div>
               <h4>¿Desea eliminar los datos de las {{ groupToDelete.time }} hrs?</h4>
               <p>Estación: <strong>{{ selectedStation }}</strong></p>
@@ -2531,6 +2547,20 @@ export interface GeneralAverages {
       text-align: center;
       color: var(--text-muted);
       font-size: 0.86rem;
+    }
+
+    :host-context([data-theme="dark"]),
+    :host-context(.dark-theme) {
+      .c-dot.standby {
+        background: #1e293b;
+        border-color: #334155;
+      }
+      .delete-warning-banner {
+        background: rgba(239, 68, 68, 0.15);
+        border-color: rgba(239, 68, 68, 0.35);
+        h4 { color: #fca5a5; }
+        p { color: #f87171; }
+      }
     }
   `]
 })

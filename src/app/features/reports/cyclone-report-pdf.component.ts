@@ -45,7 +45,12 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
               </svg>
               {{ copiedText ? '¡Copiado!' : 'Copiar' }}
             </button>
-            <button type="button" class="close-btn" (click)="closeModal()">✕</button>
+            <button type="button" class="close-btn" (click)="closeModal()" aria-label="Cerrar modal">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
           </div>
         </div>
 
@@ -316,7 +321,11 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
       .close-btn {
         background: transparent;
         color: #94a3b8;
-        font-size: 1.1rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: none;
+        cursor: pointer;
         padding: 4px 8px;
         &:hover { color: #ffffff; }
       }
@@ -833,12 +842,12 @@ export class CycloneReportPdfComponent implements OnInit {
   }
 
   copyExecutiveSummary(): void {
-    const summary = `📋 *BASETRACK - PLANILLA METALÚRGICA DE CICLONES (1 HOJA)*
-📅 Fecha: ${this.reportDate} | Guardia: ${this.shiftCode} | Estación: ${this.station}
-🌪️ Malla -200 OF: ${this.calcAvg.mesh200_of.toFixed(1)}% (Target Conforme)
-⚖️ % Sólidos: Alim ${this.calcAvg.solids_feed.toFixed(1)}% | OF ${this.calcAvg.solids_of.toFixed(1)}% | UF ${this.calcAvg.solids_uf.toFixed(1)}%
-🎛️ Presión Manifold: 12.5 PSI (Estable) | Descarga: Paraguas (Spray)
-✅ Documento Oficial Validado`;
+    const summary = `*BASETRACK - PLANILLA METALÚRGICA DE CICLONES (1 HOJA)*
+Fecha: ${this.reportDate} | Guardia: ${this.shiftCode} | Estación: ${this.station}
+Malla -200 OF: ${this.calcAvg.mesh200_of.toFixed(1)}% (Target Conforme)
+% Sólidos: Alim ${this.calcAvg.solids_feed.toFixed(1)}% | OF ${this.calcAvg.solids_of.toFixed(1)}% | UF ${this.calcAvg.solids_uf.toFixed(1)}%
+Presión Manifold: 12.5 PSI (Estable) | Descarga: Paraguas (Spray)
+Documento Oficial Validado`;
 
     copyToClipboard(summary).then((success) => {
       if (success) {

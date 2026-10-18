@@ -24,6 +24,7 @@ import { AdminUsersTabComponent } from './tabs/users/users-tab.component';
 import { UsersStore, UserItem } from './tabs/users/users.store';
 import { AdminPermissionsTabComponent } from './tabs/permissions/permissions-tab.component';
 import { resetGuardsCatalog } from '../../shared/utils/roster.util';
+import { generateAvatarSvg, getEffectiveAvatar } from '../../shared/utils/avatar.util';
 
 const DEFAULT_USERS: UserItem[] = [
   {
@@ -34,7 +35,7 @@ const DEFAULT_USERS: UserItem[] = [
     role: 'ADMIN',
     shift: 'ADMIN',
     document_id: '',
-    avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80',
+    avatar_url: generateAvatarSvg('Marck Vizcarra', 'ADMIN'),
     created_at: new Date().toISOString()
   }
 ];
@@ -497,7 +498,7 @@ export class AdminComponent implements OnInit, OnDestroy {
         username: s.username,
         dni: (s as any).document_id || (s as any).dni || '',
         email: s.email,
-        avatar: s.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${s.username}`,
+        avatar: getEffectiveAvatar(s.avatar_url, s.full_name, s.role, s.shift),
         role: s.role || 'SUPERVISOR'
       };
     }
@@ -506,7 +507,7 @@ export class AdminComponent implements OnInit, OnDestroy {
       username: `supervisor_${shift.toLowerCase()}`,
       dni: '',
       email: `supervisor_${shift.toLowerCase()}@basetrack.com`,
-      avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=sup_${shift}`,
+      avatar: generateAvatarSvg(`Supervisor ${shift}`, 'SUPERVISOR', shift),
       role: 'SUPERVISOR'
     };
   }
@@ -714,18 +715,18 @@ export class AdminComponent implements OnInit, OnDestroy {
     return list.filter(u => !u.isSupervisor);
   }
 
-  formatPrimaryRole(roleKey: string): { label: string; icon: string } {
-    const map: Record<string, { label: string; icon: string }> = {
-      SUPERVISOR: { label: 'Supervisor de Guardia', icon: '👑' },
-      OPERADOR_BOMBAS: { label: 'Operador de Bombas', icon: '🌊' },
-      OPERADOR_CICLONES_1: { label: 'Operador Ciclones 1', icon: '🌪️' },
-      OPERADOR_CICLONES_2: { label: 'Operador Ciclones 2', icon: '🌀' },
-      OPERADOR_DISTRIBUIDOR: { label: 'Operador Distribuidor', icon: '⚡' },
-      OPERADOR_DESCARGA_1: { label: 'Operador Descarga 1', icon: '🚜' },
-      OPERADOR_DESCARGA_2: { label: 'Operador Descarga 2', icon: '🏗️' },
-      OPERADOR_MISCELANEOS: { label: 'Operador Misceláneos', icon: '🛠️' }
+  formatPrimaryRole(roleKey: string): { label: string } {
+    const map: Record<string, { label: string }> = {
+      SUPERVISOR: { label: 'Supervisor de Guardia' },
+      OPERADOR_BOMBAS: { label: 'Operador de Bombas' },
+      OPERADOR_CICLONES_1: { label: 'Operador Ciclones 1' },
+      OPERADOR_CICLONES_2: { label: 'Operador Ciclones 2' },
+      OPERADOR_DISTRIBUIDOR: { label: 'Operador Distribuidor' },
+      OPERADOR_DESCARGA_1: { label: 'Operador Descarga 1' },
+      OPERADOR_DESCARGA_2: { label: 'Operador Descarga 2' },
+      OPERADOR_MISCELANEOS: { label: 'Operador Misceláneos' }
     };
-    return map[roleKey] || { label: (roleKey || 'Operador').replace(/_/g, ' '), icon: '👷' };
+    return map[roleKey] || { label: (roleKey || 'Operador').replace(/_/g, ' ') };
   }
 
   executeBulkImport(): void {
@@ -756,7 +757,7 @@ export class AdminComponent implements OnInit, OnDestroy {
               email: r.email,
               role: r.role,
               shift: r.shift,
-              avatar_url: `https://api.dicebear.com/7.x/bottts/svg?seed=${r.username}`,
+              avatar_url: generateAvatarSvg(r.full_name, r.role, r.shift),
               created_at: new Date().toISOString()
             });
           }
@@ -797,7 +798,7 @@ export class AdminComponent implements OnInit, OnDestroy {
                     radio_channel: r.radio_channel || 'Canal 1 Operaciones',
                     phone_extension: r.phone_extension || '',
                     status: 'EN_TURNO',
-                    avatar_url: `https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=250&q=80`
+                    avatar_url: generateAvatarSvg(r.full_name, r.primary_role || r.role, r.shift)
                   });
                 }
               }
@@ -818,7 +819,7 @@ export class AdminComponent implements OnInit, OnDestroy {
                 fullName: r.full_name,
                 role: r.role,
                 shift: r.shift,
-                avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${r.username}`
+                avatarUrl: generateAvatarSvg(r.full_name, r.role, r.shift)
               };
             }
             saveRealtimeData('users_registry', registry);
@@ -967,7 +968,7 @@ export class AdminComponent implements OnInit, OnDestroy {
 
           purgeLocalStorage();
 
-          this.backupSuccessMessage = '✅ ¡Reset App completado! Toda la aplicación y base de datos han quedado limpias.';
+          this.backupSuccessMessage = '¡Reset App completado! Toda la aplicación y base de datos han quedado limpias.';
           setTimeout(() => this.backupSuccessMessage = '', 7000);
 
           this.loadUsers();
@@ -990,7 +991,7 @@ export class AdminComponent implements OnInit, OnDestroy {
           if (isAdminRole && (err?.status === 0 || err?.name === 'TimeoutError' || (err?.status && err.status >= 500))) {
             this.isResetAppModalOpen = false;
             purgeLocalStorage();
-            this.backupSuccessMessage = '✅ Reset App completado exitosamente. Se purgó el almacenamiento local y caché.';
+            this.backupSuccessMessage = 'Reset App completado exitosamente. Se purgó el almacenamiento local y caché.';
             setTimeout(() => this.backupSuccessMessage = '', 7000);
             this.loadUsers();
             this.guardsStore.load();

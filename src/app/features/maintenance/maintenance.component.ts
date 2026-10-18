@@ -157,17 +157,21 @@ export interface MaintenanceRequest {
           <button class="pill-discipline" [class.active]="selectedDiscipline === 'ALL'" (click)="setDisciplineFilter('ALL')">
             Todas
           </button>
-          <button class="pill-discipline" [class.active]="selectedDiscipline === 'MECANICA'" (click)="setDisciplineFilter('MECANICA')">
-            🔧 Mecánica ({{ getDisciplineCount('MECANICA') }})
+          <button class="pill-discipline" [class.active]="selectedDiscipline === 'MECANICA'" (click)="setDisciplineFilter('MECANICA')" style="display:inline-flex;align-items:center;gap:5px;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+            Mecánica ({{ getDisciplineCount('MECANICA') }})
           </button>
-          <button class="pill-discipline" [class.active]="selectedDiscipline === 'ELECTRICIDAD'" (click)="setDisciplineFilter('ELECTRICIDAD')">
-            ⚡ Electricidad ({{ getDisciplineCount('ELECTRICIDAD') }})
+          <button class="pill-discipline" [class.active]="selectedDiscipline === 'ELECTRICIDAD'" (click)="setDisciplineFilter('ELECTRICIDAD')" style="display:inline-flex;align-items:center;gap:5px;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            Electricidad ({{ getDisciplineCount('ELECTRICIDAD') }})
           </button>
-          <button class="pill-discipline" [class.active]="selectedDiscipline === 'INSTRUMENTACION'" (click)="setDisciplineFilter('INSTRUMENTACION')">
-            📡 Instrumentación & Control ({{ getDisciplineCount('INSTRUMENTACION') }})
+          <button class="pill-discipline" [class.active]="selectedDiscipline === 'INSTRUMENTACION'" (click)="setDisciplineFilter('INSTRUMENTACION')" style="display:inline-flex;align-items:center;gap:5px;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2"/><path d="M16.24 7.76a6 6 0 0 1 0 8.49m-8.48-.01a6 6 0 0 1 0-8.49m11.31-2.82a10 10 0 0 1 0 14.14m-14.14 0a10 10 0 0 1 0-14.14"/></svg>
+            Instrumentación & Control ({{ getDisciplineCount('INSTRUMENTACION') }})
           </button>
-          <button class="pill-discipline" [class.active]="selectedDiscipline === 'LUBRICACION'" (click)="setDisciplineFilter('LUBRICACION')">
-            🛢️ Lubricación ({{ getDisciplineCount('LUBRICACION') }})
+          <button class="pill-discipline" [class.active]="selectedDiscipline === 'LUBRICACION'" (click)="setDisciplineFilter('LUBRICACION')" style="display:inline-flex;align-items:center;gap:5px;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
+            Lubricación ({{ getDisciplineCount('LUBRICACION') }})
           </button>
         </div>
       </div>
@@ -196,8 +200,12 @@ export interface MaintenanceRequest {
               </div>
 
               <div class="header-badges">
-                <span class="custom-badge discipline-badge" *ngIf="getTicketDiscipline(t) as disc">
-                  {{ disc.icon }} {{ disc.label }}
+                <span class="custom-badge discipline-badge" *ngIf="getTicketDiscipline(t) as disc" style="display:inline-flex;align-items:center;gap:4px;">
+                  <svg *ngIf="disc.type === 'MECANICA'" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+                  <svg *ngIf="disc.type === 'ELECTRICIDAD'" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                  <svg *ngIf="disc.type === 'INSTRUMENTACION'" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2"/><path d="M16.24 7.76a6 6 0 0 1 0 8.49m-8.48-.01a6 6 0 0 1 0-8.49m11.31-2.82a10 10 0 0 1 0 14.14m-14.14 0a10 10 0 0 1 0-14.14"/></svg>
+                  <svg *ngIf="disc.type === 'LUBRICACION'" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
+                  {{ disc.label }}
                 </span>
                 <span class="custom-badge priority-badge" [ngClass]="getPriorityBadgeClass(t.priority)">
                   <span class="priority-dot"></span>
@@ -217,7 +225,9 @@ export interface MaintenanceRequest {
 
             <!-- Origin Tag -->
             <div class="origin-tag" *ngIf="t.source_module === 'PUMPS_STATION' || t.equipment_tag?.startsWith('PU')">
-              <span class="origin-icon">⚡</span>
+              <span class="origin-icon">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              </span>
               <span class="origin-label">ORIGEN: PLANILLA DE BOMBAS</span>
             </div>
 
@@ -281,7 +291,7 @@ export interface MaintenanceRequest {
                       Alerta Operativa Activa
                     </span>
                     <span *ngIf="t.status === 'RESOLVED' || t.status === 'CLOSED'" class="blueprint-indicator success">
-                      <span class="check-indicator">✓</span>
+                      <span class="check-indicator"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
                       Liberada a Operación Conforme
                     </span>
                     <label class="btn-attach-photo" (click)="$event.stopPropagation()">
@@ -472,10 +482,10 @@ export interface MaintenanceRequest {
             <div class="form-group">
               <label>Especialidad / Disciplina</label>
               <select [(ngModel)]="newTicket.specialty" name="specialty">
-                <option value="MECANICA">🔧 Mecánica (Bombas, Sellos, Reductores)</option>
-                <option value="ELECTRICIDAD">⚡ Electricidad (Motores, CCM, Tableros)</option>
-                <option value="INSTRUMENTACION">📡 Instrumentación (Sensores, PLC)</option>
-                <option value="LUBRICACION">🛢️ Lubricación (Niveles, Grasa, Filtros)</option>
+                <option value="MECANICA">Mecánica (Bombas, Sellos, Reductores)</option>
+                <option value="ELECTRICIDAD">Electricidad (Motores, CCM, Tableros)</option>
+                <option value="INSTRUMENTACION">Instrumentación (Sensores, PLC)</option>
+                <option value="LUBRICACION">Lubricación (Niveles, Grasa, Filtros)</option>
               </select>
             </div>
           </div>
@@ -513,7 +523,10 @@ export interface MaintenanceRequest {
             <div *ngIf="previewPhoto" class="image-preview-box">
               <img [src]="previewPhoto" alt="Vista previa" class="preview-thumb" />
               <div class="preview-info">
-                <span class="preview-name">✓ Evidencia lista para sincronizar</span>
+                <span class="preview-name" style="display:inline-flex;align-items:center;gap:4px;">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  Evidencia lista para sincronizar
+                </span>
                 <button type="button" class="btn-remove-preview" (click)="removePreviewPhoto()">Quitar</button>
               </div>
             </div>
@@ -543,10 +556,14 @@ export interface MaintenanceRequest {
       </app-modal>
 
       <!-- Modal: Dar Pase Operativo -->
-      <app-modal [isOpen]="isPassModalOpen" [title]="'✅ Dar Pase Operativo: ' + getEquipmentCategory(selectedPassTicket?.equipment_tag) + ' ' + (selectedPassTicket?.equipment_tag || '')" [showFooter]="true" (close)="isPassModalOpen = false">
+      <app-modal [isOpen]="isPassModalOpen" [title]="'Dar Pase Operativo: ' + getEquipmentCategory(selectedPassTicket?.equipment_tag) + ' ' + (selectedPassTicket?.equipment_tag || '')" [showFooter]="true" (close)="isPassModalOpen = false">
         <div class="pass-modal-body" *ngIf="selectedPassTicket">
           <div class="pass-info-banner">
-            <span class="banner-icon">ℹ️</span>
+            <span class="banner-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+              </svg>
+            </span>
             <div>
               <strong>Liberación de Custodia y Restitución Operativa</strong>
               <p>Al otorgar el pase, el equipo <strong>{{ selectedPassTicket.equipment_tag }}</strong> retornará inmediatamente al estado <strong>OPERATIVO</strong> en el sistema y Telemetría de Planta.</p>
@@ -569,7 +586,7 @@ export interface MaintenanceRequest {
       </app-modal>
 
       <!-- Modal: Confirmar Eliminación de OT -->
-      <app-modal [isOpen]="isDeleteModalOpen" [title]="'⚠️ Confirmar Eliminación de Orden de Trabajo'" [showFooter]="true" (close)="isDeleteModalOpen = false">
+      <app-modal [isOpen]="isDeleteModalOpen" [title]="'Confirmar Eliminación de Orden de Trabajo'" [showFooter]="true" (close)="isDeleteModalOpen = false">
         <div class="delete-modal-body" *ngIf="ticketToDelete">
           <p>¿Está seguro de que desea eliminar permanentemente la orden <strong>{{ ticketToDelete.ticket_number }}</strong> ({{ ticketToDelete.equipment_tag }})?</p>
           <p class="delete-warning-text">Esta acción no se puede deshacer y liberará los bloqueos de telemetría asociados si el equipo estaba en falla.</p>
@@ -2150,19 +2167,19 @@ export class MaintenanceComponent implements OnInit, OnDestroy {
     return this.tickets.filter(t => this.matchesDiscipline(t, discipline)).length;
   }
 
-  getTicketDiscipline(t: MaintenanceRequest): { label: string; icon: string } | null {
+  getTicketDiscipline(t: MaintenanceRequest): { label: string; type: string } | null {
     if (t.specialty) {
       switch (t.specialty) {
-        case 'MECANICA': return { label: 'Mecánica', icon: '🔧' };
-        case 'ELECTRICIDAD': return { label: 'Electricidad', icon: '⚡' };
-        case 'INSTRUMENTACION': return { label: 'Instrumentación', icon: '📡' };
-        case 'LUBRICACION': return { label: 'Lubricación', icon: '🛢️' };
+        case 'MECANICA': return { label: 'Mecánica', type: 'MECANICA' };
+        case 'ELECTRICIDAD': return { label: 'Electricidad', type: 'ELECTRICIDAD' };
+        case 'INSTRUMENTACION': return { label: 'Instrumentación', type: 'INSTRUMENTACION' };
+        case 'LUBRICACION': return { label: 'Lubricación', type: 'LUBRICACION' };
       }
     }
-    if (this.matchesDiscipline(t, 'LUBRICACION')) return { label: 'Lubricación', icon: '🛢️' };
-    if (this.matchesDiscipline(t, 'INSTRUMENTACION')) return { label: 'Instrumentación', icon: '📡' };
-    if (this.matchesDiscipline(t, 'ELECTRICIDAD')) return { label: 'Electricidad', icon: '⚡' };
-    if (this.matchesDiscipline(t, 'MECANICA')) return { label: 'Mecánica', icon: '🔧' };
+    if (this.matchesDiscipline(t, 'LUBRICACION')) return { label: 'Lubricación', type: 'LUBRICACION' };
+    if (this.matchesDiscipline(t, 'INSTRUMENTACION')) return { label: 'Instrumentación', type: 'INSTRUMENTACION' };
+    if (this.matchesDiscipline(t, 'ELECTRICIDAD')) return { label: 'Electricidad', type: 'ELECTRICIDAD' };
+    if (this.matchesDiscipline(t, 'MECANICA')) return { label: 'Mecánica', type: 'MECANICA' };
     return null;
   }
 

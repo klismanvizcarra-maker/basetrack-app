@@ -188,7 +188,11 @@ export interface ShiftHistorySummary {
             <div *ngIf="activeTab === 'REPORT'" class="autosave-badge" [class.saving]="isAutoSaving">
               <span class="autosave-dot"></span>
               <span class="autosave-text">
-                {{ isAutoSaving ? 'Guardando...' : (lastAutoSavedTime ? '✓ Guardado ' + lastAutoSavedTime : '✓ Guardado automático') }}
+                <ng-container *ngIf="isAutoSaving">Guardando...</ng-container>
+                <ng-container *ngIf="!isAutoSaving">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-1px;margin-right:4px;"><polyline points="20 6 9 17 4 12"/></svg>
+                  {{ lastAutoSavedTime ? 'Guardado ' + lastAutoSavedTime : 'Guardado automático' }}
+                </ng-container>
               </span>
             </div>
             <button *ngIf="activeTab === 'TELEMETRY'" class="btn btn-primary" (click)="openCreatePumpModal()">
@@ -214,7 +218,13 @@ export interface ShiftHistorySummary {
         <section class="section-card glass-panel">
           <div class="section-header-banner">
             <div class="header-left">
-              <span class="globe-icon">🌐</span>
+              <span class="globe-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="2" y1="12" x2="22" y2="12"></line>
+                  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                </svg>
+              </span>
               <h3>SECCIÓN A: REPORTE DE BOMBAS</h3>
             </div>
             <div class="header-right">
@@ -226,7 +236,7 @@ export interface ShiftHistorySummary {
           <!-- Mobile Station Filter Pills (Only visible on mobile screens) -->
           <div class="mobile-station-pills no-print">
             <button type="button" class="station-pill" [class.active]="mobileStationTab === 'ALL'" (click)="mobileStationTab = 'ALL'">
-              Todas (Tabla ↔)
+              Todas (Tabla &harr;)
             </button>
             <button type="button" class="station-pill" [class.active]="mobileStationTab === 'SENTINA'" (click)="mobileStationTab = 'SENTINA'">
               Sentina ({{ sentinaOperatingCount }}/8)
@@ -251,7 +261,12 @@ export interface ShiftHistorySummary {
                       [class.is-locked]="isLockedByMaintenance(pump)"
                       (click)="cycleStatus(pump)"
                       [title]="isLockedByMaintenance(pump) ? 'Bloqueo: Requiere pase de Mantenimiento' : 'Click para cambiar estado'">
-                <span *ngIf="isLockedByMaintenance(pump)" class="lock-icon-inline">🔒</span>
+                <span *ngIf="isLockedByMaintenance(pump)" class="lock-icon-inline">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                  </svg>
+                </span>
                 {{ pump.status || 'Operativo' }}
               </button>
             </div>
@@ -288,7 +303,12 @@ export interface ShiftHistorySummary {
                             [class.is-locked]="isLockedByMaintenance(sheet.sentina_pumps[idx])"
                             (click)="cycleStatus(sheet.sentina_pumps[idx])"
                             [title]="isLockedByMaintenance(sheet.sentina_pumps[idx]) ? 'Bloqueo: Requiere pase de Mantenimiento' : 'Click para cambiar estado'">
-                      <span *ngIf="isLockedByMaintenance(sheet.sentina_pumps[idx])" class="lock-icon-inline">🔒</span>
+                      <span *ngIf="isLockedByMaintenance(sheet.sentina_pumps[idx])" class="lock-icon-inline">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                        </svg>
+                      </span>
                       {{ sheet.sentina_pumps[idx]?.status || 'Operativo' }}
                     </button>
                   </td>
@@ -304,7 +324,12 @@ export interface ShiftHistorySummary {
                             [class.is-locked]="isLockedByMaintenance(sheet.intermedia_pumps[idx])"
                             (click)="cycleStatus(sheet.intermedia_pumps[idx])"
                             [title]="isLockedByMaintenance(sheet.intermedia_pumps[idx]) ? 'Bloqueo: Requiere pase de Mantenimiento' : 'Click para cambiar estado'">
-                      <span *ngIf="isLockedByMaintenance(sheet.intermedia_pumps[idx])" class="lock-icon-inline">🔒</span>
+                      <span *ngIf="isLockedByMaintenance(sheet.intermedia_pumps[idx])" class="lock-icon-inline">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                        </svg>
+                      </span>
                       {{ sheet.intermedia_pumps[idx]?.status || 'Operativo' }}
                     </button>
                   </td>
@@ -320,7 +345,12 @@ export interface ShiftHistorySummary {
                             [class.is-locked]="isLockedByMaintenance(sheet.torre5_pumps[idx])"
                             (click)="cycleStatus(sheet.torre5_pumps[idx])"
                             [title]="isLockedByMaintenance(sheet.torre5_pumps[idx]) ? 'Bloqueo: Requiere pase de Mantenimiento' : 'Click para cambiar estado'">
-                      <span *ngIf="isLockedByMaintenance(sheet.torre5_pumps[idx])" class="lock-icon-inline">🔒</span>
+                      <span *ngIf="isLockedByMaintenance(sheet.torre5_pumps[idx])" class="lock-icon-inline">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                        </svg>
+                      </span>
                       {{ sheet.torre5_pumps[idx]?.status || 'Operativo' }}
                     </button>
                   </td>
@@ -349,9 +379,20 @@ export interface ShiftHistorySummary {
         <!-- SECCIÓN B: OBSERVACIONES DE NIVELES (EDITABLE DIRECTO) -->
         <section class="section-card glass-panel">
           <div class="section-bar-title">
-            <span class="section-icon">👁</span>
+            <span class="section-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+            </span>
             <h4>SECCIÓN B: OBSERVACIONES DE NIVELES</h4>
-            <span class="edit-badge-tag">✍️ Edición en Pantalla</span>
+            <span class="edit-badge-tag">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;">
+                <path d="M12 20h9"></path>
+                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+              </svg>
+              Edición en Pantalla
+            </span>
           </div>
           <div class="levels-grid editable-levels">
             <div class="level-item-box">
@@ -372,9 +413,20 @@ export interface ShiftHistorySummary {
         <!-- SECCIÓN C: INDICADORES PRINCIPALES (EDITABLE DIRECTO) -->
         <section class="section-card glass-panel">
           <div class="section-bar-title">
-            <span class="section-icon">📈</span>
+            <span class="section-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+                <polyline points="17 6 23 6 23 12"></polyline>
+              </svg>
+            </span>
             <h4>SECCIÓN C: INDICADORES PRINCIPALES</h4>
-            <span class="edit-badge-tag">✍️ Edición en Pantalla</span>
+            <span class="edit-badge-tag">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;">
+                <path d="M12 20h9"></path>
+                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+              </svg>
+              Edición en Pantalla
+            </span>
           </div>
           <div class="indicators-dual-columns">
             <!-- Left Column -->
@@ -477,9 +529,19 @@ export interface ShiftHistorySummary {
         <!-- SECCIÓN D: POZAS SENTINA (EDITABLE DIRECTO) -->
         <section class="section-card glass-panel">
           <div class="section-bar-title">
-            <span class="section-icon">📋</span>
+            <span class="section-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+                <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
+              </svg>
+            </span>
             <h4>SECCIÓN D: POZAS SENTINA</h4>
-            <span class="edit-badge-tag">✍️ Edición en Pantalla</span>
+            <span class="edit-badge-tag">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-1px;margin-right:4px;">
+                <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
+              </svg>
+              Edición en Pantalla
+            </span>
           </div>
           <div class="pozas-table-wrapper">
             <table class="pozas-table">
@@ -524,9 +586,21 @@ export interface ShiftHistorySummary {
         <!-- SECCIÓN E: OBSERVACIONES ADICIONALES (EDITABLE DIRECTO) -->
         <section class="section-card glass-panel">
           <div class="section-bar-title">
-            <span class="section-icon">📑</span>
+            <span class="section-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+              </svg>
+            </span>
             <h4>SECCIÓN E: OBSERVACIONES ADICIONALES</h4>
-            <span class="edit-badge-tag">✍️ Edición en Pantalla</span>
+            <span class="edit-badge-tag">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-1px;margin-right:4px;">
+                <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
+              </svg>
+              Edición en Pantalla
+            </span>
           </div>
           <div class="additional-obs-layout">
             <div class="notes-block">
@@ -703,7 +777,7 @@ export interface ShiftHistorySummary {
               <input type="date" [(ngModel)]="historyFilterDate" (change)="loadShiftHistory()" />
             </div>
             <button *ngIf="historyFilterShift !== 'ALL' || historyFilterDate" class="btn-clear-hfilters" (click)="historyFilterShift = 'ALL'; historyFilterDate = ''; loadShiftHistory()" title="Limpiar filtros">
-              ✕
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
           </div>
           <div class="h-controls-right">
@@ -871,7 +945,12 @@ export interface ShiftHistorySummary {
           </div>
 
           <div class="modal-notice-banner">
-            <span class="notice-icon">🔒</span>
+            <span class="notice-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+            </span>
             <p>Al confirmar el cierre, BASETRACK guardará el registro congelado de disponibilidad de las 24 bombas y parámetros físico-químicos en el historial permanente y notificará vía WebSocket a toda la planta.</p>
           </div>
 
@@ -881,7 +960,10 @@ export interface ShiftHistorySummary {
             </button>
             <button type="button" class="btn btn-emerald" (click)="confirmCloseShift()" [disabled]="isClosingShift">
               <span *ngIf="isClosingShift">Cerrando Turno...</span>
-              <span *ngIf="!isClosingShift">✓ Confirmar y Cerrar Turno</span>
+              <span *ngIf="!isClosingShift" style="display:inline-flex;align-items:center;gap:6px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                Confirmar y Cerrar Turno
+              </span>
             </button>
           </div>
         </div>
@@ -1043,10 +1125,16 @@ export interface ShiftHistorySummary {
       </app-modal>
 
       <!-- Modal: Bloqueo Operacional de Mantenimiento -->
-      <app-modal [isOpen]="isLockModalOpen" [title]="'🔒 Bloqueo Operacional: Bomba ' + lockedPumpTag" (close)="isLockModalOpen = false">
+      <app-modal [isOpen]="isLockModalOpen" [title]="'Bloqueo Operacional: Bomba ' + lockedPumpTag" (close)="isLockModalOpen = false">
         <div class="lock-modal-content">
           <div class="lock-alert-banner">
-            <span class="alert-icon">⚠️</span>
+            <span class="alert-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+            </span>
             <div class="alert-text">
               <h4>Unidad bajo Custodia de Mantenimiento</h4>
               <p>La bomba <strong>{{ lockedPumpTag }}</strong> se encuentra actualmente en estado <strong>{{ lockedPumpStatus }}</strong>.</p>
@@ -1059,8 +1147,9 @@ export interface ShiftHistorySummary {
           </div>
           <div class="modal-footer-actions">
             <button type="button" class="btn btn-secondary" (click)="isLockModalOpen = false">Cerrar</button>
-            <button *ngIf="canDirectUnlock()" type="button" class="btn btn-warning" (click)="directUnlockPump()">
-              ⚡ Pase Directo (Supervisor/Admin)
+            <button *ngIf="canDirectUnlock()" type="button" class="btn btn-warning" (click)="directUnlockPump()" style="display:inline-flex;align-items:center;gap:6px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              Pase Directo (Supervisor/Admin)
             </button>
             <button type="button" class="btn btn-primary" (click)="navigateToMaintenance()">Ir a Mantenimiento</button>
           </div>
@@ -1231,6 +1320,8 @@ export interface ShiftHistorySummary {
         }
       }
 
+      :host-context([data-theme="dark"]) .actions-group .autosave-badge,
+      :host-context(.dark-theme) .actions-group .autosave-badge,
       :host-context(.dark) .actions-group .autosave-badge {
         background: rgba(96, 165, 250, 0.12);
         border-color: rgba(96, 165, 250, 0.28);
@@ -2057,6 +2148,8 @@ export interface ShiftHistorySummary {
       }
     }
 
+    :host-context([data-theme="dark"]),
+    :host-context(.dark-theme),
     :host-context(.dark) {
       .inline-level-input.cyan-glow,
       .inline-ind-input,
@@ -3544,7 +3637,7 @@ export class PumpsComponent implements OnInit, OnDestroy {
       next: (res) => {
         this.isClosingShift = false;
         this.isCloseShiftModalOpen = false;
-        this.showSaveSuccess(`✓ Turno cerrado formalmente. Disponibilidad global registrada: ${this.overallAvailabilityPct}%`);
+        this.showSaveSuccess(`Turno cerrado formalmente. Disponibilidad global registrada: ${this.overallAvailabilityPct}%`);
         this.loadShiftHistory();
         this.activeTab = 'HISTORY';
         this.cdr.markForCheck();

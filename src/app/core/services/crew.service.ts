@@ -4,6 +4,7 @@ import { Observable, tap, catchError, of, map, timeout } from 'rxjs';
 import { OfflineSyncService } from '../offline/offline-sync.service';
 import { updateGuardsCatalog, getCurrentActiveShift } from '../../shared/utils/roster.util';
 import { getRealtimeData, saveRealtimeData } from '../storage/local-store.util';
+import { getEffectiveAvatar, generateAvatarSvg } from '../../shared/utils/avatar.util';
 
 export type PositionKey = 'SUPERVISOR' | 'SALA_CONTROL' | 'BOMBAS' | 'CICLONES_1' | 'CICLONES_2' | 'DISTRIBUIDOR' | 'DESCARGA_1' | 'DESCARGA_2' | 'MISCELANEOS' | string;
 
@@ -117,7 +118,7 @@ export class CrewService {
       badgeClass: 'card-supervisor',
       routeLink: '/shift-handover',
       routeLabel: 'Bitácora y Relevo',
-      iconSvg: '🦺',
+      iconSvg: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>',
       description: 'Liderazgo operativo de guardia, gestión de seguridad y supervisión general de planta',
       isCustom: false
     },
@@ -129,7 +130,7 @@ export class CrewService {
       badgeClass: 'card-control',
       routeLink: '/dashboard',
       routeLabel: 'Panel de control',
-      iconSvg: '🖥️',
+      iconSvg: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>',
       description: 'Operación de consolas DCS/SCADA, monitoreo de variables de proceso, enclavamientos y alarmas',
       isCustom: false
     },
@@ -141,7 +142,7 @@ export class CrewService {
       badgeClass: 'card-bombas',
       routeLink: '/pumps',
       routeLabel: 'Reporte de bombas',
-      iconSvg: '🌊',
+      iconSvg: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 9 9h-9V3z"/></svg>',
       description: 'Monitoreo de flujo, amperaje y presión en bombas PP-101 a PP-104 y niveles de poza',
       isCustom: false
     },
@@ -153,7 +154,7 @@ export class CrewService {
       badgeClass: 'card-ciclones',
       routeLink: '/cyclones',
       routeLabel: 'Reporte de ciclones',
-      iconSvg: '🌀',
+      iconSvg: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 4 21 4 14 14 14 20 10 20 10 14 3 4"/></svg>',
       description: 'Muestreo metalúrgico horario de pulpa en 1ra batería, presiones y ápex/vortex',
       isCustom: false
     },
@@ -165,7 +166,7 @@ export class CrewService {
       badgeClass: 'card-ciclones',
       routeLink: '/cyclones',
       routeLabel: 'Reporte de ciclones',
-      iconSvg: '🌪️',
+      iconSvg: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 4 21 4 14 14 14 20 10 20 10 14 3 4"/></svg>',
       description: 'Control de balance de sólidos y granulometría de mallas -200 en 2da estación',
       isCustom: false
     },
@@ -177,7 +178,7 @@ export class CrewService {
       badgeClass: 'card-distribuidor',
       routeLink: '',
       routeLabel: '',
-      iconSvg: '🔀',
+      iconSvg: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>',
       description: 'Distribución balanceada de pulpa hacia baterías de clasificación y flotación',
       isCustom: false
     },
@@ -189,7 +190,7 @@ export class CrewService {
       badgeClass: 'card-descarga',
       routeLink: '/tailings',
       routeLabel: 'Reporte de descarga',
-      iconSvg: '🏔️',
+      iconSvg: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18l6-6 4 4 8-8"/><path d="M14 8h7v7"/></svg>',
       description: 'Supervisión de impulsión en tuberías HDPE y flujo de pulpa espesada',
       isCustom: false
     },
@@ -201,7 +202,7 @@ export class CrewService {
       badgeClass: 'card-descarga',
       routeLink: '/tailings',
       routeLabel: 'Reporte de descarga',
-      iconSvg: '🏞️',
+      iconSvg: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>',
       description: 'Inspección de vertedero, borde libre, muro y lecturas piezométricas',
       isCustom: false
     },
@@ -213,7 +214,7 @@ export class CrewService {
       badgeClass: 'card-miscelaneos',
       routeLink: '',
       routeLabel: '',
-      iconSvg: '⚙️',
+      iconSvg: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
       description: 'Preparación de reactivos, dosificación de floculante y apoyo en campo',
       isCustom: false
     }
@@ -230,7 +231,7 @@ export class CrewService {
       radio_channel: 'Canal 1 Operaciones / Control',
       phone_extension: 'Ext. 4125',
       status: 'EN_TURNO',
-      avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=GONGORA'
+      avatar_url: generateAvatarSvg('GONGORA ROJAS MIGUEL ALONSO', 'SUPERVISOR', 'G1')
     },
     G2: {
       id: 'sup-g2',
@@ -241,7 +242,7 @@ export class CrewService {
       radio_channel: 'Canal 1 Operaciones / Control',
       phone_extension: 'Ext. 4125',
       status: 'EN_TURNO',
-      avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=ALIAGA'
+      avatar_url: generateAvatarSvg('ALIAGA CASTAÑEDA EMILIO URIEL', 'SUPERVISOR', 'G2')
     },
     G3: {
       id: 'sup-g3',
@@ -252,7 +253,7 @@ export class CrewService {
       radio_channel: 'Canal 1 Operaciones / Control',
       phone_extension: 'Ext. 4125',
       status: 'EN_TURNO',
-      avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=HUGO_ARI'
+      avatar_url: generateAvatarSvg('ARI MAMANI HUGO ANDRES', 'SUPERVISOR', 'G3')
     },
     G4: {
       id: 'sup-g4',
@@ -263,7 +264,7 @@ export class CrewService {
       radio_channel: 'Canal 1 Operaciones / Control',
       phone_extension: 'Ext. 4125',
       status: 'EN_TURNO',
-      avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=DANTE_FERNANDEZ'
+      avatar_url: generateAvatarSvg('FERNANDEZ ASCURRA DANTE PACO', 'SUPERVISOR', 'G4')
     }
   };
 
@@ -352,7 +353,7 @@ export class CrewService {
               defaultLocation: d.default_location || d.defaultLocation || 'Planta Concentradora',
               defaultRadio: d.default_radio || d.defaultRadio || 'Canal 1 Operaciones',
               badgeClass: d.badge_class || d.badgeClass || 'card-custom',
-              iconSvg: d.icon_svg || d.iconSvg || '⚙️',
+              iconSvg: d.icon_svg || d.iconSvg || '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>',
               description: d.description || 'Posición operativa de planta',
               isCustom: true
             }));
@@ -382,7 +383,7 @@ export class CrewService {
       defaultLocation: (pos.defaultLocation || 'Planta Concentradora').trim(),
       defaultRadio: (pos.defaultRadio || 'Canal 1 Operaciones').trim(),
       badgeClass: pos.badgeClass || 'card-custom',
-      iconSvg: pos.iconSvg || '⚙️',
+      iconSvg: pos.iconSvg || '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>',
       description: (pos.description || 'Consignas y responsabilidades de puesto en planta').trim(),
       isCustom: true
     };
@@ -478,7 +479,7 @@ export class CrewService {
               foundSups[m.shift_code] = {
                 supervisorName: sanitizeOfficialName(m.name),
                 supervisorUser: m.name,
-                avatarUrl: m.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${m.name}`
+                avatarUrl: getEffectiveAvatar(m.avatar_url, m.name, 'SUPERVISOR', m.shift_code)
               };
             }
           });
@@ -666,7 +667,7 @@ export class CrewService {
       radio_channel: member.radio_channel || 'Canal 1 Operaciones',
       phone_extension: member.phone_extension,
       status: member.status || 'EN_TURNO',
-      avatar_url: member.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=250&q=80'
+      avatar_url: getEffectiveAvatar(member.avatar_url, member.name, member.primary_role, member.shift_code)
     };
 
     const updatedAll = [...this.allMembers(), localNew];

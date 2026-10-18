@@ -46,7 +46,14 @@
       >
         <div class="command-card-header">
           <div class="card-domain-info">
-            <span class="card-icon-avatar bg-blue">👥</span>
+            <span class="card-icon-avatar bg-blue">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+            </span>
             <div>
               <span class="card-category-label">PERSONAL & DOTACIÓN</span>
               <h4 class="card-metric-val">{{ users.length }} Cuentas</h4>
@@ -64,7 +71,12 @@
             [class.active]="activeAdminTab === 'SUPERVISORS_CREW'"
             (click)="$event.stopPropagation(); setActiveTab('SUPERVISORS_CREW')"
           >
-            <span class="pill-ico">🛡️</span> Guardias
+            <span class="pill-ico">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+              </svg>
+            </span>
+            Guardias
           </button>
           <button 
             type="button" 
@@ -72,7 +84,13 @@
             [class.active]="activeAdminTab === 'USERS_ROLES'"
             (click)="$event.stopPropagation(); setActiveTab('USERS_ROLES')"
           >
-            <span class="pill-ico">👥</span> Usuarios
+            <span class="pill-ico">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+            </span>
+            Usuarios
           </button>
         </div>
       </div>
@@ -86,7 +104,12 @@
       >
         <div class="command-card-header">
           <div class="card-domain-info">
-            <span class="card-icon-avatar bg-amber">⚙️</span>
+            <span class="card-icon-avatar bg-amber">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+              </svg>
+            </span>
             <div>
               <span class="card-category-label">OPERACIONES & PLANTA</span>
               <h4 class="card-metric-val">4,400 TPH</h4>
@@ -104,7 +127,20 @@
             [class.active]="activeAdminTab === 'PLANT_PARAMETERS'"
             (click)="$event.stopPropagation(); setActiveTab('PLANT_PARAMETERS')"
           >
-            <span class="pill-ico">⚙️</span> Metas Planta
+            <span class="pill-ico">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="4" y1="21" x2="4" y2="14"></line>
+                <line x1="4" y1="10" x2="4" y2="3"></line>
+                <line x1="12" y1="21" x2="12" y2="12"></line>
+                <line x1="12" y1="8" x2="12" y2="3"></line>
+                <line x1="20" y1="21" x2="20" y2="16"></line>
+                <line x1="20" y1="12" x2="20" y2="3"></line>
+                <line x1="1" y1="14" x2="7" y2="14"></line>
+                <line x1="9" y1="8" x2="15" y2="8"></line>
+                <line x1="17" y1="16" x2="23" y2="16"></line>
+              </svg>
+            </span>
+            Metas Planta
           </button>
           <button 
             type="button" 
@@ -112,7 +148,16 @@
             [class.active]="activeAdminTab === 'VEHICLES_FLEET'"
             (click)="$event.stopPropagation(); setActiveTab('VEHICLES_FLEET')"
           >
-            <span class="pill-ico">🛻</span> Camionetas
+            <span class="pill-ico">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10 17h4"></path>
+                <path d="M5 17a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"></path>
+                <path d="M19 17a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"></path>
+                <path d="M14 5h4l3 5v4h-3"></path>
+                <path d="M7 17H3V6a1 1 0 0 1 1-1h10v12"></path>
+              </svg>
+            </span>
+            Camionetas
           </button>
         </div>
       </div>
@@ -126,7 +171,12 @@
       >
         <div class="command-card-header">
           <div class="card-domain-info">
-            <span class="card-icon-avatar bg-emerald">🔐</span>
+            <span class="card-icon-avatar bg-emerald">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
+            </span>
             <div>
               <span class="card-category-label">SEGURIDAD & CONTROL</span>
               <h4 class="card-metric-val">RBAC Híbrido</h4>
@@ -144,7 +194,12 @@
             [class.active]="activeAdminTab === 'PERMISSIONS_MATRIX'"
             (click)="$event.stopPropagation(); setActiveTab('PERMISSIONS_MATRIX')"
           >
-            <span class="pill-ico">🔐</span> Permisos
+            <span class="pill-ico">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m21 2-2 2m-6 6a5 5 0 1 1-7.07-7.07 5 5 0 0 1 7.07 7.07zm0 0L22 17l-3 3-2-2-2 2-3-3"></path>
+              </svg>
+            </span>
+            Permisos
           </button>
           <button 
             type="button" 
@@ -152,7 +207,15 @@
             [class.active]="activeAdminTab === 'AUDIT_LOGS'"
             (click)="$event.stopPropagation(); setActiveTab('AUDIT_LOGS')"
           >
-            <span class="pill-ico">📜</span> Auditoría
+            <span class="pill-ico">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+              </svg>
+            </span>
+            Auditoría
           </button>
         </div>
       </div>
@@ -166,7 +229,13 @@
       >
         <div class="command-card-header">
           <div class="card-domain-info">
-            <span class="card-icon-avatar bg-indigo">💾</span>
+            <span class="card-icon-avatar bg-indigo">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+                <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+                <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+              </svg>
+            </span>
             <div>
               <span class="card-category-label">SISTEMA & DATOS</span>
               <h4 class="card-metric-val">SQLite WAL</h4>
@@ -184,7 +253,14 @@
             [class.active]="activeAdminTab === 'SYSTEM_BACKUPS'"
             (click)="$event.stopPropagation(); setActiveTab('SYSTEM_BACKUPS')"
           >
-            <span class="pill-ico">💾</span> Respaldos
+            <span class="pill-ico">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                <polyline points="7 3 7 8 15 8"></polyline>
+              </svg>
+            </span>
+            Respaldos
           </button>
           <button 
             type="button" 
@@ -192,7 +268,14 @@
             [class.active]="activeAdminTab === 'TERMINALS_SYNC'"
             (click)="$event.stopPropagation(); setActiveTab('TERMINALS_SYNC')"
           >
-            <span class="pill-ico">☁️</span> Dispositivos
+            <span class="pill-ico">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                <line x1="8" y1="21" x2="16" y2="21"></line>
+                <line x1="12" y1="17" x2="12" y2="21"></line>
+              </svg>
+            </span>
+            Dispositivos
           </button>
         </div>
       </div>
@@ -209,14 +292,25 @@
     <!-- Vercel Offline / Unlinked Backend Warning Banner -->
     <div class="vercel-backend-warning glass-panel animate-fade-in" *ngIf="isVercelDeployment && !hasCustomCloudBackend">
       <div class="warning-content">
-        <span class="warning-badge">⚠️ MODO ALMACENAMIENTO LOCAL (VERCEL)</span>
+        <span class="warning-badge">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;vertical-align:-1px;">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+            <line x1="12" y1="9" x2="12" y2="13"></line>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+          </svg>
+          MODO ALMACENAMIENTO LOCAL (VERCEL)
+        </span>
         <div class="warning-body">
           <strong>Los usuarios y cambios se guardan localmente en la memoria de este navegador.</strong>
           <p>Al estar desplegado en Vercel sin servidor central vinculado, otros dispositivos (celulares, tablets, computadoras) no pueden ver los usuarios creados aquí ni iniciar sesión con ellos. Conecta la URL de tu backend cloud (Render, Railway o túnel HTTPS) para sincronizar todos tus dispositivos en tiempo real.</p>
         </div>
       </div>
       <button class="btn btn-warning-action" (click)="openBackendConfigModal()">
-        🔗 Conectar Servidor Central
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;vertical-align:-1px;">
+          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+        </svg>
+        Conectar Servidor Central
       </button>
     </div>
 
@@ -237,7 +331,13 @@
       <div class="header-banner-card glass-panel">
         <div class="card-head">
           <div class="head-with-icon">
-            <span class="fleet-icon">💾</span>
+            <span class="fleet-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                <polyline points="7 3 7 8 15 8"></polyline>
+              </svg>
+            </span>
             <div>
               <h3>Centro de Copias de Seguridad y Mantenimiento del Sistema</h3>
               <p class="section-sub">Resguardo estructurado de datos en JSON, importación masiva oficial, conexión con la nube y depuración del sistema.</p>
@@ -345,10 +445,21 @@
           </p>
           <div class="card-bottom-actions flex-actions">
             <button class="btn btn-secondary" (click)="openBulkModal()">
-              🚀 Asistente de Carga
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <line x1="19" y1="8" x2="19" y2="14"></line>
+                <line x1="22" y1="11" x2="16" y2="11"></line>
+              </svg>
+              Asistente de Carga
             </button>
             <button class="btn btn-secondary" (click)="downloadTemplateCsv('ALL')">
-              ⬇️ Plantilla Maestra (32 Puestos)
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              Plantilla Maestra (32 Puestos)
             </button>
           </div>
         </div>
@@ -356,14 +467,14 @@
         <!-- Card 4: Conectividad Cloud y Servidor Central -->
         <div class="system-action-card">
           <div class="card-top-header">
-            <div class="action-icon-pill icon-cyan">
+            <div class="action-icon-pill">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path>
               </svg>
             </div>
             <div class="card-title-group">
               <h4>Conexión con Servidor Central</h4>
-              <span class="card-badge badge-cyan">Sincronización Cloud</span>
+              <span class="card-badge">Sincronización Cloud</span>
             </div>
           </div>
           <p class="card-desc">
@@ -374,7 +485,11 @@
           </div>
           <div class="card-bottom-actions">
             <button class="btn btn-secondary full-width" (click)="openBackendConfigModal()">
-              🔗 Configurar URL del Servidor Central
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;">
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+              </svg>
+              Configurar URL del Servidor Central
             </button>
           </div>
         </div>
@@ -383,7 +498,13 @@
       <!-- Card 5: Zona de Peligro / Reset App (Seguridad Crítica) -->
       <div class="danger-zone-card">
         <div class="danger-zone-header">
-          <div class="danger-icon">⚠️</div>
+          <div class="danger-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path>
+              <line x1="12" y1="9" x2="12" y2="13"></line>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+          </div>
           <div>
             <h4>Zona de Seguridad: Restablecimiento de Fábrica (Reset App)</h4>
             <p>
@@ -418,17 +539,17 @@
         <div class="bulk-scope-card">
           <div class="scope-row">
             <div class="scope-select-wrap">
-              <label class="scope-label">🎯 Guardia Destino:</label>
+              <label class="scope-label">Guardia Destino:</label>
               <select 
                 class="scope-select"
                 [(ngModel)]="bulkTargetShift"
                 (ngModelChange)="onTargetShiftChange($event)"
               >
-                <option value="TODAS">🌟 Todas las Guardias (G1 a G4 - Planta Completa)</option>
-                <option value="G1">🛡️ Guardia 1 (G1)</option>
-                <option value="G2">🛡️ Guardia 2 (G2)</option>
-                <option value="G3">🛡️ Guardia 3 (G3)</option>
-                <option value="G4">🛡️ Guardia 4 (G4)</option>
+                <option value="TODAS">Todas las Guardias (G1 a G4 - Planta Completa)</option>
+                <option value="G1">Guardia 1 (G1)</option>
+                <option value="G2">Guardia 2 (G2)</option>
+                <option value="G3">Guardia 3 (G3)</option>
+                <option value="G4">Guardia 4 (G4)</option>
               </select>
             </div>
 
@@ -448,7 +569,12 @@
                 (click)="downloadTemplateCsv('ALL')"
                 title="Descargar plantilla maestra completa de las 4 guardias oficiales (32 colaboradores)"
               >
-                ⬇️ Plantilla Maestra (32 Puestos G1-G4)
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;vertical-align:-1px;">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                Plantilla Maestra (32 Puestos G1-G4)
               </button>
             </div>
           </div>
@@ -457,7 +583,11 @@
           <div class="guard-sup-banner" *ngIf="bulkTargetShift !== 'TODAS'">
             <div class="sup-avatar-badge">
               <img [src]="getSupervisorForShift(bulkTargetShift).avatar" alt="Supervisor" />
-              <span class="sup-crown">👑</span>
+              <span class="sup-crown">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14v2H5z"></path>
+                </svg>
+              </span>
             </div>
             <div class="sup-banner-info">
               <div class="sup-title">
@@ -470,13 +600,18 @@
                 <span>Correo: {{ getSupervisorForShift(bulkTargetShift).email }}</span>
               </div>
               <div class="sup-note">
-                ℹ️ Los operadores cargados se asignarán a la <strong>Guardia {{ bulkTargetShift }}</strong> y se vincularán automáticamente bajo este supervisor.
+                Los operadores cargados se asignarán a la <strong>Guardia {{ bulkTargetShift }}</strong> y se vincularán automáticamente bajo este supervisor.
               </div>
             </div>
           </div>
 
           <div class="guard-all-banner" *ngIf="bulkTargetShift === 'TODAS'">
-            <span class="banner-icon">📋</span>
+            <span class="banner-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+                <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+              </svg>
+            </span>
             <div>
               <strong>Modo Multiguardia Activo:</strong> Se cargará la dotación para G1, G2, G3 y G4. Cada operador se vinculará automáticamente al supervisor de su respectiva guardia (1 Supervisor + 7 Operadores por guardia = 32 puestos oficiales).
             </div>
@@ -491,7 +626,10 @@
             [class.active]="bulkTab === 'CSV'"
             (click)="bulkTab = 'CSV'"
           >
-            📁 Subir Archivo (.csv)
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;vertical-align:-1px;">
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+            </svg>
+            Subir Archivo (.csv)
           </button>
           <button
             type="button"
@@ -499,7 +637,11 @@
             [class.active]="bulkTab === 'PASTE'"
             (click)="bulkTab = 'PASTE'"
           >
-            📋 Pegar desde Excel / Hojas de Cálculo
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;vertical-align:-1px;">
+              <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+              <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+            </svg>
+            Pegar desde Excel / Hojas de Cálculo
           </button>
         </div>
 
@@ -545,8 +687,8 @@
             <div class="head-title-wrap">
               <h4>Nómina Detectada ({{ parsedBulkUsers.length }} Filas)</h4>
               <div class="preview-stats">
-                <span class="stat-badge stat-valid">✓ {{ validBulkCount }} Listos</span>
-                <span class="stat-badge stat-invalid" *ngIf="invalidBulkCount > 0">⚠️ {{ invalidBulkCount }} Observados</span>
+                <span class="stat-badge stat-valid">{{ validBulkCount }} Listos</span>
+                <span class="stat-badge stat-invalid" *ngIf="invalidBulkCount > 0">{{ invalidBulkCount }} Observados</span>
               </div>
             </div>
 
@@ -567,7 +709,7 @@
                 [class.active]="bulkPreviewFilterShift === s"
                 (click)="setBulkPreviewFilterShift(s)"
               >
-                🛡️ {{ s }} ({{ getParsedUsersForShift(s).length }})
+                {{ s }} ({{ getParsedUsersForShift(s).length }})
               </button>
             </div>
           </div>
@@ -577,7 +719,7 @@
             <div *ngFor="let shift of visibleShiftsInPreview" class="guard-accordion-item">
               <div class="guard-accordion-head">
                 <div class="accordion-head-left">
-                  <span class="guard-badge">🛡️ Guardia {{ shift }}</span>
+                  <span class="guard-badge">Guardia {{ shift }}</span>
                   <span class="guard-sup-name">
                     Supervisor Oficial: <strong>{{ getSupervisorForShift(shift).name }}</strong>
                   </span>
@@ -593,21 +735,27 @@
               <!-- Supervisor Row / Banner -->
               <div class="accordion-supervisor-block">
                 <div class="sup-card-mini" *ngIf="getParsedSupervisorForShift(shift) as sup">
-                  <span class="sup-tag">👑 SUPERVISOR REGISTRADO EN ARCHIVO</span>
+                  <span class="sup-tag">SUPERVISOR REGISTRADO EN ARCHIVO</span>
                   <div class="sup-row-content">
-                    <span class="sup-avatar">👑</span>
+                    <span class="sup-avatar">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="8.5" cy="7" r="4"></circle>
+                        <polyline points="17 11 19 13 23 9"></polyline>
+                      </svg>
+                    </span>
                     <div class="sup-info">
                       <strong>{{ sup.full_name }}</strong>
                       <span class="sup-sub">@{{ sup.username }} | DNI: {{ sup.document_id || '---' }} | {{ sup.email }}</span>
                     </div>
                     <span class="status-indicator" [class.valid]="sup.isValid" [class.invalid]="!sup.isValid">
-                      {{ sup.isValid ? '✓ Listo' : '⚠️ ' + sup.validationMsg }}
+                      {{ sup.isValid ? 'Listo' : sup.validationMsg }}
                     </span>
                   </div>
                 </div>
 
                 <div class="sup-card-mini existing" *ngIf="!getParsedSupervisorForShift(shift)">
-                  <span class="sup-tag">👑 SUPERVISOR OFICIAL EXISTENTE (ASIGNADO)</span>
+                  <span class="sup-tag">SUPERVISOR OFICIAL EXISTENTE (ASIGNADO)</span>
                   <div class="sup-row-content">
                     <img [src]="getSupervisorForShift(shift).avatar" class="sup-avatar-img" />
                     <div class="sup-info">
@@ -638,12 +786,17 @@
                       <tr *ngFor="let op of getParsedOperatorsForShift(shift)" [class.row-invalid]="!op.isValid">
                         <td>
                           <span class="status-indicator" [class.valid]="op.isValid" [class.invalid]="!op.isValid">
-                            {{ op.isValid ? '✓ Listo' : '⚠️ ' + op.validationMsg }}
+                            {{ op.isValid ? 'Listo' : op.validationMsg }}
                           </span>
                         </td>
                         <td>
                           <span class="op-position-pill">
-                            <span class="pos-icon">{{ formatPrimaryRole(op.primary_role).icon }}</span>
+                            <span class="pos-icon">
+                              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="12" cy="7" r="4"></circle>
+                              </svg>
+                            </span>
                             <span class="pos-label">{{ formatPrimaryRole(op.primary_role).label }}</span>
                           </span>
                         </td>
@@ -678,7 +831,7 @@
           (click)="executeBulkImport()"
         >
           <span *ngIf="!isImporting">
-            🚀 Confirmar e Importar {{ validBulkCount }} Trabajadores (Vincular a Guardias)
+            Confirmar e Importar {{ validBulkCount }} Trabajadores (Vincular a Guardias)
           </span>
           <span *ngIf="isImporting" class="btn-importing-status">
             <span class="btn-spinner"></span> Importando y vinculando a supervisores...
@@ -691,7 +844,7 @@
     <app-modal [isOpen]="isCredentialsModalOpen" [title]="'Contraseñas temporales emitidas'" (close)="closeCredentialsModal()">
       <div class="edit-modal-form">
         <p class="modal-help-text">
-          ⚠️ Entrega a cada persona su contraseña temporal. <strong>No se volverán a mostrar</strong>: descárgalas o cópialas ahora.
+          Entrega a cada persona su contraseña temporal. <strong>No se volverán a mostrar</strong>: descárgalas o cópialas ahora.
           Al iniciar sesión, cada usuario deberá elegir su propia contraseña.
         </p>
         <div class="table-responsive" style="max-height: 320px; overflow-y: auto; margin-top: 12px;">
@@ -711,7 +864,7 @@
       </div>
 
       <div footer class="modal-footer-actions">
-        <button type="button" class="btn btn-secondary" (click)="copyIssuedCredentials()">{{ credentialsCopied ? '✓ Copiado' : 'Copiar' }}</button>
+        <button type="button" class="btn btn-secondary" (click)="copyIssuedCredentials()">{{ credentialsCopied ? 'Copiado' : 'Copiar' }}</button>
         <button type="button" class="btn btn-secondary" (click)="downloadIssuedCredentials()">Descargar CSV</button>
         <button type="button" class="btn btn-primary" (click)="closeCredentialsModal()">Listo</button>
       </div>
@@ -754,13 +907,21 @@
              class="conn-test-box" 
              [class.conn-success]="apiConnectionTestStatus === 'success'"
              [class.conn-error]="apiConnectionTestStatus === 'error'">
-          <div class="conn-test-icon">{{ apiConnectionTestStatus === 'success' ? '✅' : '❌' }}</div>
+          <div class="conn-test-icon">
+            <svg *ngIf="apiConnectionTestStatus === 'success'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            <svg *ngIf="apiConnectionTestStatus === 'error'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </div>
           <div class="conn-test-text">{{ apiConnectionTestMessage }}</div>
         </div>
 
         <!-- Step-by-step deploy instructions for Render.com -->
         <div class="cloud-guide-card">
-          <h5>🚀 ¿Cómo tener tu servidor cloud 100% gratuito en Render.com?</h5>
+          <h5>¿Cómo tener tu servidor cloud 100% gratuito en Render.com?</h5>
           <ol class="guide-steps">
             <li>Crea una cuenta gratuita en <a href="https://render.com" target="_blank" rel="noopener">Render.com</a>.</li>
             <li>Haz clic en <strong>New +</strong> &rarr; <strong>Web Service</strong> y conecta este repositorio de GitHub.</li>
@@ -785,21 +946,27 @@
     <!-- Modal: Reset App (Limpieza Total) con Confirmación de Clave -->
     <app-modal
       [isOpen]="isResetAppModalOpen"
-      [title]="'⚠️ Reset App: Restablecimiento Total del Sistema'"
+      [title]="'Reset App: Restablecimiento Total del Sistema'"
       [showFooter]="false"
       (close)="isResetAppModalOpen = false"
     >
       <div class="reset-app-modal-body">
         <div class="reset-app-warning-box">
-          <div class="warning-icon-large">⚠️</div>
+          <div class="warning-icon-large">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+              <line x1="12" y1="9" x2="12" y2="13"></line>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+          </div>
           <div class="warning-text">
             <h4>¿Estás seguro de restablecer completamente la aplicación?</h4>
             <p>Esta acción es <strong>IRREVERSIBLE</strong> y realizará una depuración total:</p>
             <ul>
-              <li>❌ <strong>Eliminará todos los usuarios y operadores</strong> registrados.</li>
-              <li>❌ <strong>Eliminará todos los reportes</strong>: bitácoras de relevo de guardia, bombas, ciclones, relaves y checklists vehiculares.</li>
-              <li>❌ <strong>Eliminará todas las solicitudes de mantenimiento</strong> y asignaciones de cuadrilla.</li>
-              <li>✅ <strong>Dejará la app 100% limpia</strong>, conservando únicamente tu cuenta oficial de Administrador.</li>
+              <li><strong>Eliminará todos los usuarios y operadores</strong> registrados.</li>
+              <li><strong>Eliminará todos los reportes</strong>: bitácoras de relevo de guardia, bombas, ciclones, relaves y checklists vehiculares.</li>
+              <li><strong>Eliminará todas las solicitudes de mantenimiento</strong> y asignaciones de cuadrilla.</li>
+              <li><strong>Dejará la app 100% limpia</strong>, conservando únicamente tu cuenta oficial de Administrador.</li>
             </ul>
           </div>
         </div>
@@ -817,7 +984,7 @@
             autocomplete="current-password"
             (keyup.enter)="confirmResetApp()"
           />
-          <span class="reset-error-msg" *ngIf="resetAppErrorMessage">⚠️ {{ resetAppErrorMessage }}</span>
+          <span class="reset-error-msg" *ngIf="resetAppErrorMessage">{{ resetAppErrorMessage }}</span>
         </div>
 
         <div class="modal-buttons" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 14px;">

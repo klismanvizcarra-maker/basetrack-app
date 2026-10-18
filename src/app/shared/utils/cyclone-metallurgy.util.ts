@@ -65,7 +65,7 @@ export function classifyDamSandAptitude(mesh200Uf: number): SandClassification {
       borderColor: 'rgba(16, 185, 129, 0.35)',
       badgeClass: 'badge-emerald',
       advice: 'Arenas gruesas con excelente drenaje y resistencia al corte. Cumple norma GISTM y D.S. 024-2016-EM para recrecimiento seguro del dique.',
-      icon: '🛡️'
+      icon: ''
     };
   } else if (val <= 20.0) {
     return {
@@ -76,7 +76,7 @@ export function classifyDamSandAptitude(mesh200Uf: number): SandClassification {
       borderColor: 'rgba(245, 158, 11, 0.4)',
       badgeClass: 'badge-warning',
       advice: 'Fracción de finos cercana al límite permisible. Ajustar presión en manifold de ciclones o verificar desgaste de ápex/vortex.',
-      icon: '⚠️'
+      icon: ''
     };
   } else {
     return {
@@ -87,7 +87,7 @@ export function classifyDamSandAptitude(mesh200Uf: number): SandClassification {
       borderColor: 'rgba(239, 68, 68, 0.5)',
       badgeClass: 'badge-danger',
       advice: 'Exceso de lamas y finos -200M (>20%). Riesgo de licuefacción estática y dinámica en el talud del dique. Desviar arenas inmediatamente.',
-      icon: '⛔'
+      icon: ''
     };
   }
 }

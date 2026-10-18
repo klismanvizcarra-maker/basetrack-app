@@ -6,6 +6,7 @@ import { getApiBaseUrl } from '../../../../core/constants/api.config';
 import { saveRealtimeData } from '../../../../core/storage/local-store.util';
 import { ModalComponent } from '../../../../shared/ui/modal.component';
 import { UsersStore, UserItem } from './users.store';
+import { getEffectiveAvatar } from '../../../../shared/utils/avatar.util';
 
 export interface IssuedCredential { username: string; full_name: string; temporaryPassword: string; }
 
@@ -30,6 +31,10 @@ export class AdminUsersTabComponent {
 
   private http = inject(HttpClient);
   private usersStore = inject(UsersStore);
+
+  getAvatar(url?: string | null, name?: string, role?: string, shift?: string): string {
+    return getEffectiveAvatar(url, name, role, shift);
+  }
 
   get users(): UserItem[] { return this.usersStore.users; }
   set users(list: UserItem[]) { this.usersStore.users = list; }

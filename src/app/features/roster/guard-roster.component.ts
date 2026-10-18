@@ -17,6 +17,7 @@ import {
 import { PdfExportService } from '../../core/services/pdf-export.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { CrewService } from '../../core/services/crew.service';
+import { generateAvatarSvg, getEffectiveAvatar } from '../../shared/utils/avatar.util';
 
 @Component({
   selector: 'app-guard-roster',
@@ -30,12 +31,19 @@ import { CrewService } from '../../core/services/crew.service';
       <div class="hero-banner glass-panel">
         <div class="hero-main">
           <div class="hero-title-group">
-            <div class="icon-chip">📅</div>
+            <div class="icon-chip">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+            </div>
             <div>
               <div class="badge-regime">Régimen Minero Continuo 8x8</div>
               <h2>Rol de Guardias & Roster Operacional</h2>
               <p class="hero-subtitle">
-                Rotación 24/7: <strong>4 Días de Turno Día</strong> (07:00–19:00) ➔ <strong>4 Noches de Turno Noche</strong> (19:00–07:00) ➔ <strong>8 Días de Descanso / Bajada</strong>.
+                Rotación 24/7: <strong>4 Días de Turno Día</strong> (07:00–19:00) &rarr; <strong>4 Noches de Turno Noche</strong> (19:00–07:00) &rarr; <strong>8 Días de Descanso / Bajada</strong>.
               </p>
             </div>
           </div>
@@ -66,8 +74,19 @@ import { CrewService } from '../../core/services/crew.service';
             <span class="block-tag">Bloque {{ todayRoster.blockNumber }} (Día {{ todayRoster.dayInBlock }} de 4)</span>
           </div>
           <div class="current-shift-indicator" [class.day-time]="activeShift.shiftName === 'DIA'" [class.night-time]="activeShift.shiftName === 'NOCHE'">
-            <span *ngIf="activeShift.shiftName === 'DIA'">☀️ TURNO EN CURSO: DÍA (07:00 – 19:00)</span>
-            <span *ngIf="activeShift.shiftName === 'NOCHE'">🌙 TURNO EN CURSO: NOCHE (19:00 – 07:00)</span>
+            <span *ngIf="activeShift.shiftName === 'DIA'">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: -2px; margin-right: 4px;">
+                <circle cx="12" cy="12" r="4"></circle>
+                <path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41m14.14-14.14l-1.41 1.41"></path>
+              </svg>
+              TURNO EN CURSO: DÍA (07:00 – 19:00)
+            </span>
+            <span *ngIf="activeShift.shiftName === 'NOCHE'">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: -2px; margin-right: 4px;">
+                <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>
+              </svg>
+              TURNO EN CURSO: NOCHE (19:00 – 07:00)
+            </span>
           </div>
         </div>
 
@@ -75,9 +94,17 @@ import { CrewService } from '../../core/services/crew.service';
           <!-- Turno Día -->
           <div class="shift-box day-box" [class.highlight-now]="activeShift.shiftName === 'DIA'">
             <div class="shift-label-row">
-              <span class="shift-icon">☀️</span>
+              <span class="shift-icon">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="4"></circle>
+                  <path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41m14.14-14.14l-1.41 1.41"></path>
+                </svg>
+              </span>
               <span class="shift-title">TURNO DÍA (07:00 – 19:00)</span>
-              <span class="now-badge" *ngIf="activeShift.shiftName === 'DIA'">EN PLANTA AHORA</span>
+              <div class="now-badge-group" *ngIf="activeShift.shiftName === 'DIA'">
+                <span class="now-badge">EN PLANTA AHORA</span>
+                <span class="handover-pill">{{ getNextHandoverHint() }}</span>
+              </div>
             </div>
             <div class="guard-pill" [style.border-left-color]="todayRoster.dayShiftGuard.colorHex">
               <img [src]="todayRoster.dayShiftGuard.avatarUrl" class="guard-avatar" />
@@ -97,9 +124,16 @@ import { CrewService } from '../../core/services/crew.service';
           <!-- Turno Noche -->
           <div class="shift-box night-box" [class.highlight-now]="activeShift.shiftName === 'NOCHE'">
             <div class="shift-label-row">
-              <span class="shift-icon">🌙</span>
+              <span class="shift-icon">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>
+                </svg>
+              </span>
               <span class="shift-title">TURNO NOCHE (19:00 – 07:00)</span>
-              <span class="now-badge" *ngIf="activeShift.shiftName === 'NOCHE'">EN PLANTA AHORA</span>
+              <div class="now-badge-group" *ngIf="activeShift.shiftName === 'NOCHE'">
+                <span class="now-badge">EN PLANTA AHORA</span>
+                <span class="handover-pill">{{ getNextHandoverHint() }}</span>
+              </div>
             </div>
             <div class="guard-pill" [style.border-left-color]="todayRoster.nightShiftGuard.colorHex">
               <img [src]="todayRoster.nightShiftGuard.avatarUrl" class="guard-avatar" />
@@ -119,16 +153,31 @@ import { CrewService } from '../../core/services/crew.service';
           <!-- En Descanso / Bajada -->
           <div class="shift-box off-box">
             <div class="shift-label-row">
-              <span class="shift-icon">🏖️</span>
+              <span class="shift-icon">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <path d="M12 6v6l4 2"></path>
+                </svg>
+              </span>
               <span class="shift-title">EN DESCANSO / BAJADA (2 GUARDIAS)</span>
             </div>
             <div class="off-guards-list">
               <div *ngFor="let og of todayRoster.offGuards" class="off-guard-item">
                 <div class="off-head">
-                  <span class="guard-badge-sm" [style.background-color]="og.colorHex">{{ og.name }}</span>
-                  <span class="off-stage-text">Bajada {{ todayRoster.guardStatus[og.code].dayInStage }}/8</span>
+                  <div class="off-guard-identity">
+                    <span class="guard-badge-sm" [style.background-color]="og.colorHex">{{ og.name }}</span>
+                    <span class="off-sup-name">{{ og.supervisorName }}</span>
+                  </div>
+                  <div class="off-stage-box">
+                    <div class="off-stage-header">
+                      <span class="off-stage-text">Bajada {{ todayRoster.guardStatus[og.code].dayInStage }}/8</span>
+                      <span class="off-days-left">{{ 8 - todayRoster.guardStatus[og.code].dayInStage }}d libres</span>
+                    </div>
+                    <div class="mini-progress-track">
+                      <div class="mini-progress-fill" [style.width.%]="(todayRoster.guardStatus[og.code].dayInStage / 8) * 100"></div>
+                    </div>
+                  </div>
                 </div>
-                <div class="off-sup-name">{{ og.supervisorName }}</div>
               </div>
             </div>
           </div>
@@ -137,23 +186,50 @@ import { CrewService } from '../../core/services/crew.service';
 
       <!-- CALENDAR CONTROLS & FILTER BAR -->
       <div class="calendar-toolbar glass-panel">
-        <!-- Month Navigation -->
+        <!-- Month Navigation (Navegador Rápido de Mes y Año) -->
         <div class="month-nav-controls">
           <button type="button" class="btn-nav-month" (click)="prevMonth()" title="Mes anterior">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <polyline points="15 18 9 12 15 6"></polyline>
             </svg>
           </button>
-          <div class="current-month-display">
-            <h3>{{ monthRoster.monthName }} {{ selectedYear }}</h3>
+
+          <!-- SELECTORES RÁPIDOS MES Y AÑO -->
+          <div class="quick-selectors-group">
+            <div class="select-wrapper month-select-wrap">
+              <select 
+                class="nav-select-control month-select" 
+                [ngModel]="selectedMonthIndex" 
+                (ngModelChange)="onMonthChange($event)"
+                title="Seleccionar Mes"
+              >
+                <option *ngFor="let m of monthsList" [value]="m.index">{{ m.name }}</option>
+              </select>
+              <span class="select-chevron">▾</span>
+            </div>
+
+            <div class="select-wrapper year-select-wrap">
+              <select 
+                class="nav-select-control year-select" 
+                [ngModel]="selectedYear" 
+                (ngModelChange)="onYearChange($event)"
+                title="Seleccionar Año"
+              >
+                <option *ngFor="let y of yearsList" [value]="y">{{ y }}</option>
+              </select>
+              <span class="select-chevron">▾</span>
+            </div>
           </div>
+
           <button type="button" class="btn-nav-month" (click)="nextMonth()" title="Mes siguiente">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <polyline points="9 18 15 12 9 6"></polyline>
             </svg>
           </button>
-          <button type="button" class="btn-today-quick" (click)="goToCurrentMonth()">
-            Ir a Hoy
+
+          <button type="button" class="btn-today-quick" (click)="goToCurrentMonth()" title="Volver al mes y año actual">
+            <span class="today-dot"></span>
+            <span>Ir a Hoy</span>
           </button>
         </div>
 
@@ -165,7 +241,20 @@ import { CrewService } from '../../core/services/crew.service';
             [class.active]="selectedGuardFilter === 'ALL'" 
             (click)="selectedGuardFilter = 'ALL'"
           >
-            🏢 Todas las Guardias
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; vertical-align: -2px;">
+              <rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect>
+              <line x1="9" y1="22" x2="9" y2="22.01"></line>
+              <line x1="15" y1="22" x2="15" y2="22.01"></line>
+              <line x1="9" y1="6" x2="9" y2="6.01"></line>
+              <line x1="15" y1="6" x2="15" y2="6.01"></line>
+              <line x1="9" y1="10" x2="9" y2="10.01"></line>
+              <line x1="15" y1="10" x2="15" y2="10.01"></line>
+              <line x1="9" y1="14" x2="9" y2="14.01"></line>
+              <line x1="15" y1="14" x2="15" y2="14.01"></line>
+              <line x1="9" y1="18" x2="9" y2="18.01"></line>
+              <line x1="15" y1="18" x2="15" y2="18.01"></line>
+            </svg>
+            Todas las Guardias
           </button>
           <button 
             type="button" 
@@ -174,7 +263,8 @@ import { CrewService } from '../../core/services/crew.service';
             (click)="selectedGuardFilter = 'G1'"
           >
             <span class="dot-indicator" [style.background-color]="guardsCatalog['G1'].colorHex"></span>
-            G1<ng-container *ngIf="getShortSupervisorName('G1')"> ({{ getShortSupervisorName('G1') }})</ng-container>
+            <span class="tab-code">G1</span>
+            <span class="tab-sup-name" *ngIf="getSupervisorLastName('G1')">• {{ getSupervisorLastName('G1') }}</span>
           </button>
           <button 
             type="button" 
@@ -183,7 +273,8 @@ import { CrewService } from '../../core/services/crew.service';
             (click)="selectedGuardFilter = 'G2'"
           >
             <span class="dot-indicator" [style.background-color]="guardsCatalog['G2'].colorHex"></span>
-            G2<ng-container *ngIf="getShortSupervisorName('G2')"> ({{ getShortSupervisorName('G2') }})</ng-container>
+            <span class="tab-code">G2</span>
+            <span class="tab-sup-name" *ngIf="getSupervisorLastName('G2')">• {{ getSupervisorLastName('G2') }}</span>
           </button>
           <button 
             type="button" 
@@ -192,7 +283,8 @@ import { CrewService } from '../../core/services/crew.service';
             (click)="selectedGuardFilter = 'G3'"
           >
             <span class="dot-indicator" [style.background-color]="guardsCatalog['G3'].colorHex"></span>
-            G3<ng-container *ngIf="getShortSupervisorName('G3')"> ({{ getShortSupervisorName('G3') }})</ng-container>
+            <span class="tab-code">G3</span>
+            <span class="tab-sup-name" *ngIf="getSupervisorLastName('G3')">• {{ getSupervisorLastName('G3') }}</span>
           </button>
           <button 
             type="button" 
@@ -201,7 +293,8 @@ import { CrewService } from '../../core/services/crew.service';
             (click)="selectedGuardFilter = 'G4'"
           >
             <span class="dot-indicator" [style.background-color]="guardsCatalog['G4'].colorHex"></span>
-            G4<ng-container *ngIf="getShortSupervisorName('G4')"> ({{ getShortSupervisorName('G4') }})</ng-container>
+            <span class="tab-code">G4</span>
+            <span class="tab-sup-name" *ngIf="getSupervisorLastName('G4')">• {{ getSupervisorLastName('G4') }}</span>
           </button>
         </div>
       </div>
@@ -247,7 +340,12 @@ import { CrewService } from '../../core/services/crew.service';
                 [style.border-left-color]="day.dayShiftGuard.colorHex"
                 title="Turno Día: {{ day.dayShiftGuard.name }} ({{ day.dayShiftGuard.supervisorName }})"
               >
-                <span class="tag-icon">☀️</span>
+                <span class="tag-icon">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="4"></circle>
+                    <path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41m14.14-14.14l-1.41 1.41"></path>
+                  </svg>
+                </span>
                 <span class="tag-guard-code" [style.color]="day.dayShiftGuard.colorHex">{{ day.dayShiftGuard.name }}</span>
                 <span class="tag-count">D{{ day.guardStatus[day.dayShiftGuard.code].dayInStage }}/4</span>
               </div>
@@ -258,14 +356,23 @@ import { CrewService } from '../../core/services/crew.service';
                 [style.border-left-color]="day.nightShiftGuard.colorHex"
                 title="Turno Noche: {{ day.nightShiftGuard.name }} ({{ day.nightShiftGuard.supervisorName }})"
               >
-                <span class="tag-icon">🌙</span>
+                <span class="tag-icon">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>
+                  </svg>
+                </span>
                 <span class="tag-guard-code" [style.color]="day.nightShiftGuard.colorHex">{{ day.nightShiftGuard.name }}</span>
                 <span class="tag-count">N{{ day.guardStatus[day.nightShiftGuard.code].dayInStage }}/4</span>
               </div>
 
               <!-- Descanso -->
               <div class="shift-tag-row tag-off" title="En Descanso: {{ day.offGuards[0].name }} y {{ day.offGuards[1].name }}">
-                <span class="tag-icon">🏖️</span>
+                <span class="tag-icon">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path d="M12 6v6l4 2"></path>
+                  </svg>
+                </span>
                 <span class="tag-off-names">{{ day.offGuards[0].code }}, {{ day.offGuards[1].code }}</span>
               </div>
             </div>
@@ -281,9 +388,23 @@ import { CrewService } from '../../core/services/crew.service';
                   [class.box-descanso]="gs.shift === 'DESCANSO'"
                 >
                   <div class="status-top">
-                    <span class="status-icon" *ngIf="gs.shift === 'DIA'">☀️</span>
-                    <span class="status-icon" *ngIf="gs.shift === 'NOCHE'">🌙</span>
-                    <span class="status-icon" *ngIf="gs.shift === 'DESCANSO'">🏖️</span>
+                    <span class="status-icon" *ngIf="gs.shift === 'DIA'">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="4"></circle>
+                        <path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41m14.14-14.14l-1.41 1.41"></path>
+                      </svg>
+                    </span>
+                    <span class="status-icon" *ngIf="gs.shift === 'NOCHE'">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>
+                      </svg>
+                    </span>
+                    <span class="status-icon" *ngIf="gs.shift === 'DESCANSO'">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M12 6v6l4 2"></path>
+                      </svg>
+                    </span>
                     <strong class="status-text">{{ gs.shift }}</strong>
                   </div>
                   <div class="status-sub">
@@ -301,48 +422,114 @@ import { CrewService } from '../../core/services/crew.service';
       <!-- CYCLE GUIDE CARD (INFOGRAFÍA DEL CICLO 8x8) -->
       <div class="cycle-guide-card glass-panel">
         <div class="guide-header">
-          <h4>💡 Guía Operacional del Ciclo Rotativo (16 Días = 4 Bloques de 4 Días)</h4>
+          <h4>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; vertical-align: -3px;">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="16" x2="12" y2="12"></line>
+              <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            </svg>
+            Guía Operacional del Ciclo Rotativo (16 Días = 4 Bloques de 4 Días)
+          </h4>
         </div>
         <div class="blocks-explanation-grid">
           <div class="block-card" [class.active-block]="todayRoster?.blockNumber === 1">
             <div class="block-card-head">
-              <strong>Bloque 1</strong>
-              <span class="days-span">4 Días</span>
+              <div class="block-title-row">
+                <strong>Bloque 1</strong>
+                <span class="days-span">4 Días</span>
+              </div>
+              <span class="anchor-flag" *ngIf="todayRoster?.blockNumber === 1">
+                <span class="pulse-mini"></span>
+                BLOQUE EN CURSO (Día {{ todayRoster?.dayInBlock }}/4)
+              </span>
             </div>
-            <div class="block-row">☀️ <strong>Día:</strong> Guardia 1<ng-container *ngIf="getShortSupervisorName('G1')"> ({{ getShortSupervisorName('G1') }})</ng-container></div>
-            <div class="block-row">🌙 <strong>Noche:</strong> Guardia 3<ng-container *ngIf="getShortSupervisorName('G3')"> ({{ getShortSupervisorName('G3') }})</ng-container></div>
-            <div class="block-row text-muted">🏖️ <strong>Descanso:</strong> G2, G4</div>
+            <div class="block-row">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; vertical-align: -1px;"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+              <strong>Día:</strong> Guardia 1<ng-container *ngIf="getShortSupervisorName('G1')"> ({{ getShortSupervisorName('G1') }})</ng-container>
+            </div>
+            <div class="block-row">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; vertical-align: -1px;"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+              <strong>Noche:</strong> Guardia 3<ng-container *ngIf="getShortSupervisorName('G3')"> ({{ getShortSupervisorName('G3') }})</ng-container>
+            </div>
+            <div class="block-row text-muted">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; vertical-align: -1px;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+              <strong>Descanso:</strong> G2, G4
+            </div>
           </div>
 
           <div class="block-card" [class.active-block]="todayRoster?.blockNumber === 2">
             <div class="block-card-head">
-              <strong>Bloque 2</strong>
-              <span class="days-span">4 Días</span>
+              <div class="block-title-row">
+                <strong>Bloque 2</strong>
+                <span class="days-span">4 Días</span>
+              </div>
+              <span class="anchor-flag" *ngIf="todayRoster?.blockNumber === 2">
+                <span class="pulse-mini"></span>
+                BLOQUE EN CURSO (Día {{ todayRoster?.dayInBlock }}/4)
+              </span>
             </div>
-            <div class="block-row">☀️ <strong>Día:</strong> Guardia 2<ng-container *ngIf="getShortSupervisorName('G2')"> ({{ getShortSupervisorName('G2') }})</ng-container></div>
-            <div class="block-row">🌙 <strong>Noche:</strong> Guardia 1<ng-container *ngIf="getShortSupervisorName('G1')"> ({{ getShortSupervisorName('G1') }})</ng-container></div>
-            <div class="block-row text-muted">🏖️ <strong>Descanso:</strong> G3, G4</div>
+            <div class="block-row">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; vertical-align: -1px;"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+              <strong>Día:</strong> Guardia 2<ng-container *ngIf="getShortSupervisorName('G2')"> ({{ getShortSupervisorName('G2') }})</ng-container>
+            </div>
+            <div class="block-row">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; vertical-align: -1px;"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+              <strong>Noche:</strong> Guardia 1<ng-container *ngIf="getShortSupervisorName('G1')"> ({{ getShortSupervisorName('G1') }})</ng-container>
+            </div>
+            <div class="block-row text-muted">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; vertical-align: -1px;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+              <strong>Descanso:</strong> G3, G4
+            </div>
           </div>
 
           <div class="block-card" [class.active-block]="todayRoster?.blockNumber === 3">
             <div class="block-card-head">
-              <strong>Bloque 3</strong>
-              <span class="days-span">4 Días</span>
-              <span class="anchor-flag" *ngIf="todayRoster?.blockNumber === 3">BLOQUE ACTUAL</span>
+              <div class="block-title-row">
+                <strong>Bloque 3</strong>
+                <span class="days-span">4 Días</span>
+              </div>
+              <span class="anchor-flag" *ngIf="todayRoster?.blockNumber === 3">
+                <span class="pulse-mini"></span>
+                BLOQUE EN CURSO (Día {{ todayRoster?.dayInBlock }}/4)
+              </span>
             </div>
-            <div class="block-row">☀️ <strong>Día:</strong> Guardia 4<ng-container *ngIf="getShortSupervisorName('G4')"> ({{ getShortSupervisorName('G4') }})</ng-container></div>
-            <div class="block-row">🌙 <strong>Noche:</strong> Guardia 2<ng-container *ngIf="getShortSupervisorName('G2')"> ({{ getShortSupervisorName('G2') }})</ng-container></div>
-            <div class="block-row text-muted">🏖️ <strong>Descanso:</strong> G1, G3</div>
+            <div class="block-row">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; vertical-align: -1px;"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+              <strong>Día:</strong> Guardia 4<ng-container *ngIf="getShortSupervisorName('G4')"> ({{ getShortSupervisorName('G4') }})</ng-container>
+            </div>
+            <div class="block-row">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; vertical-align: -1px;"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+              <strong>Noche:</strong> Guardia 2<ng-container *ngIf="getShortSupervisorName('G2')"> ({{ getShortSupervisorName('G2') }})</ng-container>
+            </div>
+            <div class="block-row text-muted">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; vertical-align: -1px;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+              <strong>Descanso:</strong> G1, G3
+            </div>
           </div>
 
           <div class="block-card" [class.active-block]="todayRoster?.blockNumber === 4">
             <div class="block-card-head">
-              <strong>Bloque 4</strong>
-              <span class="days-span">4 Días</span>
+              <div class="block-title-row">
+                <strong>Bloque 4</strong>
+                <span class="days-span">4 Días</span>
+              </div>
+              <span class="anchor-flag" *ngIf="todayRoster?.blockNumber === 4">
+                <span class="pulse-mini"></span>
+                BLOQUE EN CURSO (Día {{ todayRoster?.dayInBlock }}/4)
+              </span>
             </div>
-            <div class="block-row">☀️ <strong>Día:</strong> Guardia 3<ng-container *ngIf="getShortSupervisorName('G3')"> ({{ getShortSupervisorName('G3') }})</ng-container></div>
-            <div class="block-row">🌙 <strong>Noche:</strong> Guardia 4<ng-container *ngIf="getShortSupervisorName('G4')"> ({{ getShortSupervisorName('G4') }})</ng-container></div>
-            <div class="block-row text-muted">🏖️ <strong>Descanso:</strong> G1, G2</div>
+            <div class="block-row">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; vertical-align: -1px;"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+              <strong>Día:</strong> Guardia 3<ng-container *ngIf="getShortSupervisorName('G3')"> ({{ getShortSupervisorName('G3') }})</ng-container>
+            </div>
+            <div class="block-row">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; vertical-align: -1px;"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+              <strong>Noche:</strong> Guardia 4<ng-container *ngIf="getShortSupervisorName('G4')"> ({{ getShortSupervisorName('G4') }})</ng-container>
+            </div>
+            <div class="block-row text-muted">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; vertical-align: -1px;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+              <strong>Descanso:</strong> G1, G2
+            </div>
           </div>
         </div>
       </div>
@@ -368,9 +555,9 @@ import { CrewService } from '../../core/services/crew.service';
             <tr>
               <th style="width: 7%;">DÍA</th>
               <th style="width: 13%;">FECHA</th>
-              <th style="width: 25%;">☀️ TURNO DÍA (07:00 - 19:00)</th>
-              <th style="width: 25%;">🌙 TURNO NOCHE (19:00 - 07:00)</th>
-              <th style="width: 30%;">🏖️ EN DESCANSO / BAJADA</th>
+              <th style="width: 25%;">TURNO DÍA (07:00 - 19:00)</th>
+              <th style="width: 25%;">TURNO NOCHE (19:00 - 07:00)</th>
+              <th style="width: 30%;">EN DESCANSO / BAJADA</th>
             </tr>
           </thead>
           <tbody>
@@ -427,17 +614,17 @@ import { CrewService } from '../../core/services/crew.service';
     }
 
     .glass-panel {
-      background: #ffffff;
-      border: 1px solid #e2e8f0;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
       border-radius: 14px;
-      box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
+      box-shadow: var(--shadow-card);
       padding: 20px 24px;
     }
 
     /* Hero Banner */
     .hero-banner {
-      background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
-      border-left: 5px solid #031795;
+      background: var(--bg-card);
+      border-left: 5px solid var(--primary-purple);
     }
 
     .hero-main {
@@ -455,8 +642,8 @@ import { CrewService } from '../../core/services/crew.service';
 
       .icon-chip {
         font-size: 2rem;
-        background: #eff6ff;
-        border: 1px solid #bfdbfe;
+        background: var(--primary-bg-subtle);
+        border: 1px solid var(--primary-border);
         width: 56px;
         height: 56px;
         border-radius: 14px;
@@ -469,15 +656,15 @@ import { CrewService } from '../../core/services/crew.service';
         margin: 4px 0;
         font-size: 1.5rem;
         font-weight: 800;
-        color: #0f172a;
+        color: var(--text-primary);
       }
 
       .badge-regime {
         display: inline-block;
         font-size: 0.72rem;
         font-weight: 800;
-        color: #1d4ed8;
-        background: #dbeafe;
+        color: var(--primary-purple);
+        background: var(--primary-bg-subtle);
         padding: 3px 8px;
         border-radius: 6px;
         letter-spacing: 0.04em;
@@ -487,7 +674,7 @@ import { CrewService } from '../../core/services/crew.service';
       .hero-subtitle {
         margin: 0;
         font-size: 0.86rem;
-        color: #64748b;
+        color: var(--text-muted);
         line-height: 1.4;
       }
     }
@@ -620,13 +807,31 @@ import { CrewService } from '../../core/services/crew.service';
         color: var(--text-secondary);
       }
 
-      .now-badge {
+      .now-badge-group {
         margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+
+      .now-badge {
         font-size: 0.65rem;
         font-weight: 800;
         background: #10b981;
         color: #ffffff;
-        padding: 2px 6px;
+        padding: 2px 7px;
+        border-radius: 4px;
+        box-shadow: 0 1px 4px rgba(16, 185, 129, 0.3);
+      }
+
+      .handover-pill {
+        font-size: 0.65rem;
+        font-weight: 700;
+        color: var(--primary-purple);
+        background: var(--primary-bg-subtle);
+        border: 1px solid var(--primary-border);
+        padding: 2px 7px;
         border-radius: 4px;
       }
     }
@@ -705,15 +910,47 @@ import { CrewService } from '../../core/services/crew.service';
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 2px;
+      gap: 12px;
+    }
+
+    .off-guard-identity {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 90px;
     }
 
     .guard-badge-sm {
+      display: inline-block;
+      width: fit-content;
       font-size: 0.68rem;
       font-weight: 800;
       color: #ffffff;
       padding: 1px 6px;
       border-radius: 4px;
+    }
+
+    .off-sup-name {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      font-weight: 600;
+      line-height: 1.1;
+    }
+
+    .off-stage-box {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 125px;
+      flex: 1;
+      max-width: 160px;
+    }
+
+    .off-stage-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
     }
 
     .off-stage-text {
@@ -725,10 +962,25 @@ import { CrewService } from '../../core/services/crew.service';
       border-radius: 4px;
     }
 
-    .off-sup-name {
-      font-size: 0.76rem;
-      color: var(--text-secondary);
-      font-weight: 600;
+    .off-days-left {
+      font-size: 0.64rem;
+      font-weight: 700;
+      color: var(--text-muted);
+    }
+
+    .mini-progress-track {
+      width: 100%;
+      height: 4px;
+      background: var(--border-subtle, #e2e8f0);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .mini-progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #10b981, #059669);
+      border-radius: 4px;
+      transition: width 0.3s ease;
     }
 
     /* Toolbar & Navigation */
@@ -745,25 +997,66 @@ import { CrewService } from '../../core/services/crew.service';
       display: flex;
       align-items: center;
       gap: 10px;
-
-      h3 {
-        margin: 0;
-        font-size: 1.15rem;
-        font-weight: 800;
-        color: var(--text-primary);
-        min-width: 190px;
-        text-align: center;
-      }
+      flex-wrap: wrap;
 
       @media (max-width: 600px) {
         width: 100%;
-        flex-wrap: wrap;
         justify-content: center;
+      }
+    }
 
-        h3 {
-          min-width: 0;
-          flex: 1;
-        }
+    .quick-selectors-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .select-wrapper {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+
+      .select-chevron {
+        position: absolute;
+        right: 10px;
+        font-size: 0.72rem;
+        color: var(--text-muted);
+        pointer-events: none;
+      }
+    }
+
+    .nav-select-control {
+      appearance: none;
+      -webkit-appearance: none;
+      background: var(--bg-card);
+      border: 1.5px solid var(--border-subtle);
+      border-radius: 9px;
+      padding: 7px 28px 7px 12px;
+      font-family: inherit;
+      font-size: 0.92rem;
+      font-weight: 800;
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      outline: none;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+
+      &:hover {
+        border-color: #031795;
+        background: var(--bg-card-hover, #f8fafc);
+      }
+
+      &:focus {
+        border-color: #031795;
+        box-shadow: 0 0 0 3px rgba(3, 23, 149, 0.15);
+      }
+
+      &.month-select {
+        min-width: 135px;
+      }
+
+      &.year-select {
+        min-width: 85px;
       }
     }
 
@@ -771,8 +1064,8 @@ import { CrewService } from '../../core/services/crew.service';
       background: var(--bg-card-subtle);
       border: 1px solid var(--border-subtle);
       color: var(--text-secondary);
-      width: 34px;
-      height: 34px;
+      width: 36px;
+      height: 36px;
       border-radius: 8px;
       display: flex;
       align-items: center;
@@ -783,23 +1076,39 @@ import { CrewService } from '../../core/services/crew.service';
       &:hover {
         background: var(--bg-card-hover);
         color: var(--text-primary);
+        border-color: #031795;
       }
     }
 
     .btn-today-quick {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
       background: var(--bg-card);
-      border: 1px solid var(--border-subtle);
-      padding: 6px 12px;
-      border-radius: 8px;
-      font-size: 0.78rem;
+      border: 1.5px solid var(--border-subtle);
+      padding: 7px 14px;
+      border-radius: 9px;
+      font-size: 0.8rem;
       font-weight: 700;
       color: var(--primary-purple);
       cursor: pointer;
-      transition: var(--transition-smooth);
+      transition: all 0.2s ease;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+
+      .today-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #10b981;
+        display: inline-block;
+        box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.25);
+      }
 
       &:hover {
-        background: var(--primary-bg-subtle);
-        border-color: var(--primary-purple);
+        background: var(--bg-card-hover);
+        border-color: var(--border-focus);
+        transform: translateY(-1px);
+        box-shadow: 0 3px 8px rgba(3, 23, 149, 0.12);
       }
     }
 
@@ -813,7 +1122,7 @@ import { CrewService } from '../../core/services/crew.service';
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      padding: 6px 12px;
+      padding: 7px 12px;
       background: var(--bg-card-subtle);
       border: 1px solid var(--border-subtle);
       border-radius: 8px;
@@ -830,15 +1139,31 @@ import { CrewService } from '../../core/services/crew.service';
         display: inline-block;
       }
 
+      .tab-code {
+        font-weight: 800;
+      }
+
+      .tab-sup-name {
+        font-size: 0.74rem;
+        opacity: 0.9;
+        font-weight: 600;
+      }
+
       &:hover {
         background: var(--bg-card-hover);
         color: var(--text-primary);
+        border-color: var(--border-focus);
       }
 
       &.active {
         background: var(--primary-purple);
         border-color: var(--primary-purple);
         color: #ffffff;
+        box-shadow: 0 2px 6px rgba(3, 23, 149, 0.25);
+
+        .dot-indicator {
+          box-shadow: 0 0 0 2px #ffffff;
+        }
       }
     }
 
@@ -952,18 +1277,18 @@ import { CrewService } from '../../core/services/crew.service';
       border-left: 3px solid transparent;
 
       &.tag-day {
-        background: var(--primary-bg-subtle);
+        background: rgba(245, 158, 11, 0.1);
         color: var(--text-primary);
       }
 
       &.tag-night {
-        background: rgba(139, 92, 246, 0.18);
-        color: #c4b5fd;
+        background: rgba(124, 58, 237, 0.1);
+        color: var(--text-primary);
       }
 
       &.tag-off {
         background: var(--bg-card-subtle);
-        color: var(--text-muted);
+        color: var(--text-secondary);
       }
 
       .tag-guard-code {
@@ -1001,21 +1326,21 @@ import { CrewService } from '../../core/services/crew.service';
       gap: 4px;
 
       &.box-dia {
-        background: var(--primary-bg-subtle);
-        border: 1px solid var(--primary-border);
-        color: var(--primary-lavender);
+        background: rgba(245, 158, 11, 0.12);
+        border: 1px solid rgba(245, 158, 11, 0.35);
+        color: var(--warning, #b45309);
       }
 
       &.box-noche {
-        background: rgba(139, 92, 246, 0.16);
-        border: 1px solid rgba(139, 92, 246, 0.35);
-        color: #c4b5fd;
+        background: rgba(124, 58, 237, 0.12);
+        border: 1px solid rgba(124, 58, 237, 0.35);
+        color: #6d28d9;
       }
 
       &.box-descanso {
         background: var(--bg-card-subtle);
         border: 1px dashed var(--border-subtle);
-        color: var(--text-muted);
+        color: var(--text-secondary);
       }
 
       .status-top {
@@ -1064,7 +1389,15 @@ import { CrewService } from '../../core/services/crew.service';
       display: flex;
       align-items: center;
       justify-content: space-between;
+      gap: 8px;
       margin-bottom: 8px;
+      flex-wrap: wrap;
+
+      .block-title-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
 
       strong {
         font-size: 0.86rem;
@@ -1082,18 +1415,30 @@ import { CrewService } from '../../core/services/crew.service';
       }
 
       .anchor-flag {
-        font-size: 0.62rem;
-
-        @media (max-width: 600px) {
-          font-size: 0.7rem;
-        }
-
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 0.64rem;
         font-weight: 800;
         color: var(--primary-purple);
         background: var(--primary-bg-subtle);
         border: 1px solid var(--primary-border);
-        padding: 1px 5px;
+        padding: 2px 7px;
         border-radius: 4px;
+
+        .pulse-mini {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: #10b981;
+          display: inline-block;
+          box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.3);
+          animation: pulseAnimation 2s infinite;
+        }
+
+        @media (max-width: 600px) {
+          font-size: 0.7rem;
+        }
       }
     }
 
@@ -1257,6 +1602,35 @@ import { CrewService } from '../../core/services/crew.service';
         display: none;
       }
     }
+
+    :host-context(.dark-theme) {
+      .hero-banner {
+        background: var(--bg-card);
+        border-color: var(--primary-purple);
+      }
+
+      .icon-chip {
+        background: rgba(59, 130, 246, 0.15);
+        color: #60a5fa;
+        border-color: rgba(59, 130, 246, 0.3);
+      }
+
+      .badge-regime {
+        background: rgba(59, 130, 246, 0.18);
+        color: #93c5fd;
+      }
+
+      .calendar-day-cell.is-today {
+        background: rgba(59, 130, 246, 0.12);
+        border-color: var(--primary-purple);
+      }
+
+      .current-shift-indicator.day-time {
+        background: rgba(245, 158, 11, 0.18);
+        color: #fbbf24;
+        border-color: rgba(245, 158, 11, 0.35);
+      }
+    }
   `]
 })
 export class GuardRosterComponent implements OnInit, OnDestroy {
@@ -1273,6 +1647,23 @@ export class GuardRosterComponent implements OnInit, OnDestroy {
   selectedYear: number = 2026;
   selectedMonthIndex: number = 8; // 8 = Septiembre
   selectedGuardFilter: 'ALL' | GuardCode = 'ALL';
+
+  monthsList = [
+    { index: 0, name: 'Enero' },
+    { index: 1, name: 'Febrero' },
+    { index: 2, name: 'Marzo' },
+    { index: 3, name: 'Abril' },
+    { index: 4, name: 'Mayo' },
+    { index: 5, name: 'Junio' },
+    { index: 6, name: 'Julio' },
+    { index: 7, name: 'Agosto' },
+    { index: 8, name: 'Septiembre' },
+    { index: 9, name: 'Octubre' },
+    { index: 10, name: 'Noviembre' },
+    { index: 11, name: 'Diciembre' }
+  ];
+
+  yearsList: number[] = [2024, 2025, 2026, 2027, 2028, 2029, 2030];
 
   monthRoster!: MonthRoster;
   todayRoster?: DayRoster;
@@ -1303,6 +1694,34 @@ export class GuardRosterComponent implements OnInit, OnDestroy {
     }
     const capFirst = parts[1].charAt(0).toUpperCase() + parts[1].slice(1).toLowerCase();
     return `${capFirst} ${parts[0].charAt(0).toUpperCase()}.`;
+  }
+
+  getSupervisorLastName(code: GuardCode): string {
+    const sup = this.guardsCatalog[code]?.supervisorName;
+    if (!sup || sup === 'Sin Asignar') return '';
+    const parts = sup.trim().split(/\s+/);
+    if (parts.length === 0) return '';
+    const lastName = parts[0];
+    return lastName.charAt(0).toUpperCase() + lastName.slice(1).toLowerCase();
+  }
+
+  getNextHandoverHint(): string {
+    if (!this.activeShift) return '';
+    return this.activeShift.shiftName === 'DIA' ? 'Relevo oficial: 19:00 hrs' : 'Relevo oficial: 07:00 hrs';
+  }
+
+  onMonthChange(newMonthIndex: number | string): void {
+    this.selectedMonthIndex = Number(newMonthIndex);
+    this.loadRoster();
+  }
+
+  onYearChange(newYear: number | string): void {
+    this.selectedYear = Number(newYear);
+    if (!this.yearsList.includes(this.selectedYear)) {
+      this.yearsList.push(this.selectedYear);
+      this.yearsList.sort((a, b) => a - b);
+    }
+    this.loadRoster();
   }
 
   private syncListener = (e: any) => {
@@ -1342,13 +1761,13 @@ export class GuardRosterComponent implements OnInit, OnDestroy {
               sups[code] = {
                 supervisorName: sup.name,
                 supervisorUser: sup.name,
-                avatarUrl: sup.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${sup.name}`
+                avatarUrl: getEffectiveAvatar(sup.avatar_url, sup.name, 'SUPERVISOR', code)
               };
             } else {
               sups[code] = {
                 supervisorName: 'Sin Asignar',
                 supervisorUser: '',
-                avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=GUARDIA_${code}`
+                avatarUrl: generateAvatarSvg(`Guardia ${code}`, 'SUPERVISOR', code)
               };
             }
             const count = members.filter(m => m.shift_code === code && m.primary_role !== 'SUPERVISOR').length;
@@ -1390,6 +1809,10 @@ export class GuardRosterComponent implements OnInit, OnDestroy {
     } else {
       this.selectedMonthIndex--;
     }
+    if (!this.yearsList.includes(this.selectedYear)) {
+      this.yearsList.push(this.selectedYear);
+      this.yearsList.sort((a, b) => a - b);
+    }
     this.loadRoster();
   }
 
@@ -1400,6 +1823,10 @@ export class GuardRosterComponent implements OnInit, OnDestroy {
     } else {
       this.selectedMonthIndex++;
     }
+    if (!this.yearsList.includes(this.selectedYear)) {
+      this.yearsList.push(this.selectedYear);
+      this.yearsList.sort((a, b) => a - b);
+    }
     this.loadRoster();
   }
 
@@ -1407,6 +1834,10 @@ export class GuardRosterComponent implements OnInit, OnDestroy {
     const now = new Date();
     this.selectedYear = now.getFullYear();
     this.selectedMonthIndex = now.getMonth();
+    if (!this.yearsList.includes(this.selectedYear)) {
+      this.yearsList.push(this.selectedYear);
+      this.yearsList.sort((a, b) => a - b);
+    }
     this.loadRoster();
   }
 

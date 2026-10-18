@@ -21,7 +21,9 @@
 
   <!-- Notification Banner -->
   <div *ngIf="successMessage" class="feedback-banner glass-panel animate-fade-in">
-    <div class="feedback-icon">✅</div>
+    <div class="feedback-icon">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+    </div>
     <div class="feedback-text">{{ successMessage }}</div>
   </div>
 
@@ -132,7 +134,12 @@
 
     <!-- Empty State -->
     <div *ngIf="!isLoading && checklists.length === 0" class="empty-history">
-      <div class="empty-icon">📋</div>
+      <div class="empty-icon">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+          <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
+        </svg>
+      </div>
       <h4>No hay checklists registrados para la camioneta {{ selectedPlate }}</h4>
       <p>Aún no se han guardado inspecciones de días anteriores para esta unidad. Sé el primero en registrar la inspección de inicio de guardia.</p>
       <button class="btn btn-primary" (click)="openCreateModal()">
@@ -160,25 +167,43 @@
               <span class="status-dot"></span>
               <span>{{ chk.operational_status }}</span>
             </div>
-            <span class="odometer-badge">🏁 {{ chk.odometer | number }} km</span>
+            <span class="odometer-badge">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-1px;margin-right:3px;">
+                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+              </svg>
+              {{ chk.odometer | number }} km
+            </span>
           </div>
         </div>
 
         <!-- Observation Alert inside History Card -->
         <div *ngIf="chk.has_observations || chk.observation_notes" class="history-observation-box">
           <div class="obs-header">
-            <span class="obs-tag">⚠️ OBSERVACIÓN REGISTRADA:</span>
+            <span class="obs-tag" style="display:inline-flex;align-items:center;gap:4px;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+              OBSERVACIÓN REGISTRADA:
+            </span>
             <span class="obs-text">{{ chk.observation_notes || 'Detalle no especificado' }}</span>
           </div>
           <div *ngIf="chk.photo_url" class="obs-thumbnail-wrapper" (click)="openPhotoPreview(chk.photo_url)">
             <img [src]="chk.photo_url" alt="Foto observación" class="obs-thumbnail" />
-            <span class="photo-hint">🔍 Clic para ampliar fotografía</span>
+            <span class="photo-hint" style="display:inline-flex;align-items:center;gap:4px;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              Clic para ampliar fotografía
+            </span>
           </div>
         </div>
 
         <div class="item-footer-row">
           <div class="quick-summary">
-            <span class="summary-pill">✅ 26 Ítems Evaluados</span>
+            <span class="summary-pill" style="display:inline-flex;align-items:center;gap:4px;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              26 Ítems Evaluados
+            </span>
             <span *ngIf="chk.driver_license" class="summary-pill">Licencia: {{ chk.driver_license }}</span>
           </div>
           <div class="item-actions">
@@ -217,7 +242,12 @@
           <span class="driver-badge-title">Conductor Autenticado:</span>
           <strong>{{ formDriverName }}</strong>
           <span>DNI: <strong>{{ formDriverDni || '---' }}</strong> • Licencia: <strong>{{ formDriverLicense || '---' }}</strong></span>
-          <span style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">Guardia {{ formShift }} • {{ formShiftType === 'DIA' ? '☀️ Turno Día' : '🌙 Turno Noche' }}</span>
+          <span style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px; display: inline-flex; align-items: center; gap: 4px;">
+            Guardia {{ formShift }} • 
+            <svg *ngIf="formShiftType === 'DIA'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+            <svg *ngIf="formShiftType !== 'DIA'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            {{ formShiftType === 'DIA' ? 'Turno Día' : 'Turno Noche' }}
+          </span>
         </div>
       </div>
 
@@ -226,8 +256,9 @@
         <div class="helper-text">
           <span>Completa la inspección técnica antes de arrancar la unidad en terreno.</span>
         </div>
-        <button type="button" class="btn btn-emerald-outline btn-sm" (click)="markAllItemsGood()">
-          ✓ Marcar Todo en Buen Estado (B)
+        <button type="button" class="btn btn-emerald-outline btn-sm" (click)="markAllItemsGood()" style="display:inline-flex;align-items:center;gap:5px;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          Marcar Todo en Buen Estado (B)
         </button>
       </div>
 
@@ -375,22 +406,33 @@
           </div>
 
           <div class="photo-upload-group">
-            <label style="font-weight: 600; display: block; margin-bottom: 6px;">
-              📸 Evidencia Fotográfica (Opcional):
+            <label style="font-weight: 600; display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                <circle cx="12" cy="13" r="4"/>
+              </svg>
+              Evidencia Fotográfica (Opcional):
             </label>
             
             <div *ngIf="!formPhotoUrl" class="upload-dropzone">
               <input #photoFileInput type="file" accept="image/*" capture="environment" (change)="onPhotoSelected($event)" style="display: none;" />
-              <button type="button" class="btn btn-secondary btn-upload-photo" (click)="photoFileInput.click()">
-                📷 Tomar Foto con Cámara / Subir Imagen
+              <button type="button" class="btn btn-secondary btn-upload-photo" (click)="photoFileInput.click()" style="display:inline-flex;align-items:center;gap:6px;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                  <circle cx="12" cy="13" r="4"/>
+                </svg>
+                Tomar Foto con Cámara / Subir Imagen
               </button>
-              <span class="upload-hint">Se comprime automáticamente para no saturar memoria (< 60 KB).</span>
+              <span class="upload-hint">Se comprime automáticamente para no saturar memoria (&lt; 60 KB).</span>
             </div>
 
             <div *ngIf="formPhotoUrl" class="photo-preview-wrapper animate-fade-in">
               <img [src]="formPhotoUrl" alt="Vista previa" class="photo-preview-img" />
               <div class="preview-actions">
-                <span class="preview-success-tag">✅ Fotografía Adjunta</span>
+                <span class="preview-success-tag" style="display:inline-flex;align-items:center;gap:4px;">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  Fotografía Adjunta
+                </span>
                 <button type="button" class="btn btn-danger-sm" (click)="removePhoto()">Quitar Foto</button>
               </div>
             </div>
@@ -405,7 +447,9 @@
           <label class="dictamen-option opt-apto" [class.selected]="formOperationalStatus === 'APTO'" (click)="formOperationalStatus = 'APTO'">
             <input type="radio" name="opStatus" value="APTO" [(ngModel)]="formOperationalStatus" />
             <div class="opt-body">
-              <span class="opt-indicator">🟢</span>
+              <span class="opt-indicator">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </span>
               <div class="opt-texts">
                 <strong>APTO PARA OPERAR</strong>
                 <span>Camioneta en condiciones óptimas de seguridad.</span>
@@ -416,7 +460,13 @@
           <label class="dictamen-option opt-observado" [class.selected]="formOperationalStatus === 'OBSERVADO'" (click)="formOperationalStatus = 'OBSERVADO'">
             <input type="radio" name="opStatus" value="OBSERVADO" [(ngModel)]="formOperationalStatus" />
             <div class="opt-body">
-              <span class="opt-indicator">🟡</span>
+              <span class="opt-indicator">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                  <line x1="12" y1="9" x2="12" y2="13"/>
+                  <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+              </span>
               <div class="opt-texts">
                 <strong>APTO CON OBSERVACIONES</strong>
                 <span>Daño estético o menor que no impide traslado seguro.</span>
@@ -427,7 +477,13 @@
           <label class="dictamen-option opt-noapto" [class.selected]="formOperationalStatus === 'NO_APTO'" (click)="formOperationalStatus = 'NO_APTO'">
             <input type="radio" name="opStatus" value="NO_APTO" [(ngModel)]="formOperationalStatus" />
             <div class="opt-body">
-              <span class="opt-indicator">🔴</span>
+              <span class="opt-indicator">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"/>
+                  <line x1="15" y1="9" x2="9" y2="15"/>
+                  <line x1="9" y1="9" x2="15" y2="15"/>
+                </svg>
+              </span>
               <div class="opt-texts">
                 <strong>NO APTO / INOPERATIVO</strong>
                 <span>Falla crítica (frenos, dirección o luces). Prohibido mover.</span>
@@ -480,11 +536,21 @@
 
       <!-- Observation Details in Modal -->
       <div *ngIf="selectedChecklistDetail.has_observations || selectedChecklistDetail.observation_notes" class="detail-obs-box">
-        <strong>⚠️ Observaciones Reportadas:</strong>
+        <strong style="display:flex;align-items:center;gap:6px;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+          Observaciones Reportadas:
+        </strong>
         <p>{{ selectedChecklistDetail.observation_notes || 'Sin nota detallada' }}</p>
         <div *ngIf="selectedChecklistDetail.photo_url" class="detail-photo-wrapper">
           <img [src]="selectedChecklistDetail.photo_url" alt="Foto observación" class="detail-photo-img" (click)="openPhotoPreview(selectedChecklistDetail.photo_url)" />
-          <span class="photo-hint">🔍 Haz clic en la foto para verla en pantalla completa</span>
+          <span class="photo-hint" style="display:inline-flex;align-items:center;gap:4px;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            Haz clic en la foto para verla en pantalla completa
+          </span>
         </div>
       </div>
 
@@ -493,7 +559,11 @@
         <h4>Inspección de 26 Puntos:</h4>
         <div class="detail-items-grid">
           <div *ngFor="let item of selectedChecklistDetail.items" class="detail-item-pill" [class.item-bad]="item.status === 'M'">
-            <span class="detail-status-indicator">{{ item.status === 'B' ? '✅' : (item.status === 'M' ? '❌' : '⚪') }}</span>
+            <span class="detail-status-indicator">
+              <svg *ngIf="item.status === 'B'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              <svg *ngIf="item.status === 'M'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              <svg *ngIf="item.status !== 'B' && item.status !== 'M'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/></svg>
+            </span>
             <span class="detail-name">{{ item.name }}</span>
           </div>
         </div>

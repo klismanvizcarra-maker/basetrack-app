@@ -43,7 +43,7 @@ export class OfflineSyncService {
         // Discard stale items older than 24 hours or retried >= 3 times
         if (itemAge > 24 * 60 * 60 * 1000 || (item.retryCount && item.retryCount >= 3)) {
           await this.idb.removeFromQueue(item.id);
-          console.log(`[OfflineSync] 🧹 Purgado ítem obsoleto de la cola: ${item.entityName}`);
+          console.log(`[OfflineSync] Purgado ítem obsoleto de la cola: ${item.entityName}`);
         }
       }
     } catch (e) {
@@ -58,7 +58,7 @@ export class OfflineSyncService {
         await this.idb.removeFromQueue(item.id);
       }
       await this.refreshQueueStatus();
-      console.log('[OfflineSync] ✅ Cola offline limpiada por completo.');
+      console.log('[OfflineSync] Cola offline limpiada por completo.');
     } catch (e) {
       console.error('[OfflineSync] Error clearing queue:', e);
     }
@@ -120,9 +120,9 @@ export class OfflineSyncService {
         }
 
         await this.idb.removeFromQueue(item.id);
-        console.log(`[OfflineSync] ✅ Sincronizado con éxito: ${item.entityName}`);
+        console.log(`[OfflineSync] Sincronizado con éxito: ${item.entityName}`);
       } catch (err: any) {
-        console.error(`[OfflineSync] ❌ Error sincronizando ${item.entityName}:`, err);
+        console.error(`[OfflineSync] Error sincronizando ${item.entityName}:`, err);
         const status = err?.status;
         
         // Si es un error 4xx no recuperable, o error de servidor con 2 reintentos, o superó 3 reintentos, descartar limpiamente

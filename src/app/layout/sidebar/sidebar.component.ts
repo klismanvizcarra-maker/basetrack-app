@@ -140,6 +140,21 @@ import { ThemeService } from '../../core/theme/theme.service';
           </li>
 
           <li class="nav-item">
+            <a routerLink="/flowsheet" routerLinkActive="active" class="nav-link" (click)="onNavClick()">
+              <span class="nav-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="6" cy="6" r="2.5"></circle>
+                  <circle cx="18" cy="18" r="2.5"></circle>
+                  <circle cx="18" cy="6" r="2.5"></circle>
+                  <path d="M6 8.5v7a2.5 2.5 0 0 0 2.5 2.5H15.5"></path>
+                  <path d="M8.5 6H15.5"></path>
+                </svg>
+              </span>
+              <span class="nav-label">Diagrama P&ID</span>
+            </a>
+          </li>
+
+          <li class="nav-item">
             <a routerLink="/maintenance" routerLinkActive="active" class="nav-link" (click)="onNavClick()">
               <span class="nav-icon">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -229,36 +244,75 @@ import { ThemeService } from '../../core/theme/theme.service';
 
       <!-- Offline / Online Connection Indicator & PWA Install Box -->
       <div class="sidebar-footer">
-        <!-- PWA Action Box -->
-        <div class="pwa-action-box">
-          <button
-            *ngIf="!pwa.isInstalled()"
-            type="button"
-            class="pwa-install-btn"
-            (click)="pwa.promptInstall()"
-            title="Instalar BASETRACK en este dispositivo móvil o PC"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-              <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
-              <line x1="12" y1="18" x2="12.01" y2="18"></line>
-              <path d="M12 6v6m-3-3 3 3 3-3"></path>
-            </svg>
-            <span>Instalar App en Dispositivo</span>
-          </button>
+        <!-- PWA Action Box (Micro-Tarjeta PWA Elegante) -->
+        <div class="pwa-action-box" *ngIf="!pwa.isInstalled() && !pwa.isDismissed()">
+          <div class="pwa-install-card">
+            <!-- Botón de descarte sutil -->
+            <button 
+              type="button" 
+              class="pwa-card-dismiss-btn" 
+              (click)="pwa.dismissInstallCard()" 
+              title="Ocultar recomendación de instalación"
+              aria-label="Cerrar recomendación de instalación"
+            >
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+            
+            <div class="pwa-card-header" (click)="pwa.promptInstall()">
+              <img src="/images/basetrack-icon-transparent.png" alt="BASETRACK" class="pwa-card-icon" />
+              <div class="pwa-card-titles">
+                <span class="pwa-card-badge">APP DE PLANTA</span>
+                <strong class="pwa-card-title">Instalar BASETRACK</strong>
+                <span class="pwa-card-desc">Acceso sin navegador & offline</span>
+              </div>
+            </div>
 
-          <div *ngIf="pwa.isInstalled()" class="pwa-active-badge">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#031795" stroke-width="2.5">
-              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-              <polyline points="22 4 12 14.01 9 11.01"></polyline>
-            </svg>
-            <span>Modo App Nativa PWA</span>
+            <button
+              type="button"
+              class="pwa-card-action-btn"
+              (click)="pwa.promptInstall()"
+              title="Instalar BASETRACK en este dispositivo"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3">
+                <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+                <line x1="12" y1="18" x2="12.01" y2="18"></line>
+                <path d="M12 6v6m-3-3 3 3 3-3"></path>
+              </svg>
+              <span>Instalar en este equipo</span>
+            </button>
           </div>
+        </div>
+
+        <div *ngIf="pwa.isInstalled()" class="pwa-active-badge">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+          </svg>
+          <span>Modo App Nativa PWA</span>
         </div>
 
         <!-- Theme Mode Switch in Sidebar -->
         <div class="sidebar-theme-row" (click)="themeService.toggleTheme()" [title]="themeService.isDarkMode() ? 'Modo Oscuro Activo - Clic para cambiar a Modo Claro' : 'Modo Claro Activo - Clic para cambiar a Modo Oscuro'">
           <div class="theme-row-label">
-            <span class="theme-row-icon">{{ themeService.isDarkMode() ? '🌙' : '☀️' }}</span>
+            <span class="theme-row-icon">
+              <svg *ngIf="themeService.isDarkMode()" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+              </svg>
+              <svg *ngIf="!themeService.isDarkMode()" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="5"></circle>
+                <line x1="12" y1="1" x2="12" y2="3"></line>
+                <line x1="12" y1="21" x2="12" y2="23"></line>
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                <line x1="1" y1="12" x2="3" y2="12"></line>
+                <line x1="21" y1="12" x2="23" y2="12"></line>
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+              </svg>
+            </span>
             <span class="theme-row-text">{{ themeService.isDarkMode() ? 'Modo Oscuro' : 'Modo Claro' }}</span>
           </div>
           <div class="theme-switch-pill" [class.dark-active]="themeService.isDarkMode()">
@@ -426,7 +480,7 @@ import { ThemeService } from '../../core/theme/theme.service';
       cursor: pointer;
 
       &:hover {
-        background: #f1f5f9;
+        background: var(--bg-card-hover);
         color: var(--text-primary);
       }
 
@@ -482,27 +536,118 @@ import { ThemeService } from '../../core/theme/theme.service';
       margin-bottom: 6px;
     }
 
-    .pwa-install-btn {
-      width: 100%;
+    .pwa-install-card {
+      position: relative;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-left: 3.5px solid #031795;
+      border-radius: var(--radius-md);
+      padding: 10px 12px;
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      transition: all 0.2s ease;
+
+      &:hover {
+        border-color: #031795;
+        box-shadow: 0 4px 12px rgba(3, 23, 149, 0.12);
+      }
+    }
+
+    .pwa-card-dismiss-btn {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      width: 18px;
+      height: 18px;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
-      padding: 9px 12px;
-      border-radius: var(--radius-md);
-      background: linear-gradient(135deg, #031795 0%, #02106b 100%);
-      color: #ffffff;
       border: none;
-      font-size: 0.78rem;
-      font-weight: 700;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 0.7rem;
+      border-radius: 50%;
       cursor: pointer;
-      box-shadow: 0 3px 10px rgba(3, 23, 149, 0.28);
-      transition: var(--transition-smooth);
+      transition: all 0.15s ease;
 
       &:hover {
+        background: var(--bg-card-hover, #f1f5f9);
+        color: var(--text-primary);
+      }
+    }
+
+    .pwa-card-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+    }
+
+    .pwa-card-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      object-fit: contain;
+      background: #eff6ff;
+      padding: 3px;
+      border: 1px solid #bfdbfe;
+    }
+
+    .pwa-card-titles {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .pwa-card-badge {
+      font-size: 0.58rem;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      color: #031795;
+      text-transform: uppercase;
+    }
+
+    .pwa-card-title {
+      font-size: 0.78rem;
+      font-weight: 800;
+      color: var(--text-primary);
+      line-height: 1.2;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .pwa-card-desc {
+      font-size: 0.66rem;
+      color: var(--text-muted);
+      line-height: 1.2;
+    }
+
+    .pwa-card-action-btn {
+      width: 100%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 7px;
+      background: #031795;
+      color: #ffffff;
+      border: none;
+      font-size: 0.74rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 6px rgba(3, 23, 149, 0.22);
+
+      &:hover {
+        background: #02106b;
         transform: translateY(-1px);
-        box-shadow: 0 5px 14px rgba(3, 23, 149, 0.42);
-        background: linear-gradient(135deg, #1e40af 0%, #031795 100%);
+        box-shadow: 0 4px 10px rgba(3, 23, 149, 0.35);
       }
     }
 
@@ -513,9 +658,9 @@ import { ThemeService } from '../../core/theme/theme.service';
       gap: 6px;
       padding: 6px 10px;
       border-radius: var(--radius-sm);
-      background: #eef2ff;
-      border: 1px solid #c7d2fe;
-      color: #031795;
+      background: var(--success-bg, #ecfdf5);
+      border: 1px solid rgba(5, 150, 105, 0.3);
+      color: #065f46;
       font-size: 0.72rem;
       font-weight: 700;
     }
@@ -528,7 +673,7 @@ import { ThemeService } from '../../core/theme/theme.service';
       font-weight: 500;
       padding: 6px 10px;
       border-radius: var(--radius-sm);
-      background: #f8fafc;
+      background: var(--bg-card-subtle);
       border: 1px solid var(--border-subtle);
 
       &.online {
@@ -612,6 +757,28 @@ import { ThemeService } from '../../core/theme/theme.service';
           transform: translateX(16px);
           background: #ffffff;
         }
+      }
+    }
+
+    :host-context([data-theme="dark"]),
+    :host-context(.dark-theme) {
+      .brand-icon {
+        background: #0d1527;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(59, 130, 246, 0.25);
+      }
+      .nav-badge-crew {
+        background: rgba(59, 130, 246, 0.15);
+        color: #93c5fd;
+        border-color: rgba(59, 130, 246, 0.3);
+      }
+      .pwa-card-icon {
+        background: #0d1527;
+        border-color: #1e293b;
+      }
+      .pwa-active-badge {
+        background: rgba(16, 185, 129, 0.15);
+        color: #34d399;
+        border-color: rgba(16, 185, 129, 0.3);
       }
     }
   `]

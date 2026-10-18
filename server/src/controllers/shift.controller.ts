@@ -19,10 +19,20 @@ export function getAllShiftHandovers(req: Request, res: Response) {
       if (typeof checklist === 'string' && (checklist.startsWith('[') || checklist.startsWith('{'))) {
         try { checklist = JSON.parse(checklist); } catch {}
       }
+      let maint = s.maintenance_orders;
+      if (typeof maint === 'string' && (maint.startsWith('[') || maint.startsWith('{'))) {
+        try { maint = JSON.parse(maint); } catch {}
+      }
+      let events = s.timeline_events;
+      if (typeof events === 'string' && (events.startsWith('[') || events.startsWith('{'))) {
+        try { events = JSON.parse(events); } catch {}
+      }
       return {
         ...s,
         assigned_crew: crew || null,
-        checklist_data: checklist || null
+        checklist_data: checklist || null,
+        maintenance_orders: maint || null,
+        timeline_events: events || null
       };
     });
     return res.json({ success: true, count: parsedShifts.length, data: parsedShifts });
@@ -37,7 +47,7 @@ export function createShiftHandover(req: AuthenticatedRequest, res: Response) {
       shift_code, date, shift_type, outgoing_supervisor, outgoing_dni, outgoing_role,
       incoming_supervisor, incoming_dni, incoming_role,
       plant_status, tonnage_processed, safety_incidents, operational_highlights, pending_tasks, status,
-      assigned_crew, checklist_data
+      assigned_crew, checklist_data, maintenance_orders, timeline_events
     } = req.body;
 
     const finalPlantStatus = (plant_status && String(plant_status).trim()) ? String(plant_status).trim() : 'Operación de planta en condiciones normales de proceso.';
@@ -64,20 +74,22 @@ export function createShiftHandover(req: AuthenticatedRequest, res: Response) {
     const handoverDate = date || siteToday();
     const crewJson = assigned_crew ? (typeof assigned_crew === 'string' ? assigned_crew : JSON.stringify(assigned_crew)) : null;
     const checklistJson = checklist_data ? (typeof checklist_data === 'string' ? checklist_data : JSON.stringify(checklist_data)) : null;
+    const maintJson = maintenance_orders ? (typeof maintenance_orders === 'string' ? maintenance_orders : JSON.stringify(maintenance_orders)) : null;
+    const eventsJson = timeline_events ? (typeof timeline_events === 'string' ? timeline_events : JSON.stringify(timeline_events)) : null;
 
     db.prepare(`
       INSERT INTO shift_handovers (
         id, shift_code, date, shift_type, outgoing_supervisor, outgoing_dni, outgoing_role,
         incoming_supervisor, incoming_dni, incoming_role,
         plant_status, tonnage_processed, safety_incidents, operational_highlights,
-        pending_tasks, status, assigned_crew, checklist_data
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        pending_tasks, status, assigned_crew, checklist_data, maintenance_orders, timeline_events
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       id, shift_code, handoverDate, shift_type, outSup, outDni, outRole,
       inSup, inDni, inRole,
       finalPlantStatus, tonnage_processed || 0, safety_incidents || null,
       operational_highlights || null, pending_tasks || null, status || 'SUBMITTED',
-      crewJson, checklistJson
+      crewJson, checklistJson, maintJson, eventsJson
     );
 
     // Broadcast WebSocket event to all other terminals
@@ -93,7 +105,9 @@ export function createShiftHandover(req: AuthenticatedRequest, res: Response) {
         incoming_supervisor: inSup,
         plant_status: finalPlantStatus,
         tonnage_processed: tonnage_processed || 0,
-        status: status || 'SUBMITTED'
+        status: status || 'SUBMITTED',
+        maintenance_orders: maintJson ? JSON.parse(maintJson) : null,
+        timeline_events: eventsJson ? JSON.parse(eventsJson) : null
       },
       key: 'basetrack_shift_handovers',
       deviceId: req.headers['x-device-id']?.toString() || 'server_api',

@@ -1,4 +1,4 @@
-import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, ChangeDetectionStrategy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { SidebarComponent } from '../sidebar/sidebar.component';
@@ -8,6 +8,7 @@ import { PwaService } from '../../core/pwa/pwa.service';
 import { LayoutService } from '../../core/layout/layout.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { ThemeService } from '../../core/theme/theme.service';
+import { getEffectiveAvatar } from '../../shared/utils/avatar.util';
 
 @Component({
   selector: 'app-main-layout',
@@ -123,7 +124,7 @@ import { ThemeService } from '../../core/theme/theme.service';
           <div class="hub-header">
             <div class="hub-user-info">
               <div class="hub-avatar-wrap">
-                <img [src]="authService.currentUser()?.avatarUrl || '/images/basetrack-icon-transparent.png'" alt="Avatar" class="hub-avatar" />
+                <img [src]="getUserAvatar()" alt="Avatar" class="hub-avatar" />
                 <span class="hub-status-dot"></span>
               </div>
               <div class="hub-user-meta">
@@ -148,84 +149,178 @@ import { ThemeService } from '../../core/theme/theme.service';
             <div class="hub-tiles-grid">
               <!-- 1. Dashboard -->
               <a routerLink="/dashboard" (click)="layoutService.closeMobileHub()" class="hub-tile" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
-                <div class="hub-tile-icon icon-dash">📊</div>
+                <div class="hub-tile-icon icon-dash">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="7" height="9" rx="1"></rect>
+                    <rect x="14" y="3" width="7" height="5" rx="1"></rect>
+                    <rect x="14" y="12" width="7" height="9" rx="1"></rect>
+                    <rect x="3" y="16" width="7" height="5" rx="1"></rect>
+                  </svg>
+                </div>
                 <span class="hub-tile-title">Dashboard</span>
                 <span class="hub-tile-sub">KPIs Planta</span>
               </a>
 
               <!-- 2. Bombas -->
               <a routerLink="/pumps" (click)="layoutService.closeMobileHub()" class="hub-tile" routerLinkActive="active">
-                <div class="hub-tile-icon icon-pumps">🌊</div>
+                <div class="hub-tile-icon icon-pumps">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path d="m4.93 4.93 4.24 4.24"></path>
+                    <path d="m14.83 9.17 4.24-4.24"></path>
+                    <path d="m14.83 14.83 4.24 4.24"></path>
+                    <path d="m9.17 14.83-4.24 4.24"></path>
+                    <circle cx="12" cy="12" r="4"></circle>
+                  </svg>
+                </div>
                 <span class="hub-tile-title">Bombas</span>
                 <span class="hub-tile-sub">24 Unidades</span>
               </a>
 
               <!-- 3. Ciclones -->
               <a routerLink="/cyclones" (click)="layoutService.closeMobileHub()" class="hub-tile" routerLinkActive="active">
-                <div class="hub-tile-icon icon-ciclones">🌀</div>
+                <div class="hub-tile-icon icon-ciclones">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"></path>
+                  </svg>
+                </div>
                 <span class="hub-tile-title">Ciclones</span>
                 <span class="hub-tile-sub">Muestreo UF/OF</span>
               </a>
 
               <!-- 4. Relaves -->
               <a routerLink="/tailings" (click)="layoutService.closeMobileHub()" class="hub-tile" routerLinkActive="active">
-                <div class="hub-tile-icon icon-relaves">🏔️</div>
+                <div class="hub-tile-icon icon-relaves">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M2 20h20"></path>
+                    <path d="m5 20 5-13 4 8 5-11 3 16"></path>
+                  </svg>
+                </div>
                 <span class="hub-tile-title">Relaves</span>
                 <span class="hub-tile-sub">Borde Libre</span>
               </a>
 
+              <!-- Flowsheet / P&ID -->
+              <a routerLink="/flowsheet" (click)="layoutService.closeMobileHub()" class="hub-tile" routerLinkActive="active">
+                <div class="hub-tile-icon icon-flowsheet">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="6" cy="6" r="2.5"></circle>
+                    <circle cx="18" cy="18" r="2.5"></circle>
+                    <circle cx="18" cy="6" r="2.5"></circle>
+                    <path d="M6 8.5v7a2.5 2.5 0 0 0 2.5 2.5H15.5"></path>
+                    <path d="M8.5 6H15.5"></path>
+                  </svg>
+                </div>
+                <span class="hub-tile-title">Flowsheet</span>
+                <span class="hub-tile-sub">P&ID Cortadera</span>
+              </a>
+
               <!-- 5. Relevo de Guardia -->
               <a routerLink="/shift-handover" (click)="layoutService.closeMobileHub()" class="hub-tile" routerLinkActive="active">
-                <div class="hub-tile-icon icon-shift">📋</div>
+                <div class="hub-tile-icon icon-shift">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+                    <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+                    <path d="m9 14 2 2 4-4"></path>
+                  </svg>
+                </div>
                 <span class="hub-tile-title">Relevo</span>
                 <span class="hub-tile-sub">Cambio Turno</span>
               </a>
 
               <!-- 6. Mantenimiento -->
               <a routerLink="/maintenance" (click)="layoutService.closeMobileHub()" class="hub-tile" routerLinkActive="active">
-                <div class="hub-tile-icon icon-maint">🛠️</div>
+                <div class="hub-tile-icon icon-maint">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+                  </svg>
+                </div>
                 <span class="hub-tile-title">Mantenimiento</span>
                 <span class="hub-tile-sub">OTs & Averías</span>
               </a>
 
               <!-- 7. Camionetas -->
               <a routerLink="/vehicle-checklist" (click)="layoutService.closeMobileHub()" class="hub-tile" routerLinkActive="active">
-                <div class="hub-tile-icon icon-truck">🛻</div>
+                <div class="hub-tile-icon icon-truck">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M10 17h4"></path>
+                    <path d="M5 17a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"></path>
+                    <path d="M19 17a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"></path>
+                    <path d="M14 5h4l3 5v4h-3"></path>
+                    <path d="M7 17H3V6a1 1 0 0 1 1-1h10v12"></path>
+                  </svg>
+                </div>
                 <span class="hub-tile-title">Camionetas</span>
                 <span class="hub-tile-sub">Checklist 4x4</span>
               </a>
 
               <!-- 8. Cuadrilla -->
               <a routerLink="/crew" (click)="layoutService.closeMobileHub()" class="hub-tile" routerLinkActive="active">
-                <div class="hub-tile-icon icon-crew">👥</div>
+                <div class="hub-tile-icon icon-crew">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                    <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                  </svg>
+                </div>
                 <span class="hub-tile-title">Cuadrilla</span>
                 <span class="hub-tile-sub">Dotación & EPP</span>
               </a>
 
               <!-- 9. Rol 8x8 -->
               <a routerLink="/roster" (click)="layoutService.closeMobileHub()" class="hub-tile" routerLinkActive="active">
-                <div class="hub-tile-icon icon-roster">📅</div>
+                <div class="hub-tile-icon icon-roster">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                  </svg>
+                </div>
                 <span class="hub-tile-title">Rol 8x8</span>
                 <span class="hub-tile-sub">Calendario</span>
               </a>
 
               <!-- 10. Calculadoras -->
               <a routerLink="/calculators" (click)="layoutService.closeMobileHub()" class="hub-tile" routerLinkActive="active">
-                <div class="hub-tile-icon icon-calc">🧮</div>
+                <div class="hub-tile-icon icon-calc">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="4" y="2" width="16" height="20" rx="2"></rect>
+                    <line x1="8" y1="6" x2="16" y2="6"></line>
+                    <line x1="16" y1="14" x2="16" y2="18"></line>
+                    <path d="M16 10h.01"></path>
+                    <path d="M12 10h.01"></path>
+                    <path d="M8 10h.01"></path>
+                    <path d="M12 14h.01"></path>
+                    <path d="M8 14h.01"></path>
+                    <path d="M12 18h.01"></path>
+                  </svg>
+                </div>
                 <span class="hub-tile-title">Calculadoras</span>
                 <span class="hub-tile-sub">Flujos & Densidad</span>
               </a>
 
               <!-- 11. Mi Perfil -->
               <a routerLink="/profile" (click)="layoutService.closeMobileHub()" class="hub-tile" routerLinkActive="active">
-                <div class="hub-tile-icon icon-profile">👤</div>
+                <div class="hub-tile-icon icon-profile">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                  </svg>
+                </div>
                 <span class="hub-tile-title">Mi Perfil</span>
                 <span class="hub-tile-sub">Ficha & Radio</span>
               </a>
 
               <!-- 12. Administración -->
               <a *ngIf="authService.isAdmin() || authService.isSupervisor()" routerLink="/admin" (click)="layoutService.closeMobileHub()" class="hub-tile" routerLinkActive="active">
-                <div class="hub-tile-icon icon-admin">⚙️</div>
+                <div class="hub-tile-icon icon-admin">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                </div>
                 <span class="hub-tile-title">Admin</span>
                 <span class="hub-tile-sub">Control & Backup</span>
               </a>
@@ -236,19 +331,46 @@ import { ThemeService } from '../../core/theme/theme.service';
           <div class="hub-quick-actions">
             <!-- Dark/Light Theme -->
             <button type="button" class="hub-action-btn" (click)="themeService.toggleTheme()">
-              <span class="action-icon">{{ themeService.isDarkMode() ? '☀️' : '🌙' }}</span>
+              <span class="action-icon">
+                <svg *ngIf="themeService.isDarkMode()" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="5"></circle>
+                  <line x1="12" y1="1" x2="12" y2="3"></line>
+                  <line x1="12" y1="21" x2="12" y2="23"></line>
+                  <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                  <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                  <line x1="1" y1="12" x2="3" y2="12"></line>
+                  <line x1="21" y1="12" x2="23" y2="12"></line>
+                  <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                  <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                </svg>
+                <svg *ngIf="!themeService.isDarkMode()" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                </svg>
+              </span>
               <span>{{ themeService.isDarkMode() ? 'Modo Claro' : 'Modo Oscuro' }}</span>
             </button>
 
             <!-- PWA Install -->
             <button *ngIf="!pwa.isInstalled()" type="button" class="hub-action-btn install-btn" (click)="layoutService.closeMobileHub(); pwa.promptInstall()">
-              <span class="action-icon">📲</span>
+              <span class="action-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="5" y="2" width="14" height="20" rx="3"></rect>
+                  <line x1="12" y1="18" x2="12.01" y2="18"></line>
+                  <path d="M12 6v6m-3-3 3 3 3-3"></path>
+                </svg>
+              </span>
               <span>Instalar</span>
             </button>
 
             <!-- Logout -->
             <button type="button" class="hub-action-btn logout-btn" (click)="logout()">
-              <span class="action-icon">🚪</span>
+              <span class="action-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                  <polyline points="16 17 21 12 16 7"></polyline>
+                  <line x1="21" y1="12" x2="9" y2="12"></line>
+                </svg>
+              </span>
               <span>Salir</span>
             </button>
           </div>
@@ -256,50 +378,236 @@ import { ThemeService } from '../../core/theme/theme.service';
       </div>
     </div>
 
-    <!-- PWA Install Guide Modal -->
+    <!-- PWA Install Guide Modal (Renovado con Detección Inteligente & Pestañas) -->
     <app-modal
       [isOpen]="pwa.showInstallModal()"
-      [title]="'Instalar BASETRACK como App Móvil / Tablet'"
+      [title]="'Instalar Aplicación Oficial BASETRACK'"
       (close)="pwa.closeInstallModal()"
     >
       <div class="pwa-guide-content">
         <div class="app-icon-hero">
           <img src="/images/basetrack-icon-transparent.png" alt="BASETRACK App" class="hero-icon-img" />
-          <div>
-            <h4>BASETRACK Mobile & Tablet</h4>
-            <p class="hero-desc">Monitoreo de planta sin barras de navegador, pantalla completa y acceso rápido offline.</p>
+          <div class="hero-text-block">
+            <h4>BASETRACK Planta Concentradora</h4>
+            <p class="hero-desc">Monitoreo de planta sin barras de navegador, pantalla completa e inicio instantáneo sin conexión.</p>
           </div>
         </div>
 
-        <div class="install-steps-list">
-          <div class="step-card">
-            <div class="step-badge">Android / Chrome</div>
-            <p>1. Pulsa en los tres puntos <strong>(⋮)</strong> arriba a la derecha en Chrome.</p>
-            <p>2. Selecciona <strong>"Instalar aplicación"</strong> o <strong>"Agregar a la pantalla principal"</strong>.</p>
+        <!-- Pestañas por Plataforma con Detección Automática -->
+        <div class="pwa-platform-tabs">
+          <button 
+            type="button" 
+            class="pwa-tab-btn" 
+            [class.active]="selectedInstallTab === 'mac'"
+            (click)="selectedInstallTab = 'mac'"
+          >
+            <span class="tab-icon-wrap">
+              <svg class="tab-svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.37c.61-.75 1.04-1.8 0.92-2.85-.9.04-2.03.62-2.67 1.37-.56.65-1.06 1.71-.93 2.72 1.02.08 2.07-.49 2.68-1.24z"/>
+              </svg>
+            </span>
+            <span class="tab-label">Mac (macOS)</span>
+            <span class="detected-chip" *ngIf="pwa.platform() === 'mac'">Tu Equipo</span>
+          </button>
+          <button 
+            type="button" 
+            class="pwa-tab-btn" 
+            [class.active]="selectedInstallTab === 'ios'"
+            (click)="selectedInstallTab = 'ios'"
+          >
+            <span class="tab-icon-wrap">
+              <svg class="tab-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="6" y="2" width="12" height="20" rx="2.5"></rect>
+                <line x1="11" y1="18" x2="13" y2="18"></line>
+              </svg>
+            </span>
+            <span class="tab-label">iPhone / iPad</span>
+            <span class="detected-chip" *ngIf="pwa.platform() === 'ios'">Tu Equipo</span>
+          </button>
+          <button 
+            type="button" 
+            class="pwa-tab-btn" 
+            [class.active]="selectedInstallTab === 'android'"
+            (click)="selectedInstallTab = 'android'"
+          >
+            <span class="tab-icon-wrap">
+              <svg class="tab-svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M17.523 15.341c-.551 0-.999-.448-.999-.999s.448-.999.999-.999c.551 0 .999.448.999.999s-.448.999-.999.999m-11.046 0c-.551 0-.999-.448-.999-.999s.448-.999.999-.999.999.448.999.999-.448.999-.999.999m11.405-6.02l1.996-3.457a.557.557 0 0 0-.206-.77.56.56 0 0 0-.77.206l-2.022 3.502C15.35 8.17 13.723 7.8 12 7.8s-3.35.37-4.881 1.003L5.097 5.3a.56.56 0 0 0-.77-.206.557.557 0 0 0-.206.77l1.996 3.457C2.656 11.196.344 14.734 0 19.043h24c-.344-4.309-2.656-7.846-6.118-9.722"/>
+              </svg>
+            </span>
+            <span class="tab-label">Android</span>
+            <span class="detected-chip" *ngIf="pwa.platform() === 'android'">Tu Equipo</span>
+          </button>
+          <button 
+            type="button" 
+            class="pwa-tab-btn" 
+            [class.active]="selectedInstallTab === 'windows'"
+            (click)="selectedInstallTab = 'windows'"
+          >
+            <span class="tab-icon-wrap">
+              <svg class="tab-svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.902-1.8"/>
+              </svg>
+            </span>
+            <span class="tab-label">Windows / PC</span>
+            <span class="detected-chip" *ngIf="pwa.platform() === 'windows' || pwa.platform() === 'pc'">Tu Equipo</span>
+          </button>
+        </div>
+
+        <!-- Cuerpo de Instrucciones Específicas -->
+        <div class="platform-guide-body">
+          <!-- MAC (macOS) -->
+          <div *ngIf="selectedInstallTab === 'mac'" class="platform-step-card animate-fade-in">
+            <div class="step-card-header">
+              <span class="step-platform-badge apple">Apple macOS</span>
+              <span class="step-hint">Safari & Google Chrome</span>
+            </div>
+            <div class="step-instruction-row">
+              <span class="step-number-pill">1</span>
+              <div class="step-instruction-text">
+                <strong>En Safari (Recomendado en Mac):</strong> En la barra de menús superior de tu Mac, ve a <strong>Archivo</strong> &rarr; haz clic en <strong>"Agregar al Dock..."</strong>.
+                <div class="step-sub-note">También puedes pulsar el botón <em>Compartir</em>
+                  <span class="inline-svg-icon" title="Compartir">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                      <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
+                      <polyline points="16 6 12 2 8 6"></polyline>
+                      <line x1="12" y1="2" x2="12" y2="15"></line>
+                    </svg>
+                  </span>
+                  en Safari y seleccionar <strong>"Agregar al Dock"</strong>.
+                </div>
+              </div>
+            </div>
+            <div class="step-instruction-row">
+              <span class="step-number-pill">2</span>
+              <div class="step-instruction-text">
+                <strong>En Chrome / Edge:</strong> Haz clic en el icono 
+                <span class="inline-svg-icon" title="Instalar">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                  </svg>
+                </span>
+                en la barra de direcciones superior y confirma.
+              </div>
+            </div>
+            <div class="step-benefit-box">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5" class="benefit-check-icon">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+              <strong>Resultado:</strong> BASETRACK se anclará a tu Dock como app nativa independiente sin marcos de navegador.
+            </div>
           </div>
 
-          <div class="step-card">
-            <div class="step-badge apple">iPhone / iPad (Safari)</div>
-            <p>1. Pulsa el botón <strong>Compartir</strong> <span class="share-icon">⎙</span> en la barra inferior.</p>
-            <p>2. Desliza hacia abajo y pulsa <strong>"Agregar al inicio"</strong> <span class="add-icon">➕</span>.</p>
+          <!-- IPHONE / IPAD -->
+          <div *ngIf="selectedInstallTab === 'ios'" class="platform-step-card animate-fade-in">
+            <div class="step-card-header">
+              <span class="step-platform-badge apple">Apple iOS & iPadOS</span>
+              <span class="step-hint">Navegador Safari</span>
+            </div>
+            <div class="step-instruction-row">
+              <span class="step-number-pill">1</span>
+              <div class="step-instruction-text">
+                Abre esta página en <strong>Safari</strong> y pulsa el botón <strong>Compartir</strong>
+                <span class="inline-svg-icon" title="Compartir">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                    <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
+                    <polyline points="16 6 12 2 8 6"></polyline>
+                    <line x1="12" y1="2" x2="12" y2="15"></line>
+                  </svg>
+                </span>
+                (rectángulo con flecha hacia arriba).
+              </div>
+            </div>
+            <div class="step-instruction-row">
+              <span class="step-number-pill">2</span>
+              <div class="step-instruction-text">
+                Desliza hacia abajo en el menú de opciones y pulsa <strong>"Agregar a pantalla de inicio"</strong>
+                <span class="inline-svg-icon" title="Agregar">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                  </svg>
+                </span>.
+              </div>
+            </div>
+            <div class="step-instruction-row">
+              <span class="step-number-pill">3</span>
+              <div class="step-instruction-text">
+                Pulsa <strong>"Agregar"</strong> en la esquina superior derecha. ¡Listo! Ya tienes el icono oficial de BASETRACK en tu inicio.
+              </div>
+            </div>
           </div>
 
-          <div class="step-card">
-            <div class="step-badge pc">PC / Laptop (Chrome / Edge)</div>
-            <p>1. Pulsa el icono de pantalla con flecha <strong>[⬇]</strong> en la barra de direcciones.</p>
-            <p>2. Haz clic en <strong>"Instalar"</strong> para abrirla en ventana nativa independiente.</p>
+          <!-- ANDROID -->
+          <div *ngIf="selectedInstallTab === 'android'" class="platform-step-card animate-fade-in">
+            <div class="step-card-header">
+              <span class="step-platform-badge android">Google Android</span>
+              <span class="step-hint">Chrome & Samsung Internet</span>
+            </div>
+            <div class="step-instruction-row">
+              <span class="step-number-pill">1</span>
+              <div class="step-instruction-text">
+                Pulsa el botón <strong>"Instalar Ahora"</strong> abajo para abrir el diálogo nativo de descarga inmediata.
+              </div>
+            </div>
+            <div class="step-instruction-row">
+              <span class="step-number-pill">2</span>
+              <div class="step-instruction-text">
+                Si tu navegador no emite el aviso automático, pulsa los <strong>tres puntos (⋮)</strong> arriba a la derecha y selecciona <strong>"Instalar aplicación"</strong> o <strong>"Agregar a la pantalla principal"</strong>.
+              </div>
+            </div>
+          </div>
+
+          <!-- WINDOWS / PC -->
+          <div *ngIf="selectedInstallTab === 'windows'" class="platform-step-card animate-fade-in">
+            <div class="step-card-header">
+              <span class="step-platform-badge pc">Windows / Laptop</span>
+              <span class="step-hint">Google Chrome & Microsoft Edge</span>
+            </div>
+            <div class="step-instruction-row">
+              <span class="step-number-pill">1</span>
+              <div class="step-instruction-text">
+                En la barra superior de direcciones (URL), busca el icono de descarga
+                <span class="inline-svg-icon" title="Instalar">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                  </svg>
+                </span>
+                o el símbolo de instalación
+                <span class="inline-svg-icon" title="Agregar">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                  </svg>
+                </span>.
+              </div>
+            </div>
+            <div class="step-instruction-row">
+              <span class="step-number-pill">2</span>
+              <div class="step-instruction-text">
+                Haz clic en <strong>"Instalar"</strong>. La app se abrirá en su propia ventana y podrás anclarla a la Barra de Tareas.
+              </div>
+            </div>
           </div>
         </div>
 
         <div footer class="modal-footer-btns">
-          <button type="button" class="btn btn-secondary" (click)="pwa.closeInstallModal()">Cerrar</button>
-          <button type="button" class="btn btn-primary" (click)="tryDirectPrompt()">
+          <button type="button" class="btn btn-secondary" (click)="pwa.closeInstallModal()">Entendido</button>
+          <button 
+            type="button" 
+            class="btn btn-primary btn-install-direct" 
+            (click)="tryDirectPrompt()"
+          >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
               <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
               <line x1="12" y1="18" x2="12.01" y2="18"></line>
               <path d="M12 6v6m-3-3 3 3 3-3"></path>
             </svg>
-            Instalar Ahora
+            Instalar en este Dispositivo
           </button>
         </div>
       </div>
@@ -666,16 +974,34 @@ import { ThemeService } from '../../core/theme/theme.service';
         box-shadow: 0 0 0 1px var(--primary-purple);
 
         .hub-tile-title {
-          color: var(--primary-purple);
+          color: #031795;
           font-weight: 800;
+        }
+
+        .hub-tile-icon {
+          background: #031795;
+          color: #ffffff;
         }
       }
     }
 
     .hub-tile-icon {
-      font-size: 1.45rem;
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       margin-bottom: 4px;
-      line-height: 1;
+      background: rgba(3, 23, 149, 0.06);
+      color: #031795;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+
+      svg {
+        display: block;
+        width: 19px;
+        height: 19px;
+      }
     }
 
     .hub-tile-title {
@@ -717,6 +1043,13 @@ import { ThemeService } from '../../core/theme/theme.service';
       min-height: 40px;
       transition: var(--transition-smooth);
 
+      .action-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
+      }
+
       &:active {
         transform: scale(0.95);
       }
@@ -751,91 +1084,376 @@ import { ThemeService } from '../../core/theme/theme.service';
       border-radius: var(--radius-md);
 
       .hero-icon-img {
-        width: 56px;
-        height: 56px;
-        border-radius: var(--radius-md);
-        box-shadow: 0 4px 12px rgba(3, 23, 149, 0.3);
+        width: 54px;
+        height: 54px;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(3, 23, 149, 0.25);
+        object-fit: contain;
+      }
+
+      .hero-text-block {
+        flex: 1;
       }
 
       h4 {
         font-size: 1.05rem;
         font-weight: 800;
-        color: #031795;
-        margin-bottom: 2px;
+        color: var(--text-primary);
+        margin: 0 0 3px 0;
       }
 
       .hero-desc {
         font-size: 0.8rem;
-        color: #1e40af;
+        color: var(--text-secondary);
         line-height: 1.35;
+        margin: 0;
       }
     }
 
-    .install-steps-list {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
+    .pwa-platform-tabs {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      background: var(--bg-card-subtle);
+      padding: 4px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-subtle);
+
+      @media (max-width: 600px) {
+        grid-template-columns: repeat(2, 1fr);
+      }
     }
 
-    .step-card {
-      padding: 12px 14px;
+    .pwa-tab-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 6px;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      background: transparent;
+      cursor: pointer;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
+      gap: 6px;
+
+      .tab-icon-wrap {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(100, 116, 139, 0.08);
+        color: var(--text-secondary);
+        transition: all 0.18s ease;
+
+        .tab-svg {
+          display: block;
+        }
+      }
+
+      .tab-label {
+        font-size: 0.75rem;
+        white-space: nowrap;
+        font-weight: 600;
+      }
+
+      .detected-chip {
+        font-size: 0.62rem;
+        font-weight: 800;
+        background: #059669;
+        color: #ffffff;
+        padding: 1px 6px;
+        border-radius: 10px;
+        letter-spacing: 0.2px;
+      }
+
+      &:hover {
+        background: var(--bg-surface);
+        color: var(--text-primary);
+
+        .tab-icon-wrap {
+          background: rgba(3, 23, 149, 0.08);
+          color: #031795;
+        }
+      }
+
+      &.active {
+        background: var(--bg-surface);
+        color: #031795;
+        border-color: #031795;
+        box-shadow: 0 2px 8px rgba(3, 23, 149, 0.12);
+        font-weight: 700;
+
+        .tab-icon-wrap {
+          background: rgba(3, 23, 149, 0.12);
+          color: #031795;
+        }
+
+        .tab-label {
+          color: #031795;
+        }
+      }
+    }
+
+    .inline-svg-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      vertical-align: -2px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 4px;
+      padding: 2px 4px;
+      color: var(--text-primary);
+      margin: 0 2px;
+      line-height: 1;
+
+      svg {
+        display: block;
+      }
+    }
+
+    .benefit-check-icon {
+      display: inline-block;
+      vertical-align: -2px;
+      margin-right: 4px;
+    }
+
+    .platform-guide-body {
+      min-height: 140px;
+    }
+
+    .platform-step-card {
+      padding: 14px 16px;
       border: 1px solid var(--border-subtle);
       border-radius: var(--radius-md);
       background: var(--bg-card-subtle);
-      font-size: 0.82rem;
-      line-height: 1.45;
-      color: var(--text-secondary);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
 
-      p {
-        margin: 2px 0;
+    .step-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px dashed var(--border-subtle);
+      padding-bottom: 8px;
+
+      .step-platform-badge {
+        font-size: 0.72rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        padding: 3px 8px;
+        border-radius: 6px;
+        letter-spacing: 0.4px;
+
+        &.apple {
+          background: #f1f5f9;
+          color: #334155;
+        }
+        &.android {
+          background: #dcfce7;
+          color: #166534;
+        }
+        &.pc {
+          background: #e0e7ff;
+          color: #3730a3;
+        }
       }
 
-      strong {
-        color: var(--text-primary);
+      .step-hint {
+        font-size: 0.75rem;
+        color: var(--text-secondary);
+        font-weight: 500;
       }
     }
 
-    .step-badge {
-      display: inline-block;
-      font-size: 0.72rem;
-      font-weight: 800;
-      padding: 2px 8px;
-      border-radius: var(--radius-full);
-      background: #d1fae5;
-      color: #065f46;
-      margin-bottom: 6px;
+    .step-instruction-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
 
-      &.apple {
-        background: #f1f5f9;
-        color: #334155;
+      .step-number-pill {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: #031795;
+        color: #ffffff;
+        font-size: 0.72rem;
+        font-weight: 800;
+        flex-shrink: 0;
+        margin-top: 1px;
       }
 
-      &.pc {
-        background: #e0e7ff;
-        color: #3730a3;
+      .step-instruction-text {
+        font-size: 0.82rem;
+        line-height: 1.45;
+        color: var(--text-secondary);
+
+        strong {
+          color: var(--text-primary);
+        }
+
+        .step-sub-note {
+          font-size: 0.76rem;
+          color: var(--text-secondary);
+          margin-top: 4px;
+        }
+
+        .badge-icon {
+          display: inline-block;
+          font-weight: 800;
+          color: #031795;
+        }
+      }
+    }
+
+    .step-benefit-box {
+      font-size: 0.78rem;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      color: #1e40af;
+      padding: 8px 12px;
+      border-radius: 8px;
+      line-height: 1.4;
+
+      strong {
+        color: #1d4ed8;
       }
     }
 
     .modal-footer-btns {
       display: flex;
       justify-content: flex-end;
+      align-items: center;
       gap: 10px;
       width: 100%;
-      margin-top: 10px;
+      margin-top: 6px;
+
+      .btn-install-direct {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        background: #031795;
+        color: #ffffff;
+        border: none;
+        padding: 9px 18px;
+        font-weight: 700;
+        font-size: 0.85rem;
+        border-radius: 8px;
+        cursor: pointer;
+        box-shadow: 0 4px 12px rgba(3, 23, 149, 0.25);
+        transition: transform 0.15s ease, background 0.15s ease;
+
+        &:hover {
+          background: #021278;
+          transform: translateY(-1px);
+        }
+      }
+    }
+
+    :host-context(.dark-theme) {
+      .hub-tile-icon {
+        background: rgba(59, 130, 246, 0.12);
+        color: #60a5fa;
+      }
+
+      .hub-tile.active {
+        border-color: #3b82f6;
+        background: rgba(59, 130, 246, 0.1);
+        box-shadow: 0 0 0 1px #3b82f6;
+
+        .hub-tile-icon {
+          background: #2563eb;
+          color: #ffffff;
+        }
+
+        .hub-tile-title {
+          color: #60a5fa;
+        }
+      }
+
+      .pwa-tab-btn {
+        .tab-icon-wrap {
+          background: rgba(255, 255, 255, 0.06);
+          color: #94a3b8;
+        }
+
+        &:hover {
+          .tab-icon-wrap {
+            background: rgba(59, 130, 246, 0.15);
+            color: #60a5fa;
+          }
+        }
+
+        &.active {
+          color: #60a5fa;
+          border-color: #3b82f6;
+          box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+
+          .tab-icon-wrap {
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+          }
+
+          .tab-label {
+            color: #60a5fa;
+          }
+        }
+      }
+
+      .step-benefit-box {
+        background: rgba(30, 58, 138, 0.2);
+        border-color: rgba(59, 130, 246, 0.3);
+        color: #93c5fd;
+
+        strong {
+          color: #bfdbfe;
+        }
+      }
+
+      .modal-footer-btns .btn-install-direct {
+        background: #2563eb;
+        &:hover {
+          background: #1d4ed8;
+        }
+      }
     }
   `]
 })
-export class MainLayoutComponent {
+export class MainLayoutComponent implements OnInit {
   pwa = inject(PwaService);
   layoutService = inject(LayoutService);
   authService = inject(AuthService);
   themeService = inject(ThemeService);
   private router = inject(Router);
 
+  selectedInstallTab: 'ios' | 'android' | 'mac' | 'windows' | 'pc' = 'mac';
+
+  ngOnInit(): void {
+    const detected = this.pwa.platform();
+    this.selectedInstallTab = detected === 'pc' ? 'windows' : detected;
+  }
+
   tryDirectPrompt(): void {
     this.pwa.promptInstall().then(() => {
       this.pwa.closeInstallModal();
     });
+  }
+
+  getUserAvatar(): string {
+    const user = this.authService.currentUser();
+    return getEffectiveAvatar(user?.avatarUrl, user?.fullName || user?.username, user?.role, user?.shift);
   }
 
   logout(): void {

@@ -45,7 +45,12 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
               </svg>
               {{ copiedText ? '¡Copiado!' : 'Copiar' }}
             </button>
-            <button type="button" class="close-btn" (click)="closeModal()">✕</button>
+            <button type="button" class="close-btn" (click)="closeModal()" aria-label="Cerrar modal">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
           </div>
         </div>
 
@@ -395,7 +400,11 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
       .close-btn {
         background: transparent;
         color: #94a3b8;
-        font-size: 1.1rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: none;
+        cursor: pointer;
         padding: 4px 8px;
         &:hover { color: #ffffff; }
       }
@@ -1107,15 +1116,15 @@ export class PumpReportPdfComponent implements OnInit {
 
   copyExecutiveSummary(): void {
     const s = this.activeSheet;
-    const summary = `📋 *BASETRACK - REPORTE DE BOMBAS Y SENTINAS (FORMATO PLANTA)*
-📅 Fecha: ${s.report_date || this.todayDate} | Guardia: ${s.shift_code || 'G1'}
-👤 Operador: ${s.operator_name || this.operatorName}
-🌊 Bombas Operando: ${this.totalOperatingCount} de ${this.totalPumpsCount} (Sentina: ${this.sentinaOperatingCount}/8, Intermedia: ${this.intermediaOperatingCount}/6, Torre 5: ${this.torre5OperatingCount}/10)
-📊 Niveles: ORCA: ${s.levels?.orca || '---'} | Espejo: ${s.levels?.espejo || '---'} | Captación: ${s.levels?.captacion || '---'}
-💧 Nivel Sentina: ${s.main_indicators?.nivel_sentina || '---'} | Bombeo Turno: ${s.main_indicators?.bombeo_turno_intermedia || '---'}
-🧪 pH Aforador: ${s.main_indicators?.ph_aforador || '---'} | pH Cortafugas: ${s.main_indicators?.ph_cortafugas || '---'}
-📌 Notas: ${s.additional_obs?.notas || '---'}
-✅ Reporte Oficial Validado`;
+    const summary = `*BASETRACK - REPORTE DE BOMBAS Y SENTINAS (FORMATO PLANTA)*
+Fecha: ${s.report_date || this.todayDate} | Guardia: ${s.shift_code || 'G1'}
+Operador: ${s.operator_name || this.operatorName}
+Bombas Operando: ${this.totalOperatingCount} de ${this.totalPumpsCount} (Sentina: ${this.sentinaOperatingCount}/8, Intermedia: ${this.intermediaOperatingCount}/6, Torre 5: ${this.torre5OperatingCount}/10)
+Niveles: ORCA: ${s.levels?.orca || '---'} | Espejo: ${s.levels?.espejo || '---'} | Captación: ${s.levels?.captacion || '---'}
+Nivel Sentina: ${s.main_indicators?.nivel_sentina || '---'} | Bombeo Turno: ${s.main_indicators?.bombeo_turno_intermedia || '---'}
+pH Aforador: ${s.main_indicators?.ph_aforador || '---'} | pH Cortafugas: ${s.main_indicators?.ph_cortafugas || '---'}
+Notas: ${s.additional_obs?.notas || '---'}
+Reporte Oficial Validado`;
 
     copyToClipboard(summary).then((success) => {
       if (success) {

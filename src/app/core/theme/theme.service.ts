@@ -92,13 +92,13 @@ export class ThemeService {
 
     if (isDark) {
       root.setAttribute('data-theme', 'dark');
-      root.classList.add('dark-theme');
-      body.classList.add('dark-theme');
+      root.classList.add('dark-theme', 'dark');
+      body.classList.add('dark-theme', 'dark');
       this.updateMetaThemeColor('#0a0f1d');
     } else {
       root.setAttribute('data-theme', 'light');
-      root.classList.remove('dark-theme');
-      body.classList.remove('dark-theme');
+      root.classList.remove('dark-theme', 'dark');
+      body.classList.remove('dark-theme', 'dark');
       this.updateMetaThemeColor('#031795');
     }
   }

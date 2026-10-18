@@ -2,7 +2,12 @@
   <div class="section-card glass-panel header-banner-card">
     <div class="card-head">
       <div class="head-with-icon">
-        <span class="fleet-icon">⚙️</span>
+        <span class="fleet-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+        </span>
         <div>
           <h3>Calibrador de Parámetros de Planta & Metas Operacionales</h3>
           <p class="section-sub">
@@ -18,7 +23,13 @@
           [disabled]="isSavingPlantParams"
           title="Restablecer todos los umbrales a los valores nominales de fábrica"
         >
-          <span>↺ Valores de Fábrica</span>
+          <span style="display: inline-flex; align-items: center; gap: 5px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="1 4 1 10 7 10"></polyline>
+              <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+            </svg>
+            Valores de Fábrica
+          </span>
         </button>
         <button 
           type="button" 
@@ -27,7 +38,14 @@
           [disabled]="isSavingPlantParams"
           title="Guardar y propagar nuevos parámetros a toda la planta"
         >
-          <span *ngIf="!isSavingPlantParams">💾 Guardar Parámetros</span>
+          <span *ngIf="!isSavingPlantParams" style="display: inline-flex; align-items: center; gap: 5px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+              <polyline points="17 21 17 13 7 13 7 21"></polyline>
+              <polyline points="7 3 7 8 15 8"></polyline>
+            </svg>
+            Guardar Parámetros
+          </span>
           <span *ngIf="isSavingPlantParams">Guardando...</span>
         </button>
       </div>
@@ -55,35 +73,60 @@
   <!-- Live Summary Metrics Bar -->
   <div class="plant-metrics-bar glass-panel">
     <div class="metric-pill">
-      <span class="m-icon">🎯</span>
+      <span class="m-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <circle cx="12" cy="12" r="6"></circle>
+          <circle cx="12" cy="12" r="2"></circle>
+        </svg>
+      </span>
       <div class="m-content">
         <span class="m-lbl">Meta Turno</span>
         <strong class="m-val">{{ editablePlantParams.tonnage_target_shift | number }} <small>Ton</small></strong>
       </div>
     </div>
     <div class="metric-pill">
-      <span class="m-icon">⚡</span>
+      <span class="m-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+        </svg>
+      </span>
       <div class="m-content">
         <span class="m-lbl">Tratamiento</span>
         <strong class="m-val">{{ editablePlantParams.nominal_feed_rate_tph | number }} <small>TPH</small></strong>
       </div>
     </div>
     <div class="metric-pill">
-      <span class="m-icon">🌀</span>
+      <span class="m-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"></path>
+          <path d="M2 12h20"></path>
+        </svg>
+      </span>
       <div class="m-content">
         <span class="m-lbl">Malla -200 OF</span>
         <strong class="m-val">{{ editablePlantParams.cyclones_target_mesh200_of | number:'1.1-1' }}%</strong>
       </div>
     </div>
     <div class="metric-pill">
-      <span class="m-icon">🛡️</span>
+      <span class="m-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+        </svg>
+      </span>
       <div class="m-content">
         <span class="m-lbl">Borde Libre Mín.</span>
         <strong class="m-val">{{ editablePlantParams.tailings_min_freeboard_meters | number:'1.1-1' }} <small>m</small></strong>
       </div>
     </div>
     <div class="metric-pill">
-      <span class="m-icon">🕒</span>
+      <span class="m-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <polyline points="12 6 12 12 16 14"></polyline>
+        </svg>
+      </span>
       <div class="m-content">
         <span class="m-lbl">Último Ajuste</span>
         <strong class="m-val-sub">{{ editablePlantParams.updated_at | date:'dd/MM/yyyy HH:mm' }}</strong>
@@ -96,7 +139,13 @@
     <!-- CARD 1: Metas Generales de Producción & Turnos -->
     <div class="param-card glass-panel">
       <div class="param-card-header">
-        <span class="card-icon">🏭</span>
+        <span class="card-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2 20h20"></path>
+            <path d="M5 20V8l5 4V4l5 4v12"></path>
+            <path d="M18 20v-7l3 2v5"></path>
+          </svg>
+        </span>
         <div>
           <h4>1. Producción & Turnos</h4>
           <p class="card-desc">Nombre institucional, tonelaje de guardia y horarios de relevo</p>
@@ -150,7 +199,13 @@
     <!-- CARD 2: Control Metalúrgico & Ciclones -->
     <div class="param-card glass-panel">
       <div class="param-card-header">
-        <span class="card-icon">🌀</span>
+        <span class="card-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"></path>
+            <path d="M2 12h20"></path>
+          </svg>
+        </span>
         <div>
           <h4>2. Metalurgia & Ciclones (D20 / Cyclopac)</h4>
           <p class="card-desc">Criterios granulométricos, corte de clasificación y presión manifold</p>
@@ -219,7 +274,11 @@
     <!-- CARD 3: Transporte de Pulpa & Pozas Sentina -->
     <div class="param-card glass-panel">
       <div class="param-card-header">
-        <span class="card-icon">⚡</span>
+        <span class="card-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+          </svg>
+        </span>
         <div>
           <h4>3. Bombas de Pulpa & Sentinas</h4>
           <p class="card-desc">Líneas slurry, capacidades volumétricas y niveles de poza</p>
@@ -269,7 +328,11 @@
     <!-- CARD 4: Depósito de Relaves & Presa -->
     <div class="param-card glass-panel">
       <div class="param-card-header">
-        <span class="card-icon">🌊</span>
+        <span class="card-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m8 3 4 8 5-5 5 15H2L8 3z"></path>
+          </svg>
+        </span>
         <div>
           <h4>4. Depósito de Relaves & Presa de Agua</h4>
           <p class="card-desc">Criterios de seguridad geotécnica e hidrológica de presa</p>

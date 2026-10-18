@@ -102,7 +102,7 @@ export class AdminTerminalsTabComponent implements OnInit {
     const isSelf = this.isCurrentDevice(dev.device_id);
     let msg = `¿Estás seguro de revocar la sesión para la terminal "${dev.device_name || dev.device_id}"?\nEl usuario ${dev.username || ''} será deslogueado remotamente de inmediato.`;
     if (isSelf) {
-      msg = `⚠️ ADVERTENCIA CRÍTICA:\nEsta es tu terminal y sesión ACTUAL en este equipo.\nSi revocas esta sesión, serás deslogueado inmediatamente de la aplicación.\n\n¿Estás absolutamente seguro de continuar?`;
+      msg = `[ADVERTENCIA CRÍTICA]\nEsta es tu terminal y sesión ACTUAL en este equipo.\nSi revocas esta sesión, serás deslogueado inmediatamente de la aplicación.\n\n¿Estás absolutamente seguro de continuar?`;
     }
 
     if (!confirm(msg)) {
@@ -180,7 +180,7 @@ export class AdminTerminalsTabComponent implements OnInit {
     }).subscribe({
       next: (res) => {
         this.isBroadcastingUpdate = false;
-        this.notify.emit({ text: '✓ Señal de actualización emitida exitosamente a todas las terminales en vivo.', ms: 6000 });
+        this.notify.emit({ text: 'Señal de actualización emitida exitosamente a todas las terminales en vivo.', ms: 6000 });
       },
       error: (err) => {
         this.isBroadcastingUpdate = false;
@@ -217,13 +217,17 @@ export class AdminTerminalsTabComponent implements OnInit {
     return ua.length > 22 ? ua.substring(0, 22) + '...' : ua;
   }
 
-  getDeviceIcon(name?: string, ua?: string | null): string {
+  getDeviceType(name?: string, ua?: string | null): string {
     const text = ((name || '') + ' ' + (ua || '')).toLowerCase();
-    if (text.includes('tablet') || text.includes('pad')) return '📱';
-    if (text.includes('android') || text.includes('iphone') || text.includes('mobile')) return '📲';
-    if (text.includes('laptop') || text.includes('portatil')) return '💻';
-    if (text.includes('node') || text.includes('script') || text.includes('api')) return '⚙️';
-    return '🖥️';
+    if (text.includes('tablet') || text.includes('pad')) return 'tablet';
+    if (text.includes('android') || text.includes('iphone') || text.includes('mobile')) return 'mobile';
+    if (text.includes('laptop') || text.includes('portatil')) return 'laptop';
+    if (text.includes('node') || text.includes('script') || text.includes('api')) return 'api';
+    return 'desktop';
+  }
+
+  getDeviceIcon(name?: string, ua?: string | null): string {
+    return this.getDeviceType(name, ua);
   }
 
   formatRelativeTime(timestamp?: string): string {

@@ -45,7 +45,12 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
               </svg>
               {{ copiedText ? '¡Copiado!' : 'Copiar' }}
             </button>
-            <button type="button" class="close-btn" (click)="closeModal()">✕</button>
+            <button type="button" class="close-btn" (click)="closeModal()" aria-label="Cerrar modal">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
           </div>
         </div>
 
@@ -306,7 +311,11 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
       .close-btn {
         background: transparent;
         color: #94a3b8;
-        font-size: 1.1rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: none;
+        cursor: pointer;
         padding: 4px 8px;
         &:hover { color: #ffffff; }
       }
@@ -776,14 +785,14 @@ export class TailingsReportPdfComponent implements OnInit {
   }
 
   copyExecutiveSummary(): void {
-    const summary = `📋 *BASETRACK - REPORTE OFICIAL DE PRESA DE RELAVES (1 HOJA)*
-📅 Fecha: ${this.todayDate} | Guardia: ${this.displayShift}
-👤 Operador: ${this.operatorName}
-🌊 Borde Libre: 3.8m (Margen Seguro > 2.5m) | Cota Espejo: 4,120.4 msnm
-📉 Presión Piezométrica: 142.6 kPa (Línea Freática Conforme)
-💧 Agua Recuperada: 740 m³/h | Turbidez: 12.4 NTU
-📌 Operación y descarga de relaves estable
-✅ Documento Oficial Validado`;
+    const summary = `*BASETRACK - REPORTE OFICIAL DE PRESA DE RELAVES (1 HOJA)*
+Fecha: ${this.todayDate} | Guardia: ${this.displayShift}
+Operador: ${this.operatorName}
+Borde Libre: 3.8m (Margen Seguro > 2.5m) | Cota Espejo: 4,120.4 msnm
+Presión Piezométrica: 142.6 kPa (Línea Freática Conforme)
+Agua Recuperada: 740 m³/h | Turbidez: 12.4 NTU
+Operación y descarga de relaves estable
+Documento Oficial Validado`;
 
     copyToClipboard(summary).then((success) => {
       if (success) {

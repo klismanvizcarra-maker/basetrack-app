@@ -23,6 +23,27 @@ export interface HandoverChecklistItem {
   notes?: string;
 }
 
+export interface HandoverMaintenanceOrder {
+  id?: string;
+  ticket_number: string;
+  equipment_tag: string;
+  title: string;
+  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'EMERGENCY';
+  status: 'PENDING' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED';
+  specialty?: string;
+  description?: string;
+  assigned_to?: string;
+  included?: boolean;
+}
+
+export interface HandoverTimelineEvent {
+  id: string;
+  time: string;
+  category: 'OPERACION' | 'MANTENIMIENTO' | 'SEGURIDAD' | 'PARADA' | 'RELAVES';
+  description: string;
+  severity?: 'INFO' | 'WARNING' | 'ALERT';
+}
+
 export interface ShiftHandover {
   id: string;
   shift_code: string;
@@ -43,6 +64,8 @@ export interface ShiftHandover {
   pending_tasks: string;
   assigned_crew?: any[];
   checklist_data?: HandoverChecklistItem[];
+  maintenance_orders?: HandoverMaintenanceOrder[];
+  timeline_events?: HandoverTimelineEvent[];
   status: 'DRAFT' | 'SUBMITTED' | 'ACCEPTED';
   created_at: string;
 }
@@ -180,7 +203,13 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
           </button>
 
           <div *ngIf="!permissionsService.canCloseShift()" class="readonly-pill-notice" title="Modo informativo de bitácora">
-            <span>🔒 Modo Consulta (Firma exclusiva de Supervisión)</span>
+            <span style="display:inline-flex;align-items:center;gap:6px;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+              Modo Consulta (Firma exclusiva de Supervisión)
+            </span>
           </div>
         </div>
       </div>
@@ -245,7 +274,7 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
               <span class="kpi-mini-unit">Observada{{ observedVehicles.length !== 1 ? 's' : '' }}</span>
             </div>
             <span class="kpi-mini-sub">
-              {{ observedVehicles.length === 0 ? '● 4 Unidades Aptas' : '⚠️ Pendientes de Mantenimiento' }}
+              {{ observedVehicles.length === 0 ? '● 4 Unidades Aptas' : '▲ Pendientes de Mantenimiento' }}
             </span>
           </div>
         </div>
@@ -333,7 +362,8 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
           <div class="bcs-grid">
             <div class="bcs-item" *ngFor="let item of latestHandover.checklist_data">
               <span class="bcs-indicator" [class.bcs-conforme]="item.status === 'CONFORME'" [class.bcs-observado]="item.status === 'OBSERVADO'">
-                {{ item.status === 'CONFORME' ? '✓' : '⚠️' }}
+                <svg *ngIf="item.status === 'CONFORME'" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                <svg *ngIf="item.status !== 'CONFORME'" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
               </span>
               <div class="bcs-text">
                 <strong class="bcs-title">{{ item.title }}</strong>
@@ -351,7 +381,12 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
           </div>
           <div class="handover-crew-grid">
             <div class="h-crew-card" *ngFor="let m of currentSquadStaff">
-              <div class="h-crew-icon">👷</div>
+              <div class="h-crew-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                  <circle cx="12" cy="7" r="4"/>
+                </svg>
+              </div>
               <div class="h-crew-info">
                 <span class="h-crew-role">{{ m.title }}</span>
                 <strong class="h-crew-name">{{ m.operatorName }}</strong>
@@ -365,7 +400,13 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
         <div class="banner-vehicle-warning" *ngIf="observedVehicles.length > 0">
           <div class="bvw-header">
             <div class="bvw-title-row">
-              <span class="bvw-icon">⚠️</span>
+              <span class="bvw-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                  <line x1="12" y1="9" x2="12" y2="13"/>
+                  <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+              </span>
               <div>
                 <strong class="bvw-title">Novedades de Flota Vehicular en Turno ({{ observedVehicles.length }} Unidad{{ observedVehicles.length > 1 ? 'es' : '' }} con Restricción)</strong>
                 <p class="bvw-sub">Camionetas observadas o no aptas en checklist pre-uso. Unidades aptas (verde) se omiten.</p>
@@ -382,7 +423,79 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
                 </span>
               </div>
               <div class="bvw-obs">{{ v.observationNotes }}</div>
-              <div class="bvw-meta">👤 {{ v.driverName }} (DNI: {{ v.driverDni }}) • 📍 {{ v.area }} • ⏱️ {{ v.odometer | number }} km</div>
+              <div class="bvw-meta">
+                <span class="meta-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-1px;margin-right:3px;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>{{ v.driverName }} (DNI: {{ v.driverDni }})</span>
+                • <span class="meta-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-1px;margin-right:3px;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>{{ v.area }}</span>
+                • <span class="meta-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-1px;margin-right:3px;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>{{ v.odometer | number }} km</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECCIÓN DE ÓRDENES DE TRABAJO (CMMS) EN TURNO -->
+        <div class="banner-maintenance-section" *ngIf="latestHandover.maintenance_orders && latestHandover.maintenance_orders.length > 0">
+          <div class="bms-header">
+            <div class="bms-title-row">
+              <span class="bms-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+                </svg>
+              </span>
+              <div>
+                <strong class="bms-title">Órdenes de Trabajo & Equipos en Mantenimiento ({{ latestHandover.maintenance_orders.length }} Activas)</strong>
+                <p class="bms-sub">Equipos críticos en intervención, preventivo o correctivo transferidos en este relevo.</p>
+              </div>
+            </div>
+            <span class="bms-count-pill">{{ latestHandover.maintenance_orders.length }} OT(s)</span>
+          </div>
+          <div class="bms-grid">
+            <div class="bms-card" *ngFor="let ot of latestHandover.maintenance_orders">
+              <div class="bms-card-top">
+                <span class="bms-tag">{{ ot.equipment_tag }}</span>
+                <span class="badge badge-sm" [ngClass]="getPriorityBadgeClass(ot.priority)">{{ ot.priority }}</span>
+              </div>
+              <strong class="bms-card-title">{{ ot.ticket_number }}: {{ ot.title }}</strong>
+              <p class="bms-card-desc" *ngIf="ot.description">{{ ot.description }}</p>
+              <div class="bms-card-meta">
+                <span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-1px;margin-right:3px;"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>{{ ot.specialty || 'Mecánica' }}</span>
+                <span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-1px;margin-right:3px;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>{{ ot.assigned_to || 'Técnico de Guardia' }}</span>
+                <span class="badge badge-sm badge-info">{{ ot.status }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECCIÓN DE LÍNEA DE TIEMPO (TIMELINE) DEL TURNO -->
+        <div class="banner-timeline-section" *ngIf="latestHandover.timeline_events && latestHandover.timeline_events.length > 0">
+          <div class="bts-header">
+            <div class="bts-title-row">
+              <span class="bts-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                </svg>
+              </span>
+              <div>
+                <strong class="bts-title">Línea de Tiempo de Eventos y Novedades del Turno ({{ latestHandover.timeline_events.length }} Hitos)</strong>
+                <p class="bts-sub">Registro cronológico de maniobras, lavados de ciclones, rotaciones de bombas y paradas.</p>
+              </div>
+            </div>
+            <span class="bts-count-pill">{{ latestHandover.timeline_events.length }} Evento(s)</span>
+          </div>
+          <div class="bts-timeline-list">
+            <div class="bts-timeline-item" *ngFor="let ev of latestHandover.timeline_events" [class.item-alert]="ev.severity === 'ALERT'" [class.item-warning]="ev.severity === 'WARNING'">
+              <div class="bts-time-col">
+                <span class="bts-time-badge">{{ ev.time }}</span>
+                <div class="bts-dot" [ngClass]="'dot-' + (ev.category | lowercase)"></div>
+              </div>
+              <div class="bts-content-col">
+                <div class="bts-item-header">
+                  <span class="bts-cat-badge" [ngClass]="getCategoryBadgeClass(ev.category)">{{ getCategoryLabel(ev.category) }}</span>
+                  <span class="badge badge-sm" *ngIf="ev.severity && ev.severity !== 'INFO'" [class.badge-danger]="ev.severity === 'ALERT'" [class.badge-warning]="ev.severity === 'WARNING'">
+                    {{ ev.severity === 'ALERT' ? 'CRÍTICO' : 'ATENCIÓN' }}
+                  </span>
+                </div>
+                <p class="bts-item-desc">{{ ev.description }}</p>
+              </div>
             </div>
           </div>
         </div>
@@ -418,7 +531,12 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
       <!-- Empty State Banner when no handovers exist -->
       <div class="current-handover-banner glass-panel" *ngIf="!latestHandover">
         <div class="empty-state-block">
-          <span class="empty-icon">📋</span>
+          <span class="empty-icon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+              <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
+            </svg>
+          </span>
           <h3>Bitácora de Relevo Lista</h3>
           <p>
             No hay entregas de guardia registradas. La bitácora se encuentra limpia y preparada para registrar el primer relevo de operaciones con acreditación oficial de supervisión.
@@ -446,7 +564,9 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
                 <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
               </svg>
               <input type="text" [(ngModel)]="searchQuery" placeholder="Buscar por código, supervisor, guardia..." />
-              <button *ngIf="searchQuery" class="clear-search-btn" (click)="searchQuery = ''">✕</button>
+              <button *ngIf="searchQuery" class="clear-search-btn" (click)="searchQuery = ''">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
             </div>
 
             <!-- Guard Filter -->
@@ -514,8 +634,10 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
                 </td>
                 <td>{{ h.date }}</td>
                 <td>
-                  <span class="badge" [class.badge-purple]="h.shift_type === 'DIA'" [class.badge-dark-shift]="h.shift_type === 'NOCHE'">
-                    {{ h.shift_type === 'DIA' ? '☀️ DÍA' : '🌙 NOCHE' }}
+                  <span class="badge" [class.badge-purple]="h.shift_type === 'DIA'" [class.badge-dark-shift]="h.shift_type === 'NOCHE'" style="display:inline-flex;align-items:center;gap:4px;">
+                    <svg *ngIf="h.shift_type === 'DIA'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+                    <svg *ngIf="h.shift_type === 'NOCHE'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                    {{ h.shift_type === 'DIA' ? 'DÍA' : 'NOCHE' }}
                   </span>
                 </td>
                 <td>
@@ -564,7 +686,10 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
               <tr *ngIf="filteredHandovers.length === 0">
                 <td colspan="8" class="empty-table-cell">
                   <div class="empty-table-msg">
-                    <span>🔍</span>
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="11" cy="11" r="8"></circle>
+                      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
                     <p>No se encontraron relevos que coincidan con los filtros seleccionados.</p>
                     <button class="btn btn-secondary btn-sm" (click)="resetFilters()">Restablecer Filtros</button>
                   </div>
@@ -581,7 +706,11 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
           <!-- Smart Auto-sync Plant Bar -->
           <div class="auto-sync-banner">
             <div class="asb-left">
-              <span class="asb-icon">⚡</span>
+              <span class="asb-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                </svg>
+              </span>
               <div>
                 <strong>Autocarga de Parámetros de Planta</strong>
                 <p>Extrae automáticamente estado de bombas, ciclones, relaves y novedades de camionetas.</p>
@@ -596,8 +725,9 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
             </button>
           </div>
 
-          <div *ngIf="syncSuccessMsg" class="sync-toast-alert animate-fade-in">
-            ✓ {{ syncSuccessMsg }}
+          <div *ngIf="syncSuccessMsg" class="sync-toast-alert animate-fade-in" style="display:flex;align-items:center;gap:6px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            {{ syncSuccessMsg }}
           </div>
 
           <!-- SECCIÓN 1: VINCULACIÓN ESTRICTA DE GUARDIAS Y SUPERVISORES -->
@@ -691,7 +821,10 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
           <div class="modal-crew-preview-card">
             <div class="mcp-header">
               <div class="mcp-title">
-                <span>👷</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px;margin-right:6px;">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                  <circle cx="12" cy="7" r="4"/>
+                </svg>
                 <strong>Dotación Titular de Guardia {{ newHandover.outgoing_guard }} en Turno ({{ modalSquadStaff.length }} Puestos)</strong>
               </div>
               <span class="mcp-count">Nómina Oficial Minera</span>
@@ -727,7 +860,12 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
           <div class="checklist-interactive-box">
             <div class="cib-header">
               <div class="cib-title">
-                <span class="cib-icon">📋</span>
+                <span class="cib-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+                    <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
+                  </svg>
+                </span>
                 <strong>Protocolo de Verificación Operacional (Checklist 5 Puntos)</strong>
               </div>
               <span class="cib-sub">Marque Conforme u Observado en cada punto crítico de planta</span>
@@ -742,11 +880,13 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
                   <input type="text" class="cib-item-note-input" [(ngModel)]="item.notes" [name]="'chk_note_' + i" placeholder="Detalle u observación específica..." />
                 </div>
                 <div class="cib-item-toggle">
-                  <button type="button" class="btn-chk-state" [class.active-conforme]="item.status === 'CONFORME'" (click)="setChecklistStatus(item, 'CONFORME')">
-                    ✓ Conforme
+                  <button type="button" class="btn-chk-state" [class.active-conforme]="item.status === 'CONFORME'" (click)="setChecklistStatus(item, 'CONFORME')" style="display:inline-flex;align-items:center;gap:4px;">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    Conforme
                   </button>
-                  <button type="button" class="btn-chk-state" [class.active-observado]="item.status === 'OBSERVADO'" (click)="setChecklistStatus(item, 'OBSERVADO')">
-                    ⚠️ Observado
+                  <button type="button" class="btn-chk-state" [class.active-observado]="item.status === 'OBSERVADO'" (click)="setChecklistStatus(item, 'OBSERVADO')" style="display:inline-flex;align-items:center;gap:4px;">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    Observado
                   </button>
                 </div>
               </div>
@@ -756,7 +896,13 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
           <!-- Alerta de camionetas con observación para la consigna -->
           <div class="modal-vehicle-alert" *ngIf="observedVehicles.length > 0">
             <div class="mva-header">
-              <span class="mva-icon">⚠️</span>
+              <span class="mva-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                  <line x1="12" y1="9" x2="12" y2="13"/>
+                  <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+              </span>
               <strong>Flota Vehicular con Novedades ({{ observedVehicles.length }} unidades registradas)</strong>
             </div>
             <div class="mva-list">
@@ -769,6 +915,132 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
               </div>
             </div>
             <small class="mva-sub">Se consolida automáticamente en la consigna de pendientes del relevo.</small>
+          </div>
+
+          <!-- SECCIÓN: ÓRDENES DE TRABAJO (CMMS) PARA TRANSFERIR -->
+          <div class="modal-maintenance-card">
+            <div class="mmc-header">
+              <div class="mmc-title">
+                <span class="mmc-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+                  </svg>
+                </span>
+                <div>
+                  <strong>Órdenes de Trabajo & Equipos en Mantenimiento (CMMS)</strong>
+                  <p class="mmc-sub">Seleccione las OTs e intervenciones activas que se transfieren a la siguiente guardia</p>
+                </div>
+              </div>
+              <button type="button" class="btn btn-secondary btn-sm" (click)="loadActiveMaintenanceOrders()">
+                ↻ Actualizar OTs
+              </button>
+            </div>
+
+            <div class="mmc-list" *ngIf="modalMaintenanceOrders.length > 0">
+              <div class="mmc-item" *ngFor="let ot of modalMaintenanceOrders" [class.selected]="ot.included">
+                <label class="mmc-checkbox-label">
+                  <input type="checkbox" [(ngModel)]="ot.included" [name]="'ot_' + (ot.id || ot.ticket_number)" />
+                  <div class="mmc-item-body">
+                    <div class="mmc-item-top">
+                      <span class="mmc-tag">{{ ot.equipment_tag }}</span>
+                      <strong class="mmc-ticket">{{ ot.ticket_number }}</strong>
+                      <span class="badge badge-sm" [ngClass]="getPriorityBadgeClass(ot.priority)">{{ ot.priority }}</span>
+                      <span class="mmc-spec"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-1px;margin-right:3px;"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>{{ ot.specialty || 'Mecánica' }}</span>
+                    </div>
+                    <div class="mmc-item-title">{{ ot.title }}</div>
+                    <div class="mmc-item-meta" *ngIf="ot.assigned_to">Asignado: {{ ot.assigned_to }}</div>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <div class="mmc-empty" *ngIf="modalMaintenanceOrders.length === 0" style="display:flex;align-items:center;justify-content:center;gap:6px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              No se registran órdenes de trabajo críticas abiertas en este turno.
+            </div>
+          </div>
+
+          <!-- SECCIÓN: LÍNEA DE TIEMPO Y BITÁCORA CRONOLÓGICA DE EVENTOS -->
+          <div class="modal-timeline-card">
+            <div class="mtc-header">
+              <div class="mtc-title">
+                <span class="mtc-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                  </svg>
+                </span>
+                <div>
+                  <strong>Línea de Tiempo del Turno (Timeline Cronológico)</strong>
+                  <p class="mtc-sub">Registre eventos clave del turno (lavados, maniobras, rotaciones, paradas)</p>
+                </div>
+              </div>
+              <span class="mtc-count">{{ modalTimelineEvents.length }} Registrado(s)</span>
+            </div>
+
+            <!-- Presets rápidos -->
+            <div class="mtc-presets-bar">
+              <span class="presets-label">Presets Rápidos:</span>
+              <div class="presets-chips">
+                <button type="button" class="preset-chip" *ngFor="let p of eventPresets" (click)="applyEventPreset(p)">
+                  {{ p.label }}
+                </button>
+              </div>
+            </div>
+
+            <!-- Formulario de nuevo evento -->
+            <div class="mtc-add-box">
+              <div class="mtc-add-row">
+                <div class="form-group time-group">
+                  <label>Hora</label>
+                  <div class="time-input-wrap">
+                    <input type="time" [(ngModel)]="newEventTime" name="new_ev_time" />
+                    <button type="button" class="btn-now" (click)="setNowTime()" title="Usar hora actual">Ahora</button>
+                  </div>
+                </div>
+                <div class="form-group cat-group">
+                  <label>Categoría</label>
+                  <select [(ngModel)]="newEventCategory" name="new_ev_cat">
+                    <option value="OPERACION">Operación</option>
+                    <option value="MANTENIMIENTO">Mantenimiento</option>
+                    <option value="SEGURIDAD">Seguridad</option>
+                    <option value="RELAVES">Relaves</option>
+                    <option value="PARADA">Parada de Planta</option>
+                  </select>
+                </div>
+                <div class="form-group sev-group">
+                  <label>Severidad</label>
+                  <select [(ngModel)]="newEventSeverity" name="new_ev_sev">
+                    <option value="INFO">Informativo</option>
+                    <option value="WARNING">Atención</option>
+                    <option value="ALERT">Alerta / Crítico</option>
+                  </select>
+                </div>
+              </div>
+              <div class="mtc-desc-row">
+                <input type="text" [(ngModel)]="newEventDescription" name="new_ev_desc" placeholder="Descripción de la novedad, maniobra o evento..." (keydown.enter)="$event.preventDefault(); addTimelineEvent()" />
+                <button type="button" class="btn btn-primary btn-sm btn-add-event" (click)="addTimelineEvent()">
+                  + Agregar
+                </button>
+              </div>
+            </div>
+
+            <!-- Lista de eventos cargados -->
+            <div class="mtc-events-list" *ngIf="modalTimelineEvents.length > 0">
+              <div class="mtc-event-item" *ngFor="let ev of modalTimelineEvents; let i = index">
+                <span class="mtc-ev-time">{{ ev.time }}</span>
+                <span class="mtc-ev-cat" [ngClass]="getCategoryBadgeClass(ev.category)">{{ getCategoryLabel(ev.category) }}</span>
+                <span class="badge badge-sm" *ngIf="ev.severity && ev.severity !== 'INFO'" [class.badge-danger]="ev.severity === 'ALERT'" [class.badge-warning]="ev.severity === 'WARNING'">
+                  {{ ev.severity === 'ALERT' ? 'CRÍTICO' : 'ATENCIÓN' }}
+                </span>
+                <span class="mtc-ev-desc">{{ ev.description }}</span>
+                <button type="button" class="btn-delete-ev" (click)="removeTimelineEvent(i)" title="Eliminar evento">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+              </div>
+            </div>
+            <div class="mtc-empty-msg" *ngIf="modalTimelineEvents.length === 0">
+              Sin eventos cronológicos agregados. Use los presets o ingrese novedades puntuales.
+            </div>
           </div>
 
           <div class="form-group">
@@ -887,9 +1159,69 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
 
           <!-- Pending Tasks -->
           <div class="dsw-section" *ngIf="selectedHandoverForDetail.pending_tasks">
-            <span class="dsw-section-title highlight-orange">⚠️ Pendientes y Consignas para la Próxima Guardia</span>
+            <span class="dsw-section-title highlight-orange" style="display:flex;align-items:center;gap:6px;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+              Pendientes y Consignas para la Próxima Guardia
+            </span>
             <div class="dsw-pending-box">
               <pre class="dsw-pending-pre">{{ selectedHandoverForDetail.pending_tasks }}</pre>
+            </div>
+          </div>
+
+          <!-- SECCIÓN: ÓRDENES DE TRABAJO EN RELEVO -->
+          <div class="dsw-section" *ngIf="selectedHandoverForDetail.maintenance_orders && selectedHandoverForDetail.maintenance_orders.length > 0">
+            <span class="dsw-section-title" style="display:flex;align-items:center;gap:6px;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+              </svg>
+              Órdenes de Trabajo & Equipos en Mantenimiento ({{ selectedHandoverForDetail.maintenance_orders.length }})
+            </span>
+            <div class="dsw-ot-grid">
+              <div class="dsw-ot-card" *ngFor="let ot of selectedHandoverForDetail.maintenance_orders">
+                <div class="dsw-ot-header">
+                  <span class="dsw-ot-tag">{{ ot.equipment_tag }}</span>
+                  <strong class="dsw-ot-number">{{ ot.ticket_number }}</strong>
+                  <span class="badge badge-sm" [ngClass]="getPriorityBadgeClass(ot.priority)">{{ ot.priority }}</span>
+                  <span class="badge badge-sm badge-info">{{ ot.status }}</span>
+                </div>
+                <div class="dsw-ot-title">{{ ot.title }}</div>
+                <p class="dsw-ot-desc" *ngIf="ot.description">{{ ot.description }}</p>
+                <div class="dsw-ot-footer">
+                  <span><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-1px;margin-right:3px;"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>Especialidad: {{ ot.specialty || 'Mecánica' }}</span>
+                  <span><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-1px;margin-right:3px;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Responsable: {{ ot.assigned_to || 'Guardia' }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SECCIÓN: LÍNEA DE TIEMPO CRONOLÓGICA -->
+          <div class="dsw-section" *ngIf="selectedHandoverForDetail.timeline_events && selectedHandoverForDetail.timeline_events.length > 0">
+            <span class="dsw-section-title" style="display:flex;align-items:center;gap:6px;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+              </svg>
+              Línea de Tiempo de Eventos y Novedades del Turno ({{ selectedHandoverForDetail.timeline_events.length }})
+            </span>
+            <div class="dsw-timeline-list">
+              <div class="dsw-timeline-item" *ngFor="let ev of selectedHandoverForDetail.timeline_events">
+                <div class="dsw-tl-time-box">
+                  <span class="dsw-tl-time">{{ ev.time }}</span>
+                  <div class="dsw-tl-dot" [ngClass]="'dot-' + (ev.category | lowercase)"></div>
+                </div>
+                <div class="dsw-tl-content">
+                  <div class="dsw-tl-top">
+                    <span class="bts-cat-badge" [ngClass]="getCategoryBadgeClass(ev.category)">{{ getCategoryLabel(ev.category) }}</span>
+                    <span class="badge badge-sm" *ngIf="ev.severity && ev.severity !== 'INFO'" [class.badge-danger]="ev.severity === 'ALERT'" [class.badge-warning]="ev.severity === 'WARNING'">
+                      {{ ev.severity === 'ALERT' ? 'CRÍTICO' : 'ATENCIÓN' }}
+                    </span>
+                  </div>
+                  <p class="dsw-tl-desc">{{ ev.description }}</p>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -921,7 +1253,9 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
       <app-modal [isOpen]="isAcceptModalOpen" [title]="'Confirmar Aceptación Formal de Relevo'" (close)="isAcceptModalOpen = false">
         <div class="accept-confirm-dialog" *ngIf="handoverToAccept">
           <div class="acd-icon-wrap">
-            <span>🛡️</span>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
           </div>
           <h4>Firma Digital de Recepción de Guardia</h4>
           <p class="acd-sub">
@@ -2668,6 +3002,727 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
         }
       }
     }
+
+    /* SECCIÓN BANNER: MANTENIMIENTO OTs */
+    .banner-maintenance-section {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-left: 4px solid #f59e0b;
+      border-radius: var(--radius-md);
+      padding: 14px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .bms-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .bms-title-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .bms-icon {
+      font-size: 1.3rem;
+    }
+
+    .bms-title {
+      font-size: 0.92rem;
+      color: var(--text-primary);
+    }
+
+    .bms-sub {
+      margin: 2px 0 0;
+      font-size: 0.74rem;
+      color: var(--text-muted);
+    }
+
+    .bms-count-pill {
+      background: #fef3c7;
+      color: #92400e;
+      border: 1px solid #fde68a;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      font-size: 0.72rem;
+      font-weight: 700;
+    }
+
+    .bms-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 10px;
+    }
+
+    .bms-card {
+      background: var(--bg-card-subtle);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .bms-card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .bms-tag {
+      font-family: monospace;
+      font-weight: 700;
+      font-size: 0.76rem;
+      color: #031795;
+      background: rgba(3, 23, 149, 0.08);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .bms-card-title {
+      font-size: 0.82rem;
+      color: var(--text-primary);
+      line-height: 1.3;
+    }
+
+    .bms-card-desc {
+      font-size: 0.74rem;
+      color: var(--text-secondary);
+      margin: 0;
+      line-height: 1.35;
+    }
+
+    .bms-card-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    /* SECCIÓN BANNER: TIMELINE DE EVENTOS */
+    .banner-timeline-section {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-left: 4px solid #3b82f6;
+      border-radius: var(--radius-md);
+      padding: 14px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .bts-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .bts-title-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .bts-icon {
+      font-size: 1.3rem;
+    }
+
+    .bts-title {
+      font-size: 0.92rem;
+      color: var(--text-primary);
+    }
+
+    .bts-sub {
+      margin: 2px 0 0;
+      font-size: 0.74rem;
+      color: var(--text-muted);
+    }
+
+    .bts-count-pill {
+      background: #eff6ff;
+      color: #1e40af;
+      border: 1px solid #bfdbfe;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      font-size: 0.72rem;
+      font-weight: 700;
+    }
+
+    .bts-timeline-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      position: relative;
+    }
+
+    .bts-timeline-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      background: var(--bg-card-subtle);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 8px 12px;
+
+      &.item-alert {
+        border-color: #fca5a5;
+        background: #fef2f2;
+      }
+      &.item-warning {
+        border-color: #fde68a;
+        background: #fffbeb;
+      }
+    }
+
+    .bts-time-col {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 75px;
+    }
+
+    .bts-time-badge {
+      font-family: monospace;
+      font-weight: 700;
+      font-size: 0.76rem;
+      color: var(--text-primary);
+    }
+
+    .bts-dot, .dsw-tl-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+
+      &.dot-operacion { background: #3b82f6; box-shadow: 0 0 0 2px #dbeafe; }
+      &.dot-mantenimiento { background: #f59e0b; box-shadow: 0 0 0 2px #fef3c7; }
+      &.dot-seguridad { background: #10b981; box-shadow: 0 0 0 2px #d1fae5; }
+      &.dot-parada { background: #ef4444; box-shadow: 0 0 0 2px #fee2e2; }
+      &.dot-relaves { background: #8b5cf6; box-shadow: 0 0 0 2px #ede9fe; }
+    }
+
+    .bts-content-col {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      flex: 1;
+    }
+
+    .bts-item-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .bts-cat-badge, .mtc-ev-cat {
+      display: inline-block;
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+
+      &.cat-operacion { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
+      &.cat-mantenimiento { background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; }
+      &.cat-seguridad { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
+      &.cat-parada { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+      &.cat-relaves { background: #f5f3ff; color: #6d28d9; border: 1px solid #ddd6fe; }
+    }
+
+    .bts-item-desc {
+      margin: 0;
+      font-size: 0.8rem;
+      color: var(--text-primary);
+      line-height: 1.35;
+    }
+
+    /* MODAL CREAR: MMC (MAINTENANCE) & MTC (TIMELINE) */
+    .modal-maintenance-card, .modal-timeline-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .mmc-header, .mtc-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .mmc-title, .mtc-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      strong {
+        font-size: 0.86rem;
+        color: var(--text-primary);
+      }
+    }
+
+    .mmc-sub, .mtc-sub {
+      margin: 2px 0 0;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+
+    .mtc-count {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--text-secondary);
+      background: var(--bg-card-subtle);
+      padding: 2px 8px;
+      border-radius: 9999px;
+      border: 1px solid var(--border-subtle);
+    }
+
+    .mmc-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 220px;
+      overflow-y: auto;
+    }
+
+    .mmc-item {
+      background: var(--bg-card-subtle);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 8px 10px;
+      transition: all 0.15s ease;
+
+      &.selected {
+        border-color: #3b82f6;
+        background: rgba(59, 130, 246, 0.05);
+      }
+    }
+
+    .mmc-checkbox-label {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      cursor: pointer;
+      width: 100%;
+
+      input {
+        margin-top: 3px;
+        cursor: pointer;
+      }
+    }
+
+    .mmc-item-body {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      flex: 1;
+    }
+
+    .mmc-item-top {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .mmc-tag {
+      font-family: monospace;
+      font-weight: 700;
+      font-size: 0.74rem;
+      color: #031795;
+    }
+
+    .mmc-ticket {
+      font-size: 0.78rem;
+      color: var(--text-primary);
+    }
+
+    .mmc-spec {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+    }
+
+    .mmc-item-title {
+      font-size: 0.78rem;
+      color: var(--text-primary);
+    }
+
+    .mmc-item-meta {
+      font-size: 0.68rem;
+      color: var(--text-muted);
+    }
+
+    .mmc-empty {
+      font-size: 0.76rem;
+      color: #10b981;
+      padding: 8px;
+      background: #ecfdf5;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* PRESETS TIMELINE */
+    .mtc-presets-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .presets-label {
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .presets-chips {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .preset-chip {
+      background: var(--bg-card-subtle);
+      border: 1px solid var(--border-subtle);
+      border-radius: 9999px;
+      padding: 3px 10px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.15s ease;
+
+      &:hover {
+        background: #031795;
+        color: #ffffff;
+        border-color: #031795;
+      }
+    }
+
+    .mtc-add-box {
+      background: var(--bg-card-subtle);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .mtc-add-row {
+      display: grid;
+      grid-template-columns: 140px 1fr 1fr;
+      gap: 8px;
+
+      @media (max-width: 600px) {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .time-input-wrap {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+
+      input {
+        flex: 1;
+        padding: 5px 6px;
+        font-size: 0.78rem;
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-sm);
+        background: var(--bg-input);
+        color: var(--text-primary);
+      }
+    }
+
+    .btn-now {
+      background: var(--primary-purple);
+      color: #ffffff;
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 5px 8px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+
+      &:hover {
+        background: #031795;
+      }
+    }
+
+    .mtc-add-row select {
+      padding: 5px 8px;
+      font-size: 0.78rem;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      background: var(--bg-input);
+      color: var(--text-primary);
+      cursor: pointer;
+    }
+
+    .mtc-desc-row {
+      display: flex;
+      gap: 8px;
+
+      input {
+        flex: 1;
+        padding: 7px 10px;
+        font-size: 0.8rem;
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-sm);
+        background: var(--bg-input);
+        color: var(--text-primary);
+
+        &:focus {
+          border-color: var(--border-focus);
+          outline: none;
+        }
+      }
+    }
+
+    .btn-add-event {
+      white-space: nowrap;
+      font-size: 0.76rem;
+      padding: 0 12px;
+    }
+
+    .mtc-events-list {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      max-height: 180px;
+      overflow-y: auto;
+    }
+
+    .mtc-event-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 6px 10px;
+      font-size: 0.76rem;
+    }
+
+    .mtc-ev-time {
+      font-family: monospace;
+      font-weight: 700;
+      color: var(--text-secondary);
+      min-width: 45px;
+    }
+
+    .mtc-ev-desc {
+      flex: 1;
+      color: var(--text-primary);
+    }
+
+    .btn-delete-ev {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 0.8rem;
+      padding: 0 4px;
+
+      &:hover {
+        color: #ef4444;
+      }
+    }
+
+    .mtc-empty-msg {
+      font-size: 0.74rem;
+      color: var(--text-muted);
+      font-style: italic;
+      text-align: center;
+      padding: 6px;
+    }
+
+    /* DETALLE FICHA: OTs & TIMELINE */
+    .dsw-ot-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 10px;
+    }
+
+    .dsw-ot-card {
+      background: var(--bg-card-subtle);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .dsw-ot-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .dsw-ot-tag {
+      font-family: monospace;
+      font-weight: 700;
+      font-size: 0.75rem;
+      color: #031795;
+    }
+
+    .dsw-ot-number {
+      font-size: 0.78rem;
+      color: var(--text-primary);
+    }
+
+    .dsw-ot-title {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .dsw-ot-desc {
+      margin: 0;
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      line-height: 1.35;
+    }
+
+    .dsw-ot-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+      border-top: 1px dashed var(--border-subtle);
+      padding-top: 4px;
+    }
+
+    .dsw-timeline-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .dsw-timeline-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      background: var(--bg-card-subtle);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 8px 12px;
+    }
+
+    .dsw-tl-time-box {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 65px;
+    }
+
+    .dsw-tl-time {
+      font-family: monospace;
+      font-weight: 700;
+      font-size: 0.76rem;
+      color: var(--text-primary);
+    }
+
+    .dsw-tl-content {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      flex: 1;
+    }
+
+    .dsw-tl-top {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .dsw-tl-desc {
+      margin: 0;
+      font-size: 0.8rem;
+      color: var(--text-primary);
+      line-height: 1.35;
+    }
+
+    :host-context(.dark-theme) {
+      .live-status-pill {
+        background: rgba(16, 185, 129, 0.15);
+        color: #6ee7b7;
+        border-color: rgba(16, 185, 129, 0.35);
+      }
+
+      .official-seal-stamp {
+        background: var(--bg-card-subtle);
+        border-color: var(--border-subtle);
+        color: var(--text-secondary);
+
+        &.seal-accepted {
+          background: rgba(16, 185, 129, 0.15);
+          border-color: rgba(16, 185, 129, 0.35);
+          color: #6ee7b7;
+
+          .seal-title {
+            color: #34d399;
+          }
+        }
+      }
+
+      .guard-pill,
+      .guard-pill-sm {
+        &.badge-g1 {
+          background: rgba(59, 130, 246, 0.18);
+          color: #93c5fd;
+          border-color: rgba(59, 130, 246, 0.35);
+        }
+        &.badge-g2 {
+          background: rgba(16, 185, 129, 0.18);
+          color: #6ee7b7;
+          border-color: rgba(16, 185, 129, 0.35);
+        }
+        &.badge-g3 {
+          background: rgba(245, 158, 11, 0.18);
+          color: #fde68a;
+          border-color: rgba(245, 158, 11, 0.35);
+        }
+        &.badge-g4 {
+          background: rgba(168, 85, 247, 0.18);
+          color: #d8b4fe;
+          border-color: rgba(168, 85, 247, 0.35);
+        }
+      }
+
+      .table-card select {
+        background: var(--bg-input);
+        color: var(--text-primary);
+        border-color: var(--border-subtle);
+      }
+    }
   `]
 })
 export class ShiftHandoverComponent implements OnInit, OnDestroy {
@@ -2719,6 +3774,26 @@ export class ShiftHandoverComponent implements OnInit, OnDestroy {
 
   // Checklist for modal
   modalChecklist: HandoverChecklistItem[] = JSON.parse(JSON.stringify(DEFAULT_CHECKLIST));
+
+  // Maintenance OTs Integration
+  activeMaintenanceOrders: HandoverMaintenanceOrder[] = [];
+  modalMaintenanceOrders: HandoverMaintenanceOrder[] = [];
+
+  // Timeline Events Integration
+  modalTimelineEvents: HandoverTimelineEvent[] = [];
+  newEventTime = '';
+  newEventCategory: 'OPERACION' | 'MANTENIMIENTO' | 'SEGURIDAD' | 'PARADA' | 'RELAVES' = 'OPERACION';
+  newEventSeverity: 'INFO' | 'WARNING' | 'ALERT' = 'INFO';
+  newEventDescription = '';
+
+  eventPresets = [
+    { label: 'Lavado Ciclones', category: 'OPERACION' as const, severity: 'INFO' as const, desc: 'Lavado y purga de ciclones de batería A/B completado sin anomalías.' },
+    { label: 'Rotación Bombas', category: 'OPERACION' as const, severity: 'INFO' as const, desc: 'Rotación preventiva de bomba de relaves principal a unidad stand-by.' },
+    { label: 'Intervención Mecánica', category: 'MANTENIMIENTO' as const, severity: 'WARNING' as const, desc: 'Parada menor para inspección y ajuste de empaquetadura en prensaestopas.' },
+    { label: 'Maniobra en Presa', category: 'RELAVES' as const, severity: 'INFO' as const, desc: 'Apertura de espitas en dique secundario y verificación de espejo de agua.' },
+    { label: 'Charla 5m / IPERC', category: 'SEGURIDAD' as const, severity: 'INFO' as const, desc: 'Charla de seguridad de 5 minutos y validación de IPERC continuo en campo.' },
+    { label: 'Parada Imprevista', category: 'PARADA' as const, severity: 'ALERT' as const, desc: 'Parada no programada por atoramiento/sobrecarga eléctrica en circuito.' }
+  ];
 
   newHandover = {
     outgoing_guard: 'G4' as GuardCode,
@@ -2870,6 +3945,7 @@ export class ShiftHandoverComponent implements OnInit, OnDestroy {
     this.loadHandovers();
     this.loadObservedVehicles();
     this.loadOperationalPlantMetrics();
+    this.loadActiveMaintenanceOrders();
 
     if (typeof window !== 'undefined') {
       window.addEventListener('basetrack_cloud_sync', this.syncListener);
@@ -3186,19 +4262,134 @@ export class ShiftHandoverComponent implements OnInit, OnDestroy {
     });
   }
 
+  getCurrentPeruTime(): string {
+    const d = new Date();
+    return d.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'America/Lima' });
+  }
+
+  loadActiveMaintenanceOrders(): void {
+    const cachedTickets = getRealtimeData<any[]>('maintenance_tickets', []);
+    if (cachedTickets && cachedTickets.length > 0) {
+      this.populateActiveMaintenanceOrders(cachedTickets);
+    }
+    this.http.get<any>(`${getApiBaseUrl()}/maintenance`).subscribe({
+      next: (res) => {
+        if (res && res.success && Array.isArray(res.data)) {
+          this.populateActiveMaintenanceOrders(res.data);
+        }
+      },
+      error: () => {}
+    });
+  }
+
+  private populateActiveMaintenanceOrders(rawTickets: any[]): void {
+    const active = rawTickets.filter(t => t.status === 'PENDING' || t.status === 'IN_PROGRESS');
+    this.activeMaintenanceOrders = active.map(t => ({
+      id: t.id,
+      ticket_number: t.ticket_number || `OT-${t.id?.slice(0, 6) || 'N/A'}`,
+      equipment_tag: t.equipment_tag || t.equipment_id || 'EQ-GENERAL',
+      title: t.title || t.issue_description || 'Mantenimiento en curso',
+      priority: t.priority || 'MEDIUM',
+      status: t.status || 'IN_PROGRESS',
+      specialty: t.specialty || 'Mecánica',
+      description: t.description || t.issue_description || '',
+      assigned_to: t.assigned_to || 'Personal de Guardia',
+      included: true
+    }));
+
+    if (this.isCreateModalOpen && this.modalMaintenanceOrders.length === 0) {
+      this.modalMaintenanceOrders = this.activeMaintenanceOrders.map(o => ({ ...o, included: true }));
+    }
+  }
+
+  toggleMaintenanceOrderIncluded(order: HandoverMaintenanceOrder): void {
+    order.included = !order.included;
+  }
+
+  addTimelineEvent(): void {
+    if (!this.newEventDescription.trim()) return;
+    const time = this.newEventTime.trim() || this.getCurrentPeruTime();
+    this.modalTimelineEvents.push({
+      id: 'tle-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+      time,
+      category: this.newEventCategory,
+      severity: this.newEventSeverity,
+      description: this.newEventDescription.trim()
+    });
+    this.newEventDescription = '';
+    this.newEventTime = this.getCurrentPeruTime();
+  }
+
+  removeTimelineEvent(index: number): void {
+    this.modalTimelineEvents.splice(index, 1);
+  }
+
+  applyEventPreset(preset: any): void {
+    this.newEventCategory = preset.category;
+    this.newEventSeverity = preset.severity;
+    this.newEventDescription = preset.desc;
+    this.newEventTime = this.getCurrentPeruTime();
+  }
+
+  setNowTime(): void {
+    this.newEventTime = this.getCurrentPeruTime();
+  }
+
+  getCategoryLabel(category: string): string {
+    switch (category) {
+      case 'OPERACION': return 'Operación';
+      case 'MANTENIMIENTO': return 'Mantenimiento';
+      case 'SEGURIDAD': return 'Seguridad';
+      case 'PARADA': return 'Parada';
+      case 'RELAVES': return 'Relaves';
+      default: return category;
+    }
+  }
+
+  getCategoryBadgeClass(category: string): string {
+    switch (category) {
+      case 'OPERACION': return 'cat-operacion';
+      case 'MANTENIMIENTO': return 'cat-mantenimiento';
+      case 'SEGURIDAD': return 'cat-seguridad';
+      case 'PARADA': return 'cat-parada';
+      case 'RELAVES': return 'cat-relaves';
+      default: return 'cat-operacion';
+    }
+  }
+
+  getPriorityBadgeClass(priority: string): string {
+    switch ((priority || '').toUpperCase()) {
+      case 'EMERGENCY': return 'badge-danger';
+      case 'HIGH': return 'badge-danger';
+      case 'MEDIUM': return 'badge-warning';
+      case 'LOW': return 'badge-info';
+      default: return 'badge-secondary';
+    }
+  }
+
   openCreateModal(): void {
     this.initDefaultHandoverState();
     this.modalChecklist = JSON.parse(JSON.stringify(DEFAULT_CHECKLIST));
+    this.newEventTime = this.getCurrentPeruTime();
+    this.newEventDescription = '';
+    this.newEventCategory = 'OPERACION';
+    this.newEventSeverity = 'INFO';
+    this.loadActiveMaintenanceOrders();
+    this.modalMaintenanceOrders = this.activeMaintenanceOrders.map(o => ({ ...o, included: true }));
+    this.modalTimelineEvents = [];
     this.autoSyncPlantDataToModal();
     this.isCreateModalOpen = true;
   }
 
   saveHandover(): void {
     const shiftInfo = getCurrentActiveShift();
+    const selectedOrders = this.modalMaintenanceOrders.filter(o => o.included);
     const payload: ShiftHandover = {
       ...this.newHandover,
       assigned_crew: this.modalSquadStaff,
       checklist_data: this.modalChecklist,
+      maintenance_orders: selectedOrders,
+      timeline_events: this.modalTimelineEvents,
       operational_highlights: 'Control operacional en parámetros normales de proceso.',
       id: 'sh-' + Date.now(),
       date: shiftInfo.dateStr || getLocalDateString(),

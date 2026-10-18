@@ -1,5 +1,7 @@
 import { Injectable, signal } from '@angular/core';
 
+export type PlatformType = 'ios' | 'android' | 'mac' | 'windows' | 'pc';
+
 @Injectable({
   providedIn: 'root'
 })
@@ -10,6 +12,8 @@ export class PwaService {
   public canInstall = signal<boolean>(false);
   public isInstalled = signal<boolean>(false);
   public isIOS = signal<boolean>(false);
+  public platform = signal<PlatformType>('pc');
+  public isDismissed = signal<boolean>(false);
   public showInstallModal = signal<boolean>(false);
 
   constructor() {
@@ -28,9 +32,31 @@ export class PwaService {
 
   private detectPlatform(): void {
     if (typeof window !== 'undefined') {
-      const userAgent = window.navigator.userAgent.toLowerCase();
-      const isIosDevice = /iphone|ipad|ipod/.test(userAgent);
+      const userAgent = (window.navigator.userAgent || '').toLowerCase();
+      const isIosDevice = /iphone|ipad|ipod/.test(userAgent) || 
+                          (navigator.platform === 'MacIntel' && (navigator as any).maxTouchPoints > 1);
+      const isAndroidDevice = /android/.test(userAgent);
+      const isMacDevice = /macintosh|mac os x/.test(userAgent) && !isIosDevice;
+      const isWindowsDevice = /windows|win32/.test(userAgent);
+
       this.isIOS.set(isIosDevice && !(window.navigator as any).standalone);
+
+      if (isIosDevice) {
+        this.platform.set('ios');
+      } else if (isAndroidDevice) {
+        this.platform.set('android');
+      } else if (isMacDevice) {
+        this.platform.set('mac');
+      } else if (isWindowsDevice) {
+        this.platform.set('windows');
+      } else {
+        this.platform.set('pc');
+      }
+
+      try {
+        const dismissed = localStorage.getItem('basetrack_pwa_dismissed') === 'true';
+        this.isDismissed.set(dismissed);
+      } catch (e) {}
     }
   }
 
@@ -70,9 +96,6 @@ export class PwaService {
       } catch (err) {
         console.warn('[PWA] Error launching install prompt', err);
       }
-    } else if (this.isIOS()) {
-      // Open modal with iOS Safari instructions
-      this.showInstallModal.set(true);
     } else {
       // General instructions modal
       this.showInstallModal.set(true);
@@ -86,5 +109,19 @@ export class PwaService {
 
   public closeInstallModal(): void {
     this.showInstallModal.set(false);
+  }
+
+  public dismissInstallCard(): void {
+    this.isDismissed.set(true);
+    try {
+      localStorage.setItem('basetrack_pwa_dismissed', 'true');
+    } catch (e) {}
+  }
+
+  public resetDismissState(): void {
+    this.isDismissed.set(false);
+    try {
+      localStorage.removeItem('basetrack_pwa_dismissed');
+    } catch (e) {}
   }
 }

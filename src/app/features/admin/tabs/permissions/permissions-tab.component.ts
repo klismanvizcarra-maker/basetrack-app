@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { PermissionsService, ALL_PERMISSIONS, DEFAULT_ROLE_PERMISSIONS, PermissionKey, PermissionDefinition } from '../../../../core/auth/permissions.service';
 import { UsersStore, UserItem } from '../users/users.store';
+import { getEffectiveAvatar } from '../../../../shared/utils/avatar.util';
 
 /**
  * Pestaña "Matriz de Permisos" de Administración: RBAC por rol y excepciones por usuario.
@@ -20,6 +21,10 @@ import { UsersStore, UserItem } from '../users/users.store';
 export class AdminPermissionsTabComponent {
   permissionsService = inject(PermissionsService);
   private usersStore = inject(UsersStore);
+
+  getUserAvatar(user: UserItem): string {
+    return getEffectiveAvatar(user?.avatar_url, user?.full_name || user?.username, user?.role, user?.shift);
+  }
 
   get users(): UserItem[] { return this.usersStore.users; }
 
@@ -67,20 +72,20 @@ export class AdminPermissionsTabComponent {
     const allKeys = this.allPermissionsList.map(p => p.key);
     const updated = enable ? allKeys : [];
     this.permissionsService.updateRolePermission(role, updated).subscribe(() => {
-      this.permissionsSaveMessage = `⚡ Permisos para ${role} actualizados (${enable ? 'Todos Habilitados' : 'Todos Restringidos'}).`;
+      this.permissionsSaveMessage = `Permisos para ${role} actualizados (${enable ? 'Todos Habilitados' : 'Todos Restringidos'}).`;
       setTimeout(() => this.permissionsSaveMessage = '', 3500);
     });
   }
 
   saveRolePermissionsMatrix(): void {
-    this.permissionsSaveMessage = '✅ Matriz de permisos por rol guardada y sincronizada correctamente.';
+    this.permissionsSaveMessage = 'Matriz de permisos por rol guardada y sincronizada correctamente.';
     setTimeout(() => this.permissionsSaveMessage = '', 4000);
   }
 
   resetPermissionsToDefault(): void {
     if (confirm('¿Confirma restaurar la matriz de permisos y excepciones a los valores de fábrica?')) {
       this.permissionsService.resetToDefaults().subscribe(() => {
-        this.permissionsSaveMessage = '🔄 Matriz restaurada a valores por defecto de fábrica.';
+        this.permissionsSaveMessage = 'Matriz restaurada a valores por defecto de fábrica.';
         setTimeout(() => this.permissionsSaveMessage = '', 4000);
       });
     }
@@ -114,7 +119,7 @@ export class AdminPermissionsTabComponent {
     const currentOverrides = { ...(this.permissionsService.userOverridesSignal()[userId] || {}) };
     currentOverrides[key] = checkbox.checked;
     this.permissionsService.updateUserOverride(userId, currentOverrides).subscribe(() => {
-      this.permissionsSaveMessage = '✅ Excepción de permiso guardada para el usuario.';
+      this.permissionsSaveMessage = 'Excepción de permiso guardada para el usuario.';
       setTimeout(() => this.permissionsSaveMessage = '', 3500);
     });
   }

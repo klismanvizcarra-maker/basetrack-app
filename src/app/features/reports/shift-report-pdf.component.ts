@@ -49,7 +49,12 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
               </svg>
               {{ copiedText ? '¡Copiado!' : 'Copiar' }}
             </button>
-            <button class="close-btn" (click)="closeModal()">✕</button>
+            <button class="close-btn" (click)="closeModal()" aria-label="Cerrar modal">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
           </div>
         </div>
 
@@ -110,7 +115,13 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
             <div class="grid-2-col">
               <div class="info-card">
                 <span class="card-label">Supervisor Saliente (Entrega):</span>
-                <span class="card-val">👤 {{ outgoingSupervisorName }}</span>
+                <span class="card-val">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px; vertical-align: -1px;">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                  </svg>
+                  {{ outgoingSupervisorName }}
+                </span>
                 <div class="card-meta-line">
                   <span>DNI: <strong>{{ outgoingSupervisorDni }}</strong></span> • 
                   <span>Cargo: <strong>{{ outgoingSupervisorRole }}</strong></span>
@@ -118,7 +129,13 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
               </div>
               <div class="info-card">
                 <span class="card-label">Supervisor Entrante (Recepción):</span>
-                <span class="card-val">👤 {{ incomingSupervisorName }}</span>
+                <span class="card-val">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px; vertical-align: -1px;">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                  </svg>
+                  {{ incomingSupervisorName }}
+                </span>
                 <div class="card-meta-line">
                   <span>DNI: <strong>{{ incomingSupervisorDni }}</strong></span> • 
                   <span>Cargo: <strong>{{ incomingSupervisorRole }}</strong></span>
@@ -132,7 +149,14 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
             </div>
 
             <div class="notes-box highlight-box" *ngIf="reportData.pending_tasks">
-              <span class="notes-label">⚠️ Pendientes Críticos y Consignas para la Guardia Entrante:</span>
+              <span class="notes-label">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px; vertical-align: -1px;">
+                  <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path>
+                  <line x1="12" y1="9" x2="12" y2="13"></line>
+                  <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+                Pendientes Críticos y Consignas para la Guardia Entrante:
+              </span>
               <p class="notes-content">{{ reportData.pending_tasks }}</p>
             </div>
 
@@ -141,7 +165,9 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
               <div class="pdf-checklist-grid">
                 <div class="pdf-chk-tag" *ngFor="let item of reportData.checklist_data">
                   <span class="pdf-chk-status" [class.status-ok]="item.status === 'CONFORME'" [class.status-warn]="item.status === 'OBSERVADO'">
-                    {{ item.status === 'CONFORME' ? '✓' : '⚠️' }} {{ item.status }}
+                    <svg *ngIf="item.status === 'CONFORME'" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right: 3px; vertical-align: -1px;"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    <svg *ngIf="item.status !== 'CONFORME'" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right: 3px; vertical-align: -1px;"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                    {{ item.status }}
                   </span>
                   <span class="pdf-chk-name">{{ item.title }}</span>
                   <span class="pdf-chk-detail" *ngIf="item.notes">({{ item.notes }})</span>
@@ -175,6 +201,62 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
                   <td>{{ item.documentId }}</td>
                   <td>{{ item.radioChannel }}</td>
                   <td>{{ item.location }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- SECCIÓN 1.2: ÓRDENES DE TRABAJO Y EQUIPOS EN MANTENIMIENTO -->
+          <div class="doc-section page-break-inside-avoid" *ngIf="reportData.maintenance_orders && reportData.maintenance_orders.length > 0">
+            <div class="section-heading">1.2. ÓRDENES DE TRABAJO Y EQUIPOS EN MANTENIMIENTO (CMMS)</div>
+            <table class="report-table">
+              <thead>
+                <tr>
+                  <th style="width: 100px;">TAG EQUIPO</th>
+                  <th style="width: 110px;">N° TICKET / OT</th>
+                  <th>DESCRIPCIÓN / TRABAJO PROGRAMADO</th>
+                  <th style="width: 110px;">ESPECIALIDAD</th>
+                  <th style="width: 90px;">PRIORIDAD</th>
+                  <th style="width: 90px;">ESTADO</th>
+                  <th style="width: 130px;">RESPONSABLE</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let ot of reportData.maintenance_orders">
+                  <td><strong>{{ ot.equipment_tag }}</strong></td>
+                  <td>{{ ot.ticket_number }}</td>
+                  <td>{{ ot.title }} <small *ngIf="ot.description">({{ ot.description }})</small></td>
+                  <td>{{ ot.specialty || 'Mecánica' }}</td>
+                  <td><span class="tbl-badge" [ngClass]="getOtPriorityClass(ot.priority)">{{ ot.priority }}</span></td>
+                  <td><span class="tbl-badge badge-info">{{ ot.status }}</span></td>
+                  <td>{{ ot.assigned_to || 'Personal de Guardia' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- SECCIÓN 1.3: LÍNEA DE TIEMPO CRONOLÓGICA DE EVENTOS Y PARADAS -->
+          <div class="doc-section page-break-inside-avoid" *ngIf="reportData.timeline_events && reportData.timeline_events.length > 0">
+            <div class="section-heading">1.3. LÍNEA DE TIEMPO CRONOLÓGICA DE EVENTOS Y PARADAS DEL TURNO</div>
+            <table class="report-table">
+              <thead>
+                <tr>
+                  <th style="width: 75px;">HORA</th>
+                  <th style="width: 130px;">CATEGORÍA</th>
+                  <th style="width: 95px;">SEVERIDAD</th>
+                  <th>DESCRIPCIÓN DE LA MANIOBRA / HITOS OPERACIONALES</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let ev of reportData.timeline_events">
+                  <td><strong>{{ ev.time }}</strong></td>
+                  <td><span class="tbl-badge" [ngClass]="'pdf-cat-' + (ev.category | lowercase)">{{ ev.category }}</span></td>
+                  <td>
+                    <span class="tbl-badge" [class.badge-danger]="ev.severity === 'ALERT'" [class.badge-warning]="ev.severity === 'WARNING'" [class.badge-info]="ev.severity === 'INFO' || !ev.severity">
+                      {{ ev.severity || 'INFO' }}
+                    </span>
+                  </td>
+                  <td>{{ ev.description }}</td>
                 </tr>
               </tbody>
             </table>
@@ -278,7 +360,13 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
             <div class="section-heading">4.1. INSPECCIÓN VEHICULAR - CAMIONETAS CON OBSERVACIÓN O NO APTAS</div>
             
             <div class="vehicle-alert-banner">
-              <span class="va-icon">⚠️</span>
+              <span class="va-icon">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path>
+                  <line x1="12" y1="9" x2="12" y2="13"></line>
+                  <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+              </span>
               <div class="va-text">
                 <strong>Atención Supervisión de Guardia:</strong> Se registran <strong>{{ observedVehicles.length }}</strong> camioneta(s) con observaciones técnicas o restricción operativa en la inspección pre-uso. Las unidades en estado Apto (Verde) operan con normalidad y quedan excluidas de esta bitácora.
               </div>
@@ -315,7 +403,16 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
                   </td>
                   <td>
                     <span class="tbl-badge" [ngClass]="v.operationalStatus === 'NO_APTO' ? 'badge-rose' : 'badge-amber'">
-                      {{ v.operationalStatus === 'NO_APTO' ? '⛔ NO APTO' : '⚠️ OBSERVADO' }}
+                      <svg *ngIf="v.operationalStatus === 'NO_APTO'" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right: 3px; vertical-align: -1px;">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+                      </svg>
+                      <svg *ngIf="v.operationalStatus !== 'NO_APTO'" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right: 3px; vertical-align: -1px;">
+                        <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path>
+                        <line x1="12" y1="9" x2="12" y2="13"></line>
+                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                      </svg>
+                      {{ v.operationalStatus === 'NO_APTO' ? 'NO APTO' : 'OBSERVADO' }}
                     </span>
                   </td>
                   <td class="obs-cell">
@@ -487,7 +584,9 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
     .close-btn {
       background: none;
       border: none;
-      font-size: 1.25rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       color: #64748b;
       cursor: pointer;
       padding: 0.4rem;
@@ -770,6 +869,51 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
       &.badge-rose {
         background: #ffe4e6;
         color: #e11d48;
+      }
+
+      &.badge-danger {
+        background: #fee2e2;
+        color: #b91c1c;
+      }
+
+      &.badge-warning {
+        background: #fef3c7;
+        color: #92400e;
+      }
+
+      &.badge-info {
+        background: #eff6ff;
+        color: #1e40af;
+      }
+
+      &.pdf-cat-operacion {
+        background: #eff6ff;
+        color: #1e40af;
+        border: 1px solid #bfdbfe;
+      }
+
+      &.pdf-cat-mantenimiento {
+        background: #fff7ed;
+        color: #c2410c;
+        border: 1px solid #fed7aa;
+      }
+
+      &.pdf-cat-seguridad {
+        background: #ecfdf5;
+        color: #047857;
+        border: 1px solid #a7f3d0;
+      }
+
+      &.pdf-cat-parada {
+        background: #fef2f2;
+        color: #b91c1c;
+        border: 1px solid #fecaca;
+      }
+
+      &.pdf-cat-relaves {
+        background: #f5f3ff;
+        color: #6d28d9;
+        border: 1px solid #ddd6fe;
       }
     }
 
@@ -1175,6 +1319,33 @@ export class ShiftReportPdfComponent implements OnInit, OnChanges {
       this.reportData.incoming_dni = inSup?.document_id || '';
       this.reportData.incoming_role = 'Supervisor de guardia';
     }
+
+    if (!this.reportData.maintenance_orders || this.reportData.maintenance_orders.length === 0) {
+      const cachedTickets = getRealtimeData<any[]>('maintenance_tickets', []);
+      const activeTickets = cachedTickets.filter(t => t.status === 'PENDING' || t.status === 'IN_PROGRESS');
+      if (activeTickets.length > 0) {
+        this.reportData.maintenance_orders = activeTickets.map(t => ({
+          ticket_number: t.ticket_number || `OT-${t.id?.slice(0, 6) || 'N/A'}`,
+          equipment_tag: t.equipment_tag || t.equipment_id || 'EQ-GENERAL',
+          title: t.title || t.issue_description || 'Mantenimiento en curso',
+          priority: t.priority || 'MEDIUM',
+          status: t.status || 'IN_PROGRESS',
+          specialty: t.specialty || 'Mecánica',
+          description: t.description || t.issue_description || '',
+          assigned_to: t.assigned_to || 'Personal de Guardia'
+        }));
+      }
+    }
+  }
+
+  getOtPriorityClass(priority?: string): string {
+    switch ((priority || '').toUpperCase()) {
+      case 'EMERGENCY': return 'badge-danger';
+      case 'HIGH': return 'badge-danger';
+      case 'MEDIUM': return 'badge-warning';
+      case 'LOW': return 'badge-info';
+      default: return 'badge-info';
+    }
   }
 
   loadOperationalData(): void {
@@ -1574,21 +1745,33 @@ export class ShiftReportPdfComponent implements OnInit, OnChanges {
   copyExecutiveSummary(): void {
     let vehText = '';
     if (this.observedVehicles && this.observedVehicles.length > 0) {
-      vehText = `\n🚗 *NOVEDADES VEHICULARES (${this.observedVehicles.length} UNIDAD(ES) CON OBSERVACIÓN / NO APTA):*\n` +
+      vehText = `\n*NOVEDADES VEHICULARES (${this.observedVehicles.length} UNIDAD(ES) CON OBSERVACIÓN / NO APTA):*\n` +
         this.observedVehicles.map(v => `  • ${v.tag} (${v.plate}) [${v.operationalStatus}]: ${v.observationNotes} | Cond: ${v.driverName}`).join('\n');
     }
 
-    const summary = `📋 *BASETRACK - REPORTE OFICIAL DE RELEVO DE GUARDIA*
-📅 Fecha: ${this.reportData.date} | Turno: ${this.reportData.shift_type} | Código: ${this.reportData.shift_code}
-👤 Entrega: ${this.outgoingSupervisorName} (DNI: ${this.outgoingSupervisorDni})
-👤 Recibe: ${this.incomingSupervisorName} (DNI: ${this.incomingSupervisorDni})
-⚖️ Tonelaje Procesado: ${(this.reportData.tonnage_processed || this.liveTonnage).toLocaleString()} TMS
-🌪️ Malla -200 Final (OF): ${this.liveMesh200Of}%
-⚡ Disponibilidad Bombas: ${this.pumpAvailabilityPercent}% (${this.pumpOperatingCount}/${this.pumpTotalCount} Operativas)
-🌊 Borde Libre Presa: ${this.liveFreeboard}m (${this.liveFreeboard >= 2.5 ? 'Estable' : 'Alerta'})
-📌 Novedad de Planta: ${this.reportData.plant_status}
-⚠️ Pendientes Críticos: ${this.reportData.pending_tasks || 'Ninguno'}${vehText}
-✅ Estado: ${this.isAccepted ? 'ACEPTADO Y CONFORME' : 'PENDIENTE DE CONFORMIDAD'}`;
+    let otText = '';
+    if (this.reportData.maintenance_orders && this.reportData.maintenance_orders.length > 0) {
+      otText = `\n*MANTENIMIENTO EN TURNO (${this.reportData.maintenance_orders.length} OTs ACTIVAS):*\n` +
+        this.reportData.maintenance_orders.map(o => `  • [${o.equipment_tag}] ${o.ticket_number} (${o.priority}): ${o.title}`).join('\n');
+    }
+
+    let tlText = '';
+    if (this.reportData.timeline_events && this.reportData.timeline_events.length > 0) {
+      tlText = `\n*HITOS Y TIMELINE DEL TURNO (${this.reportData.timeline_events.length} EVENTOS):*\n` +
+        this.reportData.timeline_events.map(e => `  • ${e.time} [${e.category}]: ${e.description}`).join('\n');
+    }
+
+    const summary = `*BASETRACK - REPORTE OFICIAL DE RELEVO DE GUARDIA*
+Fecha: ${this.reportData.date} | Turno: ${this.reportData.shift_type} | Código: ${this.reportData.shift_code}
+Entrega: ${this.outgoingSupervisorName} (DNI: ${this.outgoingSupervisorDni})
+Recibe: ${this.incomingSupervisorName} (DNI: ${this.incomingSupervisorDni})
+Tonelaje Procesado: ${(this.reportData.tonnage_processed || this.liveTonnage).toLocaleString()} TMS
+Malla -200 Final (OF): ${this.liveMesh200Of}%
+Disponibilidad Bombas: ${this.pumpAvailabilityPercent}% (${this.pumpOperatingCount}/${this.pumpTotalCount} Operativas)
+Borde Libre Presa: ${this.liveFreeboard}m (${this.liveFreeboard >= 2.5 ? 'Estable' : 'Alerta'})
+Novedad de Planta: ${this.reportData.plant_status}
+Pendientes Críticos: ${this.reportData.pending_tasks || 'Ninguno'}${vehText}${otText}${tlText}
+Estado: ${this.isAccepted ? 'ACEPTADO Y CONFORME' : 'PENDIENTE DE CONFORMIDAD'}`;
 
     copyToClipboard(summary).then((success) => {
       if (success) {

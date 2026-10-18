@@ -11,6 +11,9 @@
   --bg-card-subtle: #f8fafc;
   --bg-input: #ffffff;
   --bg-glass: rgba(255, 255, 255, 0.92);
+  --bg-surface: #ffffff;
+  --border-color: #e2e8f0;
+  --text-main: #0f172a;
 
   /* Gauge & Progress Track */
   --gauge-track: #e2e8f0;
@@ -83,6 +86,9 @@
   --bg-card-subtle: #0d1527;
   --bg-input: #0a1122;
   --bg-glass: rgba(14, 22, 40, 0.90);
+  --bg-surface: #131d35;
+  --border-color: #1e293b;
+  --text-main: #f8fafc;
 
   /* Gauge & Progress Track */
   --gauge-track: #1e293b;
@@ -673,6 +679,15 @@ input::placeholder, textarea::placeholder {
   }
 
   /* Surface Elevation & Card Wrappers in Dark Mode */
+  .glass-panel,
+  .mastersheet-toolbar,
+  .hero-semaphore-card,
+  .dam-cross-section,
+  .trend-chart-section,
+  .master-table-section,
+  .master-kpi-card,
+  .hero-banner,
+  .admin-command-card,
   .current-handover-banner,
   .dashboard-card,
   .summary-panel,
@@ -710,7 +725,12 @@ input::placeholder, textarea::placeholder {
   .audit-log-card,
   .permission-card,
   .backup-history-card,
-  .role-edit-card {
+  .role-edit-card,
+  .position-card,
+  .roster-card,
+  .shift-card,
+  .cyclone-card,
+  .pumps-card {
     background: var(--bg-card) !important;
     border-color: var(--border-subtle) !important;
   }

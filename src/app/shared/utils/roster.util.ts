@@ -12,6 +12,8 @@
  * - Bloque 4 (4d): Día G3 (Hugo M.) | Noche G4 | Descanso G1, G2
  */
 
+import { generateAvatarSvg, getEffectiveAvatar } from './avatar.util';
+
 export type GuardCode = 'G1' | 'G2' | 'G3' | 'G4';
 export type ShiftType = 'DIA' | 'NOCHE' | 'DESCANSO';
 
@@ -35,7 +37,7 @@ export const GUARDS_CATALOG: Record<GuardCode, GuardInfo> = {
     colorHex: '#1d4ed8', // Azul Cobalto
     bgLight: '#eff6ff',
     badgeBorder: '#93c5fd',
-    avatarUrl: 'https://api.dicebear.com/7.x/bottts/svg?seed=GUARDIA_G1'
+    avatarUrl: generateAvatarSvg('Guardia 1', 'SUPERVISOR', 'G1')
   },
   G2: {
     code: 'G2',
@@ -45,7 +47,7 @@ export const GUARDS_CATALOG: Record<GuardCode, GuardInfo> = {
     colorHex: '#059669', // Verde Esmeralda
     bgLight: '#ecfdf5',
     badgeBorder: '#6ee7b7',
-    avatarUrl: 'https://api.dicebear.com/7.x/bottts/svg?seed=GUARDIA_G2'
+    avatarUrl: generateAvatarSvg('Guardia 2', 'SUPERVISOR', 'G2')
   },
   G3: {
     code: 'G3',
@@ -55,7 +57,7 @@ export const GUARDS_CATALOG: Record<GuardCode, GuardInfo> = {
     colorHex: '#d97706', // Ámbar Minero
     bgLight: '#fffbeb',
     badgeBorder: '#fcd34d',
-    avatarUrl: 'https://api.dicebear.com/7.x/bottts/svg?seed=GUARDIA_G3'
+    avatarUrl: generateAvatarSvg('Guardia 3', 'SUPERVISOR', 'G3')
   },
   G4: {
     code: 'G4',
@@ -65,7 +67,7 @@ export const GUARDS_CATALOG: Record<GuardCode, GuardInfo> = {
     colorHex: '#7c3aed', // Púrpura Industrial
     bgLight: '#f5f3ff',
     badgeBorder: '#c4b5fd',
-    avatarUrl: 'https://api.dicebear.com/7.x/bottts/svg?seed=GUARDIA_G4'
+    avatarUrl: generateAvatarSvg('Guardia 4', 'SUPERVISOR', 'G4')
   }
 };
 
@@ -77,7 +79,7 @@ export function resetGuardsCatalog(): void {
     if (GUARDS_CATALOG[code]) {
       GUARDS_CATALOG[code].supervisorName = 'Sin Asignar';
       GUARDS_CATALOG[code].supervisorUser = '';
-      GUARDS_CATALOG[code].avatarUrl = `https://api.dicebear.com/7.x/bottts/svg?seed=GUARDIA_${code}`;
+      GUARDS_CATALOG[code].avatarUrl = generateAvatarSvg(GUARDS_CATALOG[code].name, 'SUPERVISOR', code);
     }
   });
 }
@@ -111,7 +113,7 @@ if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
             foundSups[shift] = {
               supervisorName: m.name || m.full_name,
               supervisorUser: m.username || m.name,
-              avatarUrl: m.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${m.name}`
+              avatarUrl: getEffectiveAvatar(m.avatar_url, m.name || m.full_name, 'SUPERVISOR', shift)
             };
           }
         });

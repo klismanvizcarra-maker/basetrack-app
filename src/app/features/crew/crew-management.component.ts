@@ -7,6 +7,7 @@ import { AuthService } from '../../core/auth/auth.service';
 import { PermissionsService } from '../../core/auth/permissions.service';
 import { ModalComponent } from '../../shared/ui/modal.component';
 import { getRosterForDate, getCurrentActiveShift, getLocalDateString, DayRoster, GuardInfo } from '../../shared/utils/roster.util';
+import { generateAvatarSvg, getEffectiveAvatar } from '../../shared/utils/avatar.util';
 
 @Component({
   selector: 'app-crew-management',
@@ -74,7 +75,12 @@ import { getRosterForDate, getCurrentActiveShift, getLocalDateString, DayRoster,
 
         <!-- Aviso para operadores en modo solo lectura -->
         <div class="readonly-crew-notice glass-panel" *ngIf="!permissionsService.canManageCrew()">
-          <span class="notice-lock-icon">🔒</span>
+          <span class="notice-lock-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+          </span>
           <div class="notice-texts">
             <span class="notice-title">Pizarra Informativa de Guardia</span>
             <span class="notice-sub">Modo Solo Lectura • Asignación de puestos exclusiva de Supervisión</span>
@@ -103,7 +109,8 @@ import { getRosterForDate, getCurrentActiveShift, getLocalDateString, DayRoster,
               [class.active]="selectedShiftType === 'DIA'"
               (click)="selectShiftType('DIA')"
             >
-              ☀️ Día (07:00 - 19:00)
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; vertical-align: -1px;"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+              Día (07:00 - 19:00)
             </button>
             <button
               type="button"
@@ -111,7 +118,8 @@ import { getRosterForDate, getCurrentActiveShift, getLocalDateString, DayRoster,
               [class.active]="selectedShiftType === 'NOCHE'"
               (click)="selectShiftType('NOCHE')"
             >
-              🌙 Noche (19:00 - 07:00)
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; vertical-align: -1px;"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+              Noche (19:00 - 07:00)
             </button>
           </div>
         </div>
@@ -128,14 +136,21 @@ import { getRosterForDate, getCurrentActiveShift, getLocalDateString, DayRoster,
               <span class="guard-chip-sub">Sup: {{ scheduledGuardForShift.supervisorName }}</span>
             </div>
             <span class="guard-chip-status" [class.dia]="selectedShiftType === 'DIA'" [class.noche]="selectedShiftType === 'NOCHE'">
-              {{ selectedShiftType === 'DIA' ? '☀️ Turno Día' : '🌙 Turno Noche' }}
+              {{ selectedShiftType === 'DIA' ? 'Turno Día' : 'Turno Noche' }}
             </span>
           </div>
         </div>
 
         <!-- Aviso de guardias en descanso / bajada -->
         <div class="off-guards-notice" title="Guardias que se encuentran en su ciclo de 8 días de bajada/descanso">
-          <span class="off-icon">🏖️</span>
+          <span class="off-icon">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+          </span>
           <span class="off-label">En Descanso (Bajada):</span>
           <span class="off-names">
             {{ offGuards[0]?.name }} ({{ offGuards[0]?.code }}) & {{ offGuards[1]?.name }} ({{ offGuards[1]?.code }})
@@ -158,7 +173,13 @@ import { getRosterForDate, getCurrentActiveShift, getLocalDateString, DayRoster,
       <div class="supervisor-scoped-banner glass-panel">
         <div class="banner-left">
           <div class="supervisor-avatar-wrap">
-            <span class="badge-role-icon">🦺</span>
+            <span class="badge-role-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="8.5" cy="7" r="4"></circle>
+                <polyline points="17 11 19 13 23 9"></polyline>
+              </svg>
+            </span>
           </div>
           <div class="supervisor-banner-meta">
             <div class="banner-title-line">
@@ -190,7 +211,7 @@ import { getRosterForDate, getCurrentActiveShift, getLocalDateString, DayRoster,
               <line x1="2" y1="12" x2="22" y2="12"></line>
               <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
             </svg>
-            <span>{{ showOnlyMyOperators ? 'Cuadrilla Asignada' : '🌐 Toda la Planta' }}</span>
+            <span>{{ showOnlyMyOperators ? 'Cuadrilla Asignada' : 'Toda la Planta' }}</span>
           </button>
         </div>
       </div>
@@ -295,7 +316,7 @@ import { getRosterForDate, getCurrentActiveShift, getLocalDateString, DayRoster,
 
             <!-- Operator Profile Snapshot -->
             <div class="operator-snapshot" *ngIf="getOperator(getAssignment(pos.key)?.operator_id) as op">
-              <img [src]="op.avatar_url" [alt]="op.name" class="operator-avatar" />
+              <img [src]="getMemberAvatar(op)" [alt]="op.name" class="operator-avatar" />
               <div class="operator-meta">
                 <span class="op-name">{{ op.name }}</span>
                 <span class="op-doc">DNI: {{ op.document_id }} | {{ op.phone_extension || 'Sin Anexo' }}</span>
@@ -324,7 +345,11 @@ import { getRosterForDate, getCurrentActiveShift, getLocalDateString, DayRoster,
                 (click)="openEditAssignmentModal(pos.key)"
                 title="Editar consignas o ubicación específica"
               >
-                ✏️ Editar
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; vertical-align: -1px;">
+                  <path d="M12 20h9"></path>
+                  <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                </svg>
+                Editar
               </button>
 
               <button
@@ -334,7 +359,11 @@ import { getRosterForDate, getCurrentActiveShift, getLocalDateString, DayRoster,
                 (click)="onDeletePosition(pos)"
                 title="Eliminar esta posición personalizada de la cuadrilla"
               >
-                🗑️ Eliminar
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; vertical-align: -1px;">
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+                Eliminar
               </button>
 
               <a
@@ -424,7 +453,7 @@ import { getRosterForDate, getCurrentActiveShift, getLocalDateString, DayRoster,
               <tr *ngFor="let m of filteredCrew">
                 <td>
                   <div class="cell-operator">
-                    <img [src]="m.avatar_url" [alt]="m.name" class="table-avatar" />
+                    <img [src]="getMemberAvatar(m)" [alt]="m.name" class="table-avatar" />
                     <div>
                       <span class="table-op-name">{{ m.name }}</span>
                     </div>
@@ -476,7 +505,10 @@ import { getRosterForDate, getCurrentActiveShift, getLocalDateString, DayRoster,
                     (click)="onDeleteOperator(m)"
                     title="Dar de baja de la nómina"
                   >
-                    🗑️
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="3 6 5 6 21 6"></polyline>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
                   </button>
                 </td>
               </tr>
@@ -673,7 +705,7 @@ import { getRosterForDate, getCurrentActiveShift, getLocalDateString, DayRoster,
               [class.selected]="newPositionData.iconSvg === opt.icon"
               (click)="newPositionData.iconSvg = opt.icon"
             >
-              <span class="icon-emoji">{{ opt.icon }}</span>
+              <span class="icon-emoji" [innerHTML]="opt.icon"></span>
               <span class="icon-label">{{ opt.label }}</span>
             </button>
           </div>
@@ -1403,7 +1435,7 @@ import { getRosterForDate, getCurrentActiveShift, getLocalDateString, DayRoster,
         &:disabled {
           color: #94a3b8;
           font-style: italic;
-          background: #f8fafc;
+          background: var(--bg-card-subtle);
         }
       }
 
@@ -1427,8 +1459,8 @@ import { getRosterForDate, getCurrentActiveShift, getLocalDateString, DayRoster,
       gap: 12px;
       padding: 8px 16px;
       border-radius: var(--radius-md);
-      background: rgba(3, 23, 149, 0.05);
-      border: 1px solid rgba(3, 23, 149, 0.2);
+      background: var(--primary-bg-subtle);
+      border: 1px solid var(--primary-border);
 
       .notice-lock-icon {
         font-size: 1.3rem;
@@ -1964,6 +1996,19 @@ import { getRosterForDate, getCurrentActiveShift, getLocalDateString, DayRoster,
       justify-content: flex-end;
       gap: 10px;
     }
+
+    :host-context([data-theme="dark"]),
+    :host-context(.dark-theme) {
+      .avatar-option-item.selected {
+        border-color: #3b82f6;
+        box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+      }
+      .operator-select, .operator-select-sm {
+        background: var(--bg-input);
+        color: var(--text-primary);
+        border-color: var(--border-subtle);
+      }
+    }
   `]
 })
 export class CrewManagementComponent implements OnInit, OnDestroy {
@@ -1995,24 +2040,24 @@ export class CrewManagementComponent implements OnInit, OnDestroy {
     title: '',
     defaultLocation: '',
     defaultRadio: 'Canal 1 Operaciones',
-    iconSvg: '🏭',
+    iconSvg: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20h20"></path><path d="M5 20V8l7-5 7 5v12"></path></svg>',
     description: '',
     initialOperatorId: ''
   };
 
   iconOptions = [
-    { icon: '🌊', label: 'Bombas' },
-    { icon: '🌀', label: 'Ciclones' },
-    { icon: '🏔️', label: 'Descarga/Presa' },
-    { icon: '⚙️', label: 'Misceláneos' },
-    { icon: '🔄', label: 'Relevo' },
-    { icon: '🏭', label: 'Espesadores' },
-    { icon: '🧪', label: 'Muestreo/Lab' },
-    { icon: '⚡', label: 'Eléctrica' },
-    { icon: '⛏️', label: 'Chancado' },
-    { icon: '🛡️', label: 'Seguridad' },
-    { icon: '🦺', label: 'Supervisión' },
-    { icon: '🚒', label: 'Emergencias' }
+    { icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 3a9 9 0 0 1 9 9h-9V3z"></path></svg>', label: 'Bombas' },
+    { icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 4 21 4 14 14 14 20 10 20 10 14 3 4"></polygon></svg>', label: 'Ciclones' },
+    { icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18l6-6 4 4 8-8"></path><path d="M14 8h7v7"></path></svg>', label: 'Descarga/Presa' },
+    { icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>', label: 'Misceláneos' },
+    { icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>', label: 'Relevo' },
+    { icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20h20"></path><path d="M5 20V8l7-5 7 5v12"></path></svg>', label: 'Espesadores' },
+    { icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v7.31L4.62 19A2 2 0 0 0 6.35 22h11.3a2 2 0 0 0 1.73-3L14 9.31V2h-4z"></path></svg>', label: 'Muestreo/Lab' },
+    { icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>', label: 'Eléctrica' },
+    { icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>', label: 'Chancado' },
+    { icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>', label: 'Seguridad' },
+    { icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><polyline points="17 11 19 13 23 9"></polyline></svg>', label: 'Supervisión' },
+    { icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>', label: 'Emergencias' }
   ];
 
   newOperator: Partial<CrewMember> = {
@@ -2023,18 +2068,22 @@ export class CrewManagementComponent implements OnInit, OnDestroy {
     radio_channel: 'Canal 3 Bombas',
     phone_extension: '',
     status: 'EN_TURNO',
-    avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=250&q=80'
+    avatar_url: generateAvatarSvg('Operador Bombas', 'OPERADOR')
   };
 
   avatarPresets = [
-    'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=250&q=80',
-    'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=250&q=80',
-    'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=250&q=80',
-    'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80',
-    'https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?auto=format&fit=crop&w=250&q=80',
-    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=250&q=80',
-    'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=250&q=80'
+    generateAvatarSvg('Supervisor', 'SUPERVISOR', 'G1'),
+    generateAvatarSvg('Operador Bombas', 'OPERADOR'),
+    generateAvatarSvg('Operador Ciclones', 'OPERADOR'),
+    generateAvatarSvg('Operador Descarga', 'OPERADOR'),
+    generateAvatarSvg('Mantenimiento', 'MAINTENANCE'),
+    generateAvatarSvg('Jefe Planta', 'ADMIN'),
+    '/images/basetrack-icon-transparent.png'
   ];
+
+  getMemberAvatar(m?: Partial<CrewMember> | null): string {
+    return getEffectiveAvatar(m?.avatar_url, m?.name, m?.primary_role, m?.shift_code || this.selectedShift);
+  }
 
   get positionsList(): CrewPositionMeta[] {
     const standardKeys = new Set(['SUPERVISOR', 'SALA_CONTROL', 'BOMBAS', 'CICLONES_1', 'CICLONES_2', 'DISTRIBUIDOR', 'DESCARGA_1', 'DESCARGA_2', 'MISCELANEOS']);
@@ -2075,7 +2124,7 @@ export class CrewManagementComponent implements OnInit, OnDestroy {
   }
 
   get activeSupervisorAvatar(): string {
-    return this.activeSupervisorMember?.avatar_url || '';
+    return getEffectiveAvatar(this.activeSupervisorMember?.avatar_url, this.activeSupervisorDisplayName, 'SUPERVISOR', this.selectedShift);
   }
 
   get currentSquadOperators(): CrewMember[] {
@@ -2500,7 +2549,7 @@ export class CrewManagementComponent implements OnInit, OnDestroy {
       title: '',
       defaultLocation: '',
       defaultRadio: 'Canal 1 Operaciones',
-      iconSvg: '🏭',
+      iconSvg: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20h20"></path><path d="M5 20V8l7-5 7 5v12"></path></svg>',
       description: '',
       initialOperatorId: ''
     };

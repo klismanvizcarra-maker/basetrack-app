@@ -1186,10 +1186,13 @@
     border-color: var(--primary-purple);
 
     &::after {
-      content: '✓';
-      color: #ffffff;
-      font-size: 14px;
-      font-weight: 800;
+      content: '';
+      width: 5px;
+      height: 9px;
+      border: solid #ffffff;
+      border-width: 0 2px 2px 0;
+      transform: rotate(45deg);
+      margin-bottom: 2px;
     }
   }
 }

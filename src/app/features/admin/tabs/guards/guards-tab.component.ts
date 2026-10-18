@@ -5,6 +5,7 @@ import { ModalComponent } from '../../../../shared/ui/modal.component';
 import { CrewService, SupervisorData, CrewMember } from '../../../../core/services/crew.service';
 import { GuardsStore } from './guards.store';
 import { finalize } from 'rxjs';
+import { getEffectiveAvatar } from '../../../../shared/utils/avatar.util';
 
 /**
  * Pestaña "Guardias" de Administración: supervisores G1-G4, sus operadores y vinculación.
@@ -28,6 +29,10 @@ export class AdminGuardsTabComponent implements OnInit {
 
   private crewService = inject(CrewService);
   private guardsStore = inject(GuardsStore);
+
+  getAvatar(url?: string | null, name?: string, role?: string, shift?: string): string {
+    return getEffectiveAvatar(url, name, role, shift);
+  }
 
   get supervisorsList(): SupervisorData[] { return this.guardsStore.supervisorsList; }
   get allAvailableOperators(): CrewMember[] { return this.guardsStore.allAvailableOperators; }

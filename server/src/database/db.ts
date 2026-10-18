@@ -58,11 +58,19 @@ export function initDatabase() {
       shift_type TEXT NOT NULL CHECK(shift_type IN ('DIA', 'NOCHE')),
       outgoing_supervisor TEXT NOT NULL,
       incoming_supervisor TEXT NOT NULL,
+      outgoing_dni TEXT,
+      outgoing_role TEXT,
+      incoming_dni TEXT,
+      incoming_role TEXT,
       plant_status TEXT NOT NULL,
       tonnage_processed REAL NOT NULL DEFAULT 0,
       safety_incidents TEXT,
       operational_highlights TEXT,
       pending_tasks TEXT,
+      assigned_crew TEXT,
+      checklist_data TEXT,
+      maintenance_orders TEXT,
+      timeline_events TEXT,
       status TEXT NOT NULL CHECK(status IN ('DRAFT', 'SUBMITTED', 'ACCEPTED')) DEFAULT 'SUBMITTED',
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
@@ -701,6 +709,12 @@ export function initDatabase() {
   } catch {}
   try {
     db.prepare("ALTER TABLE shift_handovers ADD COLUMN checklist_data TEXT").run();
+  } catch {}
+  try {
+    db.prepare("ALTER TABLE shift_handovers ADD COLUMN maintenance_orders TEXT").run();
+  } catch {}
+  try {
+    db.prepare("ALTER TABLE shift_handovers ADD COLUMN timeline_events TEXT").run();
   } catch {}
 
   // Migration: Add operational pass and module tracking to maintenance_requests

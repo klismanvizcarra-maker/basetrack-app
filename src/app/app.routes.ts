@@ -55,6 +55,11 @@ export const routes: Routes = [
         loadComponent: () => import('./features/tailings/tailings.component').then(m => m.TailingsComponent)
       },
       {
+        path: 'flowsheet',
+        canActivate: [authGuard],
+        loadComponent: () => import('./features/flowsheet/flowsheet.component').then(m => m.FlowsheetComponent)
+      },
+      {
         path: 'maintenance',
         loadComponent: () => import('./features/maintenance/maintenance.component').then(m => m.MaintenanceComponent)
       },

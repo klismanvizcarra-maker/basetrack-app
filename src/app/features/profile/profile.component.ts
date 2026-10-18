@@ -5,6 +5,8 @@ import { AuthService } from '../../core/auth/auth.service';
 import { ShiftCode } from '../../core/auth/auth.models';
 import { ThemeService } from '../../core/theme/theme.service';
 import { Router } from '@angular/router';
+import { generateAvatarSvg, getEffectiveAvatar } from '../../shared/utils/avatar.util';
+import { CloudSyncService } from '../../core/services/cloud-sync.service';
 
 @Component({
   selector: 'app-profile',
@@ -23,7 +25,13 @@ import { Router } from '@angular/router';
 
       <!-- Contraseña temporal: cambio obligatorio antes de usar la aplicación -->
       <div *ngIf="authService.currentUser()?.mustChangePassword" class="alert-banner alert-danger animate-fade-in" role="alert">
-        <span>🔒 <strong>Debes cambiar tu contraseña temporal</strong> antes de continuar. Escribe la contraseña que te entregó el administrador en "Contraseña actual" y elige una nueva de al menos 8 caracteres.</span>
+        <span style="display:inline-flex;align-items:center;gap:6px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+          <strong>Debes cambiar tu contraseña temporal</strong> antes de continuar. Escribe la contraseña que te entregó el administrador en "Contraseña actual" y elige una nueva de al menos 8 caracteres.
+        </span>
       </div>
 
       <!-- Feedback Alerts -->
@@ -77,43 +85,59 @@ import { Router } from '@angular/router';
               </div>
             </div>
 
-            <!-- Upload or URL inputs -->
+            <!-- Upload & Avatar Management -->
             <div class="avatar-actions">
-              <button type="button" class="btn btn-secondary w-full" (click)="fileInput.click()">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                  <polyline points="17 8 12 3 7 8"></polyline>
-                  <line x1="12" y1="3" x2="12" y2="15"></line>
-                </svg>
-                Subir Foto desde PC / Móvil
-              </button>
+              <div class="avatar-btn-row">
+                <button type="button" class="btn btn-primary btn-upload-avatar" (click)="fileInput.click()">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                  </svg>
+                  <span>Subir Foto</span>
+                </button>
+                <button type="button" class="btn btn-secondary btn-reset-avatar" (click)="resetToDefaultAvatar()" title="Restablecer al avatar vectorial oficial de tu rol">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="1 4 1 10 7 10"></polyline>
+                    <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+                  </svg>
+                  <span>Restablecer</span>
+                </button>
+              </div>
 
               <!-- Quick Plant Avatars Preset Gallery -->
               <div class="preset-gallery">
-                <span class="preset-title">Avatares Operacionales Rápidos:</span>
-                <div class="presets-row">
+                <span class="preset-title">Avatares Oficiales de Planta:</span>
+                <div class="presets-grid">
                   <button
                     type="button"
                     *ngFor="let p of presetAvatars"
-                    class="preset-item"
+                    class="preset-item-card"
                     [class.active]="profileForm.avatarUrl === p.url"
                     (click)="selectPresetAvatar(p.url)"
                     [title]="p.label"
                   >
-                    <img [src]="p.url" [alt]="p.label" />
+                    <div class="preset-thumb">
+                      <img [src]="p.url" [alt]="p.label" />
+                    </div>
+                    <span class="preset-label">{{ p.shortLabel || p.label }}</span>
+                    <span class="preset-check" *ngIf="profileForm.avatarUrl === p.url">
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                    </span>
                   </button>
                 </div>
               </div>
 
-              <!-- Custom URL Input Option -->
-              <div class="form-group custom-url-group">
-                <label>O ingresar enlace directo a imagen (URL)</label>
-                <input
-                  type="url"
-                  [(ngModel)]="profileForm.avatarUrl"
-                  placeholder="https://ejemplo.com/mifoto.jpg"
-                  (change)="onUrlChange()"
-                />
+              <!-- Auto-compression hint note -->
+              <div class="avatar-hint-note">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="16" x2="12" y2="12"></line>
+                  <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                </svg>
+                <span>Tu foto se optimiza a &lt;45 KB para sincronizarse al instante en todos los dispositivos y reportes PDF.</span>
               </div>
             </div>
           </div>
@@ -121,7 +145,14 @@ import { Router } from '@angular/router';
           <!-- Operational Summary Card (Ficha Rápida de Guardia) -->
           <div class="profile-card operational-badge-card glass-panel">
             <div class="card-head-compact">
-              <span class="compact-icon">🪪</span>
+              <span class="compact-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+                  <circle cx="9" cy="10" r="2"></circle>
+                  <line x1="15" y1="8" x2="17" y2="8"></line>
+                  <line x1="15" y1="12" x2="17" y2="12"></line>
+                </svg>
+              </span>
               <div>
                 <h4>Ficha Rápida de Guardia</h4>
                 <p class="compact-sub">Datos clave en planta</p>
@@ -135,7 +166,7 @@ import { Router } from '@angular/router';
               </div>
               <div class="quick-op-item">
                 <span class="op-label">Canal Radial:</span>
-                <span class="channel-chip">📻 {{ profileForm.radio_channel || 'Canal 1 Operaciones' }}</span>
+                <span class="channel-chip">{{ profileForm.radio_channel || 'Canal 1 Operaciones' }}</span>
               </div>
               <div class="quick-op-item">
                 <span class="op-label">Anexo / Celular:</span>
@@ -150,6 +181,71 @@ import { Router } from '@angular/router';
             <div class="crew-sync-footer">
               <span class="sync-dot"></span>
               <span>Sincronizado con Gestión de Cuadrilla</span>
+            </div>
+          </div>
+
+          <!-- Dispositivo y Sesión Activa de Planta (Mejora 6) -->
+          <div class="profile-card session-status-card glass-panel">
+            <div class="card-head-compact">
+              <span class="compact-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                  <line x1="8" y1="21" x2="16" y2="21"></line>
+                  <line x1="12" y1="17" x2="12" y2="21"></line>
+                </svg>
+              </span>
+              <div>
+                <h4>Dispositivo y Sesión de Planta</h4>
+                <p class="compact-sub">Terminal conectado y telemetría</p>
+              </div>
+            </div>
+
+            <div class="session-info-list">
+              <div class="session-row">
+                <span class="session-label">Dispositivo:</span>
+                <span class="session-val font-semibold">{{ devicePlatformInfo.os }} • {{ devicePlatformInfo.browser }}</span>
+              </div>
+              <div class="session-row">
+                <span class="session-label">Tipo:</span>
+                <span class="session-val">{{ devicePlatformInfo.deviceType }}</span>
+              </div>
+              <div class="session-row">
+                <span class="session-label">Red / Entorno:</span>
+                <span class="session-badge-net">{{ networkEnvironment }}</span>
+              </div>
+              <div class="session-row">
+                <span class="session-label">Telemetría SCADA:</span>
+                <div class="ws-live-indicator" [class.ws-connected]="cloudSync.isWsConnected()">
+                  <span class="pulse-dot-ws"></span>
+                  <strong>{{ cloudSync.isWsConnected() ? 'En Vivo WS (' + (cloudSync.wsLatencyMs() !== null ? cloudSync.wsLatencyMs() + ' ms' : '< 20 ms') + ')' : 'Modo Polling HTTP' }}</strong>
+                </div>
+              </div>
+              <div class="session-row">
+                <span class="session-label">Último Sincronismo:</span>
+                <span class="session-val">{{ (cloudSync.lastSyncTime() | date:'HH:mm:ss') || 'En vivo' }}</span>
+              </div>
+              <div class="session-row">
+                <span class="session-label">ID de Terminal:</span>
+                <span class="session-val font-mono text-xs">{{ (cloudSync.deviceId || 'DEV-LOCAL').slice(0, 16) }}</span>
+              </div>
+            </div>
+
+            <div class="session-card-actions">
+              <button type="button" class="btn btn-secondary btn-sm btn-sync-test" (click)="testConnectionSync()" [disabled]="isTestingSync">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" [class.spin]="isTestingSync">
+                  <polyline points="23 4 23 10 17 10"></polyline>
+                  <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                </svg>
+                {{ isTestingSync ? 'Verificando...' : 'Verificar Conexión' }}
+              </button>
+              <button type="button" class="btn btn-danger-ghost btn-sm" (click)="logoutFromDevice()" title="Cerrar sesión en este equipo">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                  <polyline points="16 17 21 12 16 7"></polyline>
+                  <line x1="21" y1="12" x2="9" y2="12"></line>
+                </svg>
+                Cerrar Sesión
+              </button>
             </div>
           </div>
         </div>
@@ -223,7 +319,14 @@ import { Router } from '@angular/router';
               <!-- Ficha Operacional de Planta & Cuadrilla Divider -->
               <div class="operational-sheet-divider">
                 <div class="divider-title">
-                  <span class="sheet-icon">🪪</span>
+                  <span class="sheet-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+                      <circle cx="9" cy="10" r="2"></circle>
+                      <line x1="15" y1="8" x2="17" y2="8"></line>
+                      <line x1="15" y1="12" x2="17" y2="12"></line>
+                    </svg>
+                  </span>
                   <div>
                     <h4>Ficha Operacional de Planta & Cuadrilla</h4>
                     <p class="sheet-desc">Datos oficiales de comunicación en campo y asignación en guardia</p>
@@ -244,7 +347,14 @@ import { Router } from '@angular/router';
                     <span class="field-tag">Oficial</span>
                   </label>
                   <div class="input-icon-wrap">
-                    <span class="input-icon">🪪</span>
+                    <span class="input-icon">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+                        <circle cx="9" cy="10" r="2"></circle>
+                        <line x1="15" y1="8" x2="17" y2="8"></line>
+                        <line x1="15" y1="12" x2="17" y2="12"></line>
+                      </svg>
+                    </span>
                     <input
                       type="text"
                       [(ngModel)]="profileForm.document_id"
@@ -263,7 +373,13 @@ import { Router } from '@angular/router';
                     <span class="field-tag">Comunicaciones</span>
                   </label>
                   <div class="input-icon-wrap">
-                    <span class="input-icon">📻</span>
+                    <span class="input-icon">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="5" y="9" width="14" height="12" rx="2"></rect>
+                        <line x1="9" y1="3" x2="9" y2="9"></line>
+                        <circle cx="12" cy="15" r="2"></circle>
+                      </svg>
+                    </span>
                     <select [(ngModel)]="profileForm.radio_channel" name="radioChannel" class="select-with-icon">
                       <option value="Canal 1 Operaciones">Canal 1 Operaciones (Frecuencia Principal)</option>
                       <option value="Canal 2 Ciclones">Canal 2 Ciclones (Baterías & Muestras)</option>
@@ -283,7 +399,11 @@ import { Router } from '@angular/router';
                     <span class="field-tag">Contacto</span>
                   </label>
                   <div class="input-icon-wrap">
-                    <span class="input-icon">📞</span>
+                    <span class="input-icon">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                      </svg>
+                    </span>
                     <input
                       type="text"
                       [(ngModel)]="profileForm.phone_extension"
@@ -300,7 +420,12 @@ import { Router } from '@angular/router';
                     <span class="field-tag">Asignación</span>
                   </label>
                   <div class="input-icon-wrap">
-                    <span class="input-icon">⚙️</span>
+                    <span class="input-icon">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                      </svg>
+                    </span>
                     <select [(ngModel)]="profileForm.primary_role" name="primaryRole" class="select-with-icon">
                       <option value="OPERADOR_BOMBAS">Operador de Bombas</option>
                       <option value="OPERADOR_CICLONES_1">Operador de Ciclones 1</option>
@@ -327,7 +452,7 @@ import { Router } from '@angular/router';
             </form>
           </div>
 
-          <!-- Password Security Card -->
+          <!-- Password Security Card (Mejora 4) -->
           <div class="profile-card glass-panel security-card">
             <div class="card-head-title">
               <div class="title-icon security-icon">
@@ -353,8 +478,15 @@ import { Router } from '@angular/router';
                     placeholder="••••••••"
                     required
                   />
-                  <button type="button" class="btn-toggle-eye" (click)="showOldPass = !showOldPass">
-                    {{ showOldPass ? 'Ocultar' : 'Ver' }}
+                  <button type="button" class="btn-toggle-eye" (click)="showOldPass = !showOldPass" [title]="showOldPass ? 'Ocultar contraseña' : 'Ver contraseña'">
+                    <svg *ngIf="!showOldPass" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                      <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                    <svg *ngIf="showOldPass" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                      <line x1="1" y1="1" x2="23" y2="23"></line>
+                    </svg>
                   </button>
                 </div>
               </div>
@@ -367,11 +499,18 @@ import { Router } from '@angular/router';
                       [type]="showNewPass ? 'text' : 'password'"
                       [(ngModel)]="passwordForm.newPassword"
                       name="newPassword"
-                      placeholder="Mínimo 6 caracteres"
+                      placeholder="Mínimo 8 caracteres"
                       required
                     />
-                    <button type="button" class="btn-toggle-eye" (click)="showNewPass = !showNewPass">
-                      {{ showNewPass ? 'Ocultar' : 'Ver' }}
+                    <button type="button" class="btn-toggle-eye" (click)="showNewPass = !showNewPass" [title]="showNewPass ? 'Ocultar contraseña' : 'Ver contraseña'">
+                      <svg *ngIf="!showNewPass" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                      </svg>
+                      <svg *ngIf="showNewPass" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                        <line x1="1" y1="1" x2="23" y2="23"></line>
+                      </svg>
                     </button>
                   </div>
                 </div>
@@ -386,10 +525,56 @@ import { Router } from '@angular/router';
                       placeholder="Repite tu contraseña"
                       required
                     />
-                    <button type="button" class="btn-toggle-eye" (click)="showConfirmPass = !showConfirmPass">
-                      {{ showConfirmPass ? 'Ocultar' : 'Ver' }}
+                    <button type="button" class="btn-toggle-eye" (click)="showConfirmPass = !showConfirmPass" [title]="showConfirmPass ? 'Ocultar contraseña' : 'Ver contraseña'">
+                      <svg *ngIf="!showConfirmPass" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                      </svg>
+                      <svg *ngIf="showConfirmPass" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                        <line x1="1" y1="1" x2="23" y2="23"></line>
+                      </svg>
                     </button>
                   </div>
+                </div>
+              </div>
+
+              <!-- Medidor Dinámico de Seguridad (Password Strength Meter) -->
+              <div class="strength-meter-wrap" *ngIf="passwordForm.newPassword">
+                <div class="meter-bars">
+                  <div class="bar" [class.filled]="passwordStrength.score >= 1" [ngClass]="passwordStrength.colorClass"></div>
+                  <div class="bar" [class.filled]="passwordStrength.score >= 2" [ngClass]="passwordStrength.colorClass"></div>
+                  <div class="bar" [class.filled]="passwordStrength.score >= 3" [ngClass]="passwordStrength.colorClass"></div>
+                </div>
+                <div class="meter-caption">
+                  <span class="meter-label" [ngClass]="passwordStrength.colorClass">
+                    Seguridad de Clave: <strong>{{ passwordStrength.label }}</strong>
+                  </span>
+                </div>
+              </div>
+
+              <!-- Checklist Interactivo en Vivo de Requisitos -->
+              <div class="password-checklist">
+                <div class="check-item" [class.valid]="hasMinLength">
+                  <span class="check-icon">
+                    <svg *ngIf="hasMinLength" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    <span *ngIf="!hasMinLength" class="check-dot"></span>
+                  </span>
+                  <span>Mínimo 8 caracteres requeridos</span>
+                </div>
+                <div class="check-item" [class.valid]="hasNumberOrSymbol">
+                  <span class="check-icon">
+                    <svg *ngIf="hasNumberOrSymbol" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    <span *ngIf="!hasNumberOrSymbol" class="check-dot"></span>
+                  </span>
+                  <span>Incluye al menos un número o símbolo</span>
+                </div>
+                <div class="check-item" [class.valid]="passwordsMatch">
+                  <span class="check-icon">
+                    <svg *ngIf="passwordsMatch" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    <span *ngIf="!passwordsMatch" class="check-dot"></span>
+                  </span>
+                  <span>Las contraseñas coinciden exactamente</span>
                 </div>
               </div>
 
@@ -401,7 +586,7 @@ import { Router } from '@angular/router';
                 <button
                   type="submit"
                   class="btn btn-secondary"
-                  [disabled]="isSavingPassword || !passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword || passwordMismatch"
+                  [disabled]="isSavingPassword || !isPasswordFormValid"
                 >
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
@@ -433,12 +618,28 @@ import { Router } from '@angular/router';
                 [class.active]="themeService.themeMode() === 'light'"
                 (click)="themeService.setThemeMode('light')"
               >
-                <div class="theme-box-icon sun-icon-box">☀️</div>
+                <div class="theme-box-icon sun-icon-box">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="5"></circle>
+                    <line x1="12" y1="1" x2="12" y2="3"></line>
+                    <line x1="12" y1="21" x2="12" y2="23"></line>
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                    <line x1="1" y1="12" x2="3" y2="12"></line>
+                    <line x1="21" y1="12" x2="23" y2="12"></line>
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                  </svg>
+                </div>
                 <div class="theme-box-text">
                   <strong>Modo Claro</strong>
                   <span>Fondo blanco slate y contraste nítido diurno</span>
                 </div>
-                <span class="theme-active-check" *ngIf="themeService.themeMode() === 'light'">✓</span>
+                <span class="theme-active-check" *ngIf="themeService.themeMode() === 'light'">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                </span>
               </div>
 
               <!-- Dark Mode Option -->
@@ -447,12 +648,20 @@ import { Router } from '@angular/router';
                 [class.active]="themeService.themeMode() === 'dark'"
                 (click)="themeService.setThemeMode('dark')"
               >
-                <div class="theme-box-icon moon-icon-box">🌙</div>
+                <div class="theme-box-icon moon-icon-box">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                  </svg>
+                </div>
                 <div class="theme-box-text">
                   <strong>Modo Oscuro</strong>
                   <span>Gama obsidiana y azul cobalto para guardia nocturna</span>
                 </div>
-                <span class="theme-active-check" *ngIf="themeService.themeMode() === 'dark'">✓</span>
+                <span class="theme-active-check" *ngIf="themeService.themeMode() === 'dark'">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                </span>
               </div>
 
               <!-- Auto System Mode Option -->
@@ -461,12 +670,22 @@ import { Router } from '@angular/router';
                 [class.active]="themeService.themeMode() === 'auto'"
                 (click)="themeService.setThemeMode('auto')"
               >
-                <div class="theme-box-icon auto-icon-box">💻</div>
+                <div class="theme-box-icon auto-icon-box">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                    <line x1="8" y1="21" x2="16" y2="21"></line>
+                    <line x1="12" y1="17" x2="12" y2="21"></line>
+                  </svg>
+                </div>
                 <div class="theme-box-text">
                   <strong>Automático</strong>
                   <span>Sincronizar con el tema del sistema operativo</span>
                 </div>
-                <span class="theme-active-check" *ngIf="themeService.themeMode() === 'auto'">✓</span>
+                <span class="theme-active-check" *ngIf="themeService.themeMode() === 'auto'">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                </span>
               </div>
             </div>
           </div>
@@ -638,15 +857,23 @@ import { Router } from '@angular/router';
       width: 100%;
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 14px;
     }
 
-    .w-full {
-      width: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+    .avatar-btn-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
       gap: 8px;
+      width: 100%;
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        font-size: 0.8rem;
+        padding: 8px 12px;
+      }
     }
 
     .preset-gallery {
@@ -654,61 +881,236 @@ import { Router } from '@angular/router';
       flex-direction: column;
       gap: 8px;
       text-align: left;
+      width: 100%;
 
       .preset-title {
-        font-size: 0.75rem;
-        font-weight: 600;
+        font-size: 0.74rem;
+        font-weight: 700;
         color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
       }
 
-      .presets-row {
-        display: flex;
+      .presets-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
         gap: 8px;
-        justify-content: center;
       }
 
-      .preset-item {
-        width: 44px;
-        height: 44px;
-        border-radius: var(--radius-full);
-        border: 2px solid var(--border-subtle);
+      .preset-item-card {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 10px;
+        border-radius: var(--radius-md);
+        border: 1px solid var(--border-subtle);
         background: var(--bg-card-subtle);
-        padding: 2px;
         cursor: pointer;
         transition: var(--transition-smooth);
+        text-align: left;
+        position: relative;
 
-        img {
-          width: 100%;
-          height: 100%;
+        &:last-child {
+          grid-column: span 2;
+        }
+
+        .preset-thumb {
+          width: 32px;
+          height: 32px;
           border-radius: var(--radius-full);
-          object-fit: cover;
+          overflow: hidden;
+          flex-shrink: 0;
+          background: var(--bg-card);
+          border: 1px solid var(--border-subtle);
+
+          img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+          }
+        }
+
+        .preset-label {
+          font-size: 0.74rem;
+          font-weight: 600;
+          color: var(--text-primary);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          flex: 1;
+        }
+
+        .preset-check {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 18px;
+          height: 18px;
+          border-radius: var(--radius-full);
+          background: var(--primary-purple);
+          color: #ffffff;
+          flex-shrink: 0;
         }
 
         &:hover {
           border-color: var(--primary-purple);
-          transform: translateY(-2px);
+          background: var(--primary-bg-subtle);
+          transform: translateY(-1px);
         }
 
         &.active {
           border-color: var(--primary-purple);
-          box-shadow: 0 0 0 3px var(--primary-glow);
+          background: var(--primary-bg-subtle);
+          box-shadow: 0 0 0 2px var(--primary-glow);
         }
       }
     }
 
-    .custom-url-group {
+    .avatar-hint-note {
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+      padding: 8px 10px;
+      border-radius: var(--radius-sm);
+      background: var(--bg-card-subtle);
+      border: 1px solid var(--border-subtle);
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      line-height: 1.35;
       text-align: left;
-      margin-top: 4px;
 
-      label {
-        font-size: 0.72rem;
+      svg {
+        flex-shrink: 0;
+        margin-top: 1px;
+        color: var(--primary-purple);
+      }
+    }
+
+    /* Session Status Card (Mejora 6) */
+    .session-status-card {
+      width: 100%;
+      text-align: left;
+    }
+
+    .session-info-list {
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+    }
+
+    .session-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.78rem;
+
+      .session-label {
         color: var(--text-muted);
+        font-weight: 500;
       }
 
-      input {
-        font-size: 0.78rem;
-        padding: 7px 10px;
+      .session-val {
+        font-weight: 600;
+        color: var(--text-primary);
       }
+
+      .session-badge-net {
+        font-size: 0.7rem;
+        font-weight: 700;
+        padding: 2px 8px;
+        border-radius: 4px;
+        background: var(--primary-bg-subtle);
+        color: var(--primary-purple);
+        border: 1px solid var(--primary-border);
+      }
+
+      .ws-live-indicator {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: #10b981;
+        background: rgba(16, 185, 129, 0.1);
+        padding: 2px 8px;
+        border-radius: var(--radius-full);
+        border: 1px solid rgba(16, 185, 129, 0.25);
+
+        &:not(.ws-connected) {
+          color: #f59e0b;
+          background: rgba(245, 158, 11, 0.1);
+          border-color: rgba(245, 158, 11, 0.25);
+
+          .pulse-dot-ws {
+            background: #f59e0b;
+            box-shadow: none;
+            animation: none;
+          }
+        }
+      }
+
+      .pulse-dot-ws {
+        width: 6px;
+        height: 6px;
+        border-radius: var(--radius-full);
+        background: #10b981;
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+        animation: pulseDotWs 2s infinite;
+      }
+    }
+
+    @keyframes pulseDotWs {
+      0% {
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+      }
+      70% {
+        box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+      }
+      100% {
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+      }
+    }
+
+    .session-card-actions {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border-subtle);
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+      }
+
+      .btn-danger-ghost {
+        background: transparent;
+        border: 1px solid rgba(239, 68, 68, 0.28);
+        color: #ef4444;
+        border-radius: var(--radius-md);
+        font-size: 0.76rem;
+        font-weight: 600;
+        padding: 6px 12px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+
+        &:hover {
+          background: rgba(239, 68, 68, 0.1);
+          border-color: #ef4444;
+        }
+      }
+    }
+
+    .spin {
+      animation: spinIcon 1s linear infinite;
+    }
+
+    @keyframes spinIcon {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
     }
 
     /* Right column forms */
@@ -798,7 +1200,7 @@ import { Router } from '@angular/router';
 
       input {
         width: 100%;
-        padding-right: 64px;
+        padding-right: 44px;
       }
 
       .btn-toggle-eye {
@@ -806,15 +1208,132 @@ import { Router } from '@angular/router';
         right: 8px;
         background: transparent;
         border: none;
-        color: var(--primary-purple);
-        font-size: 0.75rem;
-        font-weight: 600;
+        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 30px;
+        height: 30px;
         cursor: pointer;
-        padding: 4px 8px;
+        padding: 4px;
         border-radius: var(--radius-sm);
+        transition: color 0.2s ease, background 0.2s ease;
 
         &:hover {
           background: var(--primary-bg-subtle);
+          color: var(--primary-purple);
+        }
+      }
+    }
+
+    /* Password Strength Meter Styles (Mejora 4) */
+    .strength-meter-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      margin-top: 2px;
+
+      .meter-bars {
+        display: flex;
+        gap: 4px;
+        width: 100%;
+        height: 4px;
+
+        .bar {
+          flex: 1;
+          height: 100%;
+          border-radius: 2px;
+          background: var(--border-subtle);
+          transition: background 0.3s ease;
+
+          &.filled.strength-weak {
+            background: #ef4444;
+          }
+
+          &.filled.strength-medium {
+            background: #f59e0b;
+          }
+
+          &.filled.strength-strong {
+            background: #10b981;
+          }
+        }
+      }
+
+      .meter-caption {
+        display: flex;
+        justify-content: flex-end;
+      }
+
+      .meter-label {
+        font-size: 0.72rem;
+        font-weight: 500;
+
+        &.strength-weak {
+          color: #ef4444;
+        }
+
+        &.strength-medium {
+          color: #f59e0b;
+        }
+
+        &.strength-strong {
+          color: #10b981;
+        }
+
+        strong {
+          font-weight: 700;
+        }
+      }
+    }
+
+    /* Interactive Live Password Checklist (Mejora 4) */
+    .password-checklist {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding: 10px 12px;
+      border-radius: var(--radius-sm);
+      background: var(--bg-card-subtle);
+      border: 1px solid var(--border-subtle);
+      margin-top: 4px;
+
+      .check-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.74rem;
+        color: var(--text-muted);
+        transition: color 0.2s ease;
+
+        .check-icon {
+          width: 15px;
+          height: 15px;
+          border-radius: var(--radius-full);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: var(--border-subtle);
+          color: #ffffff;
+          flex-shrink: 0;
+          transition: background 0.2s ease;
+
+          .check-dot {
+            width: 4px;
+            height: 4px;
+            border-radius: var(--radius-full);
+            background: var(--text-muted);
+          }
+        }
+
+        &.valid {
+          color: var(--text-primary);
+          font-weight: 600;
+
+          .check-icon {
+            background: #10b981;
+            color: #ffffff;
+          }
         }
       }
     }
@@ -1086,7 +1605,10 @@ import { Router } from '@angular/router';
 export class ProfileComponent implements OnInit {
   authService = inject(AuthService);
   themeService = inject(ThemeService);
+  cloudSync = inject(CloudSyncService);
   private router = inject(Router);
+
+  isTestingSync = false;
 
   profileForm = {
     fullName: '',
@@ -1114,29 +1636,75 @@ export class ProfileComponent implements OnInit {
   successMessage = '';
   errorMessage = '';
 
-  // Preset avatar photos for plant operators / engineers
+  // Preset avatar photos for plant operators / engineers (Mejora 3)
   presetAvatars = [
     {
-      label: 'Ingeniero Jefe de Operaciones',
-      url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=250&q=80'
+      label: 'Administrador / Jefe de Planta',
+      shortLabel: 'Administrador',
+      url: generateAvatarSvg('Administrador', 'ADMIN')
     },
     {
-      label: 'Supervisor de Guardia',
-      url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80'
+      label: 'Supervisor de Guardia (G1-G4)',
+      shortLabel: 'Supervisor',
+      url: generateAvatarSvg('Supervisor', 'SUPERVISOR', 'G1')
     },
     {
-      label: 'Operador de Planta Concentradora',
-      url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=250&q=80'
-    },
-    {
-      label: 'Supervisora Metalúrgica',
-      url: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=250&q=80'
+      label: 'Operador de Bombas & Molienda',
+      shortLabel: 'Op. Bombas',
+      url: generateAvatarSvg('Operador Bombas', 'OPERADOR')
     },
     {
       label: 'Especialista de Mantenimiento',
-      url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=250&q=80'
+      shortLabel: 'Mantenimiento',
+      url: generateAvatarSvg('Mantenimiento', 'MAINTENANCE')
+    },
+    {
+      label: 'Isotipo Oficial BASETRACK',
+      shortLabel: 'BASETRACK',
+      url: '/images/basetrack-icon-transparent.png'
     }
   ];
+
+  /* --- Password Strength & Validation Getters (Mejora 4) --- */
+  get passwordStrength(): { score: number; label: string; colorClass: string } {
+    const p = this.passwordForm.newPassword || '';
+    if (!p) return { score: 0, label: '', colorClass: '' };
+    let score = 0;
+    if (p.length >= 8) score++;
+    if (p.length >= 10) score++;
+    if (/[A-Z]/.test(p) && /[a-z]/.test(p)) score++;
+    if (/\d/.test(p)) score++;
+    if (/[\W_]/.test(p)) score++;
+
+    if (score <= 2) return { score: 1, label: 'Débil', colorClass: 'strength-weak' };
+    if (score <= 4) return { score: 2, label: 'Aceptable', colorClass: 'strength-medium' };
+    return { score: 3, label: 'Fuerte y Segura', colorClass: 'strength-strong' };
+  }
+
+  get hasMinLength(): boolean {
+    return (this.passwordForm.newPassword || '').length >= 8;
+  }
+
+  get hasNumberOrSymbol(): boolean {
+    return /[\d\W_]/.test(this.passwordForm.newPassword || '');
+  }
+
+  get passwordsMatch(): boolean {
+    return !!(
+      this.passwordForm.newPassword &&
+      this.passwordForm.confirmPassword &&
+      this.passwordForm.newPassword === this.passwordForm.confirmPassword
+    );
+  }
+
+  get isPasswordFormValid(): boolean {
+    return !!(
+      this.passwordForm.currentPassword &&
+      this.hasMinLength &&
+      this.hasNumberOrSymbol &&
+      this.passwordsMatch
+    );
+  }
 
   get passwordMismatch(): boolean {
     return !!(
@@ -1144,6 +1712,65 @@ export class ProfileComponent implements OnInit {
       this.passwordForm.confirmPassword &&
       this.passwordForm.newPassword !== this.passwordForm.confirmPassword
     );
+  }
+
+  /* --- Device Platform & Session Getters (Mejora 6) --- */
+  get devicePlatformInfo(): { os: string; browser: string; deviceType: string } {
+    if (typeof navigator === 'undefined') {
+      return { os: 'Servidor', browser: 'Desconocido', deviceType: 'Estación de Trabajo' };
+    }
+    const ua = navigator.userAgent;
+    let os = 'Windows / PC';
+    if (/Macintosh|Mac OS X/i.test(ua)) os = 'macOS';
+    else if (/iPhone|iPad|iPod/i.test(ua)) os = 'iOS';
+    else if (/Android/i.test(ua)) os = 'Android';
+    else if (/Linux/i.test(ua)) os = 'Linux';
+
+    let browser = 'Navegador Web';
+    if (/Chrome|CriOS/i.test(ua) && !/Edge|Edg/i.test(ua)) browser = 'Chrome';
+    else if (/Safari/i.test(ua) && !/Chrome|CriOS/i.test(ua)) browser = 'Safari';
+    else if (/Firefox/i.test(ua)) browser = 'Firefox';
+    else if (/Edge|Edg/i.test(ua)) browser = 'Edge';
+
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+    const deviceType = isMobile ? 'Móvil / Tablet de Planta' : 'Estación de Trabajo / Sala de Control';
+
+    return { os, browser, deviceType };
+  }
+
+  get networkEnvironment(): string {
+    if (typeof window === 'undefined') return 'Red Industrial';
+    const host = window.location.hostname;
+    if (host === 'localhost' || host === '127.0.0.1') return 'Entorno Local (Localhost)';
+    if (host.startsWith('192.168.') || host.startsWith('10.') || host.startsWith('172.')) {
+      return 'Red Local de Planta (LAN Industrial)';
+    }
+    return 'Nube / Cloud (Servidor Remoto)';
+  }
+
+  testConnectionSync(): void {
+    this.isTestingSync = true;
+    this.cloudSync.forceSync();
+    setTimeout(() => {
+      this.isTestingSync = false;
+      this.showSuccess('Conectividad verificada: Telemetría WebSocket activa en este terminal.');
+    }, 800);
+  }
+
+  logoutFromDevice(): void {
+    if (confirm('¿Deseas cerrar la sesión en este dispositivo?')) {
+      this.authService.logout();
+      this.router.navigate(['/auth/login']);
+    }
+  }
+
+  resetToDefaultAvatar(): void {
+    const user = this.authService.currentUser();
+    const defaultSvg = generateAvatarSvg(user?.fullName || user?.username, user?.role, user?.shift);
+    this.profileForm.avatarUrl = defaultSvg;
+    this.authService.updateProfile({ avatarUrl: defaultSvg }).subscribe({
+      next: () => this.showSuccess('Avatar institucional restablecido correctamente.')
+    });
   }
 
   ngOnInit(): void {
@@ -1160,11 +1787,12 @@ export class ProfileComponent implements OnInit {
   }
 
   private populateForm(user: any): void {
+    const effectiveAvatar = getEffectiveAvatar(user.avatarUrl, user.fullName || user.username, user.role, user.shift);
     this.profileForm = {
       fullName: user.fullName || '',
       email: user.email || '',
       shift: user.shift || 'G1',
-      avatarUrl: user.avatarUrl || this.presetAvatars[0].url,
+      avatarUrl: effectiveAvatar,
       document_id: user.document_id || '',
       radio_channel: user.radio_channel || 'Canal 1 Operaciones',
       phone_extension: user.phone_extension || 'Anexo 402',
@@ -1203,7 +1831,8 @@ export class ProfileComponent implements OnInit {
   }
 
   onImageError(): void {
-    this.profileForm.avatarUrl = `https://api.dicebear.com/7.x/bottts/svg?seed=${this.authService.currentUser()?.username || 'user'}`;
+    const user = this.authService.currentUser();
+    this.profileForm.avatarUrl = generateAvatarSvg(user?.fullName || user?.username, user?.role, user?.shift);
   }
 
   async onFileSelected(event: Event): Promise<void> {

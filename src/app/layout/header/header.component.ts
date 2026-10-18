@@ -7,7 +7,9 @@ import { PwaService } from '../../core/pwa/pwa.service';
 import { OfflineSyncService } from '../../core/offline/offline-sync.service';
 import { CloudSyncService } from '../../core/services/cloud-sync.service';
 import { ThemeService } from '../../core/theme/theme.service';
+import { NotificationService, NotificationItem } from '../../core/services/notification.service';
 import { getCurrentActiveShift } from '../../shared/utils/roster.util';
+import { getEffectiveAvatar } from '../../shared/utils/avatar.util';
 
 @Component({
   selector: 'app-header',
@@ -101,12 +103,19 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
         </button>
 
         <!-- Notification Bell -->
-        <button type="button" class="header-action-btn" title="Notificaciones de Planta" (click)="toggleNotifications()">
+        <button 
+          type="button" 
+          class="header-action-btn notif-bell-btn" 
+          [title]="notifService.unreadCount() > 0 ? (notifService.unreadCount() + ' alertas no leídas del SCADA') : 'Alertas de Planta & SCADA'" 
+          (click)="toggleNotifications()"
+        >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
             <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
           </svg>
-          <span class="notification-indicator"></span>
+          <span class="notification-indicator" *ngIf="notifService.unreadCount() > 0">
+            <span class="notif-count-text">{{ notifService.unreadCount() }}</span>
+          </span>
         </button>
 
         <!-- Messages / Chat -->
@@ -154,7 +163,7 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
         <div class="user-profile-badge" (click)="goToProfile()" style="cursor: pointer" title="Configurar mi cuenta y perfil">
           <div class="avatar-wrapper">
             <img
-              [src]="authService.currentUser()?.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80'"
+              [src]="getUserAvatar()"
               alt="Avatar"
               class="user-avatar"
             />
@@ -168,33 +177,141 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
       </div>
     </header>
 
-    <!-- Notification Dropdown Panel -->
-    <div *ngIf="showNotifications" class="notification-dropdown glass-panel animate-fade-in">
+    <!-- Notification Backdrop to close on click outside -->
+    <div *ngIf="showNotifications" class="notif-backdrop" (click)="showNotifications = false"></div>
+
+    <!-- Notification Dropdown Panel (Centro de Alertas SCADA Vivas) -->
+    <div *ngIf="showNotifications" class="notification-dropdown glass-panel animate-scale-in" (click)="$event.stopPropagation()">
       <div class="notif-header">
-        <h4>Alertas Recientes del SCADA</h4>
-        <span class="badge badge-primary">3 Nuevas</span>
+        <div class="notif-header-title">
+          <div class="notif-icon-wrap">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+            </svg>
+          </div>
+          <div>
+            <h4>Alertas SCADA & Telemetría</h4>
+            <span class="notif-subtitle">Eventos operacionales en tiempo real</span>
+          </div>
+        </div>
+        <div class="notif-header-actions">
+          <span class="notif-badge" [class.badge-has-unread]="notifService.unreadCount() > 0">
+            {{ notifService.unreadCount() }} nueva{{ notifService.unreadCount() === 1 ? '' : 's' }}
+          </span>
+          <button 
+            type="button" 
+            class="btn-mark-all" 
+            *ngIf="notifService.unreadCount() > 0"
+            (click)="notifService.markAllAsRead()"
+            title="Marcar todas las alertas como leídas"
+          >
+            Leídas
+          </button>
+          <button type="button" class="btn-close-notif" (click)="showNotifications = false" title="Cerrar panel" aria-label="Cerrar panel">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
       </div>
+
+      <!-- Filter Tabs -->
+      <div class="notif-tabs">
+        <button 
+          type="button" 
+          class="notif-tab-btn" 
+          [class.active]="notifService.activeTab() === 'ALL'"
+          (click)="notifService.setTab('ALL')"
+        >
+          Todas ({{ notifService.notifications().length }})
+        </button>
+        <button 
+          type="button" 
+          class="notif-tab-btn tab-crit" 
+          [class.active]="notifService.activeTab() === 'CRITICAL'"
+          (click)="notifService.setTab('CRITICAL')"
+        >
+          Críticas / Averías
+        </button>
+        <button 
+          type="button" 
+          class="notif-tab-btn tab-ops" 
+          [class.active]="notifService.activeTab() === 'OPERATION'"
+          (click)="notifService.setTab('OPERATION')"
+        >
+          Operación
+        </button>
+      </div>
+
+      <!-- Notification List -->
       <div class="notif-list">
-        <div class="notif-item">
-          <span class="notif-bullet warning"></span>
-          <div class="notif-text">
-            <strong>Bomba PP-102:</strong> Vibración en 4.8 mm/s excede umbral de advertencia.
-            <span class="notif-time">Hace 12 min</span>
+        <div 
+          *ngFor="let item of notifService.filteredNotifications()" 
+          class="notif-item" 
+          [class.unread]="!item.isRead"
+          [class.item-critical]="item.severity === 'critical'"
+          [class.item-warning]="item.severity === 'warning'"
+          [class.item-success]="item.severity === 'success'"
+          [class.item-info]="item.severity === 'info'"
+          (click)="handleNotificationClick(item)"
+        >
+          <div class="notif-content-block">
+            <div class="notif-top-row">
+              <span class="notif-badge-pill" [class]="item.severity">
+                <svg *ngIf="item.severity === 'critical'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;">
+                  <polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"></polygon>
+                  <line x1="12" y1="8" x2="12" y2="12"></line>
+                  <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+                <svg *ngIf="item.severity === 'warning'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;">
+                  <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path>
+                  <line x1="12" y1="9" x2="12" y2="13"></line>
+                  <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+                <svg *ngIf="item.severity === 'success'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                <svg *ngIf="item.severity === 'info'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="16" x2="12" y2="12"></line>
+                  <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                </svg>
+                {{ item.severity === 'critical' ? 'CRÍTICA' : (item.severity === 'warning' ? 'ATENCIÓN' : (item.severity === 'success' ? 'NORMAL' : 'INFO')) }}
+              </span>
+              <span class="notif-tag" *ngIf="item.equipmentTag">{{ item.equipmentTag }}</span>
+              <span class="notif-time">{{ item.timeAgo }}</span>
+            </div>
+            <strong class="notif-title">{{ item.title }}</strong>
+            <p class="notif-desc">{{ item.description }}</p>
+            <div class="notif-action-row" *ngIf="item.route">
+              <span class="notif-nav-hint">Ver en módulo &rarr;</span>
+            </div>
           </div>
+          <button 
+            type="button" 
+            class="notif-dismiss-btn" 
+            (click)="notifService.dismissNotification(item.id, $event)"
+            title="Descartar esta alerta"
+            aria-label="Descartar esta alerta"
+          >
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
         </div>
-        <div class="notif-item">
-          <span class="notif-bullet success"></span>
-          <div class="notif-text">
-            <strong>Ciclopac 01:</strong> Presión de alimentación normalizada a 18.5 PSI.
-            <span class="notif-time">Hace 35 min</span>
+
+        <!-- Empty State -->
+        <div *ngIf="notifService.filteredNotifications().length === 0" class="notif-empty-state">
+          <div class="empty-icon-wrap">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
           </div>
-        </div>
-        <div class="notif-item">
-          <span class="notif-bullet info"></span>
-          <div class="notif-text">
-            <strong>Presa de Relaves:</strong> Nivel de espejo de agua reportado estable.
-            <span class="notif-time">Hace 1 hora</span>
-          </div>
+          <strong>Sin alertas en este filtro</strong>
+          <p>Todos los subsistemas de planta operan dentro de parámetros reglamentarios.</p>
         </div>
       </div>
     </div>
@@ -207,13 +324,32 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
             <span class="status-indicator-dot" [class.dot-green]="offlineSync.isOnline()" [class.dot-orange]="!offlineSync.isOnline()"></span>
             <h4>Estado de Conectividad & Persistencia Local</h4>
           </div>
-          <button class="close-x-btn" (click)="offlineSync.closeSyncDrawer()">✕</button>
+          <button class="close-x-btn" (click)="offlineSync.closeSyncDrawer()" aria-label="Cerrar modal">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
         </div>
 
         <div class="sync-modal-body">
           <div class="conn-status-banner" [class.banner-offline]="!offlineSync.isOnline()">
             <div class="banner-icon">
-              {{ offlineSync.isOnline() ? '📶' : '🔌' }}
+              <svg *ngIf="offlineSync.isOnline()" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M5 12.55a11 11 0 0 1 14.08 0"></path>
+                <path d="M1.42 9a16 16 0 0 1 21.16 0"></path>
+                <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+                <line x1="12" y1="20" x2="12.01" y2="20"></line>
+              </svg>
+              <svg *ngIf="!offlineSync.isOnline()" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="1" y1="1" x2="23" y2="23"></line>
+                <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"></path>
+                <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"></path>
+                <path d="M10.71 5.05A16 16 0 0 1 22.58 9"></path>
+                <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"></path>
+                <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+                <line x1="12" y1="20" x2="12.01" y2="20"></line>
+              </svg>
             </div>
             <div class="banner-text">
               <strong>{{ offlineSync.isOnline() ? 'Conectado a la Red de Planta' : 'Modo Offline Activo (Sin Conexión)' }}</strong>
@@ -224,13 +360,20 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
           <!-- Multi-Device Cloud Realtime Card -->
           <div class="cloud-devices-card">
             <div class="cloud-card-header">
-              <span class="cloud-icon">{{ cloudSync.isWsConnected() ? '⚡' : '☁️' }}</span>
+              <span class="cloud-icon">
+                <svg *ngIf="cloudSync.isWsConnected()" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                </svg>
+                <svg *ngIf="!cloudSync.isWsConnected()" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path>
+                </svg>
+              </span>
               <div class="cloud-info">
                 <strong>Sincronización Multi-Dispositivo {{ cloudSync.isWsConnected() ? 'en Tiempo Real (WebSocket)' : 'en la Nube (HTTP)' }}</strong>
                 <p>Terminal: <span class="badge-terminal">{{ cloudSync.deviceName }}</span> • Latencia: <span class="badge-terminal">{{ cloudSync.wsLatencyMs() !== null ? cloudSync.wsLatencyMs() + ' ms' : '< 20 ms' }}</span></p>
               </div>
               <span class="badge-devices" [class.badge-ws]="cloudSync.isWsConnected()">
-                {{ cloudSync.isWsConnected() ? '⚡ ' : '' }}{{ cloudSync.activeDevicesCount() }} terminal{{ cloudSync.activeDevicesCount() > 1 ? 'es' : '' }} en red
+                {{ cloudSync.activeDevicesCount() }} terminal{{ cloudSync.activeDevicesCount() > 1 ? 'es' : '' }} en red
               </span>
             </div>
             <div class="cloud-stats-row">
@@ -274,7 +417,11 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
           </div>
 
           <div class="empty-queue-msg" *ngIf="offlineSync.queueItems().length === 0 && cloudSync.pendingCount() === 0">
-            <span class="check-icon">✓</span>
+            <span class="check-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </span>
             <p>Todos los reportes, planillas y bitácoras operacionales están sincronizados entre dispositivos.</p>
           </div>
         </div>
@@ -290,7 +437,11 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
           </button>
           <div class="foot-main-actions">
             <button *ngIf="offlineSync.queueItems().length > 0" class="btn btn-secondary btn-sm" (click)="offlineSync.clearQueue()" title="Limpiar cola pendiente">
-              🧹 Purgar Cola
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 5px;">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
+              Purgar Cola
             </button>
             <button class="btn btn-secondary" (click)="offlineSync.closeSyncDrawer()">Cerrar</button>
             <button
@@ -298,7 +449,14 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
               (click)="syncAll()"
               [disabled]="cloudSync.isSyncing() || offlineSync.isSyncing()"
             >
-              {{ (cloudSync.isSyncing() || offlineSync.isSyncing()) ? 'Sincronizando...' : '🔄 Sincronizar en la Nube' }}
+              <span *ngIf="cloudSync.isSyncing() || offlineSync.isSyncing()">Sincronizando...</span>
+              <span *ngIf="!cloudSync.isSyncing() && !offlineSync.isSyncing()" style="display: inline-flex; align-items: center; gap: 6px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M23 4v6h-6"></path>
+                  <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                </svg>
+                Sincronizar en la Nube
+              </span>
             </button>
           </div>
         </div>
@@ -309,7 +467,12 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
     <div *ngIf="connectivityToastMessage" class="connectivity-toast-banner animate-fade-in" [class.toast-offline]="!isOnlineToast" [class.toast-online]="isOnlineToast">
       <span class="toast-dot"></span>
       <span class="toast-text">{{ connectivityToastMessage }}</span>
-      <button class="toast-close" (click)="connectivityToastMessage = null">✕</button>
+      <button class="toast-close" (click)="connectivityToastMessage = null" aria-label="Cerrar notificación">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
     </div>
   `,
   styles: [`
@@ -552,13 +715,21 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
 
     .notification-indicator {
       position: absolute;
-      top: 9px;
-      right: 9px;
-      width: 8px;
-      height: 8px;
-      background: #031795;
+      top: 5px;
+      right: 5px;
+      min-width: 17px;
+      height: 17px;
+      padding: 0 4px;
+      background: #dc2626;
+      color: #ffffff;
+      font-size: 0.64rem;
+      font-weight: 800;
       border-radius: var(--radius-full);
-      box-shadow: 0 0 6px rgba(3, 23, 149, 0.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid var(--bg-card);
+      box-shadow: 0 2px 6px rgba(220, 38, 38, 0.45);
     }
 
     .user-profile-badge {
@@ -628,18 +799,30 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
       color: var(--text-muted);
     }
 
-    /* Notification Dropdown */
+    /* Notification Backdrop */
+    .notif-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 998;
+      background: transparent;
+    }
+
+    /* Notification Dropdown Panel */
     .notification-dropdown {
       position: absolute;
-      top: 80px;
+      top: 76px;
       right: 32px;
-      width: 360px;
+      width: 410px;
+      max-height: 540px;
       background: var(--bg-card);
       border: 1px solid var(--border-subtle);
       border-radius: var(--radius-lg);
       padding: 16px;
-      box-shadow: var(--shadow-card);
+      box-shadow: 0 12px 36px -4px rgba(15, 23, 42, 0.16), 0 4px 12px -2px rgba(15, 23, 42, 0.08);
       z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
 
       @media (max-width: 600px) {
         top: calc(58px + env(safe-area-inset-top, 0px));
@@ -647,6 +830,7 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
         left: 10px;
         width: auto;
         max-width: calc(100vw - 20px);
+        max-height: 80vh;
       }
     }
 
@@ -656,48 +840,307 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
       justify-content: space-between;
       padding-bottom: 12px;
       border-bottom: 1px solid var(--border-subtle);
-      margin-bottom: 12px;
 
-      h4 {
-        font-size: 0.9rem;
-        font-weight: 700;
-        color: var(--text-primary);
+      .notif-header-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+
+        .notif-icon-wrap {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 32px;
+          height: 32px;
+          border-radius: 8px;
+          background: #eef2ff;
+          color: #031795;
+        }
+
+        h4 {
+          font-size: 0.92rem;
+          font-weight: 800;
+          color: var(--text-primary);
+          margin: 0;
+          line-height: 1.2;
+        }
+
+        .notif-subtitle {
+          font-size: 0.72rem;
+          color: var(--text-secondary);
+        }
+      }
+
+      .notif-header-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        .notif-badge {
+          font-size: 0.7rem;
+          font-weight: 800;
+          padding: 2px 8px;
+          border-radius: var(--radius-full);
+          background: var(--bg-card-subtle);
+          color: var(--text-secondary);
+          border: 1px solid var(--border-subtle);
+
+          &.badge-has-unread {
+            background: #fef2f2;
+            color: #dc2626;
+            border-color: #fecaca;
+          }
+        }
+
+        .btn-mark-all {
+          background: transparent;
+          border: 1px solid #bfdbfe;
+          color: #1e40af;
+          border-radius: 6px;
+          padding: 3px 8px;
+          font-size: 0.7rem;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 0.15s ease;
+
+          &:hover {
+            background: #eff6ff;
+            color: #031795;
+          }
+        }
+
+        .btn-close-notif {
+          background: transparent;
+          border: none;
+          color: var(--text-secondary);
+          font-size: 0.9rem;
+          cursor: pointer;
+          padding: 4px;
+          border-radius: 6px;
+          line-height: 1;
+
+          &:hover {
+            background: var(--bg-card-subtle);
+            color: var(--text-primary);
+          }
+        }
+      }
+    }
+
+    .notif-tabs {
+      display: flex;
+      gap: 6px;
+      background: var(--bg-card-subtle);
+      padding: 3px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-subtle);
+
+      .notif-tab-btn {
+        flex: 1;
+        padding: 5px 8px;
+        border: 1px solid transparent;
+        border-radius: 6px;
+        background: transparent;
+        cursor: pointer;
+        font-size: 0.74rem;
+        font-weight: 600;
+        color: var(--text-secondary);
+        transition: all 0.15s ease;
+        text-align: center;
+        white-space: nowrap;
+
+        &:hover {
+          color: var(--text-primary);
+        }
+
+        &.active {
+          background: var(--bg-card);
+          color: #031795;
+          font-weight: 700;
+          border-color: var(--border-subtle);
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+
+          &.tab-crit {
+            color: #dc2626;
+          }
+          &.tab-ops {
+            color: #059669;
+          }
+        }
       }
     }
 
     .notif-list {
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 8px;
+      overflow-y: auto;
+      max-height: 380px;
+      padding-right: 4px;
     }
 
     .notif-item {
       display: flex;
+      align-items: flex-start;
       gap: 10px;
-      font-size: 0.8rem;
-      color: var(--text-secondary);
-      padding: 8px;
-      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+      border-radius: var(--radius-md);
       background: var(--bg-card-subtle);
+      border: 1px solid var(--border-subtle);
+      cursor: pointer;
+      position: relative;
+      transition: all 0.15s ease;
+
+      &:hover {
+        background: var(--bg-card);
+        border-color: #cbd5e1;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+      }
+
+      &.unread {
+        border-left-width: 4px;
+
+        &.item-critical {
+          border-left-color: #dc2626;
+          background: #fff5f5;
+        }
+        &.item-warning {
+          border-left-color: #d97706;
+          background: #fffbeb;
+        }
+        &.item-success {
+          border-left-color: #059669;
+          background: #f0fdf4;
+        }
+        &.item-info {
+          border-left-color: #031795;
+          background: #f5f7ff;
+        }
+      }
+
+      .notif-content-block {
+        flex: 1;
+        min-width: 0;
+
+        .notif-top-row {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          margin-bottom: 3px;
+
+          .notif-badge-pill {
+            font-size: 0.65rem;
+            font-weight: 800;
+            padding: 1px 6px;
+            border-radius: 4px;
+            letter-spacing: 0.2px;
+
+            &.critical { background: #fee2e2; color: #991b1b; }
+            &.warning { background: #fef3c7; color: #92400e; }
+            &.success { background: #dcfce7; color: #166534; }
+            &.info { background: #e0e7ff; color: #3730a3; }
+          }
+
+          .notif-tag {
+            font-size: 0.68rem;
+            font-weight: 800;
+            background: #0f172a;
+            color: #ffffff;
+            padding: 1px 5px;
+            border-radius: 4px;
+          }
+
+          .notif-time {
+            font-size: 0.68rem;
+            color: var(--text-secondary);
+            margin-left: auto;
+          }
+        }
+
+        .notif-title {
+          display: block;
+          font-size: 0.82rem;
+          font-weight: 700;
+          color: var(--text-primary);
+          line-height: 1.3;
+          margin-bottom: 2px;
+        }
+
+        .notif-desc {
+          font-size: 0.75rem;
+          color: var(--text-secondary);
+          line-height: 1.35;
+          margin: 0;
+        }
+
+        .notif-action-row {
+          margin-top: 5px;
+
+          .notif-nav-hint {
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: #031795;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+
+            &:hover {
+              text-decoration: underline;
+            }
+          }
+        }
+      }
+
+      .notif-dismiss-btn {
+        background: transparent;
+        border: none;
+        color: var(--text-secondary);
+        font-size: 0.75rem;
+        cursor: pointer;
+        padding: 2px 4px;
+        border-radius: 4px;
+        opacity: 0.6;
+        transition: opacity 0.15s ease;
+
+        &:hover {
+          opacity: 1;
+          color: var(--text-primary);
+        }
+      }
     }
 
-    .notif-bullet {
-      width: 8px;
-      height: 8px;
-      border-radius: var(--radius-full);
-      margin-top: 5px;
-      flex-shrink: 0;
+    .notif-empty-state {
+      padding: 24px 16px;
+      text-align: center;
+      color: var(--text-secondary);
 
-      &.warning { background: var(--warning); box-shadow: 0 0 6px var(--warning); }
-      &.success { background: var(--success); box-shadow: 0 0 6px var(--success); }
-      &.info { background: var(--info); box-shadow: 0 0 6px var(--info); }
-    }
+      .empty-icon-wrap {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        background: #ecfdf5;
+        color: #059669;
+        font-size: 1.2rem;
+        font-weight: 800;
+        margin-bottom: 8px;
+      }
 
-    .notif-time {
-      display: block;
-      font-size: 0.7rem;
-      color: var(--text-muted);
-      margin-top: 2px;
+      strong {
+        display: block;
+        font-size: 0.86rem;
+        color: var(--text-primary);
+        margin-bottom: 4px;
+      }
+
+      p {
+        font-size: 0.75rem;
+        line-height: 1.4;
+        margin: 0;
+      }
     }
 
     .mobile-menu-btn {
@@ -1245,9 +1688,11 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
         background: transparent;
         border: none;
         color: currentColor;
-        font-size: 0.9rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
         cursor: pointer;
-        padding: 0 4px;
+        padding: 4px;
         opacity: 0.8;
         &:hover { opacity: 1; }
       }
@@ -1288,6 +1733,83 @@ import { getCurrentActiveShift } from '../../shared/utils/roster.util';
         display: none;
       }
     }
+
+    :host-context([data-theme="dark"]),
+    :host-context(.dark-theme) {
+      .user-avatar {
+        border-color: #1e293b;
+      }
+      .user-status-dot {
+        border-color: var(--bg-card);
+      }
+      .notif-item {
+        &.unread {
+          &.item-critical {
+            background: rgba(220, 38, 38, 0.15);
+            border-left-color: #ef4444;
+          }
+          &.item-warning {
+            background: rgba(217, 119, 6, 0.15);
+            border-left-color: #f59e0b;
+          }
+          &.item-success {
+            background: rgba(5, 150, 105, 0.15);
+            border-left-color: #10b981;
+          }
+          &.item-info {
+            background: rgba(59, 130, 246, 0.15);
+            border-left-color: #3b82f6;
+          }
+        }
+        .notif-top-row {
+          .notif-badge-pill {
+            &.critical { background: rgba(239, 68, 68, 0.2); color: #fca5a5; }
+            &.warning { background: rgba(245, 158, 11, 0.2); color: #fde68a; }
+            &.success { background: rgba(16, 185, 129, 0.2); color: #a7f3d0; }
+            &.info { background: rgba(99, 102, 241, 0.2); color: #c7d2fe; }
+          }
+          .notif-tag {
+            background: #1e293b;
+            color: #94a3b8;
+          }
+        }
+        .notif-action-row .notif-nav-hint {
+          color: #60a5fa;
+        }
+      }
+      .notif-filter-tab {
+        &.active {
+          color: #60a5fa;
+          background: var(--bg-card);
+        }
+      }
+      .conn-status-banner {
+        background: rgba(59, 130, 246, 0.12);
+        border-color: rgba(59, 130, 246, 0.3);
+        .banner-text strong {
+          color: #60a5fa;
+        }
+        &.banner-offline {
+          background: rgba(245, 158, 11, 0.15);
+          border-color: rgba(245, 158, 11, 0.35);
+          .banner-text strong {
+            color: #fbbf24;
+          }
+        }
+      }
+      .btn-sync-header {
+        &.offline-pill, &.pending-pill {
+          background: rgba(245, 158, 11, 0.15);
+          color: #fbbf24;
+          border-color: rgba(245, 158, 11, 0.4);
+        }
+        &.syncing-pill {
+          background: rgba(59, 130, 246, 0.15);
+          color: #60a5fa;
+          border-color: rgba(59, 130, 246, 0.4);
+        }
+      }
+    }
   `]
 })
 export class HeaderComponent implements OnDestroy {
@@ -1297,8 +1819,19 @@ export class HeaderComponent implements OnDestroy {
   offlineSync = inject(OfflineSyncService);
   cloudSync = inject(CloudSyncService);
   themeService = inject(ThemeService);
+  notifService = inject(NotificationService);
   private router = inject(Router);
   showNotifications = false;
+
+  getUserAvatar(): string {
+    const user = this.authService.currentUser();
+    return getEffectiveAvatar(user?.avatarUrl, user?.fullName || user?.username, user?.role, user?.shift);
+  }
+
+  handleNotificationClick(item: NotificationItem): void {
+    this.showNotifications = false;
+    this.notifService.onNotificationClick(item);
+  }
 
   get displayShift(): string {
     const user = this.authService.currentUser();

@@ -119,7 +119,12 @@ interface SecondaryResult {
           [attr.aria-selected]="activeTab === t.id"
           (click)="setTab(t.id)"
         >
-          <span class="tab-icon">{{ t.icon }}</span>
+          <span class="tab-icon">
+            <svg *ngIf="t.id === 'MARCY'" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M3 9l9-6 9 6M6 14l-3-5h6l-3 5zm12 0l-3-5h6l-3 5z"/></svg>
+            <svg *ngIf="t.id === 'FLOCCULANT'" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v7.31L4.62 19A2 2 0 0 0 6.35 22h11.3a2 2 0 0 0 1.73-3L14 9.31V2h-4z"/></svg>
+            <svg *ngIf="t.id === 'DILUTION'" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
+            <svg *ngIf="t.id === 'PARSHALL'" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h20M2 17h20M2 7h20"/></svg>
+          </span>
           <div class="tab-meta">
             <span class="tab-title">{{ t.title }}</span>
             <span class="tab-sub">{{ t.question }}</span>
@@ -164,7 +169,7 @@ interface SecondaryResult {
       <div class="calc-card glass-panel">
         <div class="calc-header-row">
           <div>
-            <h3>{{ activeTabDef.icon }} {{ activeTabDef.heading }}</h3>
+            <h3>{{ activeTabDef.heading }}</h3>
             <p class="calc-desc">{{ activeTabDef.description }}</p>
           </div>
         </div>
@@ -246,7 +251,14 @@ interface SecondaryResult {
               <div class="hero-value small">Completa los campos marcados en rojo</div>
               <p class="hero-action">El resultado aparecerá en cuanto los datos sean válidos.</p>
             </ng-template>
-            <p class="hero-warning" *ngIf="isValid && warning">⚠️ {{ warning }}</p>
+            <p class="hero-warning" *ngIf="isValid && warning" style="display:inline-flex;align-items:center;gap:6px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+              {{ warning }}
+            </p>
           </section>
 
           <!-- 3. RESULTADOS COMPLEMENTARIOS -->
@@ -858,22 +870,22 @@ export class MetallurgicalCalculatorsComponent implements OnInit {
 
   readonly tabs: TabDef[] = [
     {
-      id: 'MARCY', icon: '⚖️', title: 'Balanza Marcy', question: '¿Qué % de sólidos tiene la pulpa?',
+      id: 'MARCY', icon: '', title: 'Balanza Marcy', question: '¿Qué % de sólidos tiene la pulpa?',
       heading: 'Densidad y % de sólidos (Balanza Marcy)',
       description: 'Con el peso de 1 litro de pulpa en la jarra Marcy obtienes la densidad y el porcentaje de sólidos.'
     },
     {
-      id: 'FLOCCULANT', icon: '🧪', title: 'Floculante', question: '¿A cuánto calibro la bomba?',
+      id: 'FLOCCULANT', icon: '', title: 'Floculante', question: '¿A cuánto calibro la bomba?',
       heading: 'Dosificación de floculante',
       description: 'Calcula el caudal de la bomba dosificadora para aplicar la dosis objetivo de floculante a la pulpa.'
     },
     {
-      id: 'DILUTION', icon: '💧', title: 'Dilución de Pulpa', question: '¿Cuánta agua agrego?',
+      id: 'DILUTION', icon: '', title: 'Dilución de Pulpa', question: '¿Cuánta agua agrego?',
       heading: 'Agua para diluir la pulpa',
       description: 'Calcula cuánta agua de proceso inyectar al cajón para bajar el % de sólidos al valor deseado.'
     },
     {
-      id: 'PARSHALL', icon: '🌊', title: 'Aforador Parshall', question: '¿Cuánto caudal pasa?',
+      id: 'PARSHALL', icon: '', title: 'Aforador Parshall', question: '¿Cuánto caudal pasa?',
       heading: 'Caudal en aforador Parshall',
       description: 'Con la altura de agua leída en la regla del aforador obtienes el caudal que pasa por el canal.'
     }
@@ -1278,12 +1290,12 @@ export class MetallurgicalCalculatorsComponent implements OnInit {
     if (this.activeTab === 'FLOCCULANT') inputs.push(`• Solución preparada: ${this.v.flocMotherConcPct} %`);
     const hero = this.hero;
     const summary = [
-      `${tab.icon} BASETRACK - ${tab.heading.toUpperCase()}`,
+      `BASETRACK - ${tab.heading.toUpperCase()}`,
       ...inputs,
-      `➡️ ${hero.label}: ${hero.value} ${hero.unit}`,
+      `-> ${hero.label}: ${hero.value} ${hero.unit}`,
       `   ${hero.action}`,
       ...this.secondaryResults.map(r => `• ${r.label}: ${r.value} ${r.unit}`),
-      ...(this.warning ? [`⚠️ ${this.warning}`] : [])
+      ...(this.warning ? [`[AVISO] ${this.warning}`] : [])
     ].join('\n');
 
     copyToClipboard(summary).then((success) => {
