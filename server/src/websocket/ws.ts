@@ -3,6 +3,10 @@ import type { Server as HttpServer } from 'node:http';
 import { db } from '../database/db.js';
 import { verifyToken } from '../config/jwt.js';
 import { sanitizeSyncEvent } from '../utils/strip-secrets.js';
+import { isDeviceRevoked, isTokenVersionStale } from '../middlewares/auth.middleware.js';
+
+/** Código de cierre de aplicación (rango 4000-4999) para sesiones revocadas o suspendidas */
+export const WS_CLOSE_SESSION_REVOKED = 4001;
 
 /**
  * Acciones de sistema que solo puede originar el servidor o un ADMIN.
@@ -144,9 +148,11 @@ function handleWsMessage(ws: WebSocket, meta: WsClientMeta, msg: any) {
       try {
         decoded = msg.token ? verifyToken(String(msg.token)) : null;
         if (decoded?.userId) {
-          const userRow = db.prepare('SELECT is_active, must_change_password FROM users WHERE id = ?').get(decoded.userId) as { is_active?: number; must_change_password?: number } | undefined;
-          if (userRow && (userRow.is_active === 0 || userRow.must_change_password === 1)) decoded = null;
+          const userRow = db.prepare('SELECT is_active, must_change_password, token_version FROM users WHERE id = ?').get(decoded.userId) as { is_active?: number; must_change_password?: number; token_version?: number } | undefined;
+          if (userRow && (userRow.is_active === 0 || userRow.must_change_password === 1 || isTokenVersionStale(decoded, userRow.token_version))) decoded = null;
         }
+        // Una terminal revocada no se re-registra hasta que su usuario vuelva a iniciar sesión
+        if (decoded && msg.deviceId && isDeviceRevoked(String(msg.deviceId).slice(0, 100))) decoded = null;
       } catch {
         decoded = null;
       }
@@ -280,6 +286,39 @@ export function broadcastWsEvent(event: {
       }
     }
   }
+}
+
+/**
+ * Cierra desde el servidor los sockets de un usuario y/o de una terminal (revocación o suspensión).
+ * No depende de que el cliente respete FORCE_LOGOUT: se le avisa y luego se corta el canal.
+ * Retorna cuántos sockets se cerraron.
+ */
+export function disconnectWsClients(target: { userId?: string; deviceId?: string }, reason: string, exceptDeviceId?: string): number {
+  if (!target.userId && !target.deviceId) return 0;
+  let closed = 0;
+  for (const [ws, meta] of clients.entries()) {
+    if (exceptDeviceId && meta.deviceId === exceptDeviceId) continue;
+    const matchesUser = !!target.userId && meta.userId === target.userId;
+    const matchesDevice = !!target.deviceId && meta.deviceId === target.deviceId;
+    if (!matchesUser && !matchesDevice) continue;
+
+    // Retirar privilegios de inmediato: ningún evento más llega a este socket aunque el cierre tarde
+    meta.authenticated = false;
+    clients.delete(ws);
+    try {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+          type: 'EVENT',
+          event: { entity: 'AUTH', action: 'FORCE_LOGOUT', payload: { deviceId: meta.deviceId, reason }, timestamp: Date.now() }
+        }));
+      }
+      ws.close(WS_CLOSE_SESSION_REVOKED, reason.slice(0, 120));
+    } catch {
+      ws.terminate();
+    }
+    closed++;
+  }
+  return closed;
 }
 
 /**

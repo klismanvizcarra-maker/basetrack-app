@@ -7,6 +7,7 @@ import { saveRealtimeData } from '../../../../core/storage/local-store.util';
 import { ModalComponent } from '../../../../shared/ui/modal.component';
 import { UsersStore, UserItem } from './users.store';
 import { getEffectiveAvatar } from '../../../../shared/utils/avatar.util';
+import { AuthService } from '../../../../core/auth/auth.service';
 
 export interface IssuedCredential { username: string; full_name: string; temporaryPassword: string; }
 
@@ -31,6 +32,7 @@ export class AdminUsersTabComponent {
 
   private http = inject(HttpClient);
   private usersStore = inject(UsersStore);
+  private authService = inject(AuthService);
 
   getAvatar(url?: string | null, name?: string, role?: string, shift?: string): string {
     return getEffectiveAvatar(url, name, role, shift);
@@ -142,6 +144,8 @@ export class AdminUsersTabComponent {
         this.isSavingUser = false;
         this.isResetPasswordModalOpen = false;
         this.notify.emit({ text: res?.message || `Contraseña restablecida con éxito para ${user.username}.`, ms: 6000 });
+        // Restablecimiento de la propia cuenta: el servidor invalidó el token anterior y envía uno nuevo
+        if (res?.token) this.authService.adoptRefreshedToken(res.token, { mustChangePassword: true });
         if (res?.temporaryPassword) {
           this.showIssuedCredentials([{ username: user.username, full_name: user.full_name, temporaryPassword: res.temporaryPassword }]);
         }

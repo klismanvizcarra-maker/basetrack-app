@@ -1820,8 +1820,15 @@ export class ProfileComponent implements OnInit {
     this.profileForm.avatarUrl = url;
     // Auto-save preset avatar in real time
     this.authService.updateProfile({ avatarUrl: url }).subscribe({
-      next: () => this.showSuccess('Fotografía de perfil actualizada en tiempo real.')
+      next: () => this.showSuccess('Fotografía de perfil actualizada en tiempo real.'),
+      error: (err) => this.onAvatarRejected(err)
     });
+  }
+
+  /** El servidor rechazó la fotografía: el servicio ya revirtió el usuario; se restaura el formulario. */
+  private onAvatarRejected(err: any): void {
+    this.profileForm.avatarUrl = this.authService.currentUser()?.avatarUrl || this.profileForm.avatarUrl;
+    this.showError(err?.message || 'El servidor rechazó la fotografía de perfil.');
   }
 
   onUrlChange(): void {
@@ -1850,9 +1857,7 @@ export class ProfileComponent implements OnInit {
           next: () => {
             this.showSuccess('¡Fotografía de perfil guardada y sincronizada en tiempo real!');
           },
-          error: () => {
-            this.showSuccess('Fotografía guardada localmente con éxito.');
-          }
+          error: (err) => this.onAvatarRejected(err)
         });
       } catch (err) {
         console.warn('[Profile] Error al procesar imagen, usando carga directa:', err);
@@ -1860,8 +1865,10 @@ export class ProfileComponent implements OnInit {
         reader.onload = (e: ProgressEvent<FileReader>) => {
           if (e.target?.result) {
             this.profileForm.avatarUrl = e.target.result as string;
-            this.authService.updateProfile({ avatarUrl: this.profileForm.avatarUrl }).subscribe();
-            this.showSuccess('Fotografía guardada exitosamente.');
+            this.authService.updateProfile({ avatarUrl: this.profileForm.avatarUrl }).subscribe({
+              next: () => this.showSuccess('Fotografía guardada exitosamente.'),
+              error: (err) => this.onAvatarRejected(err)
+            });
           }
         };
         reader.readAsDataURL(file);

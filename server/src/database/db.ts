@@ -521,6 +521,10 @@ export function initDatabase() {
       db.exec("ALTER TABLE users ADD COLUMN primary_role TEXT DEFAULT 'OPERADOR_BOMBAS';");
       console.log('[Database] Added primary_role column to users table.');
     }
+    if (!userCols.some((c: any) => c.name === 'token_version')) {
+      db.exec('ALTER TABLE users ADD COLUMN token_version INTEGER NOT NULL DEFAULT 0;');
+      console.log('[Database] Added token_version column to users table.');
+    }
   } catch (e) {
     console.warn('[Database] users columns migration check:', e);
   }

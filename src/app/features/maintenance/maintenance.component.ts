@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { getApiBaseUrl } from '../../core/constants/api.config';
+import { siteToday } from '../../shared/utils/site-date.util';
 import { ModalComponent } from '../../shared/ui/modal.component';
 import { OfflineSyncService } from '../../core/offline/offline-sync.service';
 import { getRealtimeData, saveRealtimeData } from '../../core/storage/local-store.util';
@@ -2550,7 +2551,7 @@ export class MaintenanceComponent implements OnInit, OnDestroy {
   private syncLocalPumpStatus(tag: string, newStatus: 'Mantenimiento' | 'Operativo'): void {
     try {
       const keys = ['pump_sheet_latest'];
-      const todayDate = new Date().toISOString().slice(0, 10);
+      const todayDate = siteToday();
       keys.push('pump_sheet_' + todayDate);
       keys.push('pump_sheet_' + new Date().toLocaleDateString('es-PE'));
 

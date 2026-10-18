@@ -79,6 +79,8 @@ export class AdminPlantParametersTabComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         this.isSavingPlantParams = false;
+        // El servicio revirtió los parámetros rechazados: el formulario vuelve al estado vigente
+        this.editablePlantParams = { ...this.plantParamsService.parameters() };
         this.plantParamsErrorMessage = err?.error?.message || err?.message || 'Error al guardar los parámetros.';
         setTimeout(() => this.plantParamsErrorMessage = '', 6000);
       }
@@ -97,8 +99,11 @@ export class AdminPlantParametersTabComponent implements OnInit, OnDestroy {
           this.plantParamsSuccessMessage = 'Parámetros restablecidos a los valores nominales de fábrica.';
           setTimeout(() => this.plantParamsSuccessMessage = '', 6000);
         },
-        error: () => {
+        error: (err) => {
           this.isSavingPlantParams = false;
+          this.editablePlantParams = { ...this.plantParamsService.parameters() };
+          this.plantParamsErrorMessage = err?.message || 'Error al restablecer los parámetros.';
+          setTimeout(() => this.plantParamsErrorMessage = '', 6000);
         }
       });
     }
