@@ -4,7 +4,8 @@ import bcrypt from 'bcryptjs';
 import crypto from 'node:crypto';
 import { db } from '../database/db.js';
 import { generateToken } from '../config/jwt.js';
-import { AuthenticatedRequest } from '../middlewares/auth.middleware.js';
+import { AuthenticatedRequest, bumpTokenVersion } from '../middlewares/auth.middleware.js';
+import { disconnectWsClients } from '../websocket/ws.js';
 import { logAudit } from '../middlewares/error.middleware.js';
 
 export async function login(req: Request, res: Response) {
@@ -81,8 +82,15 @@ export async function login(req: Request, res: Response) {
     username: user.username,
     role: user.role,
     shift: user.shift,
-    fullName: user.full_name
+    fullName: user.full_name,
+    tokenVersion: user.token_version ?? 0
   });
+
+  // Un nuevo inicio de sesión válido rehabilita la terminal si el Administrador la había revocado
+  const loginDeviceId = req.headers['x-device-id']?.toString().slice(0, 100);
+  if (loginDeviceId) {
+    db.prepare('UPDATE connected_devices SET is_revoked = 0 WHERE device_id = ? AND is_revoked = 1').run(loginDeviceId);
+  }
 
   logAudit(user.id, user.username, 'LOGIN', 'USERS', user.id, 'Inicio de sesión exitoso', req.ip || '127.0.0.1');
 
@@ -308,11 +316,31 @@ export async function changePassword(req: AuthenticatedRequest, res: Response) {
     const newHash = bcrypt.hashSync(newPassword, 10);
     db.prepare('UPDATE users SET password_hash = ?, must_change_password = 0 WHERE id = ?').run(newHash, user.id);
 
+    // Cambio voluntario: invalidar las sesiones abiertas con la contraseña anterior en otras terminales.
+    // Esta terminal recibe un token nuevo y conserva su canal de tiempo real. Con contraseña temporal
+    // no hace falta: el reset del Administrador ya invalidó los tokens previos y las sesiones con la
+    // clave temporal solo podían cambiarla (así el primer ingreso no expulsa al usuario).
+    if (user.must_change_password !== 1) {
+      bumpTokenVersion(user.id);
+      const callerDeviceId = req.headers['x-device-id']?.toString();
+      disconnectWsClients({ userId: user.id }, 'Contraseña cambiada: inicie sesión nuevamente', callerDeviceId);
+    }
+    const refreshed = db.prepare('SELECT token_version FROM users WHERE id = ?').get(user.id) as { token_version: number };
+    const token = generateToken({
+      userId: user.id,
+      username: user.username,
+      role: user.role,
+      shift: user.shift,
+      fullName: user.full_name,
+      tokenVersion: refreshed.token_version
+    });
+
     logAudit(user.id, user.username, 'CHANGE_PASSWORD', 'USERS', user.id, 'Cambio de contraseña realizado exitosamente', req.ip || '127.0.0.1');
 
     return res.json({
       success: true,
-      message: 'Contraseña actualizada correctamente'
+      message: 'Contraseña actualizada correctamente',
+      token
     });
   } catch (error: any) {
     return res.status(500).json({ success: false, message: error.message });

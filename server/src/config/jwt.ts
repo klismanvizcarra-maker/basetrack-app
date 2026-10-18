@@ -36,6 +36,8 @@ export interface TokenPayload {
   role: 'ADMIN' | 'SUPERVISOR' | 'OPERATOR' | 'OPERADOR';
   shift: string;
   fullName: string;
+  /** Debe coincidir con users.token_version; al incrementarlo se invalidan los tokens emitidos antes */
+  tokenVersion?: number;
 }
 
 export function generateToken(payload: TokenPayload): string {

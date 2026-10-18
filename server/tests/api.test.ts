@@ -1696,6 +1696,148 @@ test('43. Validación de lecturas y del administrador fantasma (relaves, ciclone
   assert.strictEqual(valid.status, 201);
 });
 
+// --- Revocación y suspensión aplicadas en el servidor (token_version + cierre de sockets) ---
+
+function createRealTestUser(username: string, password: string): string {
+  const id = `test_${username}`;
+  db.prepare('DELETE FROM users WHERE id = ?').run(id);
+  db.prepare(`
+    INSERT INTO users (id, username, email, password_hash, full_name, role, shift, must_change_password)
+    VALUES (?, ?, ?, ?, ?, 'OPERATOR', 'G1', 0)
+  `).run(id, username, `${username}@test.local`, bcrypt.hashSync(password, 4), username.toUpperCase());
+  return id;
+}
+
+async function loginAs(username: string, password: string, deviceId?: string): Promise<Response> {
+  return fetch(`${baseUrl}/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...(deviceId ? { 'X-Device-Id': deviceId } : {}) },
+    body: JSON.stringify({ username, password })
+  });
+}
+
+/** Abre un socket, lo registra y resuelve con el socket, sus mensajes y una promesa de cierre */
+async function openRegisteredSocket(token: string, deviceId: string) {
+  const ws = new WebSocket(wsUrl);
+  const messages: any[] = [];
+  const closed = new Promise<number>((resolve) => ws.on('close', (code) => resolve(code)));
+  const registered = new Promise<string>((resolve, reject) => {
+    const timeout = setTimeout(() => reject(new Error('Timeout esperando respuesta a REGISTER')), 2000);
+    ws.on('message', (data) => {
+      try {
+        const msg = JSON.parse(data.toString());
+        messages.push(msg);
+        if (msg.type === 'REGISTERED' || msg.type === 'UNAUTHORIZED') { clearTimeout(timeout); resolve(msg.type); }
+      } catch {}
+    });
+  });
+  await new Promise<void>((resolve, reject) => {
+    const timeout = setTimeout(() => reject(new Error('Timeout esperando OPEN')), 2000);
+    ws.on('open', () => { clearTimeout(timeout); resolve(); });
+  });
+  ws.send(JSON.stringify({ type: 'REGISTER', deviceId, deviceName: 'Terminal de prueba', token }));
+  return { ws, messages, closed, result: await registered };
+}
+
+function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
+  return Promise.race([p, new Promise<T>((_, reject) => setTimeout(() => reject(new Error(label)), ms))]);
+}
+
+test('44. Security: revoking a device invalidates the old JWT, closes its socket, and a new login re-enables it', async () => {
+  const username = 'operador_revocado_tester';
+  const password = 'ClaveRevocacion#2026';
+  const deviceId = 'tablet_revocada_44';
+  createRealTestUser(username, password);
+
+  const loginRes = await loginAs(username, password, deviceId);
+  assert.strictEqual(loginRes.status, 200);
+  const oldToken = ((await loginRes.json()) as any).token;
+
+  const sock = await openRegisteredSocket(oldToken, deviceId);
+  assert.strictEqual(sock.result, 'REGISTERED');
+  assert.strictEqual((await fetch(`${baseUrl}/pumps`, { headers: { 'Authorization': `Bearer ${oldToken}` } })).status, 200);
+
+  const revokeRes = await fetch(`${baseUrl}/admin/devices/${deviceId}/revoke`, { method: 'POST', headers: authHeaders() });
+  assert.strictEqual(revokeRes.status, 200);
+
+  // El servidor cierra el canal sin depender de que el cliente respete FORCE_LOGOUT
+  assert.strictEqual(await withTimeout(sock.closed, 2000, 'El socket revocado no fue cerrado'), 4001);
+  assert.ok(sock.messages.some(m => m.type === 'EVENT' && m.event?.action === 'FORCE_LOGOUT'));
+
+  // El JWT anterior ya no sirve en REST (con o sin la cabecera de la terminal) ni para re-registrar el socket
+  assert.strictEqual((await fetch(`${baseUrl}/pumps`, { headers: { 'Authorization': `Bearer ${oldToken}` } })).status, 401);
+  assert.strictEqual((await fetch(`${baseUrl}/pumps`, { headers: { 'Authorization': `Bearer ${oldToken}`, 'X-Device-Id': deviceId } })).status, 401);
+  const retry = await openRegisteredSocket(oldToken, deviceId);
+  assert.strictEqual(retry.result, 'UNAUTHORIZED');
+  retry.ws.close();
+
+  // La terminal revocada tampoco sirve con el token del Administrador, hasta un nuevo inicio de sesión
+  assert.strictEqual((await fetch(`${baseUrl}/pumps`, { headers: { ...authHeaders(), 'X-Device-Id': deviceId } })).status, 401);
+
+  // Un nuevo login desde la misma terminal la rehabilita
+  const relogin = await loginAs(username, password, deviceId);
+  assert.strictEqual(relogin.status, 200);
+  const newToken = ((await relogin.json()) as any).token;
+  const row = db.prepare('SELECT is_revoked FROM connected_devices WHERE device_id = ?').get(deviceId) as { is_revoked: number };
+  assert.strictEqual(row.is_revoked, 0);
+  assert.strictEqual((await fetch(`${baseUrl}/pumps`, { headers: { 'Authorization': `Bearer ${newToken}`, 'X-Device-Id': deviceId } })).status, 200);
+  const fresh = await openRegisteredSocket(newToken, deviceId);
+  assert.strictEqual(fresh.result, 'REGISTERED');
+  fresh.ws.close();
+});
+
+test('45. Security: suspending a user closes their sockets and their old JWT stays invalid after reactivation', async () => {
+  const username = 'operador_suspendido_tester';
+  const password = 'ClaveSuspension#2026';
+  const userId = createRealTestUser(username, password);
+
+  const loginRes = await loginAs(username, password, 'tablet_suspendida_45');
+  const oldToken = ((await loginRes.json()) as any).token;
+  const sock = await openRegisteredSocket(oldToken, 'tablet_suspendida_45');
+  assert.strictEqual(sock.result, 'REGISTERED');
+
+  const suspend = await fetch(`${baseUrl}/admin/users/${userId}/status`, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ isActive: false })
+  });
+  assert.strictEqual(suspend.status, 200);
+  assert.strictEqual(await withTimeout(sock.closed, 2000, 'El socket del usuario suspendido no fue cerrado'), 4001);
+  assert.strictEqual((await fetch(`${baseUrl}/pumps`, { headers: { 'Authorization': `Bearer ${oldToken}` } })).status, 403);
+
+  const reactivate = await fetch(`${baseUrl}/admin/users/${userId}/status`, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ isActive: true })
+  });
+  assert.strictEqual(reactivate.status, 200);
+  // Reactivar no resucita el token emitido antes de la suspensión
+  assert.strictEqual((await fetch(`${baseUrl}/pumps`, { headers: { 'Authorization': `Bearer ${oldToken}` } })).status, 401);
+  const relogin = await loginAs(username, password);
+  assert.strictEqual(relogin.status, 200);
+});
+
+test('46. Security: password change and admin reset invalidate previously issued JWTs', async () => {
+  const username = 'operador_clave_tester';
+  const password = 'ClaveOriginal#2026';
+  const userId = createRealTestUser(username, password);
+
+  const oldToken = ((await (await loginAs(username, password)).json()) as any).token;
+  const change = await fetch(`${baseUrl}/auth/change-password`, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${oldToken}` },
+    body: JSON.stringify({ currentPassword: password, newPassword: 'ClaveNueva#2026x' })
+  });
+  assert.strictEqual(change.status, 200);
+  const changedToken = ((await change.json()) as any).token;
+  assert.ok(changedToken, 'El cambio de contraseña devuelve un token vigente');
+  assert.strictEqual((await fetch(`${baseUrl}/pumps`, { headers: { 'Authorization': `Bearer ${oldToken}` } })).status, 401);
+  assert.strictEqual((await fetch(`${baseUrl}/pumps`, { headers: { 'Authorization': `Bearer ${changedToken}` } })).status, 200);
+
+  const reset = await fetch(`${baseUrl}/admin/users/${userId}/reset-password`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders() }, body: JSON.stringify({})
+  });
+  assert.strictEqual(reset.status, 200);
+  assert.strictEqual((await fetch(`${baseUrl}/auth/me`, { headers: { 'Authorization': `Bearer ${changedToken}` } })).status, 401);
+});
+
 test.after(async () => {
   // Purge any test users or links created during testing and restore clean slate
   try {

@@ -9,6 +9,26 @@ export interface AuthenticatedRequest extends Request {
 
 const TEMPORARY_PASSWORD_ALLOWED = ['/auth/me', '/auth/change-password', '/auth/permissions'];
 
+/**
+ * Invalida todos los JWT emitidos para el usuario (suspensión, cambio/reset de contraseña,
+ * revocación de una de sus terminales). Los tokens nuevos se firman con la versión vigente.
+ */
+export function bumpTokenVersion(userId: string): void {
+  db.prepare('UPDATE users SET token_version = COALESCE(token_version, 0) + 1 WHERE id = ?').run(userId);
+}
+
+/** true si el token fue emitido con una versión anterior a la vigente del usuario */
+export function isTokenVersionStale(decoded: TokenPayload, currentVersion: number | null | undefined): boolean {
+  return (decoded.tokenVersion ?? 0) !== (currentVersion ?? 0);
+}
+
+/** true si la terminal fue revocada por el Administrador (hasta que vuelva a iniciar sesión) */
+export function isDeviceRevoked(deviceId: string | undefined | null): boolean {
+  if (!deviceId) return false;
+  const row = db.prepare('SELECT is_revoked FROM connected_devices WHERE device_id = ?').get(String(deviceId)) as { is_revoked?: number } | undefined;
+  return row?.is_revoked === 1;
+}
+
 function isAllowedWithTemporaryPassword(req: Request): boolean {
   const path = (req.originalUrl || req.url || '').split('?')[0].replace(/^\/api/, '');
   return TEMPORARY_PASSWORD_ALLOWED.includes(path);
@@ -29,11 +49,18 @@ export function authenticateToken(req: AuthenticatedRequest, res: Response, next
     const decoded = verifyToken(token);
     // Security check: verify that the user account is not suspended
     if (decoded.userId) {
-      const userRow = db.prepare('SELECT is_active, must_change_password FROM users WHERE id = ?').get(decoded.userId) as { is_active?: number; must_change_password?: number } | undefined;
+      const userRow = db.prepare('SELECT is_active, must_change_password, token_version FROM users WHERE id = ?').get(decoded.userId) as { is_active?: number; must_change_password?: number; token_version?: number } | undefined;
       if (userRow && userRow.is_active === 0) {
         return res.status(403).json({
           success: false,
           message: 'Cuenta suspendida. La sesión ha sido revocada por el Administrador.'
+        });
+      }
+      // Token emitido antes de una suspensión, cambio de contraseña o revocación de terminal
+      if (userRow && isTokenVersionStale(decoded, userRow.token_version)) {
+        return res.status(401).json({
+          success: false,
+          message: 'Token de autenticación revocado. Inicie sesión nuevamente.'
         });
       }
       // Con contraseña temporal solo se permite consultar el perfil y cambiar la contraseña
@@ -44,6 +71,13 @@ export function authenticateToken(req: AuthenticatedRequest, res: Response, next
           message: 'Debe cambiar su contraseña temporal antes de continuar.'
         });
       }
+    }
+    // Terminal revocada: rechazar aunque el token sea de otro usuario, hasta un nuevo inicio de sesión
+    if (isDeviceRevoked(req.headers['x-device-id']?.toString())) {
+      return res.status(401).json({
+        success: false,
+        message: 'Sesión de terminal revocada por el Administrador. Inicie sesión nuevamente.'
+      });
     }
     req.user = decoded;
     next();
