@@ -33,3 +33,6 @@ Thumbs.db
 # .github/ se versiona: contiene el pipeline de CI
 .vercel
 .env*
+
+# Datos personales reales (DNI): nunca al repositorio
+private/

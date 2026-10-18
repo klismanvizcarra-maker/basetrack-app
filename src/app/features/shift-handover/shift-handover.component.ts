@@ -20,7 +20,8 @@ export interface HandoverChecklistItem {
   category: string;
   title: string;
   description: string;
-  status: 'CONFORME' | 'OBSERVADO';
+  // PENDIENTE = aún no revisado por el supervisor; el relevo no se registra con puntos pendientes
+  status: 'PENDIENTE' | 'CONFORME' | 'OBSERVADO';
   notes?: string;
 }
 
@@ -80,40 +81,8 @@ export interface OfficialSupervisor {
   radio: string;
 }
 
-export const OFFICIAL_SUPERVISORS: OfficialSupervisor[] = [
-  {
-    name: 'GONGORA ROJAS MIGUEL ALONSO',
-    dni: '41833717',
-    role: 'Supervisor de guardia',
-    shift: 'G1',
-    guardName: 'Guardia 1 (G1)',
-    radio: 'Canal 1 Operaciones / Control'
-  },
-  {
-    name: 'ALIAGA CASTAÑEDA EMILIO URIEL',
-    dni: '46593500',
-    role: 'Supervisor de guardia',
-    shift: 'G2',
-    guardName: 'Guardia 2 (G2)',
-    radio: 'Canal 1 Operaciones / Control'
-  },
-  {
-    name: 'ARI MAMANI HUGO ANDRES',
-    dni: '40132660',
-    role: 'Supervisor de guardia',
-    shift: 'G3',
-    guardName: 'Guardia 3 (G3)',
-    radio: 'Canal 1 Operaciones / Control'
-  },
-  {
-    name: 'FERNANDEZ ASCURRA DANTE PACO',
-    dni: '18110964',
-    role: 'Supervisor de guardia',
-    shift: 'G4',
-    guardName: 'Guardia 4 (G4)',
-    radio: 'Canal 1 Operaciones / Control'
-  }
-];
+// Los supervisores se toman de la base de datos (cuadrilla); el código no contiene personas ni DNI
+export const OFFICIAL_SUPERVISORS: OfficialSupervisor[] = [];
 
 const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
   {
@@ -121,40 +90,40 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
     category: 'Seguridad & Salud Ocupacional',
     title: 'Seguridad, IPERC Continuo y Charla de 5 Minutos',
     description: 'EPP verificado, charla dictada, cero accidentes con tiempo perdido (LTI: 0).',
-    status: 'CONFORME',
-    notes: 'Personal con charla de 5 minutos y orden de trabajo seguro.'
+    status: 'PENDIENTE',
+    notes: ''
   },
   {
     id: 'CHK-PUMPS',
     category: 'Bombas Slurry & Sumideros',
     title: 'Bombas Slurry, Sentinas y Sistema de Agua',
     description: 'Pozas sentina bajo nivel crítico, sin desbordes ni cavitación anormal.',
-    status: 'CONFORME',
-    notes: 'Presiones en descarga y amperajes dentro de curva operativa.'
+    status: 'PENDIENTE',
+    notes: ''
   },
   {
     id: 'CHK-CYCLONES',
     category: 'Molienda & Clasificación',
     title: 'Batería de Ciclones e Hidrociclones',
     description: 'Manifolds estables, sin acordonamiento ni boquillas obstruidas. Target de Malla -200 verificado.',
-    status: 'CONFORME',
-    notes: 'Muestreo metalúrgico horario registrado conforme.'
+    status: 'PENDIENTE',
+    notes: ''
   },
   {
     id: 'CHK-TAILINGS',
     category: 'Relaves & Medio Ambiente',
     title: 'Presa de Relaves, Dique y Cota de Espejo',
     description: 'Borde libre seguro (> 2.50m), vertederos de alivio y líneas de conducción despejadas.',
-    status: 'CONFORME',
-    notes: 'Monitoreo de piezómetros y dique en condiciones estables.'
+    status: 'PENDIENTE',
+    notes: ''
   },
   {
     id: 'CHK-FLEET',
     category: 'Flota & Comunicaciones',
     title: 'Flota Vehicular Minera y Equipos de Radio',
     description: 'Checklist pre-uso de camionetas verificado y radios walkie-talkie operacionales entregados.',
-    status: 'CONFORME',
-    notes: 'Radios en Canal 1 Operaciones y camionetas con checklist al día.'
+    status: 'PENDIENTE',
+    notes: ''
   }
 ];
 
@@ -762,6 +731,7 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
                 <div class="form-group">
                   <label>Supervisor Saliente Oficial</label>
                   <select [ngModel]="newHandover.outgoing_supervisor" (ngModelChange)="onOutgoingSupervisorChange($event)" name="outgoing_supervisor" required>
+                    <option value="" disabled>{{ officialSupervisors.length ? 'Seleccione supervisor' : 'Sin supervisores: cargue el personal en Administración' }}</option>
                     <option *ngFor="let s of officialSupervisors" [value]="s.name">
                       [{{ s.shift }}] {{ s.name }} (DNI: {{ s.dni }})
                     </option>
@@ -793,6 +763,7 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
                 <div class="form-group">
                   <label>Supervisor Entrante Oficial</label>
                   <select [ngModel]="newHandover.incoming_supervisor" (ngModelChange)="onIncomingSupervisorChange($event)" name="incoming_supervisor" required>
+                    <option value="" disabled>{{ officialSupervisors.length ? 'Seleccione supervisor' : 'Sin supervisores: cargue el personal en Administración' }}</option>
                     <option *ngFor="let s of officialSupervisors" [value]="s.name">
                       [{{ s.shift }}] {{ s.name }} (DNI: {{ s.dni }})
                     </option>
@@ -1053,6 +1024,7 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
             <textarea rows="3" [(ngModel)]="newHandover.pending_tasks" name="pending" placeholder="Inspecciones programadas, cambio de válvulas, observaciones..."></textarea>
           </div>
 
+          <p class="checklist-pending-error" *ngIf="checklistError" role="alert">{{ checklistError }}</p>
           <div footer class="modal-buttons">
             <button type="button" class="btn btn-secondary" (click)="isCreateModalOpen = false">Cancelar</button>
             <button type="submit" class="btn btn-primary">Registrar y Guardar Relevo</button>
@@ -2511,6 +2483,16 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
       flex-shrink: 0;
     }
 
+    .checklist-pending-error {
+      margin: 0 0 10px;
+      padding: 8px 12px;
+      border-radius: var(--radius-md, 8px);
+      background: var(--danger-bg, #fef2f2);
+      color: var(--danger, #dc2626);
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
     .btn-chk-state {
       padding: 6px 10px;
       border-radius: 4px;
@@ -3789,6 +3771,7 @@ export class ShiftHandoverComponent implements OnInit, OnDestroy {
 
   // Checklist for modal
   modalChecklist: HandoverChecklistItem[] = JSON.parse(JSON.stringify(DEFAULT_CHECKLIST));
+  checklistError = '';
 
   // Maintenance OTs Integration
   activeMaintenanceOrders: HandoverMaintenanceOrder[] = [];
@@ -4014,22 +3997,17 @@ export class ShiftHandoverComponent implements OnInit, OnDestroy {
     if (!name) return 'G1';
     const found = this.officialSupervisors.find(s => s.name.trim().toLowerCase() === name.trim().toLowerCase());
     if (found) return found.shift;
-    if (name.includes('GONGORA')) return 'G1';
-    if (name.includes('ALIAGA')) return 'G2';
-    if (name.includes('ARI')) return 'G3';
-    if (name.includes('FERNANDEZ')) return 'G4';
-    return 'G1';
+    // Respaldo: ficha de cuadrilla en la base de datos (coincidencia exacta del nombre, nunca parcial)
+    const member = this.crewService.allMembers().find(m => m.name?.trim().toLowerCase() === name.trim().toLowerCase());
+    return member?.shift_code || 'G1';
   }
 
   resolveSupervisorDni(name?: string): string {
     if (!name) return '---';
     const found = this.officialSupervisors.find(s => s.name.trim().toLowerCase() === name.trim().toLowerCase());
     if (found) return found.dni;
-    if (name.includes('GONGORA')) return '41833717';
-    if (name.includes('ALIAGA')) return '46593500';
-    if (name.includes('ARI')) return '40132660';
-    if (name.includes('FERNANDEZ')) return '18110964';
-    return '---';
+    const member = this.crewService.allMembers().find(m => m.name?.trim().toLowerCase() === name.trim().toLowerCase());
+    return member?.document_id || '---';
   }
 
   getGuardBadgeClass(guardCode: string): string {
@@ -4162,6 +4140,7 @@ export class ShiftHandoverComponent implements OnInit, OnDestroy {
 
   setChecklistStatus(item: HandoverChecklistItem, status: 'CONFORME' | 'OBSERVADO'): void {
     item.status = status;
+    if (!this.modalChecklist.some(c => c.status === 'PENDIENTE')) this.checklistError = '';
     if (status === 'OBSERVADO' && !item.notes) {
       item.notes = 'Requiere inspección prioritaria en el relevo.';
     }
@@ -4375,6 +4354,7 @@ export class ShiftHandoverComponent implements OnInit, OnDestroy {
   openCreateModal(): void {
     this.initDefaultHandoverState();
     this.modalChecklist = JSON.parse(JSON.stringify(DEFAULT_CHECKLIST));
+    this.checklistError = '';
     this.newEventTime = this.getCurrentPeruTime();
     this.newEventDescription = '';
     this.newEventCategory = 'OPERACION';
@@ -4387,6 +4367,13 @@ export class ShiftHandoverComponent implements OnInit, OnDestroy {
   }
 
   saveHandover(): void {
+    // Cada punto del checklist debe revisarse explícitamente: no se registra conformidad por omisión
+    const pending = this.modalChecklist.filter(c => c.status === 'PENDIENTE');
+    if (pending.length > 0) {
+      this.checklistError = `Marque como Conforme u Observado: ${pending.map(c => c.title).join(', ')}.`;
+      return;
+    }
+    this.checklistError = '';
     const shiftInfo = getCurrentActiveShift();
     const selectedOrders = this.modalMaintenanceOrders.filter(o => o.included);
     const payload: ShiftHandover = {
@@ -4395,7 +4382,7 @@ export class ShiftHandoverComponent implements OnInit, OnDestroy {
       checklist_data: this.modalChecklist,
       maintenance_orders: selectedOrders,
       timeline_events: this.modalTimelineEvents,
-      operational_highlights: 'Control operacional en parámetros normales de proceso.',
+      operational_highlights: '',
       id: 'sh-' + Date.now(),
       date: shiftInfo.dateStr || getLocalDateString(),
       status: 'SUBMITTED',

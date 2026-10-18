@@ -359,7 +359,7 @@ import { CloudSyncService } from '../../core/services/cloud-sync.service';
                       type="text"
                       [(ngModel)]="profileForm.document_id"
                       name="documentId"
-                      placeholder="Ej. 41833717"
+                      placeholder="8 dígitos"
                       maxlength="12"
                       [required]="authService.currentUser()?.role !== 'ADMIN'"
                     />

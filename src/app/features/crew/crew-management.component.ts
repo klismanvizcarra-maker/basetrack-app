@@ -2103,8 +2103,7 @@ export class CrewManagementComponent implements OnInit, OnDestroy {
   }
 
   get activeSupervisorMember(): CrewMember | undefined {
-    return this.crewService.allMembers().find(m => m.shift_code === this.selectedShift && m.primary_role === 'SUPERVISOR' && !m.name.toLowerCase().includes('marck')) ||
-           CrewService.OFFICIAL_SUPERVISOR_MAP[this.selectedShift];
+    return this.crewService.allMembers().find(m => m.shift_code === this.selectedShift && m.primary_role === 'SUPERVISOR' && !m.name.toLowerCase().includes('marck'));
   }
 
   get otherSupervisors(): CrewMember[] {
