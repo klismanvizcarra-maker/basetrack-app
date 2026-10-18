@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs';
 import crypto from 'node:crypto';
 import { db } from '../database/db.js';
 import { generateToken } from '../config/jwt.js';
-import { AuthenticatedRequest, bumpTokenVersion } from '../middlewares/auth.middleware.js';
+import { AuthenticatedRequest, bumpTokenVersion, issueFreshToken } from '../middlewares/auth.middleware.js';
 import { disconnectWsClients } from '../websocket/ws.js';
 import { logAudit } from '../middlewares/error.middleware.js';
 
@@ -325,15 +325,7 @@ export async function changePassword(req: AuthenticatedRequest, res: Response) {
       const callerDeviceId = req.headers['x-device-id']?.toString();
       disconnectWsClients({ userId: user.id }, 'Contraseña cambiada: inicie sesión nuevamente', callerDeviceId);
     }
-    const refreshed = db.prepare('SELECT token_version FROM users WHERE id = ?').get(user.id) as { token_version: number };
-    const token = generateToken({
-      userId: user.id,
-      username: user.username,
-      role: user.role,
-      shift: user.shift,
-      fullName: user.full_name,
-      tokenVersion: refreshed.token_version
-    });
+    const token = issueFreshToken(user.id);
 
     logAudit(user.id, user.username, 'CHANGE_PASSWORD', 'USERS', user.id, 'Cambio de contraseña realizado exitosamente', req.ip || '127.0.0.1');
 

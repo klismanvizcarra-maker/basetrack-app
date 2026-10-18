@@ -1830,11 +1830,17 @@ test('46. Security: password change and admin reset invalidate previously issued
   assert.ok(changedToken, 'El cambio de contraseña devuelve un token vigente');
   assert.strictEqual((await fetch(`${baseUrl}/pumps`, { headers: { 'Authorization': `Bearer ${oldToken}` } })).status, 401);
   assert.strictEqual((await fetch(`${baseUrl}/pumps`, { headers: { 'Authorization': `Bearer ${changedToken}` } })).status, 200);
+  // La terminal que cambió la contraseña sigue en tiempo real con el token reemitido
+  const sock = await openRegisteredSocket(changedToken, 'tablet_clave_46');
+  assert.strictEqual(sock.result, 'REGISTERED');
+  sock.ws.close();
 
   const reset = await fetch(`${baseUrl}/admin/users/${userId}/reset-password`, {
     method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders() }, body: JSON.stringify({})
   });
   assert.strictEqual(reset.status, 200);
+  // El token nuevo solo se entrega cuando el Administrador restablece su propia cuenta
+  assert.strictEqual(((await reset.json()) as any).token, undefined);
   assert.strictEqual((await fetch(`${baseUrl}/auth/me`, { headers: { 'Authorization': `Bearer ${changedToken}` } })).status, 401);
 });
 

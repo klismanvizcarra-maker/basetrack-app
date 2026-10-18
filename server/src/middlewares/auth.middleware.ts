@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { verifyToken, TokenPayload } from '../config/jwt.js';
+import { verifyToken, generateToken, TokenPayload } from '../config/jwt.js';
 import { db } from '../database/db.js';
 import { PermissionKey, DEFAULT_ROLE_PERMISSIONS } from '../config/permissions.js';
 
@@ -15,6 +15,24 @@ const TEMPORARY_PASSWORD_ALLOWED = ['/auth/me', '/auth/change-password', '/auth/
  */
 export function bumpTokenVersion(userId: string): void {
   db.prepare('UPDATE users SET token_version = COALESCE(token_version, 0) + 1 WHERE id = ?').run(userId);
+}
+
+/**
+ * Firma un JWT con la versión vigente del usuario. Se devuelve a la terminal que provocó el
+ * incremento de token_version (p. ej. su propio cambio de contraseña) para que no pierda la sesión.
+ */
+export function issueFreshToken(userId: string): string | null {
+  const u = db.prepare('SELECT id, username, role, shift, full_name, token_version FROM users WHERE id = ?').get(userId) as
+    { id: string; username: string; role: TokenPayload['role']; shift: string; full_name: string; token_version?: number } | undefined;
+  if (!u) return null;
+  return generateToken({
+    userId: u.id,
+    username: u.username,
+    role: u.role,
+    shift: u.shift,
+    fullName: u.full_name,
+    tokenVersion: u.token_version ?? 0
+  });
 }
 
 /** true si el token fue emitido con una versión anterior a la vigente del usuario */

@@ -248,7 +248,9 @@ export class AuthService {
 
   changePassword(data: { currentPassword?: string; newPassword: string }): Observable<{ success: boolean; message: string }> {
     return this.http.put<any>(`${this.apiUrl}/change-password`, data).pipe(
-      tap(() => {
+      tap(res => {
+        // El servidor invalida los tokens previos (token_version) y devuelve uno nuevo para esta terminal
+        if (res?.token) this.adoptRefreshedToken(res.token);
         const user = this.currentUserSignal();
         if (user?.mustChangePassword) {
           const updated = { ...user, mustChangePassword: false };
@@ -293,6 +295,16 @@ export class AuthService {
       }),
       catchError(() => of(this.currentUserSignal()))
     );
+  }
+
+  /**
+   * Reemplaza el token de la sesión actual por uno reemitido por el servidor tras incrementar
+   * token_version del propio usuario (cambio o restablecimiento de su contraseña).
+   */
+  adoptRefreshedToken(token: string, userPatch?: Partial<User>): void {
+    const user = this.currentUserSignal();
+    if (!user) return;
+    this.setSession(token, userPatch ? { ...user, ...userPatch } : user);
   }
 
   private setSession(token: string, user: User): void {

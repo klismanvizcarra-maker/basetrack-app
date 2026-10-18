@@ -5,7 +5,7 @@ import bcrypt from 'bcryptjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import { db, dbFilePath, seedDefaultVehicles } from '../database/db.js';
-import { AuthenticatedRequest, bumpTokenVersion } from '../middlewares/auth.middleware.js';
+import { AuthenticatedRequest, bumpTokenVersion, issueFreshToken } from '../middlewares/auth.middleware.js';
 import { logAudit } from '../middlewares/error.middleware.js';
 import { ALL_PERMISSIONS, DEFAULT_ROLE_PERMISSIONS, PermissionKey } from '../config/permissions.js';
 import { broadcastWsEvent, disconnectWsClients } from '../websocket/ws.js';
@@ -850,9 +850,13 @@ export function resetUserPassword(req: AuthenticatedRequest, res: Response) {
 
     const hash = bcrypt.hashSync(newPassword, 10);
     db.prepare('UPDATE users SET password_hash = ?, must_change_password = 1 WHERE id = ?').run(hash, id);
-    // Las sesiones abiertas con la contraseña anterior dejan de ser válidas
+    // Las sesiones abiertas con la contraseña anterior dejan de ser válidas. Si el Administrador
+    // restablece su propia cuenta, su terminal actual recibe un token nuevo y conserva su canal.
     bumpTokenVersion(id);
-    disconnectWsClients({ userId: id }, 'Contraseña restablecida por el Administrador');
+    const isSelfReset = req.user?.userId === id;
+    disconnectWsClients({ userId: id }, 'Contraseña restablecida por el Administrador',
+      isSelfReset ? req.headers['x-device-id']?.toString() : undefined);
+    const token = isSelfReset ? issueFreshToken(id) : undefined;
 
     logAudit(
       req.user?.userId || null,
@@ -867,7 +871,8 @@ export function resetUserPassword(req: AuthenticatedRequest, res: Response) {
     return res.json({
       success: true,
       message: `Contraseña restablecida exitosamente para ${user.username}. Deberá cambiarla al iniciar sesión.`,
-      temporaryPassword: newPassword
+      temporaryPassword: newPassword,
+      ...(token ? { token } : {})
     });
   } catch (error: any) {
     return res.status(500).json({ success: false, message: error.message });
