@@ -69,6 +69,10 @@ export const routes: Routes = [
         loadComponent: () => import('./features/vehicle-checklist/vehicle-checklist.component').then(m => m.VehicleChecklistComponent)
       },
       {
+        path: 'vehicles',
+        redirectTo: 'vehicle-checklist'
+      },
+      {
         path: 'roster',
         data: { permission: 'VIEW_ROSTER' },
         loadComponent: () => import('./features/roster/guard-roster.component').then(m => m.GuardRosterComponent)
