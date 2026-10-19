@@ -17,7 +17,7 @@ export async function subscribeToPush(req: Request, res: Response) {
       return res.status(400).json({ error: 'Endpoint y claves p256dh/auth son obligatorias' });
     }
 
-    const userId = (req as any).user?.id || null;
+    const userId = (req as any).user?.userId || (req as any).user?.id || null;
     pushService.saveSubscription(userId, { endpoint, keys }, deviceInfo);
 
     res.json({
@@ -45,7 +45,7 @@ export async function unsubscribeFromPush(req: Request, res: Response) {
 
 export async function sendTestNotification(req: Request, res: Response) {
   try {
-    const userId = (req as any).user?.id;
+    const userId = (req as any).user?.userId || (req as any).user?.id;
     if (!userId) {
       return res.status(401).json({ error: 'Usuario no autenticado' });
     }
