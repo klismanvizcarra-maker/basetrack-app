@@ -56,6 +56,12 @@ import {
   getVehicleChecklists,
   createVehicleChecklist
 } from '../controllers/vehicle.controller.js';
+import {
+  getVapidPublicKey,
+  subscribeToPush,
+  unsubscribeFromPush,
+  sendTestNotification
+} from '../controllers/notification.controller.js';
 import { authenticateToken, requireRoles, requirePermission } from '../middlewares/auth.middleware.js';
 
 export const apiRouter = Router();
@@ -182,4 +188,10 @@ apiRouter.delete('/vehicles/:id', authenticateToken, requireRoles('ADMIN'), dele
 
 apiRouter.get('/vehicles/checklists', authenticateToken, getVehicleChecklists);
 apiRouter.post('/vehicles/checklists', authenticateToken, requirePermission('CAN_FILL_VEHICLES'), createVehicleChecklist);
+
+// 13. Web Push Notifications (Segundo Plano y Móviles)
+apiRouter.get('/notifications/vapid-public-key', getVapidPublicKey);
+apiRouter.post('/notifications/subscribe', authenticateToken, subscribeToPush);
+apiRouter.post('/notifications/unsubscribe', authenticateToken, unsubscribeFromPush);
+apiRouter.post('/notifications/test', authenticateToken, sendTestNotification);
 

@@ -4,6 +4,7 @@ import { db } from '../database/db.js';
 import { AuthenticatedRequest } from '../middlewares/auth.middleware.js';
 import { logAudit } from '../middlewares/error.middleware.js';
 import { broadcastWsEvent } from '../websocket/ws.js';
+import { pushService } from '../services/push.service.js';
 
 /** Correlativo de OT del año en curso (OT-AAAA-NNNN), compartido por mantenimiento y bombas. */
 export function nextTicketNumber(): string {
@@ -218,6 +219,15 @@ export function updateMaintenanceStatus(req: AuthenticatedRequest, res: Response
       key: 'basetrack_maintenance_tickets',
       deviceId: req.headers['x-device-id']?.toString() || 'server_api'
     });
+
+    if (isPassingToOperational) {
+      pushService.sendPushNotification({
+        title: `🛠️ Pase Operativo Concedido (${request.equipment_tag})`,
+        body: `OT ${request.ticket_number} resuelta. Equipo ${request.equipment_tag} liberado a Operativo por ${passBy}.`,
+        data: { url: '/maintenance', tag: request.equipment_tag },
+        tag: `maint-pass-${id}`
+      }).catch(err => console.error('[Push] Error delivering maintenance pass push:', err));
+    }
 
     const isPump = targetTag && targetTag.toUpperCase().startsWith('PU');
     logAudit(

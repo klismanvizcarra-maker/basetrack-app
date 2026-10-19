@@ -7,6 +7,7 @@ import { broadcastWsEvent } from '../websocket/ws.js';
 import { nextTicketNumber } from './maintenance.controller.js';
 import { siteToday, resolveGuardCode } from '../utils/site-date.js';
 import { resolveOperatorName } from '../utils/system-admin.js';
+import { pushService } from '../services/push.service.js';
 
 export function getAllPumps(req: Request, res: Response) {
   try {
@@ -130,6 +131,13 @@ export function updatePumpStatus(req: AuthenticatedRequest, res: Response) {
         key: 'basetrack_maintenance_tickets',
         deviceId: req.headers['x-device-id']?.toString() || 'server_api'
       });
+
+      pushService.sendPushNotification({
+        title: `🚨 Alerta: Bomba ${pump.tag} en Falla`,
+        body: `Se reportó parada/falla en Bomba ${pump.tag}. Orden ${ticketNumber} auto-generada.`,
+        data: { url: '/pumps', tag: pump.tag },
+        tag: `pump-fault-${pump.tag}`
+      }).catch(err => console.error('[Push] Error delivering pump fault push:', err));
     }
 
     db.prepare(`
@@ -341,6 +349,13 @@ export function savePumpOperationalSheet(req: AuthenticatedRequest, res: Respons
             key: 'maintenance_request_' + ticketId,
             deviceId: req.headers['x-device-id']?.toString() || 'server_api'
           });
+
+          pushService.sendPushNotification({
+            title: `🚨 Alerta: Bomba ${p.tag} en Falla`,
+            body: `Se reportó parada/falla en Bomba ${p.tag}. Orden ${ticketNumber} auto-generada.`,
+            data: { url: '/pumps', tag: p.tag },
+            tag: `pump-fault-${p.tag}`
+          }).catch(err => console.error('[Push] Error delivering sheet pump fault push:', err));
 
           logAudit(
             req.user?.userId || null,

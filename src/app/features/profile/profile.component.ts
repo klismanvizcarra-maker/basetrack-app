@@ -7,6 +7,7 @@ import { ThemeService } from '../../core/theme/theme.service';
 import { Router } from '@angular/router';
 import { generateAvatarSvg, getEffectiveAvatar, getUserInitials } from '../../shared/utils/avatar.util';
 import { CloudSyncService } from '../../core/services/cloud-sync.service';
+import { PushNotificationService } from '../../core/services/push-notification.service';
 
 @Component({
   selector: 'app-profile',
@@ -250,6 +251,83 @@ import { CloudSyncService } from '../../core/services/cloud-sync.service';
                 </svg>
                 Cerrar Sesión
               </button>
+            </div>
+          </div>
+
+          <!-- Notificaciones en Teléfono y Dispositivos en Segundo Plano -->
+          <div class="profile-card push-notifications-card glass-panel">
+            <div class="card-head-compact">
+              <span class="compact-icon push-icon-wrap" [class.active]="pushNotificationService.isSubscribed()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                </svg>
+              </span>
+              <div>
+                <h4>Notificaciones en Teléfono</h4>
+                <p class="compact-sub">Alertas críticas con app en segundo plano</p>
+              </div>
+            </div>
+
+            <div class="push-status-box">
+              <div class="push-status-header">
+                <span class="push-status-label">Estado en este equipo:</span>
+                <span class="push-status-pill" [ngClass]="getPushStatusPillClass()">
+                  <span class="push-dot" [class.active]="pushNotificationService.isSubscribed()"></span>
+                  {{ getPushStatusLabel() }}
+                </span>
+              </div>
+              <p class="push-hint-text">
+                Recibe alertas sonoras en la pantalla de bloqueo ante paradas de bombas, niveles críticos de presa y relevos de guardia, incluso con el teléfono bloqueado o la aplicación cerrada.
+              </p>
+              <div *ngIf="pushNotificationService.statusMessage()" class="push-alert-feedback" [class.error]="pushNotificationService.statusMessage()?.includes('Error') || pushNotificationService.statusMessage()?.includes('Fallo') || pushNotificationService.statusMessage()?.includes('bloqueado')">
+                {{ pushNotificationService.statusMessage() }}
+              </div>
+            </div>
+
+            <div class="push-actions-row">
+              <button 
+                *ngIf="!pushNotificationService.isSubscribed()" 
+                type="button" 
+                class="btn btn-primary btn-sm btn-push-toggle"
+                (click)="togglePushSubscription()"
+                [disabled]="pushNotificationService.isLoading() || !pushNotificationService.isSupported()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                </svg>
+                {{ pushNotificationService.isLoading() ? 'Activando...' : 'Activar Notificaciones Push' }}
+              </button>
+
+              <button 
+                *ngIf="pushNotificationService.isSubscribed()" 
+                type="button" 
+                class="btn btn-secondary btn-sm btn-push-toggle"
+                (click)="togglePushSubscription()"
+                [disabled]="pushNotificationService.isLoading()">
+                Desactivar en este Equipo
+              </button>
+
+              <button 
+                *ngIf="pushNotificationService.isSubscribed()" 
+                type="button" 
+                class="btn btn-outline btn-sm btn-push-test"
+                (click)="testPushNotification()"
+                [disabled]="pushNotificationService.isTesting()">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" [class.spin]="pushNotificationService.isTesting()">
+                  <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                </svg>
+                {{ pushNotificationService.isTesting() ? 'Enviando...' : 'Probar Notificación en Vivo' }}
+              </button>
+            </div>
+
+            <div *ngIf="devicePlatformInfo.os.includes('iOS') || devicePlatformInfo.os.includes('iPhone')" class="ios-note-box">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="16" x2="12" y2="12"></line>
+                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+              </svg>
+              <span>En iPhone, la aplicación debe estar agregada a la pantalla de inicio ("Compartir > Agregar a inicio") para recibir push con pantalla bloqueada (iOS 16.4+).</span>
             </div>
           </div>
         </div>
@@ -1544,6 +1622,144 @@ import { CloudSyncService } from '../../core/services/cloud-sync.service';
       }
     }
 
+    .push-notifications-card {
+      margin-top: 14px;
+      width: 100%;
+
+      .push-icon-wrap {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        background: var(--bg-hover);
+        color: var(--text-muted);
+        transition: all 0.2s ease;
+
+        &.active {
+          background: rgba(16, 185, 129, 0.15);
+          color: #10b981;
+        }
+      }
+
+      .push-status-box {
+        background: var(--bg-surface-elevated, var(--bg-hover));
+        border: 1px solid var(--border-subtle);
+        border-radius: 8px;
+        padding: 12px 14px;
+        margin-bottom: 12px;
+      }
+
+      .push-status-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 6px;
+      }
+
+      .push-status-label {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--text-muted);
+      }
+
+      .push-status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 3px 10px;
+        border-radius: 12px;
+        font-size: 0.72rem;
+        font-weight: 700;
+
+        &.status-active {
+          background: rgba(16, 185, 129, 0.15);
+          color: #10b981;
+          border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        &.status-inactive {
+          background: var(--bg-hover);
+          color: var(--text-muted);
+          border: 1px solid var(--border-subtle);
+        }
+
+        &.status-error {
+          background: rgba(239, 68, 68, 0.15);
+          color: #ef4444;
+          border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+      }
+
+      .push-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #94a3b8;
+
+        &.active {
+          background: #10b981;
+          box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.3);
+        }
+      }
+
+      .push-hint-text {
+        font-size: 0.76rem;
+        color: var(--text-secondary, var(--text-muted));
+        line-height: 1.45;
+        margin: 0;
+      }
+
+      .push-alert-feedback {
+        margin-top: 8px;
+        font-size: 0.74rem;
+        font-weight: 600;
+        color: #10b981;
+
+        &.error {
+          color: #ef4444;
+        }
+      }
+
+      .push-actions-row {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+
+        button {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+        }
+
+        .btn-push-toggle {
+          flex: 1;
+          min-width: 140px;
+          justify-content: center;
+        }
+
+        .btn-push-test {
+          justify-content: center;
+        }
+      }
+
+      .ios-note-box {
+        display: flex;
+        align-items: flex-start;
+        gap: 6px;
+        margin-top: 10px;
+        font-size: 0.7rem;
+        color: var(--text-muted);
+        line-height: 1.35;
+
+        svg {
+          flex-shrink: 0;
+          margin-top: 2px;
+        }
+      }
+    }
+
     .theme-settings-card {
       margin-top: 20px;
     }
@@ -1631,6 +1847,7 @@ export class ProfileComponent implements OnInit {
   authService = inject(AuthService);
   themeService = inject(ThemeService);
   cloudSync = inject(CloudSyncService);
+  pushNotificationService = inject(PushNotificationService);
   private router = inject(Router);
 
   isTestingSync = false;
@@ -2022,6 +2239,31 @@ export class ProfileComponent implements OnInit {
         this.showError(msg);
       }
     });
+  }
+
+  getPushStatusLabel(): string {
+    if (!this.pushNotificationService.isSupported()) return 'No Compatible';
+    if (this.pushNotificationService.permissionState() === 'denied') return 'Permiso Bloqueado';
+    if (this.pushNotificationService.isSubscribed()) return 'Activo en este Equipo';
+    return 'Desactivado';
+  }
+
+  getPushStatusPillClass(): string {
+    if (this.pushNotificationService.isSubscribed()) return 'status-active';
+    if (this.pushNotificationService.permissionState() === 'denied') return 'status-error';
+    return 'status-inactive';
+  }
+
+  async togglePushSubscription(): Promise<void> {
+    if (this.pushNotificationService.isSubscribed()) {
+      await this.pushNotificationService.unsubscribe();
+    } else {
+      await this.pushNotificationService.subscribe();
+    }
+  }
+
+  async testPushNotification(): Promise<void> {
+    await this.pushNotificationService.sendTestNotification();
   }
 
   private showSuccess(msg: string): void {

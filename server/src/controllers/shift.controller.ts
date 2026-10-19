@@ -6,6 +6,7 @@ import { logAudit } from '../middlewares/error.middleware.js';
 import { broadcastWsEvent } from '../websocket/ws.js';
 import { siteToday } from '../utils/site-date.js';
 import { isSystemAdminIdentity } from '../utils/system-admin.js';
+import { pushService } from '../services/push.service.js';
 
 export function getAllShiftHandovers(req: Request, res: Response) {
   try {
@@ -113,6 +114,13 @@ export function createShiftHandover(req: AuthenticatedRequest, res: Response) {
       deviceId: req.headers['x-device-id']?.toString() || 'server_api',
       senderName: outSup
     });
+
+    pushService.sendPushNotification({
+      title: '📋 Relevo de Guardia Emitido',
+      body: `Turno ${shift_type} (${shift_code}) entregado por ${outSup}. Pendiente de recepción por ${inSup}.`,
+      data: { url: '/shift-handover', id },
+      tag: `handover-${id}`
+    }).catch(err => console.error('[Push] Error delivering shift handover push:', err));
 
     logAudit(req.user?.userId || null, req.user?.username || 'system', 'CREATE', 'SHIFT_HANDOVER', id, `Relevo de guardia creado: ${shift_code} (${outSup} -> ${inSup})`, req.ip || '127.0.0.1');
 

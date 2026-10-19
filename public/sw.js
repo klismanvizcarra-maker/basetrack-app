@@ -1,4 +1,4 @@
-const CACHE_NAME = 'basetrack-cache-v10';
+const CACHE_NAME = 'basetrack-cache-v11';
 const PRECACHE_ASSETS = [
   '/',
   '/index.html',
@@ -152,6 +152,57 @@ self.addEventListener('fetch', (event) => {
         .catch(() => cachedResponse);
 
       return cachedResponse || fetchPromise;
+    })
+  );
+});
+
+// 5. Push Event: Wake up service worker on phone/device even if browser is in background or closed
+self.addEventListener('push', (event) => {
+  let payload = {};
+  if (event.data) {
+    try {
+      payload = event.data.json();
+    } catch (e) {
+      payload = { title: 'BASETRACK Operaciones', body: event.data.text() };
+    }
+  }
+
+  const title = payload.title || 'BASETRACK Industrial';
+  const options = {
+    body: payload.body || 'Alerta o cambio operacional en faena.',
+    icon: payload.icon || '/icons/icon-192.png',
+    badge: payload.badge || '/icons/favicon-48x48.png',
+    vibrate: [250, 100, 250, 100, 250],
+    data: payload.data || { url: '/dashboard' },
+    tag: payload.tag || ('basetrack-' + Date.now()),
+    renotify: true,
+    requireInteraction: payload.requireInteraction || false,
+    actions: [
+      { action: 'open', title: 'Ver en App' }
+    ]
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+// 6. Notification Click Event: Open or focus window and navigate to relevant page
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const urlToOpen = (event.notification.data && event.notification.data.url) || '/dashboard';
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+      for (const client of windowClients) {
+        if (client.url && 'focus' in client) {
+          if (client.navigate) {
+            client.navigate(urlToOpen);
+          }
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) {
+        return clients.openWindow(urlToOpen);
+      }
     })
   );
 });

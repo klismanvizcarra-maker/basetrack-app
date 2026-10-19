@@ -8,6 +8,7 @@ import { OfflineSyncService } from '../../core/offline/offline-sync.service';
 import { CloudSyncService } from '../../core/services/cloud-sync.service';
 import { ThemeService } from '../../core/theme/theme.service';
 import { NotificationService, NotificationItem } from '../../core/services/notification.service';
+import { PushNotificationService } from '../../core/services/push-notification.service';
 import { getCurrentActiveShift } from '../../shared/utils/roster.util';
 import { getEffectiveAvatar } from '../../shared/utils/avatar.util';
 
@@ -215,6 +216,20 @@ import { getEffectiveAvatar } from '../../shared/utils/avatar.util';
             </svg>
           </button>
         </div>
+      </div>
+
+      <!-- Push Notification Activation Prompt -->
+      <div *ngIf="pushService.isSupported() && !pushService.isSubscribed()" class="push-header-banner">
+        <div class="push-banner-content">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+          </svg>
+          <span>¿Alertas con pantalla bloqueada?</span>
+        </div>
+        <button type="button" class="btn-push-enable" (click)="enablePushFromHeader()">
+          {{ pushService.isLoading() ? 'Activando...' : 'Activar' }}
+        </button>
       </div>
 
       <!-- Filter Tabs -->
@@ -977,6 +992,44 @@ import { getEffectiveAvatar } from '../../shared/utils/avatar.util';
             background: var(--bg-card-subtle);
             color: var(--text-primary);
           }
+        }
+      }
+    }
+
+    .push-header-banner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      background: rgba(3, 23, 149, 0.08);
+      border: 1px solid rgba(3, 23, 149, 0.2);
+      border-radius: var(--radius-md);
+      padding: 8px 12px;
+      margin-bottom: 8px;
+
+      .push-banner-content {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.74rem;
+        font-weight: 600;
+        color: var(--primary-purple);
+      }
+
+      .btn-push-enable {
+        padding: 4px 10px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        border-radius: 6px;
+        background: var(--primary-purple);
+        color: #fff;
+        border: none;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: opacity 0.15s ease;
+
+        &:hover {
+          opacity: 0.9;
         }
       }
     }
@@ -1874,8 +1927,13 @@ export class HeaderComponent implements OnDestroy {
   cloudSync = inject(CloudSyncService);
   themeService = inject(ThemeService);
   notifService = inject(NotificationService);
+  pushService = inject(PushNotificationService);
   private router = inject(Router);
   showNotifications = false;
+
+  enablePushFromHeader(): void {
+    this.pushService.subscribe();
+  }
 
   getUserAvatar(): string {
     const user = this.authService.currentUser();

@@ -370,6 +370,18 @@ export function initDatabase() {
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
+    -- Push Subscriptions (Web Push API para Notificaciones en Teléfonos y Dispositivos)
+    CREATE TABLE IF NOT EXISTS push_subscriptions (
+      id TEXT PRIMARY KEY,
+      user_id TEXT,
+      endpoint TEXT UNIQUE NOT NULL,
+      p256dh TEXT NOT NULL,
+      auth TEXT NOT NULL,
+      device_info TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
     -- Indexes for performance
     CREATE INDEX IF NOT EXISTS idx_pumps_tag ON pump_reports(tag);
     CREATE INDEX IF NOT EXISTS idx_pumps_created ON pump_reports(created_at);
@@ -388,6 +400,8 @@ export function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_sup_op_supervisor ON supervisor_operators(supervisor_id);
     CREATE INDEX IF NOT EXISTS idx_sup_op_operator ON supervisor_operators(operator_id);
     CREATE INDEX IF NOT EXISTS idx_pump_shift_closures ON pump_shift_closures(report_date, shift_code);
+    CREATE INDEX IF NOT EXISTS idx_push_user_id ON push_subscriptions(user_id);
+    CREATE INDEX IF NOT EXISTS idx_push_endpoint ON push_subscriptions(endpoint);
   `);
 
   // Safe migration: remove CHECK constraint on vehicle_plate from existing vehicle_checklists if present
