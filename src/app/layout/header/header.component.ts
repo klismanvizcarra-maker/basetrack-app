@@ -137,7 +137,7 @@ import { getEffectiveAvatar } from '../../shared/utils/avatar.util';
         <button
           type="button"
           class="header-action-btn theme-toggle-btn"
-          (click)="themeService.toggleTheme()"
+          (click)="themeService.toggleTheme($event)"
           [title]="themeService.isDarkMode() ? 'Modo Oscuro Activo - Cambiar a Modo Claro' : 'Modo Claro Activo - Cambiar a Modo Oscuro'"
           aria-label="Cambiar tema de la interfaz"
         >
@@ -554,10 +554,10 @@ import { getEffectiveAvatar } from '../../shared/utils/avatar.util';
       display: flex;
       align-items: center;
       gap: 6px;
-      background: #eef2ff;
+      background: var(--primary-bg-subtle);
       padding: 4px 12px;
       border-radius: var(--radius-full);
-      border: 1px solid #c7d2fe;
+      border: 1px solid var(--tint-info-border, #c7d2fe);
       font-size: 0.75rem;
       flex-shrink: 0;
 
@@ -572,12 +572,12 @@ import { getEffectiveAvatar } from '../../shared/utils/avatar.util';
     }
 
     .shift-tag {
-      color: #1e40af;
+      color: var(--primary-lavender);
       font-weight: 500;
     }
 
     .shift-name {
-      color: #031795;
+      color: var(--brand-text);
       font-weight: 800;
     }
 
@@ -666,18 +666,49 @@ import { getEffectiveAvatar } from '../../shared/utils/avatar.util';
     }
 
     .theme-toggle-btn {
+      position: relative;
+      transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s ease;
+
       .sun-icon {
         color: #f59e0b;
-        filter: drop-shadow(0 0 5px rgba(245, 158, 11, 0.6));
+        filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.65));
+        animation: theme-icon-sun 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
       }
 
       .moon-icon {
         color: #2563eb;
-        filter: drop-shadow(0 0 4px rgba(37, 99, 235, 0.4));
+        filter: drop-shadow(0 0 5px rgba(37, 99, 235, 0.45));
+        animation: theme-icon-moon 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
       }
 
       &:hover {
-        transform: rotate(12deg) scale(1.05);
+        transform: rotate(12deg) scale(1.06);
+      }
+
+      &:active {
+        transform: scale(0.92);
+      }
+    }
+
+    @keyframes theme-icon-sun {
+      from {
+        transform: rotate(-70deg) scale(0.4);
+        opacity: 0;
+      }
+      to {
+        transform: rotate(0deg) scale(1);
+        opacity: 1;
+      }
+    }
+
+    @keyframes theme-icon-moon {
+      from {
+        transform: rotate(70deg) scale(0.4);
+        opacity: 0;
+      }
+      to {
+        transform: rotate(0deg) scale(1);
+        opacity: 1;
       }
     }
 
@@ -763,7 +794,7 @@ import { getEffectiveAvatar } from '../../shared/utils/avatar.util';
       height: 100%;
       border-radius: var(--radius-full);
       object-fit: cover;
-      border: 2px solid #e2e8f0;
+      border: 2px solid var(--border-color);
       box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
     }
 
@@ -876,8 +907,8 @@ import { getEffectiveAvatar } from '../../shared/utils/avatar.util';
           width: 32px;
           height: 32px;
           border-radius: 8px;
-          background: #eef2ff;
-          color: #031795;
+          background: var(--primary-bg-subtle);
+          color: var(--brand-text);
         }
 
         h4 {
@@ -909,16 +940,16 @@ import { getEffectiveAvatar } from '../../shared/utils/avatar.util';
           border: 1px solid var(--border-subtle);
 
           &.badge-has-unread {
-            background: #fef2f2;
-            color: #dc2626;
-            border-color: #fecaca;
+            background: var(--danger-bg);
+            color: var(--danger);
+            border-color: var(--tint-danger-border, #fecaca);
           }
         }
 
         .btn-mark-all {
           background: transparent;
-          border: 1px solid #bfdbfe;
-          color: #1e40af;
+          border: 1px solid var(--tint-info-border, #bfdbfe);
+          color: var(--primary-lavender);
           border-radius: 6px;
           padding: 3px 8px;
           font-size: 0.7rem;
@@ -927,8 +958,8 @@ import { getEffectiveAvatar } from '../../shared/utils/avatar.util';
           transition: all 0.15s ease;
 
           &:hover {
-            background: #eff6ff;
-            color: #031795;
+            background: var(--tint-info-bg, #eff6ff);
+            color: var(--brand-text);
           }
         }
 
@@ -978,16 +1009,16 @@ import { getEffectiveAvatar } from '../../shared/utils/avatar.util';
 
         &.active {
           background: var(--bg-card);
-          color: #031795;
+          color: var(--brand-text);
           font-weight: 700;
           border-color: var(--border-subtle);
           box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 
           &.tab-crit {
-            color: #dc2626;
+            color: var(--danger);
           }
           &.tab-ops {
-            color: #059669;
+            color: var(--success);
           }
         }
       }
@@ -1016,7 +1047,7 @@ import { getEffectiveAvatar } from '../../shared/utils/avatar.util';
 
       &:hover {
         background: var(--bg-card);
-        border-color: #cbd5e1;
+        border-color: var(--tint-neutral-strong, #cbd5e1);
         transform: translateY(-1px);
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
       }
@@ -1026,19 +1057,19 @@ import { getEffectiveAvatar } from '../../shared/utils/avatar.util';
 
         &.item-critical {
           border-left-color: #dc2626;
-          background: #fff5f5;
+          background: var(--tint-danger-bg, #fff5f5);
         }
         &.item-warning {
           border-left-color: #d97706;
-          background: #fffbeb;
+          background: var(--warning-bg);
         }
         &.item-success {
           border-left-color: #059669;
-          background: #f0fdf4;
+          background: var(--tint-success-bg, #f0fdf4);
         }
         &.item-info {
-          border-left-color: #031795;
-          background: #f5f7ff;
+          border-left-color: var(--primary-purple);
+          background: var(--tint-info-bg, #f5f7ff);
         }
       }
 
@@ -1059,10 +1090,10 @@ import { getEffectiveAvatar } from '../../shared/utils/avatar.util';
             border-radius: 4px;
             letter-spacing: 0.2px;
 
-            &.critical { background: #fee2e2; color: #991b1b; }
-            &.warning { background: #fef3c7; color: #92400e; }
-            &.success { background: #dcfce7; color: #166534; }
-            &.info { background: #e0e7ff; color: #3730a3; }
+            &.critical { background: var(--tint-danger-bg, #fee2e2); color: var(--tint-danger-text, #991b1b); }
+            &.warning { background: var(--tint-warning-bg, #fef3c7); color: var(--tint-warning-text, #92400e); }
+            &.success { background: var(--tint-success-bg, #dcfce7); color: var(--tint-success-text, #166534); }
+            &.info { background: var(--tint-info-bg, #e0e7ff); color: var(--tint-info-text, #3730a3); }
           }
 
           .notif-tag {
@@ -1103,7 +1134,7 @@ import { getEffectiveAvatar } from '../../shared/utils/avatar.util';
           .notif-nav-hint {
             font-size: 0.72rem;
             font-weight: 700;
-            color: #031795;
+            color: var(--brand-text);
             display: inline-flex;
             align-items: center;
             gap: 4px;
@@ -1145,8 +1176,8 @@ import { getEffectiveAvatar } from '../../shared/utils/avatar.util';
         width: 38px;
         height: 38px;
         border-radius: 50%;
-        background: #ecfdf5;
-        color: #059669;
+        background: var(--success-bg);
+        color: var(--success);
         font-size: 1.2rem;
         font-weight: 800;
         margin-bottom: 8px;
@@ -1248,7 +1279,7 @@ import { getEffectiveAvatar } from '../../shared/utils/avatar.util';
       &.ws-live-pill {
         background: rgba(16, 185, 129, 0.12);
         border-color: rgba(16, 185, 129, 0.45);
-        color: #059669;
+        color: var(--success);
 
         &:hover {
           background: rgba(16, 185, 129, 0.22);
@@ -1257,7 +1288,7 @@ import { getEffectiveAvatar } from '../../shared/utils/avatar.util';
       }
 
       .ws-indicator-tag {
-        background: #10b981;
+        background: #059669;
         color: #ffffff;
         font-size: 0.6rem;
         padding: 1px 4px;

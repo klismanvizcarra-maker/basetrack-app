@@ -117,7 +117,7 @@ import { AuthService } from '../../core/auth/auth.service';
       display: flex;
       align-items: center;
       justify-content: center;
-      background: radial-gradient(circle at 50% 20%, #eef2ff 0%, #020e5c 120%), #020617;
+      background: radial-gradient(circle at 50% 20%, var(--primary-bg-subtle) 0%, #020e5c 120%), #020617;
       padding: 24px;
     }
 
@@ -143,7 +143,7 @@ import { AuthService } from '../../core/auth/auth.service';
       width: 68px;
       height: 68px;
       border-radius: 18px;
-      background: #ffffff;
+      background: var(--bg-card);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -162,14 +162,14 @@ import { AuthService } from '../../core/auth/auth.service';
     h2 {
       font-size: 1.45rem;
       font-weight: 800;
-      color: #0f172a;
+      color: var(--text-primary);
       letter-spacing: 0.03em;
       margin: 0;
     }
 
     .subtitle {
       font-size: 0.83rem;
-      color: #64748b;
+      color: var(--text-muted);
       margin: 5px 0 12px;
     }
 
@@ -177,9 +177,9 @@ import { AuthService } from '../../core/auth/auth.service';
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      background: #eef2ff;
-      border: 1px solid #c7d2fe;
-      color: #031795;
+      background: var(--primary-bg-subtle);
+      border: 1px solid var(--tint-info-border, #c7d2fe);
+      color: var(--brand-text);
       padding: 4px 10px;
       border-radius: 9999px;
       font-size: 0.72rem;
@@ -191,9 +191,9 @@ import { AuthService } from '../../core/auth/auth.service';
       display: flex;
       align-items: center;
       gap: 10px;
-      background: #fef2f2;
-      border: 1px solid #fecaca;
-      color: #b91c1c;
+      background: var(--danger-bg);
+      border: 1px solid var(--tint-danger-border, #fecaca);
+      color: var(--tint-danger-text, #b91c1c);
       padding: 10px 14px;
       border-radius: 10px;
       font-size: 0.82rem;
@@ -216,7 +216,7 @@ import { AuthService } from '../../core/auth/auth.service';
       label {
         font-size: 0.8rem;
         font-weight: 600;
-        color: #334155;
+        color: var(--tint-text-strong, #334155);
       }
     }
 
@@ -236,16 +236,16 @@ import { AuthService } from '../../core/auth/auth.service';
         width: 100%;
         padding: 12px 42px 12px 42px;
         font-size: 0.92rem;
-        border: 1px solid #cbd5e1;
+        border: 1px solid var(--tint-neutral-strong, #cbd5e1);
         border-radius: 10px;
-        background: #f8fafc;
-        color: #0f172a;
+        background: var(--bg-card-subtle);
+        color: var(--text-primary);
         transition: all 0.2s ease;
 
         &:focus {
           outline: none;
-          background: #ffffff;
-          border-color: #031795;
+          background: var(--bg-card);
+          border-color: var(--primary-purple);
           box-shadow: 0 0 0 3px rgba(3, 23, 149, 0.15);
         }
 
@@ -260,7 +260,7 @@ import { AuthService } from '../../core/auth/auth.service';
         right: 12px;
         background: none;
         border: none;
-        color: #64748b;
+        color: var(--text-muted);
         cursor: pointer;
         padding: 4px;
         display: flex;
@@ -269,7 +269,7 @@ import { AuthService } from '../../core/auth/auth.service';
         border-radius: 6px;
 
         &:hover {
-          color: #0f172a;
+          color: var(--text-primary);
         }
       }
     }
@@ -281,7 +281,7 @@ import { AuthService } from '../../core/auth/auth.service';
       font-weight: 600;
       margin-top: 6px;
       border-radius: 10px;
-      background: linear-gradient(135deg, #031795 0%, #02106b 100%);
+      background: linear-gradient(135deg, var(--primary-purple) 0%, var(--primary-violet) 100%);
       color: white;
       border: none;
       cursor: pointer;
@@ -322,13 +322,13 @@ import { AuthService } from '../../core/auth/auth.service';
     .login-footer {
       margin-top: 24px;
       padding-top: 18px;
-      border-top: 1px solid #f1f5f9;
+      border-top: 1px solid var(--tint-neutral-bg, #f1f5f9);
       text-align: center;
     }
 
     .plant-notice {
       font-size: 0.72rem;
-      color: #64748b;
+      color: var(--text-muted);
       line-height: 1.5;
       margin: 0;
     }

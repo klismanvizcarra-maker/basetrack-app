@@ -1296,7 +1296,7 @@ export interface ShiftHistorySummary {
           border-radius: var(--radius-full);
           font-size: 0.80rem;
           font-weight: 700;
-          color: #031795;
+          color: var(--brand-text);
           user-select: none;
           white-space: nowrap;
           transition: all 0.2s ease;
@@ -1312,7 +1312,7 @@ export interface ShiftHistorySummary {
           &.saving {
             background: rgba(245, 158, 11, 0.1);
             border-color: rgba(245, 158, 11, 0.35);
-            color: #d97706;
+            color: var(--warning);
 
             .autosave-dot {
               background: #f59e0b;
@@ -1411,7 +1411,7 @@ export interface ShiftHistorySummary {
     }
 
     .section-header-banner {
-      background: linear-gradient(135deg, #031795 0%, #02106b 100%);
+      background: linear-gradient(135deg, var(--primary-purple) 0%, var(--primary-violet) 100%);
       border-bottom: 1px solid rgba(3, 23, 149, 0.3);
       padding: 12px 20px;
       display: flex;
@@ -1498,7 +1498,7 @@ export interface ShiftHistorySummary {
         margin: 0;
         font-size: 0.9rem;
         font-weight: 800;
-        color: #031795;
+        color: var(--brand-text);
         letter-spacing: 0.04em;
       }
 
@@ -1506,7 +1506,7 @@ export interface ShiftHistorySummary {
         margin-left: auto;
         font-size: 0.72rem;
         font-weight: 700;
-        color: #031795;
+        color: var(--brand-text);
         background: rgba(3, 23, 149, 0.08);
         border: 1px solid rgba(3, 23, 149, 0.22);
         border-radius: var(--radius-full);
@@ -1530,7 +1530,7 @@ export interface ShiftHistorySummary {
       font-size: 0.86rem;
 
       th {
-        background: #031795;
+        background: var(--primary-purple);
         color: #ffffff;
         font-weight: 800;
         letter-spacing: 0.05em;
@@ -1606,9 +1606,9 @@ export interface ShiftHistorySummary {
         }
 
         &.active {
-          background: #031795;
+          background: var(--primary-purple);
           color: #ffffff;
-          border-color: #031795;
+          border-color: var(--primary-purple);
           box-shadow: 0 2px 8px rgba(3, 23, 149, 0.25);
         }
       }
@@ -1870,8 +1870,8 @@ export interface ShiftHistorySummary {
           }
 
           &.cyan-glow { color: #0284c7; }
-          &.emerald-glow { color: #059669; }
-          &.purple-glow { color: #4338ca; }
+          &.emerald-glow { color: var(--success); }
+          &.purple-glow { color: var(--tint-info-text, #4338ca); }
         }
       }
     }
@@ -1975,7 +1975,7 @@ export interface ShiftHistorySummary {
       font-size: 0.86rem;
 
       th {
-        background: #031795;
+        background: var(--primary-purple);
         color: #ffffff;
         font-weight: 800;
         letter-spacing: 0.05em;
@@ -2005,7 +2005,7 @@ export interface ShiftHistorySummary {
       }
 
       .poza-tag {
-        color: #031795;
+        color: var(--brand-text);
         font-weight: 800;
         font-size: 0.88rem;
         letter-spacing: 0.02em;
@@ -2031,7 +2031,7 @@ export interface ShiftHistorySummary {
 
         &:focus {
           outline: none;
-          border-color: #031795;
+          border-color: var(--primary-purple);
           box-shadow: 0 0 0 2px rgba(3, 23, 149, 0.2);
           background: var(--bg-card);
         }
@@ -2147,7 +2147,7 @@ export interface ShiftHistorySummary {
         .alert-text p { margin: 0; color: var(--text-secondary); font-size: 0.9rem; }
       }
       .lock-details-box {
-        background: var(--bg-surface-secondary);
+        background: var(--bg-card-subtle);
         border: 1px solid var(--border-subtle);
         border-radius: var(--radius-md);
         padding: 14px 18px;
@@ -2433,7 +2433,7 @@ export interface ShiftHistorySummary {
 
         &.sentina { background: rgba(56, 189, 248, 0.12); color: #0284c7; }
         &.intermedia { background: rgba(168, 85, 247, 0.12); color: #9333ea; }
-        &.torre { background: rgba(245, 158, 11, 0.12); color: #d97706; }
+        &.torre { background: rgba(245, 158, 11, 0.12); color: var(--warning); }
         &.global { background: rgba(16, 185, 129, 0.14); color: #10b981; }
       }
 
@@ -2463,7 +2463,7 @@ export interface ShiftHistorySummary {
 
             &.sentina-val { color: #0284c7; }
             &.intermedia-val { color: #9333ea; }
-            &.torre-val { color: #d97706; }
+            &.torre-val { color: var(--warning); }
             &.global-val { color: #10b981; }
           }
 
@@ -2562,7 +2562,7 @@ export interface ShiftHistorySummary {
         font-size: 0.82rem;
 
         th {
-          background: #031795;
+          background: var(--primary-purple);
           color: #ffffff;
           padding: 10px 12px;
           font-weight: 800;
@@ -2590,7 +2590,7 @@ export interface ShiftHistorySummary {
 
         .guard-chip {
           background: rgba(3, 23, 149, 0.08);
-          color: #031795;
+          color: var(--brand-text);
           font-weight: 800;
           padding: 2px 8px;
           border-radius: var(--radius-full);
@@ -2617,9 +2617,9 @@ export interface ShiftHistorySummary {
 
             &.sentina { background: rgba(2, 132, 199, 0.12); color: #0284c7; }
             &.intermedia { background: rgba(147, 51, 234, 0.12); color: #9333ea; }
-            &.torre { background: rgba(217, 119, 6, 0.12); color: #d97706; }
-            &.badge-emerald { background: rgba(16, 185, 129, 0.15); color: #059669; }
-            &.badge-warning { background: rgba(245, 158, 11, 0.15); color: #d97706; }
+            &.torre { background: rgba(217, 119, 6, 0.12); color: var(--warning); }
+            &.badge-emerald { background: rgba(16, 185, 129, 0.15); color: var(--success); }
+            &.badge-warning { background: rgba(245, 158, 11, 0.15); color: var(--warning); }
             &.badge-danger { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
           }
         }
@@ -2745,9 +2745,9 @@ export interface ShiftHistorySummary {
 
           &.sentina { color: #0284c7; }
           &.intermedia { color: #9333ea; }
-          &.torre { color: #d97706; }
+          &.torre { color: var(--warning); }
           &.badge-emerald { color: #10b981; }
-          &.badge-warning { color: #d97706; }
+          &.badge-warning { color: var(--warning); }
           &.badge-danger { color: #ef4444; }
         }
       }
@@ -2821,7 +2821,7 @@ export interface ShiftHistorySummary {
 
         &.highlight {
           border-color: #10b981;
-          color: #059669;
+          color: var(--success);
           font-weight: 700;
         }
       }
@@ -2846,7 +2846,7 @@ export interface ShiftHistorySummary {
           margin: 0 0 10px 0;
           font-size: 0.78rem;
           font-weight: 800;
-          color: #031795;
+          color: var(--brand-text);
           letter-spacing: 0.05em;
         }
 

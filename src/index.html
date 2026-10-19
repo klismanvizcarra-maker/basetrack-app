@@ -40,6 +40,21 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap">
   </noscript>
 
+  <!-- Theme bootstrap: aplica el tema guardado antes de que Angular arranque (evita destello claro en login y recargas) -->
+  <script>
+    (function() {
+      try {
+        var mode = localStorage.getItem('basetrack_theme_mode');
+        var dark = mode === 'dark' || (mode === 'auto' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        var root = document.documentElement;
+        root.setAttribute('data-theme', dark ? 'dark' : 'light');
+        if (dark) root.classList.add('dark-theme', 'dark');
+        var meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.setAttribute('content', dark ? '#0a0f1d' : '#031795');
+      } catch (e) {}
+    })();
+  </script>
+
   <!-- Early Backend Warmup Ping: Starts wake-up handshake immediately in parallel with JS download -->
   <script>
     (function() {

@@ -1001,7 +1001,7 @@ export interface GeneralAverages {
     }
 
     .btn-emerald {
-      background: linear-gradient(135deg, #031795 0%, #02106b 100%);
+      background: linear-gradient(135deg, var(--primary-purple) 0%, var(--primary-violet) 100%);
       color: #ffffff;
       box-shadow: 0 4px 14px rgba(3, 23, 149, 0.35);
 
@@ -1276,7 +1276,7 @@ export interface GeneralAverages {
     }
 
     .station-banner-header {
-      background: linear-gradient(135deg, #031795 0%, #02106b 100%);
+      background: linear-gradient(135deg, var(--primary-purple) 0%, var(--primary-violet) 100%);
       border-bottom: 1px solid rgba(3, 23, 149, 0.3);
       padding: 14px 22px;
       display: flex;
@@ -1371,7 +1371,7 @@ export interface GeneralAverages {
         position: sticky;
         left: 0;
         z-index: 10;
-        background-color: #031795;
+        background-color: var(--primary-purple);
         color: #ffffff;
         box-shadow: 2px 0 6px -2px rgba(0, 0, 0, 0.3);
       }
@@ -1612,7 +1612,7 @@ export interface GeneralAverages {
       /* Footer */
       tfoot {
         .row-promedio-general {
-          background: #031795;
+          background: var(--primary-purple);
           border-top: 2px solid #1e40af;
           color: #ffffff;
 
@@ -1941,8 +1941,8 @@ export interface GeneralAverages {
       }
 
       &.standby {
-        background: #e2e8f0;
-        border: 1px dashed #cbd5e1;
+        background: var(--border-color);
+        border: 1px dashed var(--tint-neutral-strong, #cbd5e1);
       }
     }
 
@@ -2070,7 +2070,7 @@ export interface GeneralAverages {
       }
 
       .label-uf {
-        color: #031795;
+        color: var(--brand-text);
         font-weight: 700;
       }
 
@@ -2113,8 +2113,8 @@ export interface GeneralAverages {
       align-items: center;
       gap: 14px;
       padding: 14px;
-      background: #fef2f2;
-      border: 1px solid #fecaca;
+      background: var(--danger-bg);
+      border: 1px solid var(--tint-danger-border, #fecaca);
       border-radius: 10px;
 
       .warning-icon {
@@ -2125,13 +2125,13 @@ export interface GeneralAverages {
         margin: 0;
         font-size: 0.95rem;
         font-weight: 700;
-        color: #991b1b;
+        color: var(--tint-danger-text, #991b1b);
       }
 
       p {
         margin: 4px 0 0;
         font-size: 0.8rem;
-        color: #b91c1c;
+        color: var(--tint-danger-text, #b91c1c);
       }
     }
 
@@ -2268,7 +2268,7 @@ export interface GeneralAverages {
         letter-spacing: 0.03em;
 
         &.badge-emerald { background: rgba(16, 185, 129, 0.15); color: #10b981; }
-        &.badge-warning { background: rgba(245, 158, 11, 0.18); color: #d97706; }
+        &.badge-warning { background: rgba(245, 158, 11, 0.18); color: var(--warning); }
         &.badge-danger { background: rgba(239, 68, 68, 0.18); color: #ef4444; }
         &.badge-muted { background: rgba(148, 163, 184, 0.15); color: #94a3b8; }
       }
@@ -2317,7 +2317,7 @@ export interface GeneralAverages {
         .norma-pill {
           font-size: 0.72rem;
           font-weight: 800;
-          color: #031795;
+          color: var(--brand-text);
           background: rgba(3, 23, 149, 0.08);
           border: 1px solid rgba(3, 23, 149, 0.2);
           padding: 2px 8px;
@@ -2347,9 +2347,9 @@ export interface GeneralAverages {
       letter-spacing: 0.02em;
 
       &.badge-emerald { background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.35); }
-      &.badge-warning { background: rgba(245, 158, 11, 0.15); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.35); }
+      &.badge-warning { background: rgba(245, 158, 11, 0.15); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.35); }
       &.badge-danger { background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.35); }
-      &.badge-muted { background: rgba(148, 163, 184, 0.15); color: #64748b; border: 1px solid rgba(148, 163, 184, 0.35); }
+      &.badge-muted { background: rgba(148, 163, 184, 0.15); color: var(--text-muted); border: 1px solid rgba(148, 163, 184, 0.35); }
     }
 
     .geotech-advice-box {
@@ -2409,7 +2409,7 @@ export interface GeneralAverages {
     .red-text { color: #ef4444; }
     .cyan-text { color: #0284c7; }
     .purple-text { color: #8b5cf6; }
-    .emerald-text { color: #059669; }
+    .emerald-text { color: var(--success); }
 
     /* Chart Cards */
     .chart-card {

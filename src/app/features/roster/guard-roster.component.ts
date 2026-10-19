@@ -684,7 +684,7 @@ import { generateAvatarSvg, getEffectiveAvatar } from '../../shared/utils/avatar
       align-items: center;
       gap: 8px;
       padding: 10px 18px;
-      background: #031795;
+      background: var(--primary-purple);
       color: #ffffff;
       border: none;
       border-radius: 10px;
@@ -818,7 +818,7 @@ import { generateAvatarSvg, getEffectiveAvatar } from '../../shared/utils/avatar
       .now-badge {
         font-size: 0.65rem;
         font-weight: 800;
-        background: #10b981;
+        background: #059669;
         color: #ffffff;
         padding: 2px 7px;
         border-radius: 4px;
@@ -1042,12 +1042,12 @@ import { generateAvatarSvg, getEffectiveAvatar } from '../../shared/utils/avatar
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 
       &:hover {
-        border-color: #031795;
+        border-color: var(--primary-purple);
         background: var(--bg-card-hover, #f8fafc);
       }
 
       &:focus {
-        border-color: #031795;
+        border-color: var(--primary-purple);
         box-shadow: 0 0 0 3px rgba(3, 23, 149, 0.15);
       }
 
@@ -1076,7 +1076,7 @@ import { generateAvatarSvg, getEffectiveAvatar } from '../../shared/utils/avatar
       &:hover {
         background: var(--bg-card-hover);
         color: var(--text-primary);
-        border-color: #031795;
+        border-color: var(--primary-purple);
       }
     }
 
@@ -1293,6 +1293,11 @@ import { generateAvatarSvg, getEffectiveAvatar } from '../../shared/utils/avatar
 
       .tag-guard-code {
         font-weight: 800;
+
+        /* El color de guardia llega inline; en oscuro se aclara para conservar contraste */
+        :host-context(.dark-theme) & {
+          filter: brightness(1.55) saturate(1.1);
+        }
       }
 
       .tag-count {
@@ -1334,7 +1339,7 @@ import { generateAvatarSvg, getEffectiveAvatar } from '../../shared/utils/avatar
       &.box-noche {
         background: rgba(124, 58, 237, 0.12);
         border: 1px solid rgba(124, 58, 237, 0.35);
-        color: #6d28d9;
+        color: var(--tint-violet-text, #6d28d9);
       }
 
       &.box-descanso {

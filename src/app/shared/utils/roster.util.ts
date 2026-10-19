@@ -35,7 +35,7 @@ export const GUARDS_CATALOG: Record<GuardCode, GuardInfo> = {
     supervisorName: 'Sin Asignar',
     supervisorUser: '',
     colorHex: '#1d4ed8', // Azul Cobalto
-    bgLight: '#eff6ff',
+    bgLight: 'var(--tint-info-bg, #eff6ff)',
     badgeBorder: '#93c5fd',
     avatarUrl: generateAvatarSvg('Guardia 1', 'SUPERVISOR', 'G1')
   },
@@ -45,7 +45,7 @@ export const GUARDS_CATALOG: Record<GuardCode, GuardInfo> = {
     supervisorName: 'Sin Asignar',
     supervisorUser: '',
     colorHex: '#059669', // Verde Esmeralda
-    bgLight: '#ecfdf5',
+    bgLight: 'var(--tint-success-bg, #ecfdf5)',
     badgeBorder: '#6ee7b7',
     avatarUrl: generateAvatarSvg('Guardia 2', 'SUPERVISOR', 'G2')
   },
@@ -55,7 +55,7 @@ export const GUARDS_CATALOG: Record<GuardCode, GuardInfo> = {
     supervisorName: 'Sin Asignar',
     supervisorUser: '',
     colorHex: '#d97706', // Ámbar Minero
-    bgLight: '#fffbeb',
+    bgLight: 'var(--tint-warning-bg, #fffbeb)',
     badgeBorder: '#fcd34d',
     avatarUrl: generateAvatarSvg('Guardia 3', 'SUPERVISOR', 'G3')
   },
@@ -65,7 +65,7 @@ export const GUARDS_CATALOG: Record<GuardCode, GuardInfo> = {
     supervisorName: 'Sin Asignar',
     supervisorUser: '',
     colorHex: '#7c3aed', // Púrpura Industrial
-    bgLight: '#f5f3ff',
+    bgLight: 'var(--tint-violet-bg, #f5f3ff)',
     badgeBorder: '#c4b5fd',
     avatarUrl: generateAvatarSvg('Guardia 4', 'SUPERVISOR', 'G4')
   }

@@ -709,20 +709,20 @@ export interface MaintenanceRequest {
       flex-shrink: 0;
 
       &.total {
-        background: #eef2ff;
-        color: #3730a3;
+        background: var(--primary-bg-subtle);
+        color: var(--tint-info-text, #3730a3);
       }
       &.pending {
-        background: #fef3c7;
-        color: #b45309;
+        background: var(--tint-warning-bg, #fef3c7);
+        color: var(--tint-warning-text, #b45309);
       }
       &.progress {
-        background: #dbeafe;
-        color: #1d4ed8;
+        background: var(--tint-info-bg, #dbeafe);
+        color: var(--tint-info-text, #1d4ed8);
       }
       &.resolved {
-        background: #d1fae5;
-        color: #065f46;
+        background: var(--tint-success-bg, #d1fae5);
+        color: var(--tint-success-text, #065f46);
       }
     }
 
@@ -737,9 +737,9 @@ export interface MaintenanceRequest {
         line-height: 1.1;
         color: var(--text-primary);
 
-        &.text-warning { color: #d97706; }
+        &.text-warning { color: var(--warning); }
         &.text-primary-accent { color: #2563eb; }
-        &.text-success { color: #059669; }
+        &.text-success { color: var(--success); }
       }
 
       .kpi-lbl {
@@ -838,7 +838,7 @@ export interface MaintenanceRequest {
           box-shadow: 0 2px 10px rgba(3, 23, 149, 0.3);
 
           .status-dot {
-            background: #ffffff !important;
+            background: var(--bg-card) !important;
           }
         }
       }
@@ -973,7 +973,7 @@ export interface MaintenanceRequest {
         background: linear-gradient(90deg, #059669 0%, #10b981 100%);
       }
       &.bar-default {
-        background: linear-gradient(90deg, #031795 0%, #3b82f6 100%);
+        background: linear-gradient(90deg, var(--primary-purple) 0%, #3b82f6 100%);
       }
     }
 
@@ -1004,11 +1004,11 @@ export interface MaintenanceRequest {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      background: #eff6ff;
-      color: #1e40af;
+      background: var(--tint-info-bg, #eff6ff);
+      color: var(--primary-lavender);
       padding: 3px 10px;
       border-radius: 8px;
-      border: 1px solid #bfdbfe;
+      border: 1px solid var(--tint-info-border, #bfdbfe);
 
       .eq-icon-box {
         color: #2563eb;
@@ -1027,11 +1027,11 @@ export interface MaintenanceRequest {
       font-family: monospace;
       font-size: 0.85rem;
       font-weight: 700;
-      color: #475569;
-      background: #f1f5f9;
+      color: var(--text-secondary);
+      background: var(--bg-card-hover);
       padding: 3px 8px;
       border-radius: 6px;
-      border: 1px solid #e2e8f0;
+      border: 1px solid var(--border-color);
     }
 
     .header-badges {
@@ -1056,9 +1056,9 @@ export interface MaintenanceRequest {
       line-height: 1;
 
       &:hover {
-        background: #fee2e2;
-        color: #dc2626;
-        border-color: #fca5a5;
+        background: var(--tint-danger-bg, #fee2e2);
+        color: var(--danger);
+        border-color: var(--tint-danger-border, #fca5a5);
       }
     }
 
@@ -1076,27 +1076,27 @@ export interface MaintenanceRequest {
 
     .priority-badge {
       &.priority-emergency {
-        background: #fee2e2;
-        color: #b91c1c;
-        border: 1px solid #fca5a5;
+        background: var(--tint-danger-bg, #fee2e2);
+        color: var(--tint-danger-text, #b91c1c);
+        border: 1px solid var(--tint-danger-border, #fca5a5);
         .priority-dot { background: #ef4444; }
       }
       &.priority-high {
-        background: #fef3c7;
-        color: #b45309;
-        border: 1px solid #fde68a;
+        background: var(--tint-warning-bg, #fef3c7);
+        color: var(--tint-warning-text, #b45309);
+        border: 1px solid var(--tint-warning-border, #fde68a);
         .priority-dot { background: #f59e0b; }
       }
       &.priority-medium {
-        background: #eef2ff;
-        color: #4338ca;
-        border: 1px solid #c7d2fe;
+        background: var(--primary-bg-subtle);
+        color: var(--tint-info-text, #4338ca);
+        border: 1px solid var(--tint-info-border, #c7d2fe);
         .priority-dot { background: #6366f1; }
       }
       &.priority-low {
-        background: #ecfdf5;
-        color: #047857;
-        border: 1px solid #a7f3d0;
+        background: var(--success-bg);
+        color: var(--tint-success-text, #047857);
+        border: 1px solid var(--tint-success-border, #a7f3d0);
         .priority-dot { background: #10b981; }
       }
     }
@@ -1109,19 +1109,19 @@ export interface MaintenanceRequest {
 
     .status-badge {
       &.status-pending {
-        background: #fffbeb;
-        color: #b45309;
-        border: 1px solid #fde68a;
+        background: var(--warning-bg);
+        color: var(--tint-warning-text, #b45309);
+        border: 1px solid var(--tint-warning-border, #fde68a);
       }
       &.status-progress {
-        background: #eff6ff;
-        color: #1d4ed8;
-        border: 1px solid #bfdbfe;
+        background: var(--tint-info-bg, #eff6ff);
+        color: var(--tint-info-text, #1d4ed8);
+        border: 1px solid var(--tint-info-border, #bfdbfe);
       }
       &.status-resolved {
-        background: #ecfdf5;
-        color: #047857;
-        border: 1px solid #a7f3d0;
+        background: var(--success-bg);
+        color: var(--tint-success-text, #047857);
+        border: 1px solid var(--tint-success-border, #a7f3d0);
       }
     }
 
@@ -1136,7 +1136,7 @@ export interface MaintenanceRequest {
       padding: 3px 9px;
       border-radius: 6px;
       background: rgba(3, 23, 149, 0.08);
-      color: #1e40af;
+      color: var(--primary-lavender);
       border: 1px solid rgba(59, 130, 246, 0.25);
       width: fit-content;
 
@@ -1363,9 +1363,9 @@ export interface MaintenanceRequest {
       gap: 5px;
       font-size: 0.74rem;
       font-weight: 700;
-      color: #1e40af;
-      background: #ffffff;
-      border: 1px solid #cbd5e1;
+      color: var(--primary-lavender);
+      background: var(--bg-card);
+      border: 1px solid var(--tint-neutral-strong, #cbd5e1);
       padding: 5px 12px;
       border-radius: var(--radius-full);
       cursor: pointer;
@@ -1373,9 +1373,9 @@ export interface MaintenanceRequest {
       transition: all 0.2s ease;
 
       &:hover {
-        background: #f8fafc;
+        background: var(--bg-card-subtle);
         border-color: #94a3b8;
-        color: #031795;
+        color: var(--brand-text);
         transform: translateY(-1px);
         box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
       }
@@ -1545,15 +1545,15 @@ export interface MaintenanceRequest {
 
       &.assigned {
         background: rgba(147, 51, 234, 0.1);
-        color: #7e22ce;
+        color: var(--tint-violet-text, #7e22ce);
       }
       &.time {
         background: rgba(245, 158, 11, 0.1);
-        color: #b45309;
+        color: var(--tint-warning-text, #b45309);
       }
       &.date {
         background: rgba(16, 185, 129, 0.1);
-        color: #047857;
+        color: var(--tint-success-text, #047857);
       }
     }
 
@@ -1580,7 +1580,7 @@ export interface MaintenanceRequest {
         text-overflow: ellipsis;
 
         &.highlight-assigned {
-          color: #7e22ce;
+          color: var(--tint-violet-text, #7e22ce);
         }
       }
     }
@@ -1615,7 +1615,7 @@ export interface MaintenanceRequest {
       .pass-header-title {
         font-size: 0.78rem;
         font-weight: 800;
-        color: #047857;
+        color: var(--tint-success-text, #047857);
         letter-spacing: 0.3px;
       }
     }
@@ -1629,7 +1629,7 @@ export interface MaintenanceRequest {
       .pass-signer-text {
         font-size: 0.76rem;
         color: var(--text-primary);
-        strong { color: #047857; }
+        strong { color: var(--tint-success-text, #047857); }
       }
 
       .pass-notes-text {
@@ -1704,9 +1704,9 @@ export interface MaintenanceRequest {
       transition: all 0.2s ease;
 
       &:hover {
-        color: #dc2626;
-        border-color: #fca5a5;
-        background: #fee2e2;
+        color: var(--danger);
+        border-color: var(--tint-danger-border, #fca5a5);
+        background: var(--tint-danger-bg, #fee2e2);
       }
     }
 
@@ -1720,7 +1720,7 @@ export interface MaintenanceRequest {
       width: 100%;
       background: rgba(5, 150, 105, 0.08);
       border: 1px dashed rgba(5, 150, 105, 0.35);
-      color: #059669;
+      color: var(--success);
       font-size: 0.78rem;
       font-weight: 700;
       padding: 8px 12px;
@@ -1757,7 +1757,7 @@ export interface MaintenanceRequest {
       width: 100%;
       background: rgba(100, 116, 139, 0.1);
       border: 1px solid rgba(100, 116, 139, 0.25);
-      color: #64748b;
+      color: var(--text-muted);
       font-size: 0.76rem;
       font-weight: 700;
       padding: 8px 12px;
@@ -1864,8 +1864,8 @@ export interface MaintenanceRequest {
 
     .btn-remove-preview {
       background: none;
-      border: 1px solid #fca5a5;
-      color: #dc2626;
+      border: 1px solid var(--tint-danger-border, #fca5a5);
+      color: var(--danger);
       font-size: 0.72rem;
       font-weight: 700;
       padding: 2px 8px;
@@ -1873,7 +1873,7 @@ export interface MaintenanceRequest {
       cursor: pointer;
 
       &:hover {
-        background: #fee2e2;
+        background: var(--tint-danger-bg, #fee2e2);
       }
     }
 
@@ -1928,9 +1928,9 @@ export interface MaintenanceRequest {
       }
       .delete-warning-text {
         font-size: 0.82rem;
-        color: #dc2626;
-        background: #fee2e2;
-        border: 1px solid #fca5a5;
+        color: var(--danger);
+        background: var(--tint-danger-bg, #fee2e2);
+        border: 1px solid var(--tint-danger-border, #fca5a5);
         border-radius: 6px;
         padding: 8px 12px;
         margin: 0;

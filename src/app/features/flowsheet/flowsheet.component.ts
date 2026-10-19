@@ -758,8 +758,8 @@ export interface MaintenanceTicketItem {
       text-transform: uppercase;
       letter-spacing: 0.04em;
       border-radius: 999px;
-      background: #ecfdf5;
-      color: #059669;
+      background: var(--success-bg);
+      color: var(--success);
       border: 1px solid rgba(5, 150, 105, 0.25);
     }
 
@@ -798,7 +798,7 @@ export interface MaintenanceTicketItem {
       align-items: center;
       gap: 0.6rem;
       padding: 0.42rem 0.85rem;
-      background: var(--bg-subtle, #f8fafc);
+      background: var(--bg-card-subtle);
       border: 1px solid var(--border-color, #cbd5e1);
       border-radius: 10px;
       cursor: pointer;
@@ -810,15 +810,15 @@ export interface MaintenanceTicketItem {
     }
 
     .sheet-tab:hover {
-      background: #f1f5f9;
-      border-color: #031795;
+      background: var(--bg-card-hover);
+      border-color: var(--primary-purple);
       transform: translateY(-1px);
     }
 
     .sheet-tab.active {
-      background: linear-gradient(135deg, #031795 0%, #1e3a8a 100%);
+      background: linear-gradient(135deg, var(--primary-purple) 0%, #1e3a8a 100%);
       color: #ffffff;
-      border-color: #031795;
+      border-color: var(--primary-purple);
       box-shadow: 0 4px 12px rgba(3, 23, 149, 0.22);
     }
 
@@ -834,7 +834,7 @@ export interface MaintenanceTicketItem {
       padding: 0.15rem 0.4rem;
       border-radius: 6px;
       background: rgba(3, 23, 149, 0.1);
-      color: #031795;
+      color: var(--brand-text);
       letter-spacing: 0.02em;
     }
 
@@ -905,7 +905,7 @@ export interface MaintenanceTicketItem {
       padding: 0 28px 0 34px;
       font-size: 0.8rem;
       color: var(--text-main, #0f172a);
-      background: var(--bg-subtle, #f8fafc);
+      background: var(--bg-card-subtle);
       border: 1px solid var(--border-color, #cbd5e1);
       border-radius: 8px;
       transition: all 0.2s ease;
@@ -913,8 +913,8 @@ export interface MaintenanceTicketItem {
 
     .search-tag-input:focus {
       outline: none;
-      border-color: #031795;
-      background: #ffffff;
+      border-color: var(--primary-purple);
+      background: var(--bg-card);
       box-shadow: 0 0 0 3px rgba(3, 23, 149, 0.12);
     }
 
@@ -931,7 +931,7 @@ export interface MaintenanceTicketItem {
     }
 
     .search-clear-btn:hover {
-      color: #0f172a;
+      color: var(--text-primary);
     }
 
     .search-dropdown {
@@ -939,7 +939,7 @@ export interface MaintenanceTicketItem {
       top: calc(100% + 4px);
       left: 0;
       right: 0;
-      background: #ffffff;
+      background: var(--bg-card);
       border: 1px solid var(--border-color, #e2e8f0);
       border-radius: 10px;
       box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
@@ -952,9 +952,9 @@ export interface MaintenanceTicketItem {
       font-size: 0.65rem;
       font-weight: 800;
       letter-spacing: 0.05em;
-      color: #64748b;
-      background: #f8fafc;
-      border-bottom: 1px solid #e2e8f0;
+      color: var(--text-muted);
+      background: var(--bg-card-subtle);
+      border-bottom: 1px solid var(--border-color);
     }
 
     .search-dropdown-list {
@@ -970,14 +970,14 @@ export interface MaintenanceTicketItem {
       padding: 0.5rem 0.75rem;
       background: transparent;
       border: none;
-      border-bottom: 1px solid #f1f5f9;
+      border-bottom: 1px solid var(--tint-neutral-bg, #f1f5f9);
       cursor: pointer;
       text-align: left;
       transition: background 0.15s ease;
     }
 
     .search-result-item:hover {
-      background: #f1f5f9;
+      background: var(--bg-card-hover);
     }
 
     .result-badge {
@@ -989,16 +989,16 @@ export interface MaintenanceTicketItem {
       letter-spacing: 0.03em;
     }
 
-    .result-badge.bomba { background: #dbeafe; color: #1e40af; }
-    .result-badge.ciclón { background: #f3e8ff; color: #6b21a8; }
-    .result-badge.cajón { background: #fef3c7; color: #92400e; }
+    .result-badge.bomba { background: var(--tint-info-bg, #dbeafe); color: var(--primary-lavender); }
+    .result-badge.ciclón { background: var(--tint-violet-bg, #f3e8ff); color: var(--tint-violet-text, #6b21a8); }
+    .result-badge.cajón { background: var(--tint-warning-bg, #fef3c7); color: var(--tint-warning-text, #92400e); }
     .result-badge.poza { background: #cffafe; color: #155e75; }
     .result-badge.presa { background: #ffedd5; color: #9a3412; }
-    .result-badge.canaleta { background: #dcfce7; color: #166534; }
-    .result-badge.válvula { background: #fee2e2; color: #991b1b; }
-    .result-badge.sensor { background: #e0e7ff; color: #3730a3; }
+    .result-badge.canaleta { background: var(--tint-success-bg, #dcfce7); color: var(--tint-success-text, #166534); }
+    .result-badge.válvula { background: var(--tint-danger-bg, #fee2e2); color: var(--tint-danger-text, #991b1b); }
+    .result-badge.sensor { background: var(--tint-info-bg, #e0e7ff); color: var(--tint-info-text, #3730a3); }
     .result-badge.dren { background: #ccfbf1; color: #0f766e; }
-    .result-badge.balance { background: #fef08a; color: #854d0e; }
+    .result-badge.balance { background: #fef08a; color: var(--tint-warning-text, #854d0e); }
 
     .result-sheet-chip {
       font-size: 0.65rem;
@@ -1006,7 +1006,7 @@ export interface MaintenanceTicketItem {
       padding: 0.12rem 0.38rem;
       border-radius: 4px;
       background: rgba(3, 23, 149, 0.08);
-      color: #031795;
+      color: var(--brand-text);
       margin-left: auto;
       border: 1px solid rgba(3, 23, 149, 0.15);
     }
@@ -1025,20 +1025,20 @@ export interface MaintenanceTicketItem {
 
     .result-tag {
       font-size: 0.8rem;
-      color: #0f172a;
+      color: var(--text-primary);
     }
 
     .result-cota {
       font-size: 0.68rem;
-      color: #64748b;
-      background: #f1f5f9;
+      color: var(--text-muted);
+      background: var(--bg-card-hover);
       padding: 0.05rem 0.3rem;
       border-radius: 3px;
     }
 
     .result-name {
       font-size: 0.7rem;
-      color: #64748b;
+      color: var(--text-muted);
       margin-top: 1px;
     }
 
@@ -1070,15 +1070,15 @@ export interface MaintenanceTicketItem {
     }
 
     .action-btn.active {
-      background: #031795;
+      background: var(--primary-purple);
       color: #ffffff;
-      border-color: #031795;
+      border-color: var(--primary-purple);
     }
 
     .action-btn-fullscreen {
-      background: #031795;
+      background: var(--primary-purple);
       color: #ffffff;
-      border: 1px solid #031795;
+      border: 1px solid var(--primary-purple);
     }
 
     .action-btn-fullscreen:hover {
@@ -1092,7 +1092,7 @@ export interface MaintenanceTicketItem {
       justify-content: space-between;
       gap: 0.75rem;
       padding: 0.45rem 1rem;
-      background: var(--bg-subtle, #f8fafc);
+      background: var(--bg-card-subtle);
       border-bottom: 1px solid var(--border-color, #e2e8f0);
       flex-shrink: 0;
       overflow: hidden;
@@ -1118,8 +1118,8 @@ export interface MaintenanceTicketItem {
     }
 
     .live-pill.warn {
-      background: #fef2f2;
-      border-color: #fca5a5;
+      background: var(--danger-bg);
+      border-color: var(--tint-danger-border, #fca5a5);
     }
 
     .pulse-dot {
@@ -1157,7 +1157,7 @@ export interface MaintenanceTicketItem {
     }
 
     .text-amber {
-      color: #d97706;
+      color: var(--warning);
     }
 
     .zones-divider {
@@ -1200,15 +1200,15 @@ export interface MaintenanceTicketItem {
     }
 
     .zone-pill:hover {
-      border-color: #031795;
-      color: #031795;
-      background: #f1f5f9;
+      border-color: var(--primary-purple);
+      color: var(--brand-text);
+      background: var(--bg-card-hover);
     }
 
     .zone-pill.active {
-      background: #031795;
+      background: var(--primary-purple);
       color: #ffffff;
-      border-color: #031795;
+      border-color: var(--primary-purple);
       box-shadow: 0 2px 6px rgba(3, 23, 149, 0.25);
     }
 
@@ -1224,7 +1224,7 @@ export interface MaintenanceTicketItem {
     .zone-cota {
       font-size: 0.62rem;
       font-weight: 700;
-      background: var(--bg-subtle, #f1f5f9);
+      background: var(--bg-card-hover);
       color: var(--text-muted, #64748b);
       padding: 0.08rem 0.3rem;
       border-radius: 4px;
@@ -1330,7 +1330,7 @@ export interface MaintenanceTicketItem {
     }
 
     .hud-btn.active {
-      background: #031795;
+      background: var(--primary-purple);
       color: #ffffff;
     }
 
@@ -1401,7 +1401,7 @@ export interface MaintenanceTicketItem {
       position: relative;
       display: inline-block;
       box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.7);
-      background: #ffffff;
+      background: var(--bg-card);
       border-radius: 4px;
       overflow: hidden;
     }
@@ -1562,8 +1562,8 @@ export interface MaintenanceTicketItem {
       max-height: min(420px, 72vh);
       overflow-y: auto;
       overscroll-behavior: contain;
-      background: #ffffff;
-      color: #0f172a;
+      background: var(--bg-card);
+      color: var(--text-primary);
       border-radius: 12px;
       padding: 0.85rem;
       box-shadow: 0 18px 38px -5px rgba(0, 0, 0, 0.42), 0 0 0 1px rgba(0, 0, 0, 0.08);
@@ -1672,15 +1672,15 @@ export interface MaintenanceTicketItem {
       text-transform: uppercase;
     }
 
-    .popover-badge.pumps { background: #dbeafe; color: #1e40af; }
-    .popover-badge.cyclones { background: #f3e8ff; color: #6b21a8; }
+    .popover-badge.pumps { background: var(--tint-info-bg, #dbeafe); color: var(--primary-lavender); }
+    .popover-badge.cyclones { background: var(--tint-violet-bg, #f3e8ff); color: var(--tint-violet-text, #6b21a8); }
     .popover-badge.dam { background: #ffedd5; color: #9a3412; }
-    .popover-badge.feed { background: #d1fae5; color: #065f46; }
+    .popover-badge.feed { background: var(--tint-success-bg, #d1fae5); color: var(--tint-success-text, #065f46); }
 
     .popover-cota {
       font-size: 0.68rem;
       font-weight: 700;
-      color: #64748b;
+      color: var(--text-muted);
     }
 
     .popover-close {
@@ -1694,27 +1694,27 @@ export interface MaintenanceTicketItem {
     }
 
     .popover-close:hover {
-      color: #0f172a;
+      color: var(--text-primary);
     }
 
     .popover-title {
       margin: 0 0 0.25rem;
       font-size: 0.9rem;
       font-weight: 700;
-      color: #0f172a;
+      color: var(--text-primary);
     }
 
     .popover-desc {
       margin: 0 0 0.6rem;
       font-size: 0.74rem;
       line-height: 1.35;
-      color: #475569;
+      color: var(--text-secondary);
     }
 
     /* Popover Live SCADA Card */
     .popover-live-card {
-      background: #f0fdf4;
-      border: 1px solid #bbf7d0;
+      background: var(--tint-success-bg, #f0fdf4);
+      border: 1px solid var(--tint-success-border, #bbf7d0);
       border-radius: 8px;
       padding: 0.45rem 0.6rem;
       margin-bottom: 0.6rem;
@@ -1737,7 +1737,7 @@ export interface MaintenanceTicketItem {
     .live-label {
       font-size: 0.62rem;
       font-weight: 800;
-      color: #166534;
+      color: var(--tint-success-text, #166534);
       letter-spacing: 0.05em;
     }
 
@@ -1754,16 +1754,16 @@ export interface MaintenanceTicketItem {
     }
 
     .l-lbl {
-      color: #475569;
+      color: var(--text-secondary);
     }
 
     .l-val {
-      color: #0f172a;
+      color: var(--text-primary);
     }
 
     .popover-specs {
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
+      background: var(--bg-card-subtle);
+      border: 1px solid var(--border-color);
       border-radius: 6px;
       padding: 0.45rem;
       margin-bottom: 0.75rem;
@@ -1777,11 +1777,11 @@ export interface MaintenanceTicketItem {
     }
 
     .spec-lbl {
-      color: #64748b;
+      color: var(--text-muted);
     }
 
     .spec-val {
-      color: #0f172a;
+      color: var(--text-primary);
     }
 
     .popover-actions-row {
@@ -1795,7 +1795,7 @@ export interface MaintenanceTicketItem {
       align-items: center;
       justify-content: space-between;
       padding: 0.45rem 0.65rem;
-      background: #031795;
+      background: var(--primary-purple);
       color: #ffffff;
       font-size: 0.74rem;
       font-weight: 600;
@@ -1814,9 +1814,9 @@ export interface MaintenanceTicketItem {
       align-items: center;
       justify-content: center;
       padding: 0.45rem 0.5rem;
-      background: #fef3c7;
-      color: #92400e;
-      border: 1px solid #fde68a;
+      background: var(--tint-warning-bg, #fef3c7);
+      color: var(--tint-warning-text, #92400e);
+      border: 1px solid var(--tint-warning-border, #fde68a);
       font-size: 0.72rem;
       font-weight: 700;
       border-radius: 6px;
@@ -1825,7 +1825,7 @@ export interface MaintenanceTicketItem {
     }
 
     .popover-maint-btn:hover {
-      background: #fde68a;
+      background: var(--tint-warning-bg, #fde68a);
     }
 
     /* Mini-Mapa Radar (Prioridad 3) */
@@ -1952,8 +1952,8 @@ export interface MaintenanceTicketItem {
       font-size: 0.65rem;
       font-weight: 800;
       letter-spacing: 0.05em;
-      color: #031795;
-      background: #eef2ff;
+      color: var(--brand-text);
+      background: var(--primary-bg-subtle);
       padding: 0.15rem 0.45rem;
       border-radius: 4px;
       margin-bottom: 0.35rem;
@@ -1983,7 +1983,7 @@ export interface MaintenanceTicketItem {
 
     .drawer-close-btn:hover {
       color: var(--text-main, #0f172a);
-      background: var(--bg-subtle, #f1f5f9);
+      background: var(--bg-card-hover);
     }
 
     .drawer-content {
@@ -2016,7 +2016,7 @@ export interface MaintenanceTicketItem {
     }
 
     .spec-card {
-      background: var(--bg-subtle, #f8fafc);
+      background: var(--bg-card-subtle);
       border: 1px solid var(--border-color, #e2e8f0);
       border-radius: 8px;
       padding: 0.65rem 0.85rem;
@@ -2042,7 +2042,7 @@ export interface MaintenanceTicketItem {
     }
 
     .table-card-spec {
-      background: var(--bg-subtle, #f8fafc);
+      background: var(--bg-card-subtle);
       border: 1px solid var(--border-color, #e2e8f0);
       border-radius: 8px;
       overflow: hidden;
@@ -2078,11 +2078,11 @@ export interface MaintenanceTicketItem {
     }
 
     .text-emerald {
-      color: #059669;
+      color: var(--success);
     }
 
     .text-primary {
-      color: #031795;
+      color: var(--brand-text);
     }
 
     /* Dark Theme Adaptations */

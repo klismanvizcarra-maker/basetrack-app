@@ -297,7 +297,7 @@ interface SecondaryResult {
       border-radius: var(--radius-lg);
       background: var(--bg-card);
       border: 1px solid var(--border-subtle);
-      box-shadow: var(--shadow-sm);
+      box-shadow: var(--shadow-card);
 
       @media (max-width: 768px) {
         flex-direction: column;
@@ -320,9 +320,9 @@ interface SecondaryResult {
     .badge-blue {
       font-size: 0.72rem;
       font-weight: 800;
-      color: #031795;
-      background: #eef2ff;
-      border: 1px solid #c7d2fe;
+      color: var(--brand-text);
+      background: var(--primary-bg-subtle);
+      border: 1px solid var(--tint-info-border, #c7d2fe);
       padding: 3px 8px;
       border-radius: var(--radius-full);
       letter-spacing: 0.04em;
@@ -331,9 +331,9 @@ interface SecondaryResult {
     .live-pill {
       font-size: 0.72rem;
       font-weight: 700;
-      color: #059669;
-      background: #ecfdf5;
-      border: 1px solid #a7f3d0;
+      color: var(--success);
+      background: var(--success-bg);
+      border: 1px solid var(--tint-success-border, #a7f3d0);
       padding: 2px 8px;
       border-radius: var(--radius-full);
       display: flex;
@@ -483,7 +483,7 @@ interface SecondaryResult {
       border-radius: var(--radius-lg);
       background: var(--bg-card);
       border: 1px solid var(--border-subtle);
-      box-shadow: var(--shadow-sm);
+      box-shadow: var(--shadow-card);
       display: flex;
       flex-direction: column;
       gap: 20px;

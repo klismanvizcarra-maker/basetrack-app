@@ -1,5 +1,6 @@
-import { Component, OnInit, signal, ChangeDetectionStrategy } from '@angular/core';
+import { Component, OnInit, signal, ChangeDetectionStrategy, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { ThemeService } from './core/theme/theme.service';
 
 @Component({
   imports: [RouterOutlet],
@@ -10,6 +11,8 @@ import { RouterOutlet } from '@angular/router';
 })
 export class App implements OnInit {
   protected readonly title = signal('BASETRACK APP');
+  // Instancia el tema desde la raíz para que rutas sin layout (login) respeten el modo oscuro
+  private readonly themeService = inject(ThemeService);
 
   ngOnInit(): void {
     if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
@@ -47,7 +50,8 @@ export class App implements OnInit {
           'basetrack_auth_token',
           'basetrack_user',
           'basetrack_active_user',
-          'basetrack_theme'
+          'basetrack_theme',
+          'basetrack_theme_mode'
         ];
         const preserved: Record<string, string> = {};
         for (const k of preserveKeys) {

@@ -92,7 +92,7 @@ import { CommonModule } from '@angular/common';
         display: block;
         width: 38px;
         height: 5px;
-        background: #cbd5e1;
+        background: var(--tint-neutral-strong, #cbd5e1);
         border-radius: var(--radius-full);
         margin: 10px auto 0;
       }

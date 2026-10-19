@@ -877,16 +877,16 @@ import { generateAvatarSvg, getEffectiveAvatar } from '../../shared/utils/avatar
       gap: 8px;
       padding: 5px 12px;
       border-radius: var(--radius-full);
-      background: #fef3c7;
-      border: 1px solid #fde68a;
-      color: #92400e;
+      background: var(--tint-warning-bg, #fef3c7);
+      border: 1px solid var(--tint-warning-border, #fde68a);
+      color: var(--tint-warning-text, #92400e);
       font-size: 0.8rem;
       font-weight: 700;
 
       &.full-coverage {
-        background: #ecfdf5;
-        border-color: #a7f3d0;
-        color: #047857;
+        background: var(--success-bg);
+        border-color: var(--tint-success-border, #a7f3d0);
+        color: var(--tint-success-text, #047857);
 
         .pulse-dot {
           background: #059669;
@@ -1011,15 +1011,15 @@ import { generateAvatarSvg, getEffectiveAvatar } from '../../shared/utils/avatar
         border-radius: var(--radius-full);
 
         &.dia {
-          background: #fef3c7;
-          color: #b45309;
-          border: 1px solid #fde68a;
+          background: var(--tint-warning-bg, #fef3c7);
+          color: var(--tint-warning-text, #b45309);
+          border: 1px solid var(--tint-warning-border, #fde68a);
         }
 
         &.noche {
-          background: #e0e7ff;
-          color: #3730a3;
-          border: 1px solid #c7d2fe;
+          background: var(--tint-info-bg, #e0e7ff);
+          color: var(--tint-info-text, #3730a3);
+          border: 1px solid var(--tint-info-border, #c7d2fe);
         }
       }
     }
@@ -1121,7 +1121,7 @@ import { generateAvatarSvg, getEffectiveAvatar } from '../../shared/utils/avatar
     }
 
     .text-success {
-      color: #059669 !important;
+      color: var(--success) !important;
     }
 
     /* Supervisor Scoped Banner */
@@ -1147,7 +1147,7 @@ import { generateAvatarSvg, getEffectiveAvatar } from '../../shared/utils/avatar
         width: 44px;
         height: 44px;
         border-radius: 12px;
-        background: #031795;
+        background: var(--primary-purple);
         color: #ffffff;
         display: flex;
         align-items: center;
@@ -1181,14 +1181,14 @@ import { generateAvatarSvg, getEffectiveAvatar } from '../../shared/utils/avatar
       .sup-highlight-name {
         font-size: 0.95rem;
         font-weight: 800;
-        color: #031795;
+        color: var(--brand-text);
       }
 
       .guard-pill-tag {
         font-size: 0.72rem;
         font-weight: 800;
         padding: 2px 8px;
-        background: #031795;
+        background: var(--primary-purple);
         color: #ffffff;
         border-radius: 12px;
       }
@@ -1908,7 +1908,7 @@ import { generateAvatarSvg, getEffectiveAvatar } from '../../shared/utils/avatar
       transition: var(--transition-smooth);
 
       &:focus {
-        border-color: #031795;
+        border-color: var(--primary-purple);
         box-shadow: 0 0 0 3px rgba(3, 23, 149, 0.15);
       }
     }
@@ -1988,7 +1988,7 @@ import { generateAvatarSvg, getEffectiveAvatar } from '../../shared/utils/avatar
       }
 
       &.selected {
-        border-color: #031795;
+        border-color: var(--primary-purple);
         box-shadow: 0 0 8px rgba(3, 23, 149, 0.4);
       }
     }

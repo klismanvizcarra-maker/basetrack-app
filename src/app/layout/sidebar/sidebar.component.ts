@@ -296,7 +296,7 @@ import { ThemeService } from '../../core/theme/theme.service';
         </div>
 
         <!-- Theme Mode Switch in Sidebar -->
-        <div class="sidebar-theme-row" (click)="themeService.toggleTheme()" [title]="themeService.isDarkMode() ? 'Modo Oscuro Activo - Clic para cambiar a Modo Claro' : 'Modo Claro Activo - Clic para cambiar a Modo Oscuro'">
+        <div class="sidebar-theme-row" (click)="themeService.toggleTheme($event)" [title]="themeService.isDarkMode() ? 'Modo Oscuro Activo - Clic para cambiar a Modo Claro' : 'Modo Claro Activo - Clic para cambiar a Modo Oscuro'">
           <div class="theme-row-label">
             <span class="theme-row-icon">
               <svg *ngIf="themeService.isDarkMode()" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -418,7 +418,7 @@ import { ThemeService } from '../../core/theme/theme.service';
       width: 38px;
       height: 38px;
       border-radius: var(--radius-md);
-      background: #ffffff;
+      background: var(--bg-card);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -486,7 +486,7 @@ import { ThemeService } from '../../core/theme/theme.service';
       }
 
       &.active {
-        background: linear-gradient(135deg, #031795 0%, #02106b 100%);
+        background: linear-gradient(135deg, var(--primary-purple) 0%, var(--primary-violet) 100%);
         color: #ffffff;
         font-weight: 600;
         box-shadow: 0 3px 12px rgba(3, 23, 149, 0.3);
@@ -501,8 +501,8 @@ import { ThemeService } from '../../core/theme/theme.service';
 
     .nav-badge {
       margin-left: auto;
-      background: #fce7f3;
-      color: #be185d;
+      background: var(--tint-pink-bg, #fce7f3);
+      color: var(--tint-pink-text, #be185d);
       font-size: 0.7rem;
       font-weight: 700;
       padding: 2px 7px;
@@ -511,17 +511,17 @@ import { ThemeService } from '../../core/theme/theme.service';
 
     .nav-badge-crew {
       margin-left: auto;
-      background: #eef2ff;
-      color: #031795;
+      background: var(--primary-bg-subtle);
+      color: var(--brand-text);
       font-size: 0.7rem;
       font-weight: 700;
       padding: 2px 7px;
       border-radius: var(--radius-full);
-      border: 1px solid #c7d2fe;
+      border: 1px solid var(--tint-info-border, #c7d2fe);
     }
 
     .logout-btn:hover {
-      background: #fee2e2;
+      background: var(--tint-danger-bg, #fee2e2);
       color: var(--danger);
     }
 
@@ -541,7 +541,7 @@ import { ThemeService } from '../../core/theme/theme.service';
       position: relative;
       background: var(--bg-card);
       border: 1px solid var(--border-subtle);
-      border-left: 3.5px solid #031795;
+      border-left: 3.5px solid var(--primary-purple);
       border-radius: var(--radius-md);
       padding: 10px 12px;
       box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
@@ -551,7 +551,7 @@ import { ThemeService } from '../../core/theme/theme.service';
       transition: all 0.2s ease;
 
       &:hover {
-        border-color: #031795;
+        border-color: var(--primary-purple);
         box-shadow: 0 4px 12px rgba(3, 23, 149, 0.12);
       }
     }
@@ -591,9 +591,9 @@ import { ThemeService } from '../../core/theme/theme.service';
       height: 32px;
       border-radius: 8px;
       object-fit: contain;
-      background: #eff6ff;
+      background: var(--tint-info-bg, #eff6ff);
       padding: 3px;
-      border: 1px solid #bfdbfe;
+      border: 1px solid var(--tint-info-border, #bfdbfe);
     }
 
     .pwa-card-titles {
@@ -608,7 +608,7 @@ import { ThemeService } from '../../core/theme/theme.service';
       font-size: 0.58rem;
       font-weight: 800;
       letter-spacing: 0.05em;
-      color: #031795;
+      color: var(--brand-text);
       text-transform: uppercase;
     }
 
@@ -636,7 +636,7 @@ import { ThemeService } from '../../core/theme/theme.service';
       gap: 6px;
       padding: 6px 10px;
       border-radius: 7px;
-      background: #031795;
+      background: var(--primary-purple);
       color: #ffffff;
       border: none;
       font-size: 0.74rem;
@@ -646,7 +646,7 @@ import { ThemeService } from '../../core/theme/theme.service';
       box-shadow: 0 2px 6px rgba(3, 23, 149, 0.22);
 
       &:hover {
-        background: #02106b;
+        background: var(--primary-violet);
         transform: translateY(-1px);
         box-shadow: 0 4px 10px rgba(3, 23, 149, 0.35);
       }
@@ -661,7 +661,7 @@ import { ThemeService } from '../../core/theme/theme.service';
       border-radius: var(--radius-sm);
       background: var(--success-bg, #ecfdf5);
       border: 1px solid rgba(5, 150, 105, 0.3);
-      color: #065f46;
+      color: var(--tint-success-text, #065f46);
       font-size: 0.72rem;
       font-weight: 700;
     }
@@ -735,7 +735,7 @@ import { ThemeService } from '../../core/theme/theme.service';
     .theme-switch-pill {
       width: 36px;
       height: 20px;
-      background: #cbd5e1;
+      background: var(--tint-neutral-strong, #cbd5e1);
       border-radius: var(--radius-full);
       padding: 2px;
       display: flex;

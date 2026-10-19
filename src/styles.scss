@@ -68,6 +68,9 @@
   --mobile-bottom-bar-height: 62px;
   --safe-area-top: env(safe-area-inset-top, 0px);
   --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+
+  /* Texto de marca (azul cobalto en claro, se aclara en oscuro para mantener contraste) */
+  --brand-text: #031795;
 }
 
 /* ==========================================================================
@@ -128,6 +131,115 @@
   --shadow-card: 0 4px 20px -2px rgba(0, 0, 0, 0.55), 0 2px 6px -1px rgba(0, 0, 0, 0.45);
   --shadow-glow: 0 4px 18px rgba(59, 130, 246, 0.35);
   --shadow-glow-cyan: 0 4px 18px rgba(56, 189, 248, 0.28);
+
+  --brand-text: #60a5fa;
+
+  /* Tintes de estado SOLO para modo oscuro.
+     Los componentes los usan como var(--tint-*, <color claro original>): en claro el token
+     no existe y se aplica el valor original; en oscuro se reemplaza por un tinte armonizado. */
+  --tint-success-bg: rgba(16, 185, 129, 0.16);
+  --tint-success-text: #6ee7b7;
+  --tint-success-border: rgba(16, 185, 129, 0.38);
+  --tint-warning-bg: rgba(245, 158, 11, 0.16);
+  --tint-warning-text: #fcd34d;
+  --tint-warning-border: rgba(245, 158, 11, 0.38);
+  --tint-danger-bg: rgba(239, 68, 68, 0.16);
+  --tint-danger-text: #fca5a5;
+  --tint-danger-border: rgba(239, 68, 68, 0.38);
+  --tint-info-bg: rgba(59, 130, 246, 0.16);
+  --tint-info-text: #93c5fd;
+  --tint-info-border: rgba(59, 130, 246, 0.38);
+  --tint-violet-bg: rgba(139, 92, 246, 0.18);
+  --tint-violet-text: #c4b5fd;
+  --tint-violet-border: rgba(139, 92, 246, 0.38);
+  --tint-pink-bg: rgba(236, 72, 153, 0.16);
+  --tint-pink-text: #f9a8d4;
+  --tint-neutral-bg: #1e293b;
+  --tint-neutral-strong: #334155;
+  --tint-text-strong: #e2e8f0;
+}
+
+/* ==========================================================================
+   SMOOTH THEME TRANSITION SYSTEM (OBSIDIAN DARK <-> CLEAN SLATE LIGHT)
+   Smooth circular wipe with View Transitions API & graceful CSS fallback.
+   Eliminates abrupt light/dark flashbang effect on eyes.
+   ========================================================================== */
+
+/* 1. Modern View Transitions API (Chrome 111+, Safari 18+, Edge) */
+::view-transition-group(root) {
+  animation-duration: 480ms;
+}
+
+html.theme-vt-active::view-transition-image-pair(root) {
+  isolation: isolate;
+}
+
+html.theme-vt-active::view-transition-old(root),
+html.theme-vt-active::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+html.theme-vt-active::view-transition-old(root) {
+  z-index: 1;
+}
+
+html.theme-vt-active::view-transition-new(root) {
+  z-index: 9999;
+  -webkit-animation: 480ms cubic-bezier(0.25, 1, 0.5, 1) both theme-circle-reveal;
+  animation: 480ms cubic-bezier(0.25, 1, 0.5, 1) both theme-circle-reveal;
+}
+
+@-webkit-keyframes theme-circle-reveal {
+  0% {
+    -webkit-clip-path: circle(0px at var(--theme-x, 50%) var(--theme-y, 50%));
+    clip-path: circle(0px at var(--theme-x, 50%) var(--theme-y, 50%));
+  }
+  100% {
+    -webkit-clip-path: circle(var(--theme-r, 150vmax) at var(--theme-x, 50%) var(--theme-y, 50%));
+    clip-path: circle(var(--theme-r, 150vmax) at var(--theme-x, 50%) var(--theme-y, 50%));
+  }
+}
+
+@keyframes theme-circle-reveal {
+  0% {
+    -webkit-clip-path: circle(0px at var(--theme-x, 50%) var(--theme-y, 50%));
+    clip-path: circle(0px at var(--theme-x, 50%) var(--theme-y, 50%));
+  }
+  100% {
+    -webkit-clip-path: circle(var(--theme-r, 150vmax) at var(--theme-x, 50%) var(--theme-y, 50%));
+    clip-path: circle(var(--theme-r, 150vmax) at var(--theme-x, 50%) var(--theme-y, 50%));
+  }
+}
+
+/* 2. Fallback for browsers without View Transitions */
+html.theme-smooth-transition,
+html.theme-smooth-transition body,
+html.theme-smooth-transition *,
+html.theme-smooth-transition *::before,
+html.theme-smooth-transition *::after {
+  transition: background-color 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              border-color 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              color 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              fill 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              stroke 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  transition-delay: 0s !important;
+}
+
+/* 3. Accessibility: Respect prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  html.theme-vt-active::view-transition-new(root) {
+    animation: 200ms ease both theme-fade-in !important;
+  }
+  @keyframes theme-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  html.theme-smooth-transition,
+  html.theme-smooth-transition * {
+    transition: none !important;
+  }
 }
 
 /* Reset & Box Sizing */
@@ -347,7 +459,7 @@ input::placeholder, textarea::placeholder {
 
 .btn-primary,
 .btn-brand {
-  background: linear-gradient(135deg, #031795 0%, #02106b 100%);
+  background: linear-gradient(135deg, var(--primary-purple) 0%, var(--primary-violet) 100%);
   color: #ffffff;
   box-shadow: 0 3px 12px rgba(3, 23, 149, 0.28);
 }
@@ -356,17 +468,17 @@ input::placeholder, textarea::placeholder {
 .btn-brand:hover {
   transform: translateY(-1px);
   box-shadow: 0 5px 16px rgba(3, 23, 149, 0.45);
-  background: linear-gradient(135deg, #1e40af 0%, #031795 100%);
+  background: linear-gradient(135deg, #1e40af 0%, var(--primary-purple) 100%);
 }
 
 .btn-secondary {
-  background: #f1f5f9;
-  color: #1e293b;
-  border: 1px solid #cbd5e1;
+  background: var(--bg-card-hover);
+  color: var(--tint-text-strong, #1e293b);
+  border: 1px solid var(--tint-neutral-strong, #cbd5e1);
 }
 
 .btn-secondary:hover {
-  background: #e2e8f0;
+  background: var(--border-color);
   border-color: #94a3b8;
 }
 
@@ -395,46 +507,46 @@ input::placeholder, textarea::placeholder {
 .badge-primary,
 .badge-brand,
 .badge-purple {
-  background: #eef2ff;
-  color: #031795;
-  border: 1px solid #c7d2fe;
+  background: var(--primary-bg-subtle);
+  color: var(--brand-text);
+  border: 1px solid var(--tint-info-border, #c7d2fe);
 }
 
 .badge-success,
 .badge-emerald {
-  background: #ecfdf5;
-  color: #047857;
-  border: 1px solid #a7f3d0;
+  background: var(--success-bg);
+  color: var(--tint-success-text, #047857);
+  border: 1px solid var(--tint-success-border, #a7f3d0);
 }
 
 .badge-warning {
   background: var(--warning-bg);
   color: var(--warning);
-  border: 1px solid #fde68a;
+  border: 1px solid var(--tint-warning-border, #fde68a);
 }
 
 .badge-amber {
-  background: #fffbeb;
-  color: #d97706;
-  border: 1px solid #fde68a;
+  background: var(--warning-bg);
+  color: var(--warning);
+  border: 1px solid var(--tint-warning-border, #fde68a);
 }
 
 .badge-danger {
   background: var(--danger-bg);
   color: var(--danger);
-  border: 1px solid #fecaca;
+  border: 1px solid var(--tint-danger-border, #fecaca);
 }
 
 .badge-blue {
-  background: #eff6ff;
-  color: #1d4ed8;
-  border: 1px solid #bfdbfe;
+  background: var(--tint-info-bg, #eff6ff);
+  color: var(--tint-info-text, #1d4ed8);
+  border: 1px solid var(--tint-info-border, #bfdbfe);
 }
 
 .badge-slate {
-  background: #f1f5f9;
-  color: #475569;
-  border: 1px solid #cbd5e1;
+  background: var(--bg-card-hover);
+  color: var(--text-secondary);
+  border: 1px solid var(--tint-neutral-strong, #cbd5e1);
 }
 
 /* Station Pill Tabs (Matching Reference Image) */
@@ -453,9 +565,9 @@ input::placeholder, textarea::placeholder {
   border-radius: var(--radius-full);
   font-size: 0.82rem;
   font-weight: 700;
-  border: 1.5px solid #e2e8f0;
-  background: #ffffff;
-  color: #64748b;
+  border: 1.5px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-muted);
   cursor: pointer;
   transition: var(--transition-smooth);
 
@@ -467,36 +579,36 @@ input::placeholder, textarea::placeholder {
   }
 
   &.active {
-    border-color: #031795;
-    color: #031795;
-    background: #ffffff;
+    border-color: var(--primary-purple);
+    color: var(--brand-text);
+    background: var(--bg-card);
     box-shadow: 0 2px 8px rgba(3, 23, 149, 0.14);
 
     .pill-dot {
-      background: #031795;
+      background: var(--primary-purple);
       box-shadow: 0 0 6px rgba(3, 23, 149, 0.4);
     }
   }
 
   &:hover:not(.active) {
-    background: #f8fafc;
-    border-color: #cbd5e1;
-    color: #0f172a;
+    background: var(--bg-card-subtle);
+    border-color: var(--tint-neutral-strong, #cbd5e1);
+    color: var(--text-primary);
   }
 }
 
 /* Table Royal Blue Banner & Ice Group Headers */
 .table-banner-royal,
 .table-banner-emerald {
-  background: linear-gradient(135deg, #031795 0%, #02106b 100%);
+  background: linear-gradient(135deg, var(--primary-purple) 0%, var(--primary-violet) 100%);
   color: #ffffff;
   padding: 14px 22px;
 }
 
 .table-header-ice,
 .table-header-mint {
-  background: #eef2ff !important;
-  color: #031795 !important;
+  background: var(--primary-bg-subtle) !important;
+  color: var(--brand-text) !important;
   font-weight: 800 !important;
   letter-spacing: 0.04em;
 }

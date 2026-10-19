@@ -620,7 +620,7 @@ import { CloudSyncService } from '../../core/services/cloud-sync.service';
               <div
                 class="theme-option-box"
                 [class.active]="themeService.themeMode() === 'light'"
-                (click)="themeService.setThemeMode('light')"
+                (click)="themeService.setThemeMode('light', $event)"
               >
                 <div class="theme-box-icon sun-icon-box">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -650,7 +650,7 @@ import { CloudSyncService } from '../../core/services/cloud-sync.service';
               <div
                 class="theme-option-box"
                 [class.active]="themeService.themeMode() === 'dark'"
-                (click)="themeService.setThemeMode('dark')"
+                (click)="themeService.setThemeMode('dark', $event)"
               >
                 <div class="theme-box-icon moon-icon-box">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -672,7 +672,7 @@ import { CloudSyncService } from '../../core/services/cloud-sync.service';
               <div
                 class="theme-option-box"
                 [class.active]="themeService.themeMode() === 'auto'"
-                (click)="themeService.setThemeMode('auto')"
+                (click)="themeService.setThemeMode('auto', $event)"
               >
                 <div class="theme-box-icon auto-icon-box">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -966,19 +966,19 @@ import { CloudSyncService } from '../../core/services/cloud-sync.service';
           width: 18px;
           height: 18px;
           border-radius: var(--radius-full);
-          background: #031795;
+          background: var(--primary-purple);
           color: #ffffff;
           flex-shrink: 0;
         }
 
         &:hover {
-          border-color: #031795;
+          border-color: var(--primary-purple);
           background: var(--bg-card-hover);
           transform: translateY(-1px);
         }
 
         &.active {
-          border-color: #031795;
+          border-color: var(--primary-purple);
           background: #f0f4ff;
           box-shadow: 0 0 0 2px rgba(3, 23, 149, 0.25);
         }
@@ -1365,7 +1365,7 @@ import { CloudSyncService } from '../../core/services/cloud-sync.service';
 
     .field-error {
       font-size: 0.78rem;
-      color: #dc2626;
+      color: var(--danger);
       font-weight: 600;
     }
 

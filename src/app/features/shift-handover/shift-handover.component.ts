@@ -1319,7 +1319,7 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
     }
 
     .btn-pdf-icon {
-      background: #031795;
+      background: var(--primary-purple);
       color: #ffffff;
       padding: 0.35rem 0.65rem;
       &:hover {
@@ -1339,9 +1339,9 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      background: #ecfdf5;
-      color: #065f46;
-      border: 1px solid #a7f3d0;
+      background: var(--success-bg);
+      color: var(--tint-success-text, #065f46);
+      border: 1px solid var(--tint-success-border, #a7f3d0);
       padding: 3px 10px;
       border-radius: 9999px;
       font-size: 0.73rem;
@@ -1496,7 +1496,7 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
       }
 
       &.kpi-card-warning {
-        background: #fffbeb;
+        background: var(--warning-bg);
         border-color: rgba(245, 158, 11, 0.4);
       }
     }
@@ -1533,11 +1533,11 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
       color: var(--text-secondary);
 
       &.text-emerald {
-        color: #059669;
+        color: var(--success);
       }
 
       &.text-amber {
-        color: #d97706;
+        color: var(--warning);
       }
 
       &.text-red {
@@ -1561,26 +1561,26 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
       white-space: nowrap;
 
       &.badge-g1 {
-        background: #eff6ff;
-        color: #1d4ed8;
+        background: var(--tint-info-bg, #eff6ff);
+        color: var(--tint-info-text, #1d4ed8);
         border: 1px solid #93c5fd;
       }
 
       &.badge-g2 {
-        background: #ecfdf5;
-        color: #059669;
-        border: 1px solid #6ee7b7;
+        background: var(--success-bg);
+        color: var(--success);
+        border: 1px solid var(--tint-success-border, #6ee7b7);
       }
 
       &.badge-g3 {
-        background: #fffbeb;
-        color: #b45309;
-        border: 1px solid #fcd34d;
+        background: var(--warning-bg);
+        color: var(--tint-warning-text, #b45309);
+        border: 1px solid var(--tint-warning-border, #fcd34d);
       }
 
       &.badge-g4 {
-        background: #f5f3ff;
-        color: #7c3aed;
+        background: var(--tint-violet-bg, #f5f3ff);
+        color: var(--tint-violet-text, #7c3aed);
         border: 1px solid #c4b5fd;
       }
     }
@@ -1593,23 +1593,23 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
       white-space: nowrap;
 
       &.badge-g1 {
-        background: #eff6ff;
-        color: #1d4ed8;
+        background: var(--tint-info-bg, #eff6ff);
+        color: var(--tint-info-text, #1d4ed8);
       }
 
       &.badge-g2 {
-        background: #ecfdf5;
-        color: #059669;
+        background: var(--success-bg);
+        color: var(--success);
       }
 
       &.badge-g3 {
-        background: #fffbeb;
-        color: #b45309;
+        background: var(--warning-bg);
+        color: var(--tint-warning-text, #b45309);
       }
 
       &.badge-g4 {
-        background: #f5f3ff;
-        color: #7c3aed;
+        background: var(--tint-violet-bg, #f5f3ff);
+        color: var(--tint-violet-text, #7c3aed);
       }
     }
 
@@ -1651,17 +1651,17 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
       gap: 10px;
       padding: 6px 14px;
       border-radius: var(--radius-md);
-      background: #f1f5f9;
-      border: 1px solid #cbd5e1;
+      background: var(--bg-card-hover);
+      border: 1px solid var(--tint-neutral-strong, #cbd5e1);
       color: var(--text-secondary);
 
       &.seal-accepted {
-        background: #ecfdf5;
-        border-color: #6ee7b7;
-        color: #065f46;
+        background: var(--success-bg);
+        border-color: var(--tint-success-border, #6ee7b7);
+        color: var(--tint-success-text, #065f46);
 
         .seal-title {
-          color: #047857;
+          color: var(--tint-success-text, #047857);
         }
       }
 
@@ -1795,15 +1795,15 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
       flex-shrink: 0;
 
       &.bcs-conforme {
-        background: #ecfdf5;
-        color: #059669;
-        border: 1px solid #a7f3d0;
+        background: var(--success-bg);
+        color: var(--success);
+        border: 1px solid var(--tint-success-border, #a7f3d0);
       }
 
       &.bcs-observado {
-        background: #fffbeb;
-        color: #d97706;
-        border: 1px solid #fde68a;
+        background: var(--warning-bg);
+        color: var(--warning);
+        border: 1px solid var(--tint-warning-border, #fde68a);
       }
     }
 
@@ -2097,9 +2097,9 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
     .badge-pill-active {
       font-size: 0.65rem;
       font-weight: 800;
-      color: #059669;
-      background: #ecfdf5;
-      border: 1px solid #a7f3d0;
+      color: var(--success);
+      background: var(--success-bg);
+      border: 1px solid var(--tint-success-border, #a7f3d0);
       padding: 1px 6px;
       border-radius: 9999px;
     }
@@ -2169,7 +2169,7 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
         display: inline-flex;
         align-items: center;
         gap: 6px;
-        background: #031795;
+        background: var(--primary-purple);
         color: #ffffff;
         border: none;
         padding: 6px 14px;
@@ -2187,9 +2187,9 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
     }
 
     .sync-toast-alert {
-      background: #ecfdf5;
-      border: 1px solid #6ee7b7;
-      color: #065f46;
+      background: var(--success-bg);
+      border: 1px solid var(--tint-success-border, #6ee7b7);
+      color: var(--tint-success-text, #065f46);
       padding: 8px 12px;
       border-radius: var(--radius-sm);
       font-size: 0.76rem;
@@ -2270,11 +2270,11 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
     .gsb-tag {
       font-size: 0.68rem;
       font-weight: 800;
-      color: #1d4ed8;
+      color: var(--tint-info-text, #1d4ed8);
       letter-spacing: 0.03em;
 
       &.entrante-tag {
-        color: #059669;
+        color: var(--success);
       }
     }
 
@@ -2518,15 +2518,15 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
       transition: var(--transition-smooth);
 
       &.active-conforme {
-        background: #ecfdf5;
-        border-color: #6ee7b7;
-        color: #065f46;
+        background: var(--success-bg);
+        border-color: var(--tint-success-border, #6ee7b7);
+        color: var(--tint-success-text, #065f46);
       }
 
       &.active-observado {
-        background: #fffbeb;
-        border-color: #fde68a;
-        color: #92400e;
+        background: var(--warning-bg);
+        border-color: var(--tint-warning-border, #fde68a);
+        color: var(--tint-warning-text, #92400e);
       }
     }
 
@@ -2557,7 +2557,7 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
 
       .mva-item {
         font-size: 0.76rem;
-        color: #78350f;
+        color: var(--tint-warning-text, #78350f);
         background: rgba(255, 255, 255, 0.7);
         padding: 4px 8px;
         border-radius: 4px;
@@ -2565,7 +2565,7 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
 
       .mva-sub {
         font-size: 0.68rem;
-        color: #92400e;
+        color: var(--tint-warning-text, #92400e);
         font-style: italic;
       }
     }
@@ -2704,8 +2704,8 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
       flex-direction: column;
       align-items: flex-end;
       padding: 6px 12px;
-      background: #f1f5f9;
-      border: 1px solid #cbd5e1;
+      background: var(--bg-card-hover);
+      border: 1px solid var(--tint-neutral-strong, #cbd5e1);
       border-radius: var(--radius-md);
 
       strong {
@@ -2719,11 +2719,11 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
       }
 
       &.stamp-accepted {
-        background: #ecfdf5;
-        border-color: #6ee7b7;
+        background: var(--success-bg);
+        border-color: var(--tint-success-border, #6ee7b7);
 
         strong {
-          color: #065f46;
+          color: var(--tint-success-text, #065f46);
         }
       }
     }
@@ -2765,12 +2765,12 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
     .sup-card-tag {
       font-size: 0.68rem;
       font-weight: 700;
-      color: #1d4ed8;
+      color: var(--tint-info-text, #1d4ed8);
       text-transform: uppercase;
       letter-spacing: 0.04em;
 
       &.entrante-tag {
-        color: #059669;
+        color: var(--success);
       }
     }
 
@@ -2910,8 +2910,8 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
     }
 
     .dsw-pending-box {
-      background: #fffbeb;
-      border: 1px solid #fde68a;
+      background: var(--warning-bg);
+      border: 1px solid var(--tint-warning-border, #fde68a);
       border-radius: var(--radius-sm);
       padding: 10px 14px;
     }
@@ -2919,7 +2919,7 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
     .dsw-pending-pre {
       font-family: inherit;
       font-size: 0.82rem;
-      color: #92400e;
+      color: var(--tint-warning-text, #92400e);
       margin: 0;
       white-space: pre-wrap;
       line-height: 1.45;
@@ -2991,8 +2991,8 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
     .acd-declaration {
       width: 100%;
       text-align: left;
-      background: #ecfdf5;
-      border: 1px solid #a7f3d0;
+      background: var(--success-bg);
+      border: 1px solid var(--tint-success-border, #a7f3d0);
       border-radius: var(--radius-sm);
       padding: 10px 14px;
 
@@ -3001,7 +3001,7 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
         align-items: flex-start;
         gap: 10px;
         font-size: 0.78rem;
-        color: #065f46;
+        color: var(--tint-success-text, #065f46);
         cursor: pointer;
 
         input {
@@ -3053,9 +3053,9 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
     }
 
     .bms-count-pill {
-      background: #fef3c7;
-      color: #92400e;
-      border: 1px solid #fde68a;
+      background: var(--tint-warning-bg, #fef3c7);
+      color: var(--tint-warning-text, #92400e);
+      border: 1px solid var(--tint-warning-border, #fde68a);
       padding: 2px 8px;
       border-radius: 9999px;
       font-size: 0.72rem;
@@ -3088,7 +3088,7 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
       font-family: monospace;
       font-weight: 700;
       font-size: 0.76rem;
-      color: #031795;
+      color: var(--brand-text);
       background: rgba(3, 23, 149, 0.08);
       padding: 2px 6px;
       border-radius: 4px;
@@ -3159,9 +3159,9 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
     }
 
     .bts-count-pill {
-      background: #eff6ff;
-      color: #1e40af;
-      border: 1px solid #bfdbfe;
+      background: var(--tint-info-bg, #eff6ff);
+      color: var(--primary-lavender);
+      border: 1px solid var(--tint-info-border, #bfdbfe);
       padding: 2px 8px;
       border-radius: 9999px;
       font-size: 0.72rem;
@@ -3185,12 +3185,12 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
       padding: 8px 12px;
 
       &.item-alert {
-        border-color: #fca5a5;
-        background: #fef2f2;
+        border-color: var(--tint-danger-border, #fca5a5);
+        background: var(--danger-bg);
       }
       &.item-warning {
-        border-color: #fde68a;
-        background: #fffbeb;
+        border-color: var(--tint-warning-border, #fde68a);
+        background: var(--warning-bg);
       }
     }
 
@@ -3243,11 +3243,11 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
       text-transform: uppercase;
       letter-spacing: 0.02em;
 
-      &.cat-operacion { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
+      &.cat-operacion { background: var(--tint-info-bg, #eff6ff); color: var(--primary-lavender); border: 1px solid var(--tint-info-border, #bfdbfe); }
       &.cat-mantenimiento { background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; }
-      &.cat-seguridad { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
-      &.cat-parada { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
-      &.cat-relaves { background: #f5f3ff; color: #6d28d9; border: 1px solid #ddd6fe; }
+      &.cat-seguridad { background: var(--success-bg); color: var(--tint-success-text, #047857); border: 1px solid var(--tint-success-border, #a7f3d0); }
+      &.cat-parada { background: var(--danger-bg); color: var(--tint-danger-text, #b91c1c); border: 1px solid var(--tint-danger-border, #fecaca); }
+      &.cat-relaves { background: var(--tint-violet-bg, #f5f3ff); color: var(--tint-violet-text, #6d28d9); border: 1px solid var(--tint-violet-border, #ddd6fe); }
     }
 
     .bts-item-desc {
@@ -3355,7 +3355,7 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
       font-family: monospace;
       font-weight: 700;
       font-size: 0.74rem;
-      color: #031795;
+      color: var(--brand-text);
     }
 
     .mmc-ticket {
@@ -3382,7 +3382,7 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
       font-size: 0.76rem;
       color: #10b981;
       padding: 8px;
-      background: #ecfdf5;
+      background: var(--success-bg);
       border-radius: var(--radius-sm);
       display: flex;
       align-items: center;
@@ -3422,9 +3422,9 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
       transition: all 0.15s ease;
 
       &:hover {
-        background: #031795;
+        background: var(--primary-purple);
         color: #ffffff;
-        border-color: #031795;
+        border-color: var(--primary-purple);
       }
     }
 
@@ -3476,7 +3476,7 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
       white-space: nowrap;
 
       &:hover {
-        background: #031795;
+        background: var(--primary-purple);
       }
     }
 
@@ -3596,7 +3596,7 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
       font-family: monospace;
       font-weight: 700;
       font-size: 0.75rem;
-      color: #031795;
+      color: var(--brand-text);
     }
 
     .dsw-ot-number {

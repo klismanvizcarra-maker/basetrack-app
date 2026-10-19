@@ -1446,7 +1446,7 @@ export interface TrendStatsSummary {
       border: 1px solid transparent;
 
       &.primary {
-        background: #031795;
+        background: var(--primary-purple);
         color: #ffffff;
         box-shadow: 0 2px 4px rgba(3, 23, 149, 0.2);
 
@@ -1817,12 +1817,12 @@ export interface TrendStatsSummary {
       align-items: center;
       justify-content: center;
 
-      &.blue { background: #eff6ff; color: #2563eb; }
+      &.blue { background: var(--tint-info-bg, #eff6ff); color: #2563eb; }
       &.cyan { background: #ecfeff; color: #0891b2; }
-      &.purple { background: #f5f3ff; color: #7c3aed; }
-      &.amber { background: #fffbeb; color: #d97706; }
-      &.emerald { background: #ecfdf5; color: #059669; }
-      &.indigo { background: #eef2ff; color: #4f46e5; }
+      &.purple { background: var(--tint-violet-bg, #f5f3ff); color: var(--tint-violet-text, #7c3aed); }
+      &.amber { background: var(--warning-bg); color: var(--warning); }
+      &.emerald { background: var(--success-bg); color: var(--success); }
+      &.indigo { background: var(--primary-bg-subtle); color: #4f46e5; }
     }
 
     .kpi-info {
@@ -1834,7 +1834,7 @@ export interface TrendStatsSummary {
     .kpi-label {
       font-size: 0.72rem;
       font-weight: 600;
-      color: #64748b;
+      color: var(--text-muted);
       text-transform: uppercase;
     }
 
@@ -2056,13 +2056,13 @@ export interface TrendStatsSummary {
       }
 
       &.text-safe {
-        color: #059669;
+        color: var(--success);
       }
       &.text-warn {
-        color: #d97706;
+        color: var(--warning);
       }
       &.text-crit {
-        color: #dc2626;
+        color: var(--danger);
       }
     }
 
@@ -2146,7 +2146,7 @@ export interface TrendStatsSummary {
       height: 12px;
       border-radius: 3px;
 
-      &.crest { background: #031795; }
+      &.crest { background: var(--primary-purple); }
       &.water { background: #0284c7; }
       &.sand { background: #f59e0b; }
       &.beach { background: #fed7aa; border: 1px solid #f59e0b; }
@@ -2315,7 +2315,7 @@ export interface TrendStatsSummary {
       color: var(--text-primary);
 
       &.text-max { color: #0284c7; }
-      &.text-min { color: #d97706; }
+      &.text-min { color: var(--warning); }
     }
 
     .stat-delta-badge {

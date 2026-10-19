@@ -330,7 +330,7 @@ import { getEffectiveAvatar } from '../../shared/utils/avatar.util';
           <!-- Quick Actions Footer Bar -->
           <div class="hub-quick-actions">
             <!-- Dark/Light Theme -->
-            <button type="button" class="hub-action-btn" (click)="themeService.toggleTheme()">
+            <button type="button" class="hub-action-btn" (click)="themeService.toggleTheme($event)">
               <span class="action-icon">
                 <svg *ngIf="themeService.isDarkMode()" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <circle cx="12" cy="12" r="5"></circle>
@@ -675,7 +675,7 @@ import { getEffectiveAvatar } from '../../shared/utils/avatar.util';
       text-decoration: none;
       background: transparent;
       border: none;
-      color: #64748b;
+      color: var(--text-muted);
       cursor: pointer;
       position: relative;
       transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -829,7 +829,7 @@ import { getEffectiveAvatar } from '../../shared/utils/avatar.util';
     .hub-drag-pill {
       width: 44px;
       height: 5px;
-      background: #cbd5e1;
+      background: var(--tint-neutral-strong, #cbd5e1);
       border-radius: var(--radius-full);
       margin: 10px auto 4px;
       cursor: pointer;
@@ -859,7 +859,7 @@ import { getEffectiveAvatar } from '../../shared/utils/avatar.util';
         height: 100%;
         border-radius: 50%;
         object-fit: cover;
-        border: 2px solid #e2e8f0;
+        border: 2px solid var(--border-color);
       }
 
       .hub-status-dot {
@@ -974,12 +974,12 @@ import { getEffectiveAvatar } from '../../shared/utils/avatar.util';
         box-shadow: 0 0 0 1px var(--primary-purple);
 
         .hub-tile-title {
-          color: #031795;
+          color: var(--brand-text);
           font-weight: 800;
         }
 
         .hub-tile-icon {
-          background: #031795;
+          background: var(--primary-purple);
           color: #ffffff;
         }
       }
@@ -994,7 +994,7 @@ import { getEffectiveAvatar } from '../../shared/utils/avatar.util';
       justify-content: center;
       margin-bottom: 4px;
       background: rgba(3, 23, 149, 0.06);
-      color: #031795;
+      color: var(--brand-text);
       transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 
       svg {
@@ -1179,24 +1179,24 @@ import { getEffectiveAvatar } from '../../shared/utils/avatar.util';
 
         .tab-icon-wrap {
           background: rgba(3, 23, 149, 0.08);
-          color: #031795;
+          color: var(--brand-text);
         }
       }
 
       &.active {
         background: var(--bg-surface);
-        color: #031795;
-        border-color: #031795;
+        color: var(--brand-text);
+        border-color: var(--primary-purple);
         box-shadow: 0 2px 8px rgba(3, 23, 149, 0.12);
         font-weight: 700;
 
         .tab-icon-wrap {
           background: rgba(3, 23, 149, 0.12);
-          color: #031795;
+          color: var(--brand-text);
         }
 
         .tab-label {
-          color: #031795;
+          color: var(--brand-text);
         }
       }
     }
@@ -1255,16 +1255,16 @@ import { getEffectiveAvatar } from '../../shared/utils/avatar.util';
         letter-spacing: 0.4px;
 
         &.apple {
-          background: #f1f5f9;
-          color: #334155;
+          background: var(--bg-card-hover);
+          color: var(--tint-text-strong, #334155);
         }
         &.android {
-          background: #dcfce7;
-          color: #166534;
+          background: var(--tint-success-bg, #dcfce7);
+          color: var(--tint-success-text, #166534);
         }
         &.pc {
-          background: #e0e7ff;
-          color: #3730a3;
+          background: var(--tint-info-bg, #e0e7ff);
+          color: var(--tint-info-text, #3730a3);
         }
       }
 
@@ -1287,7 +1287,7 @@ import { getEffectiveAvatar } from '../../shared/utils/avatar.util';
         width: 22px;
         height: 22px;
         border-radius: 50%;
-        background: #031795;
+        background: var(--primary-purple);
         color: #ffffff;
         font-size: 0.72rem;
         font-weight: 800;
@@ -1313,22 +1313,22 @@ import { getEffectiveAvatar } from '../../shared/utils/avatar.util';
         .badge-icon {
           display: inline-block;
           font-weight: 800;
-          color: #031795;
+          color: var(--brand-text);
         }
       }
     }
 
     .step-benefit-box {
       font-size: 0.78rem;
-      background: #eff6ff;
-      border: 1px solid #bfdbfe;
-      color: #1e40af;
+      background: var(--tint-info-bg, #eff6ff);
+      border: 1px solid var(--tint-info-border, #bfdbfe);
+      color: var(--primary-lavender);
       padding: 8px 12px;
       border-radius: 8px;
       line-height: 1.4;
 
       strong {
-        color: #1d4ed8;
+        color: var(--tint-info-text, #1d4ed8);
       }
     }
 
@@ -1344,7 +1344,7 @@ import { getEffectiveAvatar } from '../../shared/utils/avatar.util';
         display: inline-flex;
         align-items: center;
         gap: 7px;
-        background: #031795;
+        background: var(--primary-purple);
         color: #ffffff;
         border: none;
         padding: 9px 18px;
