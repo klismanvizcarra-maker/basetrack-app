@@ -354,7 +354,7 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
             <span class="crew-guard-tag">Guardia Saliente: {{ resolveSupervisorGuard(latestHandover.outgoing_supervisor) }}</span>
           </div>
           <div class="handover-crew-grid">
-            <div class="h-crew-card" *ngFor="let m of currentSquadStaff">
+            <div class="h-crew-card" *ngFor="let m of currentSquadStaff" [title]="m.title + ' — ' + m.operatorName + ' (DNI: ' + m.documentId + ')'">
               <div class="h-crew-icon">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
@@ -1245,13 +1245,16 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
               <strong class="acd-val">{{ handoverToAccept.outgoing_supervisor }} (DNI: {{ handoverToAccept.outgoing_dni || resolveSupervisorDni(handoverToAccept.outgoing_supervisor) }})</strong>
             </div>
             <div class="acd-row">
-              <span class="acd-label">Supervisor Entrante (Usted):</span>
-              <strong class="acd-val text-emerald">{{ acceptingSupervisorName }} (DNI: {{ acceptingSupervisorDni }})</strong>
+              <span class="acd-label">Supervisor Entrante (Recepción):</span>
+              <strong class="acd-val text-emerald">
+                {{ (handoverToAccept.incoming_supervisor && handoverToAccept.incoming_supervisor !== handoverToAccept.outgoing_supervisor) ? handoverToAccept.incoming_supervisor : acceptingSupervisorName }} 
+                (DNI: {{ (handoverToAccept.incoming_supervisor && handoverToAccept.incoming_supervisor !== handoverToAccept.outgoing_supervisor) ? (handoverToAccept.incoming_dni || resolveSupervisorDni(handoverToAccept.incoming_supervisor)) : acceptingSupervisorDni }})
+              </strong>
             </div>
             <div class="acd-row">
               <span class="acd-label">Guardia Receptora:</span>
-              <span class="guard-pill-sm" [ngClass]="getGuardBadgeClass(resolveSupervisorGuard(acceptingSupervisorName))">
-                {{ resolveSupervisorGuard(acceptingSupervisorName) }}
+              <span class="guard-pill-sm" [ngClass]="getGuardBadgeClass(resolveSupervisorGuard((handoverToAccept.incoming_supervisor && handoverToAccept.incoming_supervisor !== handoverToAccept.outgoing_supervisor) ? handoverToAccept.incoming_supervisor : acceptingSupervisorName))">
+                {{ resolveSupervisorGuard((handoverToAccept.incoming_supervisor && handoverToAccept.incoming_supervisor !== handoverToAccept.outgoing_supervisor) ? handoverToAccept.incoming_supervisor : acceptingSupervisorName) }}
               </span>
             </div>
             <div class="acd-row">
@@ -1847,15 +1850,15 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
 
     .handover-crew-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
-      gap: 10px;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 12px;
     }
 
     .h-crew-card {
       display: flex;
       align-items: center;
-      gap: 10px;
-      padding: 8px 12px;
+      gap: 12px;
+      padding: 10px 14px;
       background: var(--bg-card-subtle, #f8fafc);
       border: 1px solid var(--border-subtle, #e2e8f0);
       border-radius: var(--radius-md, 8px);
@@ -1863,18 +1866,22 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
 
       &:hover {
         border-color: var(--border-focus, #3b82f6);
+        background: var(--bg-card, #ffffff);
       }
     }
 
     .h-crew-icon {
       font-size: 1.25rem;
+      flex-shrink: 0;
+      color: var(--text-secondary, #64748b);
     }
 
     .h-crew-info {
       display: flex;
       flex-direction: column;
       gap: 2px;
-      overflow: hidden;
+      min-width: 0;
+      flex: 1;
     }
 
     .h-crew-role {
@@ -1886,16 +1893,21 @@ const DEFAULT_CHECKLIST: HandoverChecklistItem[] = [
     }
 
     .h-crew-name {
-      font-size: 0.8rem;
+      font-size: 0.82rem;
+      font-weight: 700;
       color: var(--text-primary, #0f172a);
-      white-space: nowrap;
+      line-height: 1.25;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
       overflow: hidden;
-      text-overflow: ellipsis;
+      word-break: break-word;
     }
 
     .h-crew-meta {
       font-size: 0.68rem;
       color: var(--text-muted, #94a3b8);
+      font-family: var(--font-mono, monospace);
     }
 
     .banner-actions {
@@ -3867,10 +3879,16 @@ export class ShiftHandoverComponent implements OnInit, OnDestroy {
   getSquadStaffForGuard(guardCode: string) {
     const staff = this.crewService.getOfficialShiftStaff(guardCode);
     const positions = this.crewService.positions().filter(p => p.key !== 'SUPERVISOR');
+    const activeSupervisor = this.crewService.getActiveSupervisorForShift(guardCode);
     
     return positions.map(p => {
       let member: any = null;
-      if (p.key === 'SALA_CONTROL') member = staff.controlRoom;
+      if (p.key === 'SALA_CONTROL') {
+        const assignedOp = this.crewService.getAssignedOperatorForPosition(p.key, guardCode);
+        member = (assignedOp && assignedOp.name && assignedOp.name !== '--- Vacante ---')
+          ? assignedOp
+          : (staff.controlRoom && staff.controlRoom.name && staff.controlRoom.name !== '--- Vacante ---' ? staff.controlRoom : null);
+      }
       else if (p.key === 'BOMBAS') member = staff.bombas;
       else if (p.key === 'CICLONES_1') member = staff.ciclones1;
       else if (p.key === 'CICLONES_2') member = staff.ciclones2;
@@ -3882,11 +3900,17 @@ export class ShiftHandoverComponent implements OnInit, OnDestroy {
         member = this.crewService.getAssignedOperatorForPosition(p.key, guardCode);
       }
 
+      const isControlRoomFallback = p.key === 'SALA_CONTROL' && (!member || !member.name || member.name === '--- Vacante ---');
+
       return {
         key: p.key,
         title: p.title,
-        operatorName: member?.name || '--- Vacante ---',
-        documentId: member?.document_id || '---',
+        operatorName: isControlRoomFallback 
+          ? 'Supervisión de Turno (Consola DCS)' 
+          : (member?.name || '--- Vacante ---'),
+        documentId: isControlRoomFallback 
+          ? (activeSupervisor?.document_id || 'En Cabina') 
+          : (member?.document_id || '---'),
         radioChannel: member?.radio_channel || p.defaultRadio || 'Canal 1 Operaciones',
         location: p.defaultLocation || 'Planta Concentradora'
       };
@@ -4449,15 +4473,42 @@ export class ShiftHandoverComponent implements OnInit, OnDestroy {
     const shiftInfo = getCurrentActiveShift();
     const nextSup = this.officialSupervisors.find(s => s.shift === shiftInfo.nextGuard.code);
 
-    const finalIncomingSup = isCurrentUserOfficialSup 
-      ? isCurrentUserOfficialSup 
-      : (nextSup || this.officialSupervisors[0]);
+    // Determinar el supervisor entrante asegurando que NUNCA sea la misma persona que el saliente:
+    let finalIncomingSup: any = null;
+
+    // 1. Si el usuario logueado es un supervisor oficial diferente al saliente:
+    if (isCurrentUserOfficialSup && isCurrentUserOfficialSup.name !== this.handoverToAccept.outgoing_supervisor) {
+      finalIncomingSup = isCurrentUserOfficialSup;
+    }
+
+    // 2. Si la entrega ya tenía un supervisor entrante asignado diferente al saliente:
+    if (!finalIncomingSup && this.handoverToAccept.incoming_supervisor && this.handoverToAccept.incoming_supervisor !== this.handoverToAccept.outgoing_supervisor) {
+      finalIncomingSup = this.officialSupervisors.find(s => s.name === this.handoverToAccept!.incoming_supervisor) || {
+        name: this.handoverToAccept.incoming_supervisor,
+        dni: this.handoverToAccept.incoming_dni || this.resolveSupervisorDni(this.handoverToAccept.incoming_supervisor),
+        role: this.handoverToAccept.incoming_role || 'Supervisor de guardia',
+        shift: (this.handoverToAccept as any).incoming_guard || this.resolveSupervisorGuard(this.handoverToAccept.incoming_supervisor),
+        guardName: '',
+        radio: 'Canal 1 Operaciones'
+      };
+    }
+
+    // 3. Si no, calcular la siguiente guardia según el Roster:
+    if (!finalIncomingSup) {
+      const shiftInfo = getCurrentActiveShift();
+      const nextSup = this.officialSupervisors.find(s => s.shift === shiftInfo.nextGuard.code);
+      if (nextSup && nextSup.name !== this.handoverToAccept.outgoing_supervisor) {
+        finalIncomingSup = nextSup;
+      } else {
+        finalIncomingSup = this.officialSupervisors.find(s => s.name !== this.handoverToAccept!.outgoing_supervisor) || this.officialSupervisors[0];
+      }
+    }
 
     const acceptPayload = {
       incoming_supervisor: finalIncomingSup?.name || this.acceptingSupervisorName,
       incoming_dni: (finalIncomingSup as any)?.dni || (finalIncomingSup as any)?.document_id || this.acceptingSupervisorDni,
-      incoming_role: 'Supervisor de guardia',
-      incoming_guard: finalIncomingSup?.shift || 'G2'
+      incoming_role: finalIncomingSup?.role || 'Supervisor de guardia',
+      incoming_guard: finalIncomingSup?.shift || 'G4'
     };
 
     const found = this.handovers.find(h => h.id === id);
