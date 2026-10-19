@@ -48,6 +48,7 @@
           <option value="G2">Guardia G2</option>
           <option value="G3">Guardia G3</option>
           <option value="G4">Guardia G4</option>
+          <option value="GENERAL">Guardia General</option>
         </select>
       </div>
 
@@ -58,6 +59,7 @@
           <option value="ADMIN">ADMIN</option>
           <option value="SUPERVISOR">SUPERVISOR</option>
           <option value="OPERATOR">OPERATOR</option>
+          <option value="MAINTENANCE">MANTENIMIENTO</option>
         </select>
       </div>
     </div>
@@ -87,7 +89,7 @@
           <td>{{ u.full_name }}</td>
           <td>{{ u.email }}</td>
           <td>
-            <span class="badge" [class.badge-primary]="u.role === 'ADMIN'" [class.badge-success]="u.role === 'SUPERVISOR'" [class.badge-warning]="u.role === 'OPERATOR'">
+            <span class="badge" [class.badge-primary]="u.role === 'ADMIN'" [class.badge-success]="u.role === 'SUPERVISOR'" [class.badge-warning]="u.role === 'OPERATOR'" [class.badge-amber]="u.role === 'MAINTENANCE'">
               {{ u.role }}
             </span>
           </td>
@@ -158,6 +160,7 @@
           <option value="ADMIN">ADMIN (Acceso Total Planta)</option>
           <option value="SUPERVISOR">SUPERVISOR (Aprobaciones y Relevos)</option>
           <option value="OPERATOR">OPERATOR (Operaciones y Muestras)</option>
+          <option value="MAINTENANCE">MAINTENANCE (Técnico / Especialista)</option>
         </select>
       </div>
 
@@ -168,6 +171,7 @@
           <option value="G2">Guardia G2</option>
           <option value="G3">Guardia G3</option>
           <option value="G4">Guardia G4</option>
+          <option value="GENERAL">Guardia General / Taller</option>
         </select>
       </div>
     </div>

@@ -5,7 +5,7 @@ export interface UserItem {
   username: string;
   email: string;
   full_name: string;
-  role: 'ADMIN' | 'SUPERVISOR' | 'OPERATOR';
+  role: 'ADMIN' | 'SUPERVISOR' | 'OPERATOR' | 'MAINTENANCE';
   shift: string;
   avatar_url: string;
   created_at: string;

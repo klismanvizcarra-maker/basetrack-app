@@ -77,8 +77,8 @@ import { CloudSyncService } from '../../core/services/cloud-sync.service';
               <div class="user-pill-info">
                 <h4>{{ profileForm.fullName || 'Usuario' }}</h4>
                 <div class="badges-row">
-                  <span class="badge" [class.badge-primary]="authService.currentUser()?.role === 'ADMIN'" [class.badge-success]="authService.currentUser()?.role === 'SUPERVISOR'" [class.badge-warning]="authService.currentUser()?.role === 'OPERATOR'">
-                    {{ authService.currentUser()?.role === 'ADMIN' ? 'ADMINISTRADOR GENERAL' : (authService.currentUser()?.role === 'SUPERVISOR' ? 'SUPERVISOR DE GUARDIA' : (authService.currentUser()?.role || 'OPERADOR')) }}
+                  <span class="badge" [class.badge-primary]="authService.currentUser()?.role === 'ADMIN'" [class.badge-success]="authService.currentUser()?.role === 'SUPERVISOR'" [class.badge-warning]="authService.currentUser()?.role === 'OPERATOR'" [class.badge-amber]="authService.currentUser()?.role === 'MAINTENANCE'">
+                    {{ authService.currentUser()?.role === 'ADMIN' ? 'ADMINISTRADOR GENERAL' : (authService.currentUser()?.role === 'SUPERVISOR' ? 'SUPERVISOR DE GUARDIA' : (authService.currentUser()?.role === 'MAINTENANCE' ? 'ESPECIALISTA MANTENIMIENTO' : (authService.currentUser()?.role || 'OPERADOR'))) }}
                   </span>
                   <span class="badge badge-slate" *ngIf="authService.currentUser()?.role !== 'ADMIN' && profileForm.shift">
                     {{ profileForm.shift.startsWith('G') ? 'GUARDIA ' + profileForm.shift.slice(1) : profileForm.shift }}

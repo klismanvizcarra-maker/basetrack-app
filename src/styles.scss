@@ -413,6 +413,12 @@ input::placeholder, textarea::placeholder {
   border: 1px solid #fde68a;
 }
 
+.badge-amber {
+  background: #fffbeb;
+  color: #d97706;
+  border: 1px solid #fde68a;
+}
+
 .badge-danger {
   background: var(--danger-bg);
   color: var(--danger);

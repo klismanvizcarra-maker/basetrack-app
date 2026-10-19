@@ -1466,7 +1466,7 @@ export function updateRolePermissions(req: AuthenticatedRequest, res: Response) 
       return res.status(400).json({ success: false, message: 'Rol y lista de permisos son requeridos' });
     }
 
-    const validRoles = ['ADMIN', 'SUPERVISOR', 'OPERATOR'];
+    const validRoles = ['ADMIN', 'SUPERVISOR', 'OPERATOR', 'MAINTENANCE'];
     if (!validRoles.includes(role)) {
       return res.status(400).json({ success: false, message: `Rol inválido: ${role}` });
     }

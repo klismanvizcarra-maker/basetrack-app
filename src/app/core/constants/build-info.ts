@@ -1,2 +1,2 @@
 // Generado automáticamente por scripts/generate-version.mjs en cada build. No editar a mano.
-export const BUILD_TIME = 1792365873127;
+export const BUILD_TIME = 1792367912554;

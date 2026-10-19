@@ -44,19 +44,19 @@ export class AdminPermissionsTabComponent {
     });
   }
 
-  getRolePermCount(role: 'ADMIN' | 'SUPERVISOR' | 'OPERATOR'): number {
+  getRolePermCount(role: 'ADMIN' | 'SUPERVISOR' | 'OPERATOR' | 'MAINTENANCE'): number {
     if (role === 'ADMIN') return this.allPermissionsList.length;
     const rolePerms = this.permissionsService.rolePermissionsSignal()[role] || DEFAULT_ROLE_PERMISSIONS[role] || [];
     return rolePerms.length;
   }
 
-  isRolePermitted(role: 'ADMIN' | 'SUPERVISOR' | 'OPERATOR', key: PermissionKey): boolean {
+  isRolePermitted(role: 'ADMIN' | 'SUPERVISOR' | 'OPERATOR' | 'MAINTENANCE', key: PermissionKey): boolean {
     if (role === 'ADMIN') return true;
     const rolePerms = this.permissionsService.rolePermissionsSignal()[role] || DEFAULT_ROLE_PERMISSIONS[role] || [];
     return rolePerms.includes(key);
   }
 
-  toggleRolePermDirect(role: 'SUPERVISOR' | 'OPERATOR', key: PermissionKey): void {
+  toggleRolePermDirect(role: 'SUPERVISOR' | 'OPERATOR' | 'MAINTENANCE', key: PermissionKey): void {
     const current = [...(this.permissionsService.rolePermissionsSignal()[role] || DEFAULT_ROLE_PERMISSIONS[role] || [])];
     const isCurrentlyPermitted = current.includes(key);
     let updated: PermissionKey[];
@@ -68,7 +68,7 @@ export class AdminPermissionsTabComponent {
     this.permissionsService.updateRolePermission(role, updated).subscribe({ error: (err) => this.showPermissionsError(err) });
   }
 
-  setAllPermsForRole(role: 'SUPERVISOR' | 'OPERATOR', enable: boolean): void {
+  setAllPermsForRole(role: 'SUPERVISOR' | 'OPERATOR' | 'MAINTENANCE', enable: boolean): void {
     const allKeys = this.allPermissionsList.map(p => p.key);
     const updated = enable ? allKeys : [];
     this.permissionsService.updateRolePermission(role, updated).subscribe({

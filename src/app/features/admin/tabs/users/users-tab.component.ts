@@ -53,7 +53,7 @@ export class AdminUsersTabComponent {
   // Modal: Edit User Role & Shift (Punto 1)
   isEditUserModalOpen = false;
   selectedUserForEdit: UserItem | null = null;
-  editRole: 'ADMIN' | 'SUPERVISOR' | 'OPERATOR' = 'OPERATOR';
+  editRole: 'ADMIN' | 'SUPERVISOR' | 'OPERATOR' | 'MAINTENANCE' = 'OPERATOR';
   editShift = 'G1';
   isSavingUser = false;
 

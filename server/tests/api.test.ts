@@ -626,6 +626,7 @@ test('21. Permissions Matrix: GET, PUT roles, PUT overrides, GET /auth/permissio
   assert.ok(Array.isArray(matrix.rolePermissions.ADMIN), 'Admin role permissions must be an array');
   assert.ok(Array.isArray(matrix.rolePermissions.SUPERVISOR), 'Supervisor role permissions must be an array');
   assert.ok(Array.isArray(matrix.rolePermissions.OPERATOR), 'Operator role permissions must be an array');
+  assert.ok(Array.isArray(matrix.rolePermissions.MAINTENANCE), 'Maintenance role permissions must be an array');
 
   // 2. Fetch current user permissions via /auth/permissions
   const authPermsRes = await fetch(`${baseUrl}/auth/permissions`, {
@@ -636,7 +637,7 @@ test('21. Permissions Matrix: GET, PUT roles, PUT overrides, GET /auth/permissio
   assert.strictEqual(authPerms.success, true);
   assert.ok(authPerms.permissions.includes('CAN_ACCESS_ADMIN'), 'Admin must have CAN_ACCESS_ADMIN');
 
-  // 3. Update role permissions (grant CAN_CLOSE_SHIFT to OPERATOR as a test)
+  // 3. Update role permissions (grant CAN_CLOSE_SHIFT to OPERATOR and test MAINTENANCE update)
   const updatedOperatorPerms = [...matrix.rolePermissions.OPERATOR, 'CAN_CLOSE_SHIFT'];
   const putRoleRes = await fetch(`${baseUrl}/admin/permissions/roles`, {
     method: 'PUT',
@@ -652,6 +653,21 @@ test('21. Permissions Matrix: GET, PUT roles, PUT overrides, GET /auth/permissio
   assert.strictEqual(putRoleRes.status, 200);
   const putRoleJson = await putRoleRes.json() as any;
   assert.strictEqual(putRoleJson.success, true);
+
+  const putMaintRoleRes = await fetch(`${baseUrl}/admin/permissions/roles`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${authToken}`
+    },
+    body: JSON.stringify({
+      role: 'MAINTENANCE',
+      permissions: ['CAN_VIEW_OPERATIONS', 'CAN_RECORD_DATA', 'CAN_FILL_VEHICLES']
+    })
+  });
+  assert.strictEqual(putMaintRoleRes.status, 200);
+  const putMaintRoleJson = await putMaintRoleRes.json() as any;
+  assert.strictEqual(putMaintRoleJson.success, true);
 
   // 4. Update user override for a specific user
   const userOverrideRes = await fetch(`${baseUrl}/admin/permissions/users/2`, {
