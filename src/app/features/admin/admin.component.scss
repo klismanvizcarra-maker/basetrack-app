@@ -2961,6 +2961,12 @@
     letter-spacing: 0.04em;
     text-transform: uppercase;
 
+    &.badge-cat-ventanas {
+      background: #f0f9ff;
+      border: 1px solid #bae6fd;
+      color: #0369a1;
+    }
+
     &.badge-cat-operaciones {
       background: #eff6ff;
       border: 1px solid #bfdbfe;

@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import crypto from 'node:crypto';
 import bcrypt from 'bcryptjs';
 import dotenv from 'dotenv';
+import { DEFAULT_ROLE_PERMISSIONS } from '../config/permissions.js';
 
 dotenv.config();
 
@@ -839,6 +840,9 @@ export function initDatabase() {
 
     // 3. Ensure 4 Official Mining Trucks exist in vehicles table
     seedDefaultVehicles();
+
+    // 4. Ensure Role Permissions have default window VIEW_* permissions
+    seedDefaultRolePermissions();
   } catch (e) {
     console.warn('[Database] Initialization check warning:', e);
   }
@@ -869,3 +873,38 @@ export function seedDefaultVehicles(): void {
     console.warn('[Database] Error seeding default vehicles:', e);
   }
 }
+
+export function seedDefaultRolePermissions(): void {
+  try {
+    const migrationId = 'migration_window_permissions_v1';
+    const alreadyMigrated = db.prepare('SELECT 1 FROM plant_parameters WHERE id = ?').get(migrationId);
+
+    if (!alreadyMigrated) {
+      const existingRoles = db.prepare('SELECT role, permissions FROM role_permissions').all() as Array<{ role: string; permissions: string }>;
+      const upsertStmt = db.prepare("INSERT OR REPLACE INTO role_permissions (role, permissions, updated_at) VALUES (?, ?, datetime('now'))");
+      const roles: Array<keyof typeof DEFAULT_ROLE_PERMISSIONS> = ['ADMIN', 'SUPERVISOR', 'OPERATOR', 'MAINTENANCE'];
+
+      for (const role of roles) {
+        const existing = existingRoles.find(r => r.role === role);
+        const defaults = DEFAULT_ROLE_PERMISSIONS[role] || [];
+        if (!existing) {
+          upsertStmt.run(role, JSON.stringify(defaults));
+        } else {
+          let currentPerms: string[] = [];
+          try {
+            currentPerms = JSON.parse(existing.permissions);
+          } catch {}
+          const merged = Array.from(new Set([...currentPerms, ...defaults]));
+          upsertStmt.run(role, JSON.stringify(merged));
+        }
+      }
+
+      db.prepare("INSERT OR REPLACE INTO plant_parameters (id, parameters_json, updated_at, updated_by) VALUES (?, '{}', datetime('now'), 'SYSTEM')")
+        .run(migrationId);
+      console.log('[Database] Migrated and synchronized role_permissions to window permissions v1.');
+    }
+  } catch (e) {
+    console.warn('[Database] Error seeding default role permissions:', e);
+  }
+}
+

@@ -2,6 +2,7 @@ import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
+import { PermissionsService } from '../../core/auth/permissions.service';
 import { OfflineSyncService } from '../../core/offline/offline-sync.service';
 import { LayoutService } from '../../core/layout/layout.service';
 import { PwaService } from '../../core/pwa/pwa.service';
@@ -44,7 +45,7 @@ import { ThemeService } from '../../core/theme/theme.service';
       <nav class="sidebar-nav">
         <div class="nav-section-title">{{ authService.isMaintenance() ? 'MANTENIMIENTO' : 'OPERACIONES' }}</div>
         <ul class="nav-list">
-          <li class="nav-item">
+          <li class="nav-item" *ngIf="permissionsService.canViewDashboard()">
             <a routerLink="/dashboard" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" class="nav-link" (click)="onNavClick()">
               <span class="nav-icon">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -58,7 +59,7 @@ import { ThemeService } from '../../core/theme/theme.service';
             </a>
           </li>
 
-          <li class="nav-item" *ngIf="!authService.isMaintenance()">
+          <li class="nav-item" *ngIf="permissionsService.canViewShiftHandover()">
             <a routerLink="/shift-handover" routerLinkActive="active" class="nav-link" (click)="onNavClick()">
               <span class="nav-icon">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -72,7 +73,7 @@ import { ThemeService } from '../../core/theme/theme.service';
             </a>
           </li>
 
-          <li class="nav-item" *ngIf="!authService.isMaintenance()">
+          <li class="nav-item" *ngIf="permissionsService.canViewCrew()">
             <a routerLink="/crew" routerLinkActive="active" class="nav-link" (click)="onNavClick()">
               <span class="nav-icon">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -86,7 +87,7 @@ import { ThemeService } from '../../core/theme/theme.service';
             </a>
           </li>
 
-          <li class="nav-item" *ngIf="!authService.isMaintenance()">
+          <li class="nav-item" *ngIf="permissionsService.canViewRoster()">
             <a routerLink="/roster" routerLinkActive="active" class="nav-link" (click)="onNavClick()">
               <span class="nav-icon">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -100,7 +101,7 @@ import { ThemeService } from '../../core/theme/theme.service';
             </a>
           </li>
 
-          <li class="nav-item" *ngIf="!authService.isMaintenance()">
+          <li class="nav-item" *ngIf="permissionsService.canViewPumps()">
             <a routerLink="/pumps" routerLinkActive="active" class="nav-link" (click)="onNavClick()">
               <span class="nav-icon">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -116,7 +117,7 @@ import { ThemeService } from '../../core/theme/theme.service';
             </a>
           </li>
 
-          <li class="nav-item" *ngIf="!authService.isMaintenance()">
+          <li class="nav-item" *ngIf="permissionsService.canViewCyclones()">
             <a routerLink="/cyclones" routerLinkActive="active" class="nav-link" (click)="onNavClick()">
               <span class="nav-icon">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -127,7 +128,7 @@ import { ThemeService } from '../../core/theme/theme.service';
             </a>
           </li>
 
-          <li class="nav-item" *ngIf="!authService.isMaintenance()">
+          <li class="nav-item" *ngIf="permissionsService.canViewTailings()">
             <a routerLink="/tailings" routerLinkActive="active" class="nav-link" (click)="onNavClick()">
               <span class="nav-icon">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -139,7 +140,7 @@ import { ThemeService } from '../../core/theme/theme.service';
             </a>
           </li>
 
-          <li class="nav-item">
+          <li class="nav-item" *ngIf="permissionsService.canViewFlowsheet()">
             <a routerLink="/flowsheet" routerLinkActive="active" class="nav-link" (click)="onNavClick()">
               <span class="nav-icon">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -154,7 +155,7 @@ import { ThemeService } from '../../core/theme/theme.service';
             </a>
           </li>
 
-          <li class="nav-item">
+          <li class="nav-item" *ngIf="permissionsService.canViewMaintenance()">
             <a routerLink="/maintenance" routerLinkActive="active" class="nav-link" (click)="onNavClick()">
               <span class="nav-icon">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -165,7 +166,7 @@ import { ThemeService } from '../../core/theme/theme.service';
             </a>
           </li>
 
-          <li class="nav-item" *ngIf="!authService.isMaintenance()">
+          <li class="nav-item" *ngIf="permissionsService.canViewCalculators()">
             <a routerLink="/calculators" routerLinkActive="active" class="nav-link" (click)="onNavClick()">
               <span class="nav-icon">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -185,7 +186,7 @@ import { ThemeService } from '../../core/theme/theme.service';
             </a>
           </li>
 
-          <li class="nav-item" *ngIf="!authService.isMaintenance()">
+          <li class="nav-item" *ngIf="permissionsService.canViewVehicleChecklist()">
             <a routerLink="/vehicle-checklist" routerLinkActive="active" class="nav-link" (click)="onNavClick()">
               <span class="nav-icon">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -200,9 +201,9 @@ import { ThemeService } from '../../core/theme/theme.service';
             </a>
           </li>
 
-          <div class="nav-section-title" *ngIf="authService.isAdmin()">GESTIÓN</div>
+          <div class="nav-section-title" *ngIf="permissionsService.canViewAdminWindow()">GESTIÓN</div>
 
-          <li class="nav-item" *ngIf="authService.isAdmin()">
+          <li class="nav-item" *ngIf="permissionsService.canViewAdminWindow()">
             <a routerLink="/admin" routerLinkActive="active" class="nav-link" (click)="onNavClick()">
               <span class="nav-icon">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -785,6 +786,7 @@ import { ThemeService } from '../../core/theme/theme.service';
 })
 export class SidebarComponent {
   authService = inject(AuthService);
+  permissionsService = inject(PermissionsService);
   offlineSync = inject(OfflineSyncService);
   layoutService = inject(LayoutService);
   pwa = inject(PwaService);

@@ -32,8 +32,12 @@ export class AdminPermissionsTabComponent {
   allPermissionsList = ALL_PERMISSIONS;
   selectedOverrideUserId = '';
   permissionsSaveMessage = '';
-  permFilterCategory: 'ALL' | 'OPERACIONES' | 'GESTIÓN' | 'SEGURIDAD' = 'ALL';
+  permFilterCategory: 'ALL' | 'VENTANAS' | 'OPERACIONES' | 'GESTIÓN' | 'SEGURIDAD' = 'ALL';
   permSearchQuery = '';
+
+  getCategoryCount(cat: 'VENTANAS' | 'OPERACIONES' | 'GESTIÓN' | 'SEGURIDAD'): number {
+    return this.allPermissionsList.filter(p => p.category === cat).length;
+  }
 
   get filteredPermissionsList(): PermissionDefinition[] {
     return this.allPermissionsList.filter(p => {

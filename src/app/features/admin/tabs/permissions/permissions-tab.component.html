@@ -168,6 +168,19 @@
           </button>
           <button 
             type="button" 
+            class="cat-tab-btn cat-ventanas" 
+            [class.active]="permFilterCategory === 'VENTANAS'" 
+            (click)="permFilterCategory = 'VENTANAS'">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="display: inline-block; vertical-align: -1px; margin-right: 4px;">
+              <rect x="3" y="3" width="7" height="7"></rect>
+              <rect x="14" y="3" width="7" height="7"></rect>
+              <rect x="14" y="14" width="7" height="7"></rect>
+              <rect x="3" y="14" width="7" height="7"></rect>
+            </svg>
+            Ventanas <span class="tab-count">{{ getCategoryCount('VENTANAS') }}</span>
+          </button>
+          <button 
+            type="button" 
             class="cat-tab-btn cat-operaciones" 
             [class.active]="permFilterCategory === 'OPERACIONES'" 
             (click)="permFilterCategory = 'OPERACIONES'">
@@ -182,7 +195,7 @@
               <line x1="9" y1="8" x2="15" y2="8"></line>
               <line x1="17" y1="16" x2="23" y2="16"></line>
             </svg>
-            Operaciones
+            Operaciones <span class="tab-count">{{ getCategoryCount('OPERACIONES') }}</span>
           </button>
           <button 
             type="button" 
@@ -193,7 +206,7 @@
               <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
               <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
             </svg>
-            Gestión
+            Gestión <span class="tab-count">{{ getCategoryCount('GESTIÓN') }}</span>
           </button>
           <button 
             type="button" 
@@ -203,7 +216,7 @@
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="display: inline-block; vertical-align: -1px; margin-right: 4px;">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
             </svg>
-            Seguridad
+            Seguridad <span class="tab-count">{{ getCategoryCount('SEGURIDAD') }}</span>
           </button>
         </div>
 
@@ -296,16 +309,26 @@
           <tr *ngFor="let perm of filteredPermissionsList" class="perm-row">
             <td>
               <div class="perm-info">
-                <strong class="perm-label">{{ perm.label }}</strong>
+                <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                  <strong class="perm-label">{{ perm.label }}</strong>
+                  <code *ngIf="perm.route" style="font-size:0.68rem; padding:1px 6px; border-radius:4px; background:rgba(3,23,149,0.06); color:#031795; font-weight:700;">{{ perm.route }}</code>
+                </div>
                 <span class="perm-desc">{{ perm.description }}</span>
               </div>
             </td>
             <td style="text-align: center;">
               <span class="category-pill-badge" 
+                [class.badge-cat-ventanas]="perm.category === 'VENTANAS'"
                 [class.badge-cat-operaciones]="perm.category === 'OPERACIONES'" 
                 [class.badge-cat-gestion]="perm.category === 'GESTIÓN'" 
                 [class.badge-cat-seguridad]="perm.category === 'SEGURIDAD'">
                 <span class="cat-icon">
+                  <svg *ngIf="perm.category === 'VENTANAS'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                    <rect x="3" y="3" width="7" height="7"></rect>
+                    <rect x="14" y="3" width="7" height="7"></rect>
+                    <rect x="14" y="14" width="7" height="7"></rect>
+                    <rect x="3" y="14" width="7" height="7"></rect>
+                  </svg>
                   <svg *ngIf="perm.category === 'OPERACIONES'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
                     <line x1="4" y1="21" x2="4" y2="14"></line>
                     <line x1="4" y1="10" x2="4" y2="3"></line>
