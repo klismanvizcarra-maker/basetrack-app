@@ -620,8 +620,11 @@ input::placeholder, textarea::placeholder {
   to { opacity: 1; }
 }
 
+/* Sin `forwards`: una animación de opacidad que sigue "en efecto" mantiene un contexto de
+   apilamiento en la raíz de cada página, y los modales (z-index 99999) quedaban atrapados
+   por debajo del sidebar y el header. La opacidad final (1) ya es el estado natural. */
 .animate-fade-in {
-  animation: fadeIn 0.25s ease-out forwards;
+  animation: fadeIn 0.25s ease-out;
 }
 
 @keyframes pulseGlow {
@@ -816,7 +819,9 @@ input::placeholder, textarea::placeholder {
   .samples-sheet-card,
   .cyclones-sheet-card,
   .handover-form-card,
-  .page-top-bar,
+  /* .page-top-bar no va aquí: en varias páginas (cuadrilla, relevo, mantenimiento…) es una fila
+     transparente sin radio ni padding, y forzarle fondo la convertía en un bloque de esquinas
+     rectas. Las páginas que la diseñan como tarjeta ya usan var(--bg-card)/--bg-surface. */
   .station-controls-card,
   .profile-card,
   .calc-card,
