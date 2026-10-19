@@ -1709,13 +1709,27 @@ export interface ShiftHistorySummary {
 
       &.is-locked {
         position: relative;
-        cursor: not-allowed;
-        box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.45);
+        cursor: pointer;
+        box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.45);
+        border-color: rgba(239, 68, 68, 0.6) !important;
+
+        &.status-mantenimiento {
+          box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.45);
+          border-color: rgba(245, 158, 11, 0.6) !important;
+        }
       }
 
       .lock-icon-inline {
-        margin-right: 4px;
-        font-size: 0.72rem;
+        margin-right: 5px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        vertical-align: middle;
+        line-height: 1;
+
+        svg {
+          display: block;
+        }
       }
 
       &.status-operativo {
@@ -3293,7 +3307,7 @@ export class PumpsComponent implements OnInit, OnDestroy {
   isLockedByMaintenance(pump: PumpStatusItem | undefined | null): boolean {
     if (!pump || !pump.tag) return false;
     const status = pump.status;
-    if (status !== 'Falla' && status !== 'Mantenimiento') return false;
+    if (status === 'Falla' || status === 'Mantenimiento') return true;
     return this.lockedPumpTags.has(pump.tag.trim().toUpperCase());
   }
 
@@ -3316,6 +3330,9 @@ export class PumpsComponent implements OnInit, OnDestroy {
         });
       }
     });
+
+    const normTag = tag.trim().toUpperCase();
+    this.lockedPumpTags.delete(normTag);
 
     const raw = getRealtimeData<any>('maintenance_tickets', []);
     const tickets = Array.isArray(raw) ? raw : (raw && Array.isArray(raw.data) ? raw.data : []);
@@ -3414,7 +3431,7 @@ export class PumpsComponent implements OnInit, OnDestroy {
   }
 
   cycleStatus(pump: PumpStatusItem): void {
-    if (this.isLockedByMaintenance(pump)) {
+    if (this.isLockedByMaintenance(pump) || pump.status === 'Falla' || pump.status === 'Mantenimiento') {
       this.lockedPumpTag = pump.tag;
       this.lockedPumpStatus = pump.status;
       this.isLockModalOpen = true;
@@ -3425,9 +3442,14 @@ export class PumpsComponent implements OnInit, OnDestroy {
       pump.status = 'Stand by';
     } else if (pump.status === 'Stand by') {
       pump.status = 'Falla';
+      const normTag = pump.tag.trim().toUpperCase();
+      this.lockedPumpTags.add(normTag);
       this.createLocalMaintenanceTicket(pump.tag);
     } else {
-      pump.status = 'Operativo';
+      this.lockedPumpTag = pump.tag;
+      this.lockedPumpStatus = pump.status;
+      this.isLockModalOpen = true;
+      return;
     }
 
     this.onSheetChange();
