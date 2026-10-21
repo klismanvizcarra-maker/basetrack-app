@@ -890,7 +890,7 @@ export function seedDefaultVehicles(): void {
 
 export function seedDefaultRolePermissions(): void {
   try {
-    const migrationId = 'migration_window_permissions_v1';
+    const migrationId = 'migration_maintenance_record_data_v2';
     const alreadyMigrated = db.prepare('SELECT 1 FROM plant_parameters WHERE id = ?').get(migrationId);
 
     if (!alreadyMigrated) {
@@ -915,7 +915,7 @@ export function seedDefaultRolePermissions(): void {
 
       db.prepare("INSERT OR REPLACE INTO plant_parameters (id, parameters_json, updated_at, updated_by) VALUES (?, '{}', datetime('now'), 'SYSTEM')")
         .run(migrationId);
-      console.log('[Database] Migrated and synchronized role_permissions to window permissions v1.');
+      console.log('[Database] Migrated and synchronized role_permissions to window permissions v2 (including MAINTENANCE CAN_RECORD_DATA).');
     }
   } catch (e) {
     console.warn('[Database] Error seeding default role permissions:', e);

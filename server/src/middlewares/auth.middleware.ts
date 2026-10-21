@@ -161,7 +161,7 @@ export function requirePermission(permission: PermissionKey) {
       }
 
       // 2. Check role permissions from database
-      const userRole = (req.user.role || 'OPERATOR') as 'ADMIN' | 'SUPERVISOR' | 'OPERATOR';
+      const userRole = (req.user.role || 'OPERATOR') as 'ADMIN' | 'SUPERVISOR' | 'OPERATOR' | 'MAINTENANCE';
       const roleRow = db.prepare('SELECT permissions FROM role_permissions WHERE role = ?').get(userRole) as { permissions: string } | undefined;
       let effectiveRolePerms: string[] = DEFAULT_ROLE_PERMISSIONS[userRole] || [];
       if (roleRow && roleRow.permissions) {
@@ -180,7 +180,7 @@ export function requirePermission(permission: PermissionKey) {
       });
     } catch (err: any) {
       console.warn('[auth.middleware] requirePermission check failed:', err);
-      const defaultPerms = DEFAULT_ROLE_PERMISSIONS[req.user.role as 'ADMIN' | 'SUPERVISOR' | 'OPERATOR'] || [];
+      const defaultPerms = DEFAULT_ROLE_PERMISSIONS[req.user.role as 'ADMIN' | 'SUPERVISOR' | 'OPERATOR' | 'MAINTENANCE'] || [];
       if (defaultPerms.includes(permission)) {
         return next();
       }

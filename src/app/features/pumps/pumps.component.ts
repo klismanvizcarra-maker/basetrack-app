@@ -3372,6 +3372,12 @@ export class PumpsComponent implements OnInit, OnDestroy {
     const existing = Array.isArray(raw) ? raw : (raw && Array.isArray(raw.data) ? raw.data : []);
     const hasActive = existing.some((t: any) => t && t.equipment_tag === tag && (t.status === 'PENDING' || t.status === 'IN_PROGRESS'));
     if (!hasActive) {
+      const currentUser = this.authService.currentUser();
+      const rawOp = (this.sheet.operator_name || '').trim();
+      const opName = (rawOp && rawOp !== '--- Vacante ---' && !rawOp.toLowerCase().includes('sin asignar'))
+        ? rawOp
+        : (currentUser?.fullName || 'Operador de Bombas');
+
       // El correlativo real lo asigna el servidor; el borrador local nunca inventa un número de OT
       const ticketNum = 'OT-PENDIENTE';
       const newTicket = {
@@ -3379,10 +3385,10 @@ export class PumpsComponent implements OnInit, OnDestroy {
         ticket_number: ticketNum,
         equipment_tag: tag,
         title: `Falla reportada en Bomba ${tag}`,
-        description: `Orden de trabajo generada automáticamente desde la Planilla de Bombas${this.sheet.operator_name ? ` por ${this.sheet.operator_name}` : ''}`,
+        description: `Orden de trabajo generada automáticamente desde la Planilla de Bombas por ${opName}`,
         priority: 'HIGH',
         status: 'PENDING',
-        requester_name: this.sheet.operator_name || 'Operador de Bombas',
+        requester_name: opName,
         assigned_to: 'Equipo Mantenimiento Planta',
         photo_url: '',
         estimated_hours: 2,
@@ -3414,8 +3420,9 @@ export class PumpsComponent implements OnInit, OnDestroy {
             if (res?.id) {
               const current = getRealtimeData<any[]>('maintenance_tickets', []);
               const list = Array.isArray(current) ? current : [];
+              const realTicketNum = res.ticketNumber || res.ticket_number || 'OT-GUARDIA';
               saveRealtimeData('maintenance_tickets', list.map(t => t?.id === newTicket.id
-                ? { ...t, id: res.id, ticket_number: res.ticketNumber || t.ticket_number }
+                ? { ...t, id: res.id, ticket_number: realTicketNum }
                 : t));
               this.updateLockedPumpTags();
             }

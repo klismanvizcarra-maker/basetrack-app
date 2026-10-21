@@ -363,25 +363,45 @@ export class PermissionsService {
   }
 
   public refreshMatrix(): void {
-    this.http.get<{ success: boolean; rolePermissions: any; userOverrides: any }>(this.apiUrl).pipe(
-      tap(res => {
-        if (res && res.success) {
-          if (res.rolePermissions) {
-            this.rolePermissionsSignal.set(res.rolePermissions);
-            // Caché de una lectura GET: no debe emitirse como cambio local (ADR-014/015)
-            saveRealtimeData('basetrack_role_permissions', res.rolePermissions, { skipBroadcast: true });
+    const user = this.authService.currentUser();
+    if (!user) return;
+
+    // Solo ADMIN y SUPERVISOR tienen acceso al endpoint general /admin/permissions
+    if (user.role === 'ADMIN' || user.role === 'SUPERVISOR') {
+      this.http.get<{ success: boolean; rolePermissions: any; userOverrides: any }>(this.apiUrl).pipe(
+        tap(res => {
+          if (res && res.success) {
+            if (res.rolePermissions) {
+              this.rolePermissionsSignal.set(res.rolePermissions);
+              // Caché de una lectura GET: no debe emitirse como cambio local (ADR-014/015)
+              saveRealtimeData('basetrack_role_permissions', res.rolePermissions, { skipBroadcast: true });
+            }
+            if (res.userOverrides) {
+              this.userOverridesSignal.set(res.userOverrides);
+              saveRealtimeData('basetrack_user_permission_overrides', res.userOverrides, { skipBroadcast: true });
+            }
           }
-          if (res.userOverrides) {
-            this.userOverridesSignal.set(res.userOverrides);
-            saveRealtimeData('basetrack_user_permission_overrides', res.userOverrides, { skipBroadcast: true });
+        }),
+        catchError(err => {
+          console.warn('[PermissionsService] Backend no disponible, usando matriz local/offline:', err);
+          return of(null);
+        })
+      ).subscribe();
+    } else {
+      // Para OPERATOR y MAINTENANCE, consultar /auth/permissions sin invocar rutas restringidas de admin
+      this.http.get<{ success: boolean; permissions: PermissionKey[] }>(`${getApiBaseUrl()}/auth/permissions`).pipe(
+        tap(res => {
+          if (res && res.success && Array.isArray(res.permissions)) {
+            const role = (user.role || 'OPERATOR') as 'ADMIN' | 'SUPERVISOR' | 'OPERATOR' | 'MAINTENANCE';
+            const current = { ...this.rolePermissionsSignal() };
+            current[role] = res.permissions;
+            this.rolePermissionsSignal.set(current);
+            saveRealtimeData('basetrack_role_permissions', current, { skipBroadcast: true });
           }
-        }
-      }),
-      catchError(err => {
-        console.warn('[PermissionsService] Backend no disponible, usando matriz local/offline:', err);
-        return of(null);
-      })
-    ).subscribe();
+        }),
+        catchError(() => of(null))
+      ).subscribe();
+    }
   }
 
   public updateRolePermission(role: 'ADMIN' | 'SUPERVISOR' | 'OPERATOR' | 'MAINTENANCE', permissions: PermissionKey[]): Observable<any> {
